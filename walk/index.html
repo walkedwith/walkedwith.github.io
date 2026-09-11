@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#DCEBC4">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>맥스의 산책길</title>
+<style>
+  /* 단일 파일·외부 요청 0. 연한 들판색 바탕 — 지도를 그려 나가는 느낌으로 판을 종이처럼 둔다. */
+  :root{
+    --field:#DCEBC4; --paper:#FFFDF6; --ink:#33402E; --line:#D9E2C3; --mute:#6F7F66;
+    --accent:#E0873A; --accent-d:#B9691F; --good:#3E8E5A; --bad:#CF4F45;
+    --g:#BFE3A2; --f:#5E9A5C; --p:#E3C58F; --w:#7FB9E6; --empty:#EEF3E2;
+    --cell:min(10.2vw, 42px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
+  html,body{margin:0; min-height:100%; background:var(--field); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:14px}
+  body{display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
+  h1{font-size:19px; margin:0}
+  .maxrow{display:flex; align-items:center; gap:8px; width:100%; max-width:420px; justify-content:center; min-height:40px}
+  .max{width:44px; height:44px; flex:none; transform-origin:50% 90%}
+  .max.wag{animation:wag .5s ease-in-out} @keyframes wag{20%{transform:rotate(-8deg)} 60%{transform:rotate(8deg)}}
+  .bubble{position:relative; background:var(--paper); border-radius:12px; padding:7px 11px; font-size:13px; line-height:1.35; max-width:300px; box-shadow:0 2px 0 var(--line); opacity:0; transition:opacity .2s}
+  .bubble.on{opacity:1}
+  .bubble::before{content:''; position:absolute; left:-6px; top:14px; border:6px solid transparent; border-right-color:var(--paper); border-left:0}
+
+  .hud{width:100%; max-width:420px; background:var(--paper); border-radius:14px; padding:8px 14px; display:flex; justify-content:space-between; align-items:center;
+    box-shadow:0 2px 0 var(--line); font-weight:700; font-variant-numeric:tabular-nums}
+  .hud small{font-weight:400; color:var(--mute); font-size:11px; display:block}
+  .quests{width:100%; max-width:420px; display:flex; gap:6px; flex-wrap:wrap; min-height:24px}
+  .q{background:var(--paper); border-radius:8px; padding:2px 8px; font-size:12px; box-shadow:0 1px 0 var(--line); display:flex; gap:4px; align-items:center}
+  .q b{font-variant-numeric:tabular-nums} .q.done{opacity:.55; text-decoration:line-through}
+
+  .board{display:grid; grid-template-columns:repeat(9,var(--cell)); gap:2px; padding:5px; background:#C9D6B0; border-radius:12px}
+  .c{width:var(--cell); height:var(--cell); background:var(--empty); border-radius:4px; position:relative; overflow:hidden; cursor:default}
+  .c svg{position:absolute; inset:0; width:100%; height:100%}
+  .c.ok{cursor:pointer; outline:2px dashed rgba(62,142,90,.7); outline-offset:-2px}
+  .c.no{background:#F3E4E2}
+  .c .pv{position:absolute; right:2px; bottom:0; font-size:11px; font-weight:800; color:var(--good); text-shadow:0 0 2px #fff,0 0 2px #fff; z-index:2}
+  .c .pv.zero{color:#888; font-weight:400}
+  .c .qb{position:absolute; left:1px; top:0; font-size:10px; font-weight:800; background:rgba(255,253,246,.9); border-radius:5px; padding:0 3px; z-index:2}
+  .c .qb.done{background:rgba(62,142,90,.85); color:#fff}
+  .c .dog{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell)*.62); z-index:3; transition:transform .35s; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+  .c.pop svg{animation:pop .28s ease-out} @keyframes pop{0%{transform:scale(.6)} 70%{transform:scale(1.1)} 100%{transform:scale(1)}}
+  .c .float{position:absolute; left:50%; top:0; transform:translateX(-50%); font-size:14px; font-weight:800; color:var(--good); pointer-events:none; animation:rise .9s ease-out forwards; text-shadow:0 1px 0 #fff; z-index:4}
+  .c .float.big{color:var(--accent); font-size:16px}
+  @keyframes rise{0%{opacity:0; transform:translate(-50%,6px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-30px)}}
+
+  /* 손에 든 타일 — 크게 하나, 다음 두 장은 작게. 타일을 누르면 돌아간다. */
+  .hand{display:flex; align-items:center; gap:14px}
+  .tile{width:80px; height:80px; border-radius:10px; position:relative; overflow:hidden; box-shadow:0 3px 0 var(--line); cursor:pointer; background:var(--paper)}
+  .tile svg{position:absolute; inset:0; width:100%; height:100%; transition:transform .18s}
+  .tile .qb{position:absolute; left:3px; top:2px; font-size:12px; font-weight:800; background:rgba(255,253,246,.92); border-radius:6px; padding:0 4px; z-index:2}
+  .next{display:flex; flex-direction:column; gap:6px; align-items:center}
+  .next .tile{width:34px; height:34px; box-shadow:0 2px 0 var(--line); cursor:default}
+  .next small{font-size:11px; color:var(--mute)}
+  .tip{font-size:12px; color:var(--mute); text-align:center; min-height:16px; max-width:360px}
+  .row{display:flex; gap:8px}
+  button{font:inherit; border:0; border-radius:12px; padding:10px 16px; background:var(--paper); color:var(--ink); font-weight:700; box-shadow:0 3px 0 var(--line); cursor:pointer}
+  button:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line)}
+  button.pri{background:var(--accent); color:#fff; box-shadow:0 3px 0 var(--accent-d)}
+  button:disabled{opacity:.45; cursor:default}
+
+  .ov{position:fixed; inset:0; background:rgba(51,64,46,.55); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
+  .ov[hidden]{display:none}
+  .sheet{background:var(--paper); border-radius:18px; padding:18px; width:100%; max-width:390px; display:flex; flex-direction:column; gap:10px; max-height:90vh; overflow:auto}
+  .sheet h2{margin:0; font-size:19px} .sheet p{margin:0; line-height:1.5}
+  .rules{display:grid; grid-template-columns:auto 1fr; gap:6px 10px; font-size:13px; align-items:center}
+  .rules .sw{width:22px; height:22px; border-radius:5px; display:inline-block}
+  .stat{font-size:13px; color:var(--mute)}
+  .board-list{margin:0; padding-left:22px; font-size:14px; line-height:1.4}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+</style>
+</head>
+<body>
+<h1>맥스의 산책길</h1>
+<div class="maxrow">
+  <svg class="max" id="maxFace" viewBox="0 0 60 60" aria-hidden="true">
+    <path d="M8 22 q-6 14 4 20 q6 0 6 -8z" fill="#8A5A3C"/><path d="M52 22 q6 14 -4 20 q-6 0 -6 -8z" fill="#8A5A3C"/>
+    <circle cx="30" cy="30" r="21" fill="#E9C79A"/><ellipse cx="30" cy="37" rx="11" ry="9" fill="#F7E6CC"/>
+    <g id="mxEyes"><circle cx="22" cy="27" r="3" fill="#3B2F2F"/><circle cx="38" cy="27" r="3" fill="#3B2F2F"/></g>
+    <g id="mxSad" opacity="0"><path d="M18 26 l8 3 M42 26 l-8 3" stroke="#3B2F2F" stroke-width="2.5" stroke-linecap="round"/></g>
+    <ellipse cx="30" cy="35" rx="4" ry="3" fill="#3B2F2F"/>
+    <path id="mxMouth" d="M25 41 q5 4 10 0" stroke="#3B2F2F" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path id="mxTongue" d="M27 42 q3 7 6 0z" fill="#E88A9A" opacity="0"/>
+  </svg>
+  <div class="bubble" id="bubble"></div>
+</div>
+
+<div class="hud">
+  <span><small>점수</small><span id="hScore">0</span></span>
+  <span><small>남은 타일</small><span id="hStack">0</span></span>
+  <span><small>맥스가 걸은 길</small><span id="hWalk">0</span>칸</span>
+  <span><small>최고</small><span id="hBest">0</span></span>
+</div>
+<div class="quests" id="quests"></div>
+<div class="board" id="board"></div>
+<div class="tip" id="tip"></div>
+<div class="hand">
+  <div class="tile" id="hand" title="누르면 돌아가요"></div>
+  <div class="next"><small>다음</small><div class="tile" id="next1"></div><div class="tile" id="next2"></div></div>
+</div>
+<div class="row"><button id="btnRot">↻ 돌리기</button><button id="btnHelp">규칙</button></div>
+
+<div class="ov" id="ovStart"><div class="sheet">
+  <h2>맥스의 산책길</h2>
+  <p>타일을 이어 붙여 동네를 그립니다. <b>변이 같은 것끼리 닿으면</b> 점수, 네 변이 다 맞으면 <b>완벽</b> — 타일을 한 장 더 받습니다.</p>
+  <p>타일에 붙은 <b>의뢰</b>(🌲5 = 숲을 5칸으로)를 채우면 타일이 더 옵니다. 길이 이어지면 맥스가 걸어갑니다. 타일이 다 떨어지면 산책 끝.</p>
+  <div class="rules" id="ruleList"></div>
+  <p class="stat" id="meta"></p>
+  <div class="row"><button class="pri" id="btnGo" style="flex:1">산책 나가기</button><button id="btnBoard">기록</button></div>
+</div></div>
+
+<div class="ov" id="ovEnd" hidden><div class="sheet">
+  <h2>🐾 오늘 산책 끝</h2><p id="endBody"></p>
+  <button class="pri" id="btnAgain">다시</button>
+</div></div>
+
+<div class="ov" id="ovBoard" hidden><div class="sheet"><h2>🏅 기록</h2><div id="boardBox"></div><button id="btnBoardClose">닫기</button></div></div>
+
+<div class="ov" id="ovHelp" hidden><div class="sheet">
+  <h2>규칙</h2>
+  <div class="rules" id="ruleList2"></div>
+  <p><b>길·냇물은 끊기면 안 됩니다.</b> 길 변은 길 변이나 빈 칸에만, 냇물도 마찬가지. 빨간 칸은 그래서 못 놓는 자리 — 타일을 돌려 보세요.</p>
+  <p>변 하나가 맞으면 +1. 이웃이 둘 이상이고 전부 맞으면 <b>완벽</b> +3, 셋 이상이면 타일도 +1. 의뢰는 그 타일이 속한 구역이 목표 크기가 되면 완료 — 점수(크기×2)와 타일 2~3장.</p>
+  <button id="btnHelpClose">닫기</button>
+</div></div>
+
+<script>
+/* ═══════════════════ 규칙 ═══════════════════ */
+const N=9, MID=4;
+const KIND={g:{nm:'잔디',ic:'🌼',col:'var(--g)'}, f:{nm:'숲',ic:'🌲',col:'var(--f)'}, p:{nm:'길',ic:'🐾',col:'var(--p)'}, w:{nm:'냇물',ic:'💧',col:'var(--w)'}};
+const FLOW=k=>k==='p'||k==='w';                       // 끊기면 안 되는 것
+// 타일 틀 — [북,동,남,서]. 뽑을 때 무작위로 돌린다.
+const TEMPL=[
+  {e:'gggg',w:10}, {e:'ffff',w:6}, {e:'ffgg',w:10}, {e:'fggg',w:8}, {e:'fgfg',w:3},
+  {e:'pgpg',w:12}, {e:'ppgg',w:10}, {e:'pgpf',w:5}, {e:'pppg',w:4}, {e:'pfpf',w:3},
+  {e:'wgwg',w:6}, {e:'wwgg',w:5}, {e:'wfwf',w:3}, {e:'pwpw',w:2},
+];
+const QUEST_N={f:[4,5,6], g:[5,6,7], p:[4,5,6], w:[3,4,5]};
+const START_STACK=26;   // 봇 기준 45~60장에서 떨어진다 — 판(81칸)보다 먼저
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1]];               // 북동남서 — 변 인덱스와 같은 순서
+const OPP=[2,3,0,1];
+const inb=(r,c)=>r>=0&&r<N&&c>=0&&c<N;
+
+function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function drawTile(rand){
+  let sum=TEMPL.reduce((s,t)=>s+t.w,0), x=rand()*sum, e='gggg';
+  for(const t of TEMPL){ x-=t.w; if(x<0){ e=t.e; break; } }
+  let edges=e.split(''); const rot=(rand()*4)|0; for(let i=0;i<rot;i++) edges=[edges[3],edges[0],edges[1],edges[2]];
+  const t={e:edges, q:null};
+  if(rand()<.3){ const kinds=[...new Set(edges)]; const k=kinds[(rand()*kinds.length)|0]; const ns=QUEST_N[k]; t.q={k, n:ns[(rand()*ns.length)|0], done:false}; }
+  return t;
+}
+const rotated=t=>({...t, e:[t.e[3],t.e[0],t.e[1],t.e[2]]});
+
+// 놓을 수 있나 + 몇 점인가. {ok, score, matches, perfect, why}
+function evalPlace(G,r,c,t){
+  if(G[r][c]) return {ok:false};
+  let nb=0, m=0;
+  for(let d=0;d<4;d++){ const rr=r+DIRS[d][0], cc=c+DIRS[d][1]; if(!inb(rr,cc)) continue; const o=G[rr][cc]; if(!o) continue; nb++;
+    const a=t.e[d], b=o.e[OPP[d]];
+    if(a===b) m++;
+    else if(FLOW(a)||FLOW(b)) return {ok:false, why:'끊김'};   // 길·냇물은 같은 것끼리만
+  }
+  if(!nb) return {ok:false};
+  const perfect = nb>=2 && m===nb;
+  return {ok:true, score:m+(perfect?3:0), matches:m, perfect, bonusTile:perfect&&nb>=3, nb};   // 타일 보너스는 셋 이상 맞았을 때만 — 둘은 너무 흔하다
+}
+// 같은 종류 변으로 이어진 구역 크기 — 한 타일 안의 같은 변은 이어진 걸로 본다
+function regionSize(G,r,c,k){
+  const seen=new Set(), q=[[r,c]]; seen.add(r*N+c);
+  while(q.length){ const [a,b]=q.shift(); const t=G[a][b];
+    for(let d=0;d<4;d++){ if(t.e[d]!==k) continue; const rr=a+DIRS[d][0], cc=b+DIRS[d][1]; if(!inb(rr,cc)) continue; const o=G[rr][cc]; if(!o||o.e[OPP[d]]!==k) continue;
+      const key=rr*N+cc; if(seen.has(key)) continue; seen.add(key); q.push([rr,cc]); } }
+  return seen.size;
+}
+
+/* ═══════════════════ 상태 ═══════════════════ */
+const $=id=>document.getElementById(id);
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let meta=store.get('walk.meta',{best:0, runs:0, board:[]});
+let S=null;   // {G, stack:[], hand, score, walk, dog:{r,c}, rand, quests:[]}
+
+function newRun(){
+  const seed=(Date.now()^(Math.random()*1e9))>>>0, rand=mulberry(seed);
+  S={G:Array.from({length:N},()=>Array(N).fill(null)), stack:[], score:0, walk:0, rand, seed, quests:[], placed:0, perfects:0};
+  S.G[MID][MID]={e:['p','g','p','g'], q:null, start:true};   // 집 앞 길 — 남북으로
+  S.dog={r:MID,c:MID};
+  for(let i=0;i<START_STACK;i++) S.stack.push(drawTile(rand));
+  S.hand=S.stack.shift();
+  meta.runs++; store.set('walk.meta',meta);
+  render(); say('타일을 눌러 돌리고, 점선 칸에 놓아봐. 길을 이어 주면 내가 걸어갈게!', {ms:4000});
+}
+function place(r,c){
+  const ev=evalPlace(S.G,r,c,S.hand); if(!ev.ok) return;
+  const t=S.hand; S.G[r][c]=t; S.score+=ev.score; S.placed++;
+  if(t.q){ S.quests.push({r,c,...t.q}); }
+  let gained=0; if(ev.perfect) S.perfects++; if(ev.bonusTile){ S.stack.push(drawTile(S.rand)); gained++; }
+  // 의뢰 진행
+  const doneNow=[];
+  for(const q of S.quests){ if(q.done) continue; const sz=regionSize(S.G,q.r,q.c,q.k); q.size=sz; if(sz>=q.n){ q.done=true; S.G[q.r][q.c].q.done=true; const add=q.n>=6?3:2; for(let i=0;i<add;i++) S.stack.push(drawTile(S.rand)); gained+=add; S.score+=q.n*2; doneNow.push(q); } }
+  // 맥스 — 이 타일이 집 앞 길과 이어졌으면 거기까지 걷는다
+  let walked=false;
+  if(t.e.includes('p')&&connectedToStart(r,c)){ S.dog={r,c}; S.walk=regionSize(S.G,MID,MID,'p')-1; walked=true; }
+  S.hand=S.stack.shift()||null;
+  render();
+  const e=cellEl(r,c); e.classList.remove('pop'); void e.offsetWidth; e.classList.add('pop');
+  const f=document.createElement('span'); f.className='float'+(ev.perfect?' big':''); f.textContent='+'+ev.score+(ev.perfect?' 완벽':''); e.appendChild(f); setTimeout(()=>f.remove(),950);
+  beep(ev.perfect?3:ev.matches);
+  if(doneNow.length) say(`의뢰 완료! ${doneNow.map(q=>KIND[q.k].ic+q.n).join(' ')} — 타일 +${gained}`, {face:'happy', ms:2200});
+  else if(ev.bonusTile) say('완벽! 타일 한 장 더 🐾', {face:'happy', ms:1500});
+  else if(ev.perfect) say('딱 맞네!', {face:'happy', ms:900});
+  else if(walked) say(pick(['멍! 여기까지 왔어','킁킁… 새 길 냄새','산책 좋아!']), {face:'happy', ms:1200});
+  if(!S.hand) setTimeout(endRun, 600);
+  else if(!anyLegal()){ say('놓을 데가 없네… 돌려 봐도 안 되면 산책 끝이야.', {face:'sad', ms:2500}); if(!anyLegalAnyRot()) setTimeout(endRun, 1800); }
+}
+function connectedToStart(r,c){
+  const seen=new Set(), q=[[MID,MID]]; seen.add(MID*N+MID);
+  while(q.length){ const [a,b]=q.shift(); if(a===r&&b===c) return true; const t=S.G[a][b];
+    for(let d=0;d<4;d++){ if(t.e[d]!=='p') continue; const rr=a+DIRS[d][0], cc=b+DIRS[d][1]; if(!inb(rr,cc)) continue; const o=S.G[rr][cc]; if(!o||o.e[OPP[d]]!=='p') continue; const k=rr*N+cc; if(!seen.has(k)){ seen.add(k); q.push([rr,cc]); } } }
+  return false;
+}
+const anyLegal=()=>{ for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(evalPlace(S.G,r,c,S.hand).ok) return true; return false; };
+const anyLegalAnyRot=()=>{ let t=S.hand; for(let i=0;i<4;i++){ for(let r=0;r<N;r++) for(let c=0;c<N;c++) if(evalPlace(S.G,r,c,t).ok) return true; t=rotated(t); } return false; };
+function rotate(){ if(!S||!S.hand) return; S.hand=rotated(S.hand); render(); }
+function endRun(){
+  if(!S||S.over) return; S.over=true;
+  meta.best=Math.max(meta.best,S.score);
+  const entry={score:S.score, walk:S.walk, tiles:S.placed, date:new Date().toISOString().slice(0,10)};
+  meta.board.push(entry); meta.board.sort((a,b)=>b.score-a.score); meta.board=meta.board.slice(0,5); const rank=meta.board.indexOf(entry)+1;
+  store.set('walk.meta',meta);
+  $('endBody').innerHTML=`<b>${S.score}점</b> · 타일 ${S.placed}장 · 완벽 ${S.perfects}번 · 의뢰 ${S.quests.filter(q=>q.done).length}/${S.quests.length}<br>맥스가 걸은 길 <b>${S.walk}칸</b>${rank?`<br>기록 ${rank}위!`:''}`;
+  face('happy'); $('ovEnd').hidden=false;
+}
+
+/* ═══════════════════ 그리기 — 타일은 SVG 쐐기 넷 + 길·냇물 띠 ═══════════════════ */
+function tileSVG(t, big){
+  const col=k=>KIND[k].col;
+  // 바탕: 네 쐐기(잔디·숲). 길·냇물 변은 잔디 쐐기 위에 띠로.
+  const wedge=[ 'M0,0 L40,0 L20,20 Z', 'M40,0 L40,40 L20,20 Z', 'M40,40 L0,40 L20,20 Z', 'M0,40 L0,0 L20,20 Z' ];
+  const band =[ 'M20,0 L20,20', 'M40,20 L20,20', 'M20,40 L20,20', 'M0,20 L20,20' ];
+  let s=`<svg viewBox="0 0 40 40" aria-hidden="true">`;
+  for(let d=0;d<4;d++){ const k=t.e[d]; s+=`<path d="${wedge[d]}" fill="${FLOW(k)?col('g'):col(k)}"/>`; }
+  const flows=t.e.map((k,d)=>FLOW(k)?d:-1).filter(d=>d>=0);
+  for(const k of ['w','p']){ const ds=flows.filter(d=>t.e[d]===k); if(!ds.length) continue;
+    s+=`<g stroke="${col(k)}" stroke-width="${big?13:12}" stroke-linecap="round" fill="none">`; for(const d of ds) s+=`<path d="${band[d]}"/>`; s+=`</g>`;
+    if(ds.length===1) s+=`<circle cx="20" cy="20" r="6" fill="${col(k)}"/>`; }
+  // 숲 쐐기엔 나무 점, 잔디 쐐기엔 꽃 점 — 작아도 종류가 읽히게
+  const cen=[[20,7],[33,20],[20,33],[7,20]];
+  for(let d=0;d<4;d++){ const k=t.e[d]; if(k==='f') s+=`<circle cx="${cen[d][0]}" cy="${cen[d][1]}" r="2.6" fill="#2F6B3A"/>`; if(k==='g'&&big) s+=`<circle cx="${cen[d][0]}" cy="${cen[d][1]}" r="1.4" fill="#F4D35E"/>`; }
+  if(t.start) s+=`<text x="20" y="25" font-size="12" text-anchor="middle">🏠</text>`;
+  return s+`</svg>`;
+}
+function buildBoard(){ const b=$('board'); b.innerHTML=''; for(let i=0;i<N*N;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>place((i/N)|0,i%N); b.appendChild(d); } }
+const cellEl=(r,c)=>$('board').children[r*N+c];
+function render(){
+  $('hScore').textContent=S.score; $('hStack').textContent=S.stack.length+(S.hand?1:0); $('hWalk').textContent=S.walk; $('hBest').textContent=meta.best;
+  $('quests').innerHTML=S.quests.filter(q=>!q.done).slice(-6).map(q=>`<span class="q">${KIND[q.k].ic} <b>${Math.min(q.size||1,q.n)}/${q.n}</b></span>`).join('') || '<span class="q" style="opacity:.6">의뢰 없음 — 타일에 붙어서 와요</span>';
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const e=cellEl(r,c), t=S.G[r][c]; e.className='c'; e.innerHTML='';
+    if(t){ e.innerHTML=tileSVG(t,false); if(t.q) e.innerHTML+=`<span class="qb${t.q.done?' done':''}">${KIND[t.q.k].ic}${t.q.done?'✓':t.q.n}</span>`; }
+    else if(S.hand&&!S.over){ const ev=evalPlace(S.G,r,c,S.hand);
+      if(ev.ok){ e.classList.add('ok'); const pv=document.createElement('span'); pv.className='pv'+(ev.score===0?' zero':''); pv.textContent=ev.score; e.appendChild(pv); }
+      else if(ev.why) e.classList.add('no'); }
+    if(S.dog.r===r&&S.dog.c===c){ const d=document.createElement('span'); d.className='dog'; d.textContent='🐕'; e.appendChild(d); }
+  }
+  $('hand').innerHTML = S.hand ? tileSVG(S.hand,true)+(S.hand.q?`<span class="qb">${KIND[S.hand.q.k].ic}${S.hand.q.n}</span>`:'') : '';
+  $('next1').innerHTML = S.stack[0]?tileSVG(S.stack[0],false):''; $('next2').innerHTML = S.stack[1]?tileSVG(S.stack[1],false):'';
+  $('tip').textContent = S.hand&&S.hand.q ? `이 타일의 의뢰: ${KIND[S.hand.q.k].nm}을 ${S.hand.q.n}칸으로 이어 주세요` : '';
+}
+
+/* ═══════════════════ 맥스·소리 ═══════════════════ */
+const pick=a=>a[(Math.random()*a.length)|0];
+let sayT=null;
+function say(txt,opt={}){ const b=$('bubble'); clearTimeout(sayT); b.innerHTML=txt; b.classList.add('on'); face(opt.face||'idle'); sayT=setTimeout(()=>{ b.classList.remove('on'); face('idle'); }, opt.ms||1800); }
+function face(kind){ const happy=kind==='happy', sad=kind==='sad'; $('mxSad').setAttribute('opacity',sad?1:0); $('mxEyes').setAttribute('opacity',sad?0:1); $('mxTongue').setAttribute('opacity',happy?1:0);
+  $('mxMouth').setAttribute('d', sad?'M25 43 q5 -4 10 0':happy?'M23 40 q7 7 14 0':'M25 41 q5 4 10 0'); if(happy){ const m=$('maxFace'); m.classList.remove('wag'); void m.offsetWidth; m.classList.add('wag'); } }
+let AC=null;
+function beep(n){ try{ AC=AC||new (window.AudioContext||window.webkitAudioContext)(); if(AC.state==='suspended') AC.resume(); const k=Math.min(n,3)+1;
+  for(let i=0;i<k;i++){ const o=AC.createOscillator(), g=AC.createGain(); o.type='triangle'; o.frequency.value=392*Math.pow(2,(i*4)/12); o.connect(g).connect(AC.destination);
+    const t0=AC.currentTime+i*.07; o.start(t0); g.gain.setValueAtTime(.0001,t0); g.gain.exponentialRampToValueAtTime(.1,t0+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+.18); o.stop(t0+.2); } }catch(e){} }
+
+/* ═══════════════════ 연결 ═══════════════════ */
+buildBoard();
+const ruleHTML=()=>Object.entries(KIND).map(([k,v])=>`<span class="sw" style="background:${v.col}"></span><span><b>${v.nm}</b> ${v.ic} ${FLOW(k)?'— 끊기면 안 됨':''}</span>`).join('');
+$('ruleList').innerHTML=$('ruleList2').innerHTML=ruleHTML();
+const metaLine=()=>meta.runs?`최고 ${meta.best}점 · ${meta.runs}번 산책`:'';
+$('meta').textContent=metaLine();
+$('btnGo').onclick=()=>{ $('ovStart').hidden=true; newRun(); };
+$('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; $('meta').textContent=metaLine(); $('ovStart').hidden=false; };
+$('btnRot').onclick=rotate; $('hand').onclick=rotate;
+$('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+$('btnBoard').onclick=()=>{ $('boardBox').innerHTML = meta.board.length ? '<ol class="board-list">'+meta.board.map(e=>`<li><b>${e.score}점</b> · 타일 ${e.tiles}장 · 길 ${e.walk}칸 · ${e.date}</li>`).join('')+'</ol>' : '<p class="stat">아직 기록이 없어요.</p>'; $('ovBoard').hidden=false; };
+$('btnBoardClose').onclick=()=>$('ovBoard').hidden=true;
+document.addEventListener('keydown',e=>{ if(e.key==='r'||e.key==='R'||e.key===' ') rotate(); });
+// 시작 전에도 판이 보이게
+S={G:Array.from({length:N},()=>Array(N).fill(null)), stack:[], hand:null, score:0, walk:0, dog:{r:MID,c:MID}, quests:[], over:true}; S.G[MID][MID]={e:['p','g','p','g'],q:null,start:true}; render();
+</script>
+</body>
+</html>
