@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#A8D8A0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>맥스의 마당 지키기</title>
+<style>
+  /* 단일 파일·외부 요청 0. 잔디 초록 바탕 — garden(하늘)·cats(마루)와 다른 세 번째 색. */
+  :root{
+    --lawn:#A8D8A0; --paper:#FFFBEE; --ink:#33402E; --line:#DCE6C6; --mute:#6F7F66;
+    --accent:#E0873A; --accent-d:#B9691F; --good:#3E8E5A; --bad:#CF4F45; --soil:#C7A36E;
+    --cell:min(11.2vw, 46px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
+  html,body{margin:0; min-height:100%; background:var(--lawn); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:14px}
+  body{display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
+  h1{font-size:19px; margin:0}
+  .maxrow{display:flex; align-items:center; gap:8px; width:100%; max-width:420px; justify-content:center; min-height:40px}
+  .max{width:44px; height:44px; flex:none; transform-origin:50% 90%}
+  .max.wag{animation:wag .5s ease-in-out} @keyframes wag{20%{transform:rotate(-8deg)} 60%{transform:rotate(8deg)}}
+  .bubble{position:relative; background:var(--paper); border-radius:12px; padding:7px 11px; font-size:13px; line-height:1.35; max-width:300px;
+    box-shadow:0 2px 0 var(--line); opacity:0; transition:opacity .2s}
+  .bubble.on{opacity:1}
+  .bubble::before{content:''; position:absolute; left:-6px; top:14px; border:6px solid transparent; border-right-color:var(--paper); border-left:0}
+
+  .hud{width:100%; max-width:420px; background:var(--paper); border-radius:14px; padding:8px 14px; display:flex; justify-content:space-between;
+    align-items:center; box-shadow:0 2px 0 var(--line); font-weight:700; font-variant-numeric:tabular-nums}
+  .hud small{font-weight:400; color:var(--mute); font-size:11px; display:block}
+  .wave{width:100%; max-width:420px; background:var(--paper); border-radius:12px; padding:7px 12px; font-size:13px; box-shadow:0 2px 0 var(--line);
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  .wave b{font-size:12px; color:var(--mute)}
+  .wave .grp{display:flex; align-items:center; gap:3px; background:#fff; border-radius:8px; padding:2px 7px; box-shadow:0 1px 0 var(--line)}
+  .wave .grp i{font-style:normal; font-size:11px; color:var(--mute)}
+
+  /* 마당 — 6×8. 밥그릇은 왼쪽 가운데, 침입자는 오른쪽 끝에서. */
+  .yard{display:grid; grid-template-columns:repeat(8,var(--cell)); gap:3px; padding:6px; background:var(--soil); border-radius:14px}
+  .c{width:var(--cell); height:var(--cell); background:#C9E6B9; border-radius:7px; position:relative; display:flex; align-items:center; justify-content:center;
+    font-size:calc(var(--cell)*.6); cursor:pointer}
+  .c.spawn{background:#B8D3A8} .c.bowl{background:#FFF1C9} .c.tree{background:#9CC38F; cursor:default}
+  .c.ok{outline:2px dashed rgba(62,142,90,.6); outline-offset:-2px} .c.no{opacity:.45; cursor:default}
+  .c.path::after{content:''; position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(51,64,46,.35); left:4px; top:4px}
+  .c.fly::before{content:''; position:absolute; width:6px; height:6px; border-radius:50%; background:rgba(60,60,120,.45); right:4px; top:4px}
+  .c .hp{position:absolute; left:3px; right:3px; bottom:2px; height:3px; background:rgba(0,0,0,.15); border-radius:2px; overflow:hidden}
+  .c .hp i{display:block; height:100%; background:var(--bad)}
+  .c .st{position:absolute; right:2px; top:0; font-size:10px}
+  .c .n{position:absolute; left:3px; bottom:2px; font-size:10px; font-weight:700; background:#fff; border-radius:6px; padding:0 3px}
+  .c .dmg{position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:800; font-size:12px; color:var(--bad); animation:rise .7s ease-out forwards; pointer-events:none; text-shadow:0 1px 0 #fff}
+  @keyframes rise{0%{opacity:0; transform:translate(-50%,4px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-20px)}}
+  .c.hitfx{animation:hit .25s} @keyframes hit{50%{background:#F9D9D4}}
+  .c .u{transition:transform .28s ease-out; display:flex}
+
+  /* 상점 — 한 줄. 고른 물건은 위로 든다. */
+  .shop{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:420px}
+  .item{width:64px; background:var(--paper); border-radius:10px; padding:5px 0 4px; display:flex; flex-direction:column; align-items:center; gap:1px;
+    box-shadow:0 3px 0 var(--line); cursor:pointer; transition:transform .12s; font-size:11px}
+  .item .ic{font-size:24px} .item .pr{color:var(--mute); font-weight:700}
+  .item.sel{transform:translateY(-6px); box-shadow:0 3px 0 var(--accent), 0 0 0 2px var(--accent)}
+  .item.poor{opacity:.45}
+  .tip{font-size:12px; color:var(--mute); text-align:center; min-height:16px; max-width:360px}
+  .row{display:flex; gap:8px}
+  button{font:inherit; border:0; border-radius:12px; padding:10px 16px; background:var(--paper); color:var(--ink); font-weight:700; box-shadow:0 3px 0 var(--line); cursor:pointer}
+  button:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line)}
+  button.pri{background:var(--accent); color:#fff; box-shadow:0 3px 0 var(--accent-d)}
+  button:disabled{opacity:.45; cursor:default}
+
+  .ov{position:fixed; inset:0; background:rgba(51,64,46,.55); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
+  .ov[hidden]{display:none}
+  .sheet{background:var(--paper); border-radius:18px; padding:18px; width:100%; max-width:390px; display:flex; flex-direction:column; gap:10px; max-height:90vh; overflow:auto}
+  .sheet h2{margin:0; font-size:19px} .sheet p{margin:0; line-height:1.5}
+  .relics{display:flex; flex-direction:column; gap:8px}
+  .relic{display:flex; gap:12px; align-items:center; text-align:left; padding:10px 12px}
+  .relic .ic{font-size:26px} .relic b{display:block; font-size:14px} .relic small{font-size:12px; color:var(--mute)}
+  .rules{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; align-items:center} .rules span:first-child{font-size:18px}
+  .stat{font-size:13px; color:var(--mute)}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+</style>
+</head>
+<body>
+<h1>맥스의 마당 지키기</h1>
+<div class="maxrow">
+  <svg class="max" id="maxFace" viewBox="0 0 60 60" aria-hidden="true">
+    <path d="M8 22 q-6 14 4 20 q6 0 6 -8z" fill="#8A5A3C"/><path d="M52 22 q6 14 -4 20 q-6 0 -6 -8z" fill="#8A5A3C"/>
+    <circle cx="30" cy="30" r="21" fill="#E9C79A"/><ellipse cx="30" cy="37" rx="11" ry="9" fill="#F7E6CC"/>
+    <g id="mxEyes"><circle cx="22" cy="27" r="3" fill="#3B2F2F"/><circle cx="38" cy="27" r="3" fill="#3B2F2F"/></g>
+    <g id="mxSad" opacity="0"><path d="M18 26 l8 3 M42 26 l-8 3" stroke="#3B2F2F" stroke-width="2.5" stroke-linecap="round"/></g>
+    <ellipse cx="30" cy="35" rx="4" ry="3" fill="#3B2F2F"/>
+    <path id="mxMouth" d="M25 41 q5 4 10 0" stroke="#3B2F2F" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path id="mxTongue" d="M27 42 q3 7 6 0z" fill="#E88A9A" opacity="0"/>
+  </svg>
+  <div class="bubble" id="bubble"></div>
+</div>
+
+<div class="hud">
+  <span><small>웨이브</small><span id="hWave">1</span></span>
+  <span><small>밥그릇</small><span id="hLife"></span></span>
+  <span><small>뼈다귀</small>🦴 <span id="hBone">0</span></span>
+  <span><small>최고</small><span id="hBest">0</span></span>
+</div>
+<div class="wave" id="wavebar"></div>
+<div class="yard" id="yard"></div>
+<div class="tip" id="tip"></div>
+<div class="shop" id="shop"></div>
+<div class="row">
+  <button class="pri" id="btnStart">웨이브 시작</button>
+  <button id="btnHelp">규칙</button>
+</div>
+
+<div class="ov" id="ovStart"><div class="sheet">
+  <h2>맥스의 마당 지키기</h2>
+  <p>오른쪽에서 침입자가 <b>밥그릇</b>을 노리고 옵니다. 점으로 그려진 길이 그들이 갈 길 — <b>울타리로 길을 돌리고</b>, 길목에 맥스와 장치를 세우세요.</p>
+  <p>웨이브가 끝나면 🦴를 받고, 3웨이브마다 <b>유물</b>을 하나 고릅니다. 밥그릇이 비면 끝, <b>20웨이브</b>를 막으면 승리.</p>
+  <div class="rules" id="ruleList"></div>
+  <p class="stat" id="meta"></p>
+  <button class="pri" id="btnGo">마당으로</button>
+</div></div>
+
+<div class="ov" id="ovRelic" hidden><div class="sheet">
+  <h2 id="relicTitle"></h2><p id="relicSub"></p><div class="relics" id="relicList"></div>
+</div></div>
+
+<div class="ov" id="ovEnd" hidden><div class="sheet">
+  <h2 id="endTitle"></h2><p id="endBody"></p>
+  <button class="pri" id="btnAgain">다시</button>
+</div></div>
+
+<div class="ov" id="ovHelp" hidden><div class="sheet">
+  <h2>규칙</h2>
+  <div class="rules" id="ruleList2"></div>
+  <p><b>침입자</b></p><div class="rules" id="foeList"></div>
+  <p>웨이브 중엔 매 틱마다 장치가 먼저 때리고, 침입자가 움직입니다. 밥그릇에 닿으면 한 그릇을 먹고 사라집니다. 놓은 물건을 누르면 반값에 되팝니다. 맥스는 공짜로 옮깁니다.</p>
+  <button id="btnHelpClose">닫기</button>
+</div></div>
+
+<script>
+/* ═══════════════════ 데이터 ═══════════════════ */
+const R=6, C=8, BOWL={r:2,c:0}, SPAWNS=[0,2,5], WIN_WAVE=20;
+const TREES=[[2,3],[3,5]];   // 고정 나무 — 가운데 줄이 밥그릇까지 일직선이면 막을 틈이 없다
+const ITEMS={
+  fence:    {ic:'🪵', nm:'울타리',   cost:2, desc:'길을 막는다. 길이 전부 막히게는 못 놓는다'},
+  sprinkler:{ic:'💦', nm:'스프링클러', cost:3, desc:'매 틱 옆 4칸 1 피해 + 젖어서 한 틱 멈춤'},
+  ball:     {ic:'🎾', nm:'공 발사기', cost:3, desc:'가로·세로 3칸 안의 가장 가까운 침입자 1 피해'},
+  thorn:    {ic:'🌵', nm:'가시덤불', cost:1, desc:'밟으면 1 피해. 길은 막지 않는다'},
+  bait:     {ic:'🍖', nm:'미끼',     cost:2, desc:'3칸 안의 침입자를 꾀어 2틱 붙잡는다. 1회용'},
+};
+const FOES={
+  squirrel:{ic:'🐿️', nm:'다람쥐', hp:2,  spd:2,  cost:1, desc:'한 틱에 두 칸'},
+  cat:     {ic:'🐈', nm:'고양이', hp:4,  spd:1,  cost:2, desc:'보통'},
+  crow:    {ic:'🐦‍⬛', nm:'까마귀', hp:3, spd:1, cost:2, fly:true, desc:'울타리를 넘어 날아온다'},
+  raccoon: {ic:'🦝', nm:'너구리', hp:8,  spd:.5, cost:3, desc:'느리지만 질기다'},
+  boar:    {ic:'🐗', nm:'멧돼지', hp:16, spd:1,  cost:6, boss:true, desc:'가시를 무시한다'},
+};
+const RELICS={
+  carpenter:{ic:'🔨', nm:'목수',        desc:'울타리 값 🦴1'},
+  teeth:    {ic:'🦷', nm:'큰 이빨',     desc:'맥스 공격 +1'},
+  bigspr:   {ic:'🌧️', nm:'큰 스프링클러', desc:'스프링클러가 8칸을 적신다'},
+  bowl:     {ic:'🍚', nm:'한 그릇 더',   desc:'밥그릇 +1 (지금 바로)'},
+  pouch:    {ic:'🦴', nm:'뼈 주머니',    desc:'웨이브 보상 +2'},
+  net:      {ic:'🕸️', nm:'새 그물',     desc:'까마귀도 울타리에 막힌다'},
+  bigbait:  {ic:'🍖', nm:'큰 미끼',     desc:'미끼 2회용'},
+  arm:      {ic:'💪', nm:'강한 어깨',    desc:'공 발사기 사거리 5'},
+  poison:   {ic:'☠️', nm:'독가시',      desc:'가시 2 피해'},
+};
+
+/* ═══════════════════ 상태·저장 ═══════════════════ */
+const $=id=>document.getElementById(id);
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let meta=store.get('yard.meta',{best:0, runs:0, seen:[]});
+const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
+let S=null;   // {wave, life, bone, relics, grid[r][c]={k,uses}, max:{r,c}, foes:[], sel, phase:'build'|'run', preview:[]}
+const has=k=>S.relics.includes(k);
+const inb=(r,c)=>r>=0&&r<R&&c>=0&&c<C;
+const DIR4=[[1,0],[-1,0],[0,1],[0,-1]];
+const cost=k=>k==='fence'&&has('carpenter')?1:ITEMS[k].cost;
+
+function newRun(){
+  S={wave:1, life:5, bone:12, relics:[], grid:Array.from({length:R},()=>Array(C).fill(null)), max:{r:2,c:2}, foes:[], sel:null, phase:'build', tick:0};
+  meta.runs++; store.set('yard.meta',meta);
+  makeWave(); render();
+  say('점으로 그린 길이 침입자가 올 길이야. <b>울타리</b>로 돌리고, 길목에 나를 세워!', {ms:4000});
+}
+
+/* ═══════════════════ 길 찾기 — 장치는 벽, 가시·미끼는 길 ═══════════════════ */
+const isTree=(r,c)=>TREES.some(([a,b])=>a===r&&b===c);
+const blocks=(r,c,fly)=>{ if(isTree(r,c)) return !fly; const g=S.grid[r][c]; if(!g) return (S.max.r===r&&S.max.c===c); if(fly) return false; return !(g.k==='thorn'||g.k==='bait'); };
+function path(from, to, fly){
+  const prev=new Map(), key=(r,c)=>r*C+c, q=[[from.r,from.c]]; prev.set(key(from.r,from.c),-1);
+  while(q.length){ const [r,c]=q.shift(); if(r===to.r&&c===to.c){ const out=[]; let k=key(r,c); while(k!==-1){ out.push([(k/C)|0,k%C]); k=prev.get(k); } return out.reverse(); }
+    for(const [dr,dc] of DIR4){ const rr=r+dr,cc=c+dc; if(!inb(rr,cc)) continue; const kk=key(rr,cc); if(prev.has(kk)) continue;
+      if(!(rr===to.r&&cc===to.c)&&blocks(rr,cc,fly)) continue; prev.set(kk,key(r,c)); q.push([rr,cc]); } }
+  return null;
+}
+const groundOpen=()=>SPAWNS.every(r=>path({r,c:C-1},BOWL,false));
+
+/* ═══════════════════ 웨이브 ═══════════════════ */
+function makeWave(){
+  const w=S.wave; let budget=2+Math.ceil(w*1.5)+Math.max(0,w-8)*2; const list=[];   // 8웨이브부터 가속 — 봇 기준 12~16에서 뚫린다
+  const keys=Object.keys(FOES).filter(k=>!FOES[k].boss && (k!=='crow'||w>=3) && (k!=='raccoon'||w>=4));
+  if(w%3===0&&w>=6){ list.push('boar'); budget-=6; }
+  let guard=0; while(budget>0&&guard++<40){ const k=pick(keys); if(FOES[k].cost<=budget){ list.push(k); budget-=FOES[k].cost; } else { list.push('squirrel'); budget-=1; } }
+  const hpUp=Math.floor((w-1)/3);
+  S.foes=list.map((k,i)=>{ const f=FOES[k]; return {k, ic:f.ic, nm:f.nm, hp:f.hp+hpUp, maxhp:f.hp+hpUp, spd:f.spd, fly:!!f.fly&&!has('net'), boss:!!f.boss,
+    r:SPAWNS[rnd(SPAWNS.length)], c:C-1, delay:i*2, wet:0, hold:0, alive:true, out:false}; });
+  // 처음 보는 침입자는 맥스가 알려 준다
+  for(const f of S.foes){ if(!meta.seen.includes(f.k)){ meta.seen.push(f.k); store.set('yard.meta',meta); if(f.k!=='squirrel') say(`${f.ic} ${f.nm}: ${FOES[f.k].desc}!`, {ms:3500}); break; } }
+}
+function waveBarHTML(){
+  const g={}; for(const f of S.foes){ const k=f.r+'|'+f.k; g[k]=g[k]||{f,n:0}; g[k].n++; }
+  const rowName=r=>r===0?'위':r===5?'아래':'가운데';
+  return `<b>다음 웨이브</b>`+Object.values(g).sort((a,b)=>a.f.r-b.f.r).map(({f,n})=>`<span class="grp">${f.ic}${n>1?'×'+n:''}<i>${rowName(f.r)}${f.fly?'·비행':''}</i></span>`).join('');
+}
+
+/* ═══════════════════ 배치 ═══════════════════ */
+function canPlace(r,c){
+  if(S.phase!=='build') return false;
+  if(r===BOWL.r&&c===BOWL.c) return false; if(c===C-1) return false;
+  if(S.grid[r][c]||isTree(r,c)) return false; if(S.max.r===r&&S.max.c===c) return false;
+  if(S.sel==='max'){ S.max={r,c}; const ok=groundOpen(); return ok; }   // 호출 쪽에서 되돌린다
+  return true;
+}
+function onCell(r,c){
+  if(S.phase!=='build') return;
+  const g=S.grid[r][c];
+  if(S.sel==null){
+    if(S.max.r===r&&S.max.c===c){ S.sel='max'; render(); $('tip').textContent='맥스를 세울 칸을 누르세요.'; return; }
+    if(g){ S.bone+=Math.floor(cost(g.k)/2); S.grid[r][c]=null; render(); $('tip').textContent=`${ITEMS[g.k].nm} 되팔기 +🦴${Math.floor(cost(g.k)/2)}`; return; }
+    return;
+  }
+  if(S.sel==='max'){
+    const old=S.max; if(!inb(r,c)||(r===BOWL.r&&c===BOWL.c)||c===C-1||S.grid[r][c]||isTree(r,c)) return;
+    S.max={r,c}; if(!groundOpen()){ S.max=old; $('tip').textContent='거기 서면 길이 다 막혀요.'; return; }
+    S.sel=null; render(); return;
+  }
+  const k=S.sel; if(S.bone<cost(k)) return;
+  if(r===BOWL.r&&c===BOWL.c||c===C-1||g||isTree(r,c)||(S.max.r===r&&S.max.c===c)) return;
+  S.grid[r][c]={k, uses:k==='bait'?(has('bigbait')?2:1):0};
+  if(!groundOpen()){ S.grid[r][c]=null; $('tip').textContent='길이 전부 막히면 안 돼요 — 한 줄은 남겨 두세요.'; render(); return; }
+  S.bone-=cost(k); if(S.bone<cost(k)) S.sel=null; render();
+}
+
+/* ═══════════════════ 웨이브 진행 — 틱마다 장치 → 이동 ═══════════════════ */
+function startWave(){
+  if(S.phase!=='build') return;
+  S.phase='run'; S.sel=null; S.tick=0; render(); $('tip').textContent='';
+  tickLoop();
+}
+function tickLoop(){
+  if(!S||S.phase!=='run') return;
+  S.tick++;
+  // 1) 장치
+  const on=S.foes.filter(f=>f.alive&&!f.out&&f.delay<=0);
+  const hurt=(f,n)=>{ f.hp-=n; fx(f,'-'+n); if(f.hp<=0){ f.alive=false; } };
+  const at=(r,c)=>on.filter(f=>f.alive&&f.r===r&&f.c===c);
+  { const m=S.max, atk=2+(has('teeth')?1:0); let ts=[]; for(const [dr,dc] of DIR4) ts=ts.concat(at(m.r+dr,m.c+dc));
+    if(ts.length){ for(const f of ts) hurt(f,atk); wag(); } }   // 맥스는 옆 4칸을 한꺼번에 문다 — 길목에 세우는 이유
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const g=S.grid[r][c]; if(!g) continue;
+    if(g.k==='sprinkler'){ const dirs=has('bigspr')?[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]:DIR4;
+      for(const [dr,dc] of dirs) for(const f of at(r+dr,c+dc)){ hurt(f,1); f.wet=1; } }
+    if(g.k==='ball'){ const rg=has('arm')?5:3; let best=null;
+      for(const [dr,dc] of DIR4) for(let d=1;d<=rg;d++){ const rr=r+dr*d,cc=c+dc*d; if(!inb(rr,cc)) break; const fs=at(rr,cc); if(fs.length){ if(!best||d<best.d) best={f:fs[0],d}; break; } if(S.grid[rr][cc]&&S.grid[rr][cc].k==='fence') break; }
+      if(best) hurt(best.f,1); }
+  }
+  // 2) 이동
+  for(const f of S.foes){
+    if(!f.alive||f.out) continue;
+    if(f.delay>0){ f.delay--; continue; }
+    if(f.wet>0){ f.wet--; continue; }
+    if(f.hold>0){ f.hold--; continue; }
+    let steps = f.spd>=1 ? f.spd : (S.tick%2===0?1:0);
+    while(steps-->0&&f.alive&&!f.out){
+      let target=BOWL;
+      if(!f.fly){ let bb=null; for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const g=S.grid[r][c]; if(g&&g.k==='bait'&&g.uses>0){ const d=Math.abs(r-f.r)+Math.abs(c-f.c); if(d<=3&&(!bb||d<bb.d)) bb={r,c,d}; } } if(bb) target=bb; }
+      const p=path(f,target,f.fly); if(!p||p.length<2) break;
+      const [nr,nc]=p[1]; f.r=nr; f.c=nc;
+      const g=S.grid[nr][nc];
+      if(g&&g.k==='thorn'&&!f.boss){ hurt(f, has('poison')?2:1); }
+      if(g&&g.k==='bait'&&g.uses>0&&target!==BOWL&&nr===target.r&&nc===target.c){ g.uses--; f.hold=2; break; }
+      if(nr===BOWL.r&&nc===BOWL.c){ f.out=true; S.life--; face('sad'); say('앗, 밥을 뺏겼어…',{ms:1200,face:'sad'}); break; }
+    }
+  }
+  render();
+  if(S.life<=0) return setTimeout(endRun, 500);
+  if(!S.foes.some(f=>f.alive&&!f.out)) return setTimeout(endWave, 400);
+  setTimeout(tickLoop, 330);
+}
+function endWave(){
+  const gain=5+Math.floor(S.wave/2)+(has('pouch')?2:0); S.bone+=gain;
+  for(const row of S.grid) for(const g of row) if(g&&g.k==='bait'&&g.uses<=0){ } // 다 쓴 미끼는 아래에서 치운다
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){ const g=S.grid[r][c]; if(g&&g.k==='bait'&&g.uses<=0) S.grid[r][c]=null; }
+  meta.best=Math.max(meta.best,S.wave); store.set('yard.meta',meta);
+  const w=S.wave;
+  if(w>=WIN_WAVE) return endRun(true);
+  S.wave++; S.phase='build';
+  if(w%3===0) relicPick(w, gain); else { makeWave(); render(); say(`웨이브 ${w} 막았다! 🦴${gain}`, {face:'happy', ms:1600}); }
+}
+function relicPick(w, gain){
+  const pool=Object.keys(RELICS).filter(k=>!has(k)); const three=[]; while(three.length<3&&pool.length) three.push(pool.splice(rnd(pool.length),1)[0]);
+  if(!three.length){ S.bone+=6; makeWave(); render(); say(`유물은 다 모았어 — 대신 🦴6!`, {face:'happy', ms:1800}); return; }   // 빈 창으로 멈추던 자리
+  $('relicTitle').textContent=`웨이브 ${w} 방어 성공!`; $('relicSub').textContent=`🦴${gain} 획득. 유물 하나를 고르세요.`;
+  $('relicList').innerHTML=''; for(const k of three){ const b=document.createElement('button'); b.className='relic';
+    b.innerHTML=`<span class="ic">${RELICS[k].ic}</span><span><b>${RELICS[k].nm}</b><small>${RELICS[k].desc}</small></span>`;
+    b.onclick=()=>{ S.relics.push(k); if(k==='bowl') S.life++; if(k==='net') for(const f of S.foes) f.fly=false; $('ovRelic').hidden=true; makeWave(); render(); say('좋아, 다음!',{face:'happy',ms:1200}); };
+    $('relicList').appendChild(b); }
+  $('ovRelic').hidden=false;
+}
+function endRun(win){
+  S.phase='over';
+  if(win){ meta.wins=(meta.wins||0)+1; store.set('yard.meta',meta); }
+  $('endTitle').textContent = win ? '🏆 마당을 지켰다!' : '🍚 밥그릇이 비었어요';
+  $('endBody').innerHTML=(win ? `${WIN_WAVE}웨이브를 모두 막았습니다. 남은 밥그릇 ${S.life}, 🦴${S.bone}.` : `웨이브 <b>${S.wave}</b>에서 뚫렸습니다. 최고 기록 ${meta.best}.`)
+    +`<br>유물: ${S.relics.map(k=>RELICS[k].ic+' '+RELICS[k].nm).join(', ')||'없음'}`;
+  face(win?'happy':'sad'); $('ovEnd').hidden=false;
+}
+
+/* ═══════════════════ 그리기 ═══════════════════ */
+function buildYard(){ const y=$('yard'); y.innerHTML=''; for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/C)|0,i%C); y.appendChild(d); } }
+const cellEl=(r,c)=>$('yard').children[r*C+c];
+function fx(f,txt){ const e=cellEl(f.r,f.c); if(!e) return; const s=document.createElement('span'); s.className='dmg'; s.textContent=txt; e.appendChild(s); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); setTimeout(()=>s.remove(),750); }
+function render(){
+  $('hWave').textContent=S.wave; $('hLife').textContent='🍚'.repeat(Math.max(0,S.life))||'—'; $('hBone').textContent=S.bone; $('hBest').textContent=meta.best;
+  $('wavebar').innerHTML=waveBarHTML();
+  // 경로 미리보기 — 스폰 줄마다 땅길·하늘길
+  const pathCells=new Set(), flyCells=new Set();
+  if(S.phase==='build'){ for(const r of [...new Set(S.foes.map(f=>f.r))]){ const p=path({r,c:C-1},BOWL,false); if(p) for(const [a,b] of p) pathCells.add(a*C+b);
+    if(S.foes.some(f=>f.r===r&&f.fly)){ const q=path({r,c:C-1},BOWL,true); if(q) for(const [a,b] of q) flyCells.add(a*C+b); } } }
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    const e=cellEl(r,c); e.className='c'; e.innerHTML='';
+    if(c===C-1) e.classList.add('spawn'); if(r===BOWL.r&&c===BOWL.c){ e.classList.add('bowl'); e.innerHTML='<span class="u">🍚</span>'; }
+    if(isTree(r,c)){ e.classList.add('tree'); e.innerHTML='<span class="u">🌳</span>'; }
+    if(pathCells.has(r*C+c)) e.classList.add('path'); if(flyCells.has(r*C+c)) e.classList.add('fly');
+    const g=S.grid[r][c]; if(g){ e.innerHTML=`<span class="u">${ITEMS[g.k].ic}</span>`+(g.k==='bait'?`<span class="n">${g.uses}</span>`:''); }
+    if(S.max.r===r&&S.max.c===c){ e.innerHTML='<span class="u">🐕</span>'; if(S.sel==='max') e.classList.add('ok'); }
+    if(S.phase==='build'&&S.sel&&S.sel!=='max'){ const free=!g&&!isTree(r,c)&&!(S.max.r===r&&S.max.c===c)&&c!==C-1&&!(r===BOWL.r&&c===BOWL.c); e.classList.add(free?'ok':'no'); }
+    if(S.phase==='build'&&S.sel==='max'){ const free=!g&&!isTree(r,c)&&c!==C-1&&!(r===BOWL.r&&c===BOWL.c); if(!free) e.classList.add('no'); }
+  }
+  // 침입자 — 같은 칸 여럿이면 수를 단다
+  const byCell={}; for(const f of S.foes){ if(!f.alive||f.out||f.delay>0) continue; const k=f.r*C+f.c; (byCell[k]=byCell[k]||[]).push(f); }
+  for(const k in byCell){ const fs=byCell[k], f=fs[0], e=cellEl(f.r,f.c);
+    e.innerHTML=`<span class="u">${f.ic}</span><div class="hp"><i style="width:${f.hp/f.maxhp*100}%"></i></div>`+(f.wet?'<span class="st">💧</span>':f.hold?'<span class="st">🍖</span>':'')+(fs.length>1?`<span class="n">${fs.length}</span>`:''); }
+  // 상점
+  const sh=$('shop'); sh.innerHTML='';
+  for(const k in ITEMS){ const d=document.createElement('div'); d.className='item'+(S.sel===k?' sel':'')+(S.bone<cost(k)?' poor':'');
+    d.innerHTML=`<span class="ic">${ITEMS[k].ic}</span><span>${ITEMS[k].nm}</span><span class="pr">🦴${cost(k)}</span>`;
+    d.onclick=()=>{ if(S.phase!=='build') return; if(S.sel===k){ S.sel=null; $('tip').textContent=''; } else if(S.bone>=cost(k)){ S.sel=k; $('tip').textContent=ITEMS[k].desc; } else $('tip').textContent='뼈다귀가 모자라요.'; render(); };
+    sh.appendChild(d); }
+  $('btnStart').disabled = S.phase!=='build';
+  $('btnStart').textContent = S.phase==='run' ? `웨이브 ${S.wave} 진행 중…` : `웨이브 ${S.wave} 시작`;
+}
+
+/* ═══════════════════ 맥스 ═══════════════════ */
+let sayT=null;
+function say(txt,opt={}){ const b=$('bubble'); clearTimeout(sayT); b.innerHTML=txt; b.classList.add('on'); face(opt.face||'idle'); sayT=setTimeout(()=>{ b.classList.remove('on'); face('idle'); }, opt.ms||1800); }
+function face(kind){ const happy=kind==='happy', sad=kind==='sad'; $('mxSad').setAttribute('opacity',sad?1:0); $('mxEyes').setAttribute('opacity',sad?0:1); $('mxTongue').setAttribute('opacity',happy?1:0);
+  $('mxMouth').setAttribute('d', sad?'M25 43 q5 -4 10 0':happy?'M23 40 q7 7 14 0':'M25 41 q5 4 10 0'); if(happy) wag(); }
+function wag(){ const m=$('maxFace'); m.classList.remove('wag'); void m.offsetWidth; m.classList.add('wag'); }
+
+/* ═══════════════════ 연결 ═══════════════════ */
+buildYard();
+$('ruleList').innerHTML=$('ruleList2').innerHTML=Object.values(ITEMS).map(i=>`<span>${i.ic}</span><span><b>${i.nm}</b> 🦴${i.cost} · ${i.desc}</span>`).join('')+`<span>🐕</span><span><b>맥스</b> 공짜 · 옆 4칸 전부 2 피해. 눌러서 옮긴다</span>`;
+$('foeList').innerHTML=Object.values(FOES).map(f=>`<span>${f.ic}</span><span><b>${f.nm}</b> ❤${f.hp} · ${f.desc}</span>`).join('');
+const metaLine=()=>meta.runs?`최고 웨이브 ${meta.best} · ${meta.runs}번 지킴${meta.wins?` · 완승 ${meta.wins}회`:''}`:'';
+$('meta').textContent=metaLine();
+$('btnGo').onclick=()=>{ $('ovStart').hidden=true; newRun(); };
+$('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; $('meta').textContent=metaLine(); $('ovStart').hidden=false; };
+$('btnStart').onclick=startWave;
+$('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+S={wave:1,life:5,bone:12,relics:[],grid:Array.from({length:R},()=>Array(C).fill(null)),max:{r:2,c:2},foes:[],sel:null,phase:'idle'}; render();
+</script>
+</body>
+</html>
