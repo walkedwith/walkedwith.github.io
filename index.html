@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#8FCDF0">
+<meta name="robots" content="noindex">
+<title>맥스 놀이터</title>
+<style>
+  /* 허브 — 게임들과 같은 종이·하늘색. 여기선 카드가 주인공이라 장식은 맥스 얼굴 하나뿐. */
+  :root{ --sky:#8FCDF0; --paper:#FFF9EC; --ink:#3B2F2F; --line:#E4D6BE; --mute:#7E7060; --accent:#F2994A; --accent-d:#C97A2E; }
+  *{box-sizing:border-box}
+  html,body{margin:0; min-height:100%; background:var(--sky); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:15px; line-height:1.5}
+  body{display:flex; flex-direction:column; align-items:center; gap:14px; padding:20px 16px calc(24px + env(safe-area-inset-bottom))}
+  header{display:flex; align-items:center; gap:12px; width:100%; max-width:560px}
+  header svg{width:56px; height:56px; flex:none}
+  h1{font-size:24px; margin:0; letter-spacing:-.5px} header p{margin:0; font-size:13px; color:var(--mute)}
+  .grid{width:100%; max-width:560px; display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  @media (max-width:430px){ .grid{grid-template-columns:1fr} }
+  a.card{display:flex; flex-direction:column; gap:6px; background:var(--paper); border-radius:16px; padding:14px 14px 12px; text-decoration:none; color:inherit;
+    box-shadow:0 3px 0 var(--line); transition:transform .12s}
+  a.card:hover,a.card:focus-visible{transform:translateY(-3px); outline:none; box-shadow:0 6px 0 var(--line)}
+  a.card.main{grid-column:1/-1; flex-direction:row; align-items:center; gap:14px; background:linear-gradient(135deg,#FFF9EC,#FFEFD2)}
+  .ic{font-size:34px; line-height:1} .main .ic{font-size:44px}
+  .card b{font-size:16px} .card small{font-size:12px; color:var(--mute)}
+  .card .desc{font-size:13px}
+  .tags{display:flex; gap:5px; flex-wrap:wrap; margin-top:2px}
+  .tag{font-size:11px; background:#fff; border-radius:6px; padding:1px 7px; box-shadow:0 1px 0 var(--line); color:var(--mute)}
+  .tag.hot{background:var(--accent); color:#fff; box-shadow:0 1px 0 var(--accent-d)}
+  footer{font-size:12px; color:var(--mute); text-align:center; max-width:560px}
+  footer a{color:inherit}
+</style>
+</head>
+<body>
+<header>
+  <svg viewBox="0 0 60 60" aria-hidden="true">
+    <path d="M8 22 q-6 14 4 20 q6 0 6 -8z" fill="#8A5A3C"/><path d="M52 22 q6 14 -4 20 q-6 0 -6 -8z" fill="#8A5A3C"/>
+    <circle cx="30" cy="30" r="21" fill="#E9C79A"/><ellipse cx="30" cy="37" rx="11" ry="9" fill="#F7E6CC"/>
+    <circle cx="22" cy="27" r="3" fill="#3B2F2F"/><circle cx="38" cy="27" r="3" fill="#3B2F2F"/>
+    <ellipse cx="30" cy="35" rx="4" ry="3" fill="#3B2F2F"/><path d="M23 40 q7 7 14 0" stroke="#3B2F2F" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M27 42 q3 7 6 0z" fill="#E88A9A"/>
+  </svg>
+  <div><h1>맥스 놀이터</h1><p>강아지 맥스의 게임들 — 전부 브라우저에서 바로, 설치 없이.</p></div>
+</header>
+
+<div class="grid">
+  <a class="card main" href="play/">
+    <span class="ic">🐕</span>
+    <span><b>맥스야 산책 가자</b><br><small>본편 · 테스트 빌드</small>
+      <span class="desc">공을 굴려 방석까지 — 동네 여섯, 판 300개. 수첩·수집품·마당일까지 한 파일에.</span>
+      <span class="tags"><span class="tag hot">본편</span><span class="tag">퍼즐</span><span class="tag">소코반</span></span></span>
+  </a>
+
+  <a class="card" href="garden/">
+    <span class="ic">🌱</span><b>맥스의 텃밭</b><small>격자 배치 콤보 로그라이트</small>
+    <span class="desc">타일을 놓아 이웃을 반응시키고 콤보 배율을 노린다. 스테이지 5, 유물 9, 날씨 4.</span>
+    <span class="tags"><span class="tag">프로토타입</span><span class="tag">Combolands 계열</span></span>
+  </a>
+
+  <a class="card" href="walk/">
+    <span class="ic">🐾</span><b>맥스의 산책길</b><small>타일 잇기</small>
+    <span class="desc">잔디·숲·길·냇물 타일을 돌려 붙여 동네를 그린다. 길이 이어지면 맥스가 걷는다.</span>
+    <span class="tags"><span class="tag">프로토타입</span><span class="tag">Dorfromantik 계열</span></span>
+  </a>
+
+  <a class="card" href="yard/">
+    <span class="ic">🦴</span><b>맥스의 마당 지키기</b><small>턴제 타워 디펜스</small>
+    <span class="desc">침입자의 길을 미리 보고 울타리로 돌린 뒤 길목에 맥스를 세운다. 20웨이브 방어가 목표.</span>
+    <span class="tags"><span class="tag">프로토타입</span><span class="tag">Desktop TD + PvZ</span></span>
+  </a>
+
+  <a class="card" href="cats/">
+    <span class="ic">🐈</span><b>맥스네 고양이들</b><small>교배 택틱스 로그라이트</small>
+    <span class="desc">길고양이를 교배해 형질을 물려주고, 파티로 원정을 나간다. 죽은 고양이는 돌아오지 않는다.</span>
+    <span class="tags"><span class="tag">프로토타입</span><span class="tag">Mewgenics 계열</span></span>
+  </a>
+
+  <a class="card" href="keep/">
+    <span class="ic">🏰</span><b>북쪽 문 길드</b><small>전승 + 공성 방어</small>
+    <span class="desc">스승 둘이 신입을 가르치는 길드로 열 번의 밤을 버틴다. 사다리병은 성벽을 오르고 폭약병은 성벽을 터뜨린다.</span>
+    <span class="tags"><span class="tag">프로토타입</span><span class="tag">판타지</span></span>
+  </a>
+</div>
+
+<footer>모든 게임은 단일 HTML · 외부 요청 없음 · 기록은 이 브라우저에만 저장 · <a href="privacy.html">개인정보처리방침</a></footer>
+</body>
+</html>
