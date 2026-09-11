@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#F3E4C8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>맥스네 고양이들</title>
+<style>
+  /* 단일 파일·외부 요청 0. 거실 바닥 같은 따뜻한 바탕 — garden/ 의 하늘색과 짝이 되게. */
+  :root{
+    --floor:#F3E4C8; --paper:#FFFBF2; --ink:#3A2E28; --line:#E5D3B3; --mute:#8C7A68;
+    --accent:#D96C3F; --accent-d:#B4532C; --good:#4E9A6A; --bad:#C94B4B; --party:#5B8DD6; --breed:#D66BA0;
+    --grid:#CDBE9E; --cell:min(12.6vw, 54px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
+  html,body{margin:0; min-height:100%; background:var(--floor); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:14px}
+  body{display:flex; flex-direction:column; align-items:center; gap:10px; padding:12px 16px calc(16px + env(safe-area-inset-bottom))}
+  h1{font-size:20px; margin:0}
+  .screen{width:100%; max-width:440px; display:flex; flex-direction:column; gap:10px; align-items:center}
+  .screen[hidden]{display:none}
+  .top{width:100%; display:flex; justify-content:space-between; align-items:center; background:var(--paper); border-radius:14px;
+    padding:10px 14px; box-shadow:0 2px 0 var(--line); font-weight:700}
+  .top small{font-weight:400; opacity:.7; font-size:12px}
+  .actions{width:100%; display:flex; gap:8px}
+  button{font:inherit; border:0; border-radius:12px; padding:10px 14px; background:var(--paper); color:var(--ink); font-weight:700;
+    box-shadow:0 3px 0 var(--line); cursor:pointer}
+  button:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line)}
+  button.pri{background:var(--accent); color:#fff; box-shadow:0 3px 0 var(--accent-d); flex:1}
+  button:disabled{opacity:.4; cursor:default}
+  .hint{font-size:12px; color:var(--mute); text-align:center; min-height:16px}
+
+  /* 로스터 — 두 줄 카드. 파티(파랑)·교배(분홍) 선택은 테두리 색으로만 말한다. */
+  .roster{width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .cat{background:var(--paper); border-radius:14px; padding:8px 10px; box-shadow:0 2px 0 var(--line); display:flex; flex-direction:column; gap:4px;
+    border:2px solid transparent; position:relative}
+  .cat.inParty{border-color:var(--party)} .cat.inBreed{border-color:var(--breed)}
+  .cat.inParty.inBreed{border-color:var(--party); box-shadow:0 0 0 2px var(--breed)}
+  .cat .hd{display:flex; align-items:center; gap:8px}
+  .cat svg{width:44px; height:44px; flex:none}
+  .cat .nm{font-weight:800; font-size:14px; line-height:1.1} .cat .sub{font-size:11px; color:var(--mute)}
+  .cat .st{font-size:12px; letter-spacing:-.2px; font-variant-numeric:tabular-nums}
+  .cat .tr{display:flex; gap:3px; flex-wrap:wrap; min-height:18px; font-size:14px}
+  .cat .tr span{background:#fff; border-radius:6px; padding:0 3px; box-shadow:0 1px 0 var(--line); cursor:help}
+  .cat .bt{display:flex; gap:4px; margin-top:2px}
+  .cat .bt button{flex:1; padding:5px 0; font-size:12px; border-radius:8px; box-shadow:0 2px 0 var(--line)}
+  .cat .bt .p.on{background:var(--party); color:#fff} .cat .bt .b.on{background:var(--breed); color:#fff}
+  .cat .bt .x{flex:0 0 28px; color:var(--mute)}
+  .cat .lv{position:absolute; top:6px; right:8px; font-size:11px; color:var(--mute)}
+
+  /* 전투 — 7×5. 바닥은 마루색, 칸은 옅게. */
+  .order{display:flex; gap:4px; flex-wrap:wrap; justify-content:center; min-height:26px}
+  .order i{width:24px; height:24px; border-radius:50%; background:var(--paper); display:flex; align-items:center; justify-content:center; font-size:13px; font-style:normal; opacity:.5}
+  .order i.now{opacity:1; outline:2px solid var(--accent)} .order i.cat{background:#E4EEFB}
+  .grid{display:grid; grid-template-columns:repeat(7,var(--cell)); gap:3px; padding:6px; background:var(--grid); border-radius:14px}
+  .c{width:var(--cell); height:var(--cell); background:rgba(255,251,242,.75); border-radius:8px; position:relative; display:flex; align-items:center;
+    justify-content:center; cursor:default}
+  .c.reach{background:#DCE9FB; cursor:pointer} .c.hit{background:#F8D3D0; cursor:pointer; outline:2px solid var(--bad); outline-offset:-2px}
+  .c.now{outline:3px solid var(--accent); outline-offset:-3px}
+  .c svg,.c .em{width:78%; height:78%} .c .em{font-size:calc(var(--cell)*.55); display:flex; align-items:center; justify-content:center}
+  .c .hp{position:absolute; left:4px; right:4px; bottom:3px; height:4px; background:rgba(0,0,0,.15); border-radius:2px; overflow:hidden}
+  .c .hp i{display:block; height:100%; background:var(--good)} .c.enemy .hp i{background:var(--bad)}
+  .c .fx{position:absolute; top:1px; right:3px; font-size:10px}
+  .c .dmg{position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:800; color:var(--bad); animation:rise .8s ease-out forwards; pointer-events:none; text-shadow:0 1px 0 #fff}
+  .c .dmg.heal{color:var(--good)}
+  @keyframes rise{0%{opacity:0; transform:translate(-50%,6px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-26px)}}
+  .c.shake{animation:shake .3s} @keyframes shake{25%{transform:translateX(-3px)} 75%{transform:translateX(3px)}}
+  .unitbar{width:100%; background:var(--paper); border-radius:12px; padding:8px 12px; display:flex; align-items:center; gap:10px; box-shadow:0 2px 0 var(--line); min-height:52px}
+  .unitbar svg{width:36px; height:36px} .unitbar b{display:block} .unitbar small{color:var(--mute); font-size:12px}
+  .unitbar .sp{flex:1}
+  .log{font-size:12px; color:var(--mute); min-height:16px; text-align:center}
+
+  /* 덮개 */
+  .ov{position:fixed; inset:0; background:rgba(58,46,40,.5); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
+  .ov[hidden]{display:none}
+  .sheet{background:var(--paper); border-radius:18px; padding:18px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:10px; max-height:90vh; overflow:auto}
+  .sheet h2{margin:0; font-size:19px} .sheet p{margin:0; line-height:1.5}
+  .litter{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .rules{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; align-items:center} .rules span:first-child{font-size:18px}
+  .dead{color:var(--bad); font-weight:700}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+</style>
+</head>
+<body>
+<h1>🐾 맥스네 고양이들</h1>
+
+<!-- ═══ 집 ═══ -->
+<div class="screen" id="scHome">
+  <div class="top"><span>🐟 <span id="hFish">0</span></span><span><small>다음 원정</small> <span id="hTier">1</span>단계</span><span><small>고양이</small> <span id="hCount">0</span>/10</span></div>
+  <div class="actions">
+    <button class="pri" id="btnGo">원정 출발</button>
+    <button id="btnBreed">교배 🐟3</button>
+    <button id="btnHelp">규칙</button>
+  </div>
+  <div class="hint" id="homeHint"></div>
+  <div class="roster" id="roster"></div>
+</div>
+
+<!-- ═══ 전투 ═══ -->
+<div class="screen" id="scBattle" hidden>
+  <div class="top"><span><span id="bTier"></span>단계 원정</span><span>전투 <span id="bFight"></span>/3</span><span>🐟 +<span id="bFish">0</span></span></div>
+  <div class="order" id="order"></div>
+  <div class="grid" id="grid"></div>
+  <div class="unitbar" id="unitbar"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<!-- 새끼 -->
+<div class="ov" id="ovLitter" hidden><div class="sheet">
+  <h2>🍼 새끼가 태어났어요</h2><p id="litterSub"></p>
+  <div class="litter" id="litterBox"></div>
+  <button class="pri" id="btnLitterOk">집으로 들이기</button>
+</div></div>
+
+<!-- 전투 결과 -->
+<div class="ov" id="ovFight" hidden><div class="sheet">
+  <h2 id="fTitle"></h2><p id="fBody"></p>
+  <div class="actions"><button class="pri" id="btnNext">다음 전투</button><button id="btnHome">집으로</button></div>
+</div></div>
+
+<!-- 규칙 -->
+<div class="ov" id="ovHelp" hidden><div class="sheet">
+  <h2>규칙</h2>
+  <p><b>집</b>: 고양이 카드에서 <b>파티</b>(최대 3)와 <b>교배</b>(♂ 하나 + ♀ 하나)를 고릅니다. 교배는 🐟3, 새끼 2~3마리가 부모의 능력치와 형질을 물려받습니다(형질마다 55%, 돌연변이 20%).</p>
+  <p><b>원정</b>: 전투 3연전. 속도 순으로 돌아가며, 내 차례엔 파란 칸으로 이동한 뒤 빨간 적을 누르면 공격. 이동 없이 공격해도 되고, 대기해도 됩니다. 살아남은 고양이는 경험을 쌓아 능력이 오릅니다.</p>
+  <p><b>죽은 고양이는 돌아오지 않습니다.</b> 원정에서 돌아오면 전원 회복.</p>
+  <div class="rules" id="traitList"></div>
+  <button id="btnHelpClose">닫기</button>
+</div></div>
+
+<script>
+/* ═══════════════════ 데이터 ═══════════════════ */
+const TRAITS={
+  bigteeth:{ic:'🦷', nm:'큰 이빨',   desc:'공격 +2'},
+  longlegs:{ic:'🐾', nm:'긴 다리',   desc:'이동 +1'},
+  fur:     {ic:'🧶', nm:'두꺼운 털', desc:'받는 피해 −1'},
+  venom:   {ic:'🐍', nm:'독니',      desc:'공격한 적 중독(3턴, 턴마다 1)'},
+  night:   {ic:'🌙', nm:'야행성',    desc:'속도 +3'},
+  lazy:    {ic:'💤', nm:'게으름',    desc:'이동 −1, 체력 +4'},
+  chonk:   {ic:'🍞', nm:'식빵',      desc:'체력 +5, 속도 −2'},
+  vamp:    {ic:'🦇', nm:'흡혈',      desc:'준 피해의 절반만큼 회복'},
+  coward:  {ic:'😿', nm:'겁쟁이',    desc:'체력 절반 이하면 공격 −2'},
+  kind:    {ic:'💗', nm:'다정',      desc:'내 차례 시작에 인접 아군 1 회복'},
+  sniper:  {ic:'🎯', nm:'멀리 보는 눈', desc:'사거리 2'},
+  stink:   {ic:'🐟', nm:'비린내',    desc:'인접한 적 공격 −1'},
+  cursed:  {ic:'🌑', nm:'저주',      desc:'전투 시작에 체력 −3'},
+};
+const ENEMIES={
+  rat:    {ic:'🐀', nm:'쥐',     hp:4,  atk:2, spd:4, mov:3, cost:1},
+  dog:    {ic:'🐕', nm:'떠돌이개', hp:7, atk:2, spd:3, mov:3, cost:2},
+  snake:  {ic:'🐍', nm:'뱀',     hp:5,  atk:1, spd:5, mov:3, cost:2, venom:true},
+  raccoon:{ic:'🦝', nm:'너구리', hp:10, atk:2, spd:2, mov:2, cost:3, armor:1},
+  wolf:   {ic:'🐺', nm:'늑대',   hp:14, atk:4, spd:4, mov:3, cost:4},   // 2단계부터 셋째 전투의 우두머리
+};
+const NAMES=['나비','츄르','모찌','두부','콩이','보리','감자','호두','마루','치즈','구름','까망','앙꼬','쫀득','달이','초코','밤이','솜이','뭉치','복이','율무','땅콩','참깨','누룽지','만두'];
+const W=7, H=5, BREED_COST=3, ROSTER_MAX=10;
+
+/* ═══════════════════ 유전 ═══════════════════ */
+let uid=1;
+const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
+function newName(cats){ const used=new Set(cats.map(c=>c.name.replace(/ \d+세$/,''))); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES); }
+function randomCat(cats, gen=0){
+  return {id:uid++, name:newName(cats), sex:Math.random()<.5?'♂':'♀', gen,
+    hp:10+rnd(4), atk:3+rnd(2), spd:2+rnd(4), mov:3, hue:rnd(360), pat:pick(['solid','tabby','spot']),
+    traits:[pick(Object.keys(TRAITS))].concat(Math.random()<.4?[pick(Object.keys(TRAITS))]:[]).filter((t,i,a)=>a.indexOf(t)===i),
+    xp:0, lv:1};
+}
+function breed(a,b,cats){
+  const n=2+(Math.random()<.4?1:0), kits=[];
+  for(let i=0;i<n;i++){
+    const mix=(x,y,lo,hi)=>Math.max(lo,Math.min(hi, Math.round((x+y)/2)+rnd(3)-1+(Math.random()<.3?1:0)));
+    let traits=[]; for(const t of a.traits.concat(b.traits)) if(Math.random()<.55&&!traits.includes(t)) traits.push(t);
+    if(Math.random()<.2){ const pool=Object.keys(TRAITS).filter(t=>!traits.includes(t)); traits.push(pick(pool)); }
+    while(traits.length>4) traits.splice(rnd(traits.length),1);
+    if(!traits.length) traits.push(pick(a.traits.concat(b.traits)));
+    // 털색 — 두 색상의 가까운 쪽 평균에 ±20°
+    let d=((b.hue-a.hue+540)%360)-180; let hue=(a.hue+d/2+rnd(41)-20+360)%360;
+    kits.push({id:uid++, name:'', sex:Math.random()<.5?'♂':'♀', gen:Math.max(a.gen,b.gen)+1,
+      hp:mix(a.hp,b.hp,6,30), atk:mix(a.atk,b.atk,1,12), spd:mix(a.spd,b.spd,1,12), mov:mix(a.mov,b.mov,2,5),
+      hue, pat:Math.random()<.5?a.pat:b.pat, traits, xp:0, lv:1, parents:[a.name,b.name]});
+  }
+  const all=cats.slice(); for(const k of kits){ k.name=newName(all); all.push(k); }
+  return kits;
+}
+// 형질 반영한 전투 능력치
+function battleStats(c){
+  const T=c.traits, h=t=>T.includes(t);
+  return { hp:c.hp+(h('lazy')?4:0)+(h('chonk')?5:0), atk:c.atk+(h('bigteeth')?2:0), spd:c.spd+(h('night')?3:0)-(h('chonk')?2:0),
+    mov:Math.max(1,c.mov+(h('longlegs')?1:0)-(h('lazy')?1:0)), rng:h('sniper')?2:1, armor:h('fur')?1:0 };
+}
+
+/* ═══════════════════ 고양이 그림 — 털색·무늬가 유전을 눈으로 보여준다 ═══════════════════ */
+function catSVG(c, dead){
+  const col=`hsl(${c.hue} 45% ${dead?40:62}%)`, dark=`hsl(${c.hue} 40% 38%)`;
+  let pat='';
+  if(c.pat==='tabby') pat=`<path d="M20 18 q4 6 0 12 M30 14 q4 8 0 16 M40 18 q4 6 0 12" stroke="${dark}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+  if(c.pat==='spot')  pat=`<circle cx="22" cy="22" r="4" fill="${dark}"/><circle cx="40" cy="30" r="5" fill="${dark}"/>`;
+  const eyes = dead ? `<path d="M20 26 l6 6 M26 26 l-6 6 M34 26 l6 6 M40 26 l-6 6" stroke="#333" stroke-width="2.5"/>`
+                    : `<ellipse cx="23" cy="29" rx="3" ry="4" fill="#2b2b2b"/><ellipse cx="37" cy="29" rx="3" ry="4" fill="#2b2b2b"/>`;
+  return `<svg viewBox="0 0 60 60" aria-hidden="true"><path d="M10 26 L8 6 L24 16 Z" fill="${col}"/><path d="M50 26 L52 6 L36 16 Z" fill="${col}"/>
+    <circle cx="30" cy="32" r="22" fill="${col}"/>${pat}${eyes}<path d="M27 37 h6 l-3 3z" fill="#d97b8f"/><path d="M30 40 q-4 4 -7 2 M30 40 q4 4 7 2" stroke="#2b2b2b" stroke-width="1.5" fill="none"/></svg>`;
+}
+
+/* ═══════════════════ 저장 ═══════════════════ */
+const $=id=>document.getElementById(id);
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let G=store.get('cats.save',null);
+if(!G){ G={fish:5, tier:1, cats:[], party:[], breedSel:[], runs:0, graveyard:[]}; for(let i=0;i<4;i++) G.cats.push(randomCat(G.cats)); G.cats[0].sex='♂'; G.cats[1].sex='♀'; }
+uid=Math.max(uid, ...G.cats.map(c=>c.id+1));
+const save=()=>store.set('cats.save',G);
+
+/* ═══════════════════ 집 ═══════════════════ */
+function ensureCats(){
+  let came=[];
+  while(G.cats.length<2){ const c=randomCat(G.cats); G.cats.push(c); came.push(c.name); }
+  if(G.cats.length===2&&G.cats[0].sex===G.cats[1].sex) G.cats[1].sex=G.cats[0].sex==='♂'?'♀':'♂';
+  if(came.length){ save(); flash(`길고양이 ${came.join(', ')}이(가) 찾아왔어요.`); }
+  return came.length>0;
+}
+function renderHome(){
+  const came=ensureCats();
+  $('hFish').textContent=G.fish; $('hTier').textContent=G.tier; $('hCount').textContent=G.cats.length;
+  G.party=G.party.filter(id=>G.cats.some(c=>c.id===id)); G.breedSel=G.breedSel.filter(id=>G.cats.some(c=>c.id===id));
+  const bs=G.breedSel.map(id=>G.cats.find(c=>c.id===id));
+  const canBreed = bs.length===2 && bs[0].sex!==bs[1].sex && G.fish>=BREED_COST && G.cats.length<ROSTER_MAX;
+  $('btnBreed').disabled=!canBreed; $('btnGo').disabled=!G.party.length;
+  if(!came) $('homeHint').textContent = !G.party.length ? '파티에 고양이를 넣으면 원정을 나갈 수 있어요.'
+    : bs.length===2&&bs[0].sex===bs[1].sex ? '교배는 ♂와 ♀ 한 마리씩이어야 해요.'
+    : G.cats.length>=ROSTER_MAX ? '집이 꽉 찼어요. 한 마리를 떠나보내야 새끼를 들일 수 있어요.' : '';
+  const r=$('roster'); r.innerHTML='';
+  for(const c of G.cats){
+    const b=battleStats(c), inP=G.party.includes(c.id), inB=G.breedSel.includes(c.id);
+    const d=document.createElement('div'); d.className='cat'+(inP?' inParty':'')+(inB?' inBreed':'');
+    d.innerHTML=`<span class="lv">Lv${c.lv}${c.gen?` · ${c.gen}세대`:''}</span><div class="hd">${catSVG(c)}<div><div class="nm">${c.name} ${c.sex}</div><div class="sub">${c.parents?c.parents.join('×'):'첫 세대'}</div></div></div>
+      <div class="st">❤${b.hp} ⚔${b.atk} 💨${b.spd} 👣${b.mov}${b.rng>1?' 🎯'+b.rng:''}${b.armor?' 🛡'+b.armor:''}</div>
+      <div class="tr">${c.traits.map(t=>`<span title="${TRAITS[t].nm}: ${TRAITS[t].desc}">${TRAITS[t].ic}</span>`).join('')}</div>
+      <div class="bt"><button class="p${inP?' on':''}">파티</button><button class="b${inB?' on':''}">교배</button><button class="x" title="떠나보내기">✕</button></div>`;
+    const [bp,bb,bx]=d.querySelectorAll('button');
+    bp.onclick=()=>{ if(inP) G.party=G.party.filter(x=>x!==c.id); else if(G.party.length<3) G.party.push(c.id); else return flash('파티는 셋까지예요.'); save(); renderHome(); };
+    bb.onclick=()=>{ if(inB) G.breedSel=G.breedSel.filter(x=>x!==c.id); else { if(G.breedSel.length>=2) G.breedSel.shift(); G.breedSel.push(c.id); } save(); renderHome(); };
+    bx.onclick=()=>{ if(G.cats.length<=2) return flash('마지막 둘은 보낼 수 없어요.'); if(confirm(`${c.name}을(를) 떠나보낼까요? 돌아오지 않아요.`)){ G.cats=G.cats.filter(x=>x!==c); save(); renderHome(); } };
+    r.appendChild(d);
+  }
+}
+function flash(t){ $('homeHint').textContent=t; }
+$('btnBreed').onclick=()=>{
+  const [a,b]=G.breedSel.map(id=>G.cats.find(c=>c.id===id));
+  const kits=breed(a,b,G.cats); G.fish-=BREED_COST; G.breedSel=[];
+  const room=ROSTER_MAX-G.cats.length, kept=kits.slice(0,room);
+  $('litterSub').textContent=`${a.name} × ${b.name} — ${kits.length}마리${kept.length<kits.length?` 중 ${kept.length}마리만 자리가 있어요`:''}`;
+  $('litterBox').innerHTML=kept.map(k=>{ const s=battleStats(k); return `<div class="cat"><div class="hd">${catSVG(k)}<div><div class="nm">${k.name} ${k.sex}</div><div class="sub">${k.gen}세대</div></div></div>
+    <div class="st">❤${s.hp} ⚔${s.atk} 💨${s.spd} 👣${s.mov}</div><div class="tr">${k.traits.map(t=>`<span title="${TRAITS[t].nm}">${TRAITS[t].ic}</span>`).join('')}</div></div>`; }).join('');
+  G.cats.push(...kept); save(); $('ovLitter').hidden=false; renderHome();
+};
+$('btnLitterOk').onclick=()=>$('ovLitter').hidden=true;
+$('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+$('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
+
+/* ═══════════════════ 원정·전투 ═══════════════════ */
+let B=null;  // {tier, fight, fish, units, order, turn, cur, moved, reach, log}
+$('btnGo').onclick=()=>{ B={tier:G.tier, fight:0, fish:0, dead:[]}; G.runs++; startFight(); };
+
+function makeEnemies(tier, fight){
+  let budget=2+tier+fight, out=[];                 // 1단계: 4·5·6 — 봇 기준 첫 원정 생존이 기본
+  if(fight===3&&tier>=2){ out.push('wolf'); budget-=4; }
+  const keys=Object.keys(ENEMIES).filter(k=>k!=='wolf');
+  let guard=0; while(budget>0&&out.length<7&&guard++<50){ const k=pick(keys); if(ENEMIES[k].cost<=budget){ out.push(k); budget-=ENEMIES[k].cost; } else if(budget<2){ out.push('rat'); budget-=1; } }
+  return out.map(k=>{ const e=ENEMIES[k]; const hp=e.hp+(tier-1);
+    return {kind:'enemy', key:k, ic:e.ic, name:e.nm, hp, maxhp:hp, atk:e.atk+Math.floor((tier-1)/2), spd:e.spd, mov:e.mov, rng:1, armor:e.armor||0, traits:e.venom?['venom']:[], st:{}}; });
+}
+function startFight(){
+  B.fight++; B.moved=false; B.ended=false;
+  const cats=G.party.map(id=>G.cats.find(c=>c.id===id)).filter(Boolean);
+  const prev=B.units?B.units.filter(u=>u.kind==='cat'):null;   // 전투 사이엔 체력이 이어진다
+  const cu=cats.map((c,i)=>{ const p=prev&&prev.find(u=>u.ref===c); const s=battleStats(c);
+    const u=p||{kind:'cat', ref:c, name:c.name, hp:s.hp, maxhp:s.hp, atk:s.atk, spd:s.spd, mov:s.mov, rng:s.rng, armor:s.armor, traits:c.traits, st:{}};
+    u.st={}; u.r=1+i*Math.floor(3/Math.max(1,cats.length-1||1)); if(cats.length===1) u.r=2; u.c=0; if(u.traits.includes('cursed')) u.hp=Math.max(1,u.hp-3); return u; });
+  const en=makeEnemies(B.tier,B.fight); en.forEach((e,i)=>{ e.r=(i*2+1)%H; e.c=W-1-Math.floor(i/H); });
+  B.units=cu.concat(en); B.round=0; B.turn=-1; B.order=[];
+  $('scHome').hidden=true; $('scBattle').hidden=false; $('bTier').textContent=B.tier; $('bFight').textContent=B.fight; $('bFish').textContent=B.fish;
+  buildGrid(); log(`${B.fight}번째 전투 — ${en.map(e=>e.ic).join('')}`); nextTurn();
+}
+const at=(r,c)=>B.units.find(u=>u.hp>0&&u.r===r&&u.c===c);
+const dist=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
+const alive=k=>B.units.filter(u=>u.hp>0&&u.kind===k);
+// 이동 가능 칸 — 상대편은 못 지나가고, 아군은 지나가되 멈추진 못한다
+function reach(u){
+  const out=new Map(), q=[[u.r,u.c,0]]; out.set(u.r*W+u.c,0);
+  while(q.length){ const [r,c,d]=q.shift(); if(d>=u.mov) continue;
+    for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ const rr=r+dr,cc=c+dc; if(rr<0||rr>=H||cc<0||cc>=W) continue; const k=rr*W+cc; if(out.has(k)) continue;
+      const o=at(rr,cc); if(o&&o.kind!==u.kind) continue; out.set(k,d+1); q.push([rr,cc,d+1]); } }
+  const res=[]; for(const k of out.keys()){ const r=(k/W)|0,c=k%W; if(!at(r,c)||(r===u.r&&c===u.c)) res.push([r,c]); } return res;
+}
+const targets=u=>B.units.filter(o=>o.hp>0&&o.kind!==u.kind&&dist(u,o)<=u.rng);
+function effAtk(u){ let a=u.atk; if(u.traits.includes('coward')&&u.hp*2<=u.maxhp) a-=2;
+  for(const o of B.units) if(o.hp>0&&o.kind!==u.kind&&o.traits.includes('stink')&&dist(u,o)===1) a-=1; return Math.max(1,a); }
+function hurt(t, n, src){ t.hp=Math.max(0,t.hp-n); fx(t, '-'+n); if(t.hp<=0){ log(`${t.name} 쓰러짐`); if(t.kind==='cat'){ B.dead.push(t.ref); G.cats=G.cats.filter(c=>c!==t.ref); G.graveyard.push(t.ref.name); } } }
+function attack(u, t){
+  const n=Math.max(1, effAtk(u)-t.armor); hurt(t,n,u); cellEl(t).classList.add('shake');
+  if(u.traits.includes('venom')&&t.hp>0) t.st.venom=3;
+  if(u.traits.includes('vamp')){ const h=Math.min(u.maxhp-u.hp, Math.floor(n/2)); if(h>0){ u.hp+=h; fx(u,'+'+h,true); } }
+  log(`${u.name} → ${t.name} ${n} 피해`);
+}
+function nextTurn(){
+  if(!B||B.ended) return;
+  if(!alive('enemy').length) return setTimeout(()=>endFight(true), 600);
+  if(!alive('cat').length)   return setTimeout(()=>endFight(false), 600);
+  B.turn++;
+  if(B.turn>=B.order.length){ B.round++; B.turn=0; B.order=B.units.filter(u=>u.hp>0).sort((a,b)=>b.spd-a.spd||(a.kind==='cat'?-1:1)); }
+  const u=B.order[B.turn]; if(!u||u.hp<=0) return nextTurn();
+  B.cur=u; B.moved=false;
+  // 턴 시작 효과
+  if(u.st.venom){ hurt(u,1); u.st.venom--; if(u.hp<=0){ render(); return setTimeout(nextTurn,400); } }
+  if(u.traits.includes('kind')) for(const o of alive(u.kind)) if(o!==u&&dist(u,o)===1&&o.hp<o.maxhp){ o.hp++; fx(o,'+1',true); }
+  B.reach = u.kind==='cat'?reach(u):[]; render();
+  if(u.kind==='enemy') setTimeout(()=>enemyAct(u), 550);
+}
+function enemyAct(u){
+  if(!B||B.ended) return;
+  let ts=targets(u);
+  if(!ts.length){ // 가장 가까운 고양이 쪽으로, 닿을 수 있는 칸 중 거리 최소
+    const cats=alive('cat'); let best=null;
+    for(const [r,c] of reach(u)){ const d=Math.min(...cats.map(k=>Math.abs(k.r-r)+Math.abs(k.c-c))); if(!best||d<best.d) best={r,c,d}; }
+    if(best&&best.d<Math.min(...cats.map(k=>dist(u,k)))){ u.r=best.r; u.c=best.c; }
+    ts=targets(u);
+  }
+  if(ts.length){ ts.sort((a,b)=>a.hp-b.hp); attack(u, ts[0]); }
+  render(); setTimeout(nextTurn, 450);
+}
+function endTurn(){ B.cur=null; B.reach=[]; render(); setTimeout(nextTurn, 250); }
+function onCell(r,c){
+  const u=B.cur; if(!u||u.kind!=='cat') return;
+  const t=at(r,c);
+  if(t&&t.kind==='enemy'&&dist(u,t)<=u.rng){ attack(u,t); return endTurn(); }
+  if(!t&&!B.moved&&B.reach.some(([rr,cc])=>rr===r&&cc===c)){ u.r=r; u.c=c; B.moved=true; B.reach=[]; render(); if(!targets(u).length) { /* 공격할 게 없으면 바로 끝 */ endTurn(); } }
+}
+function endFight(win){
+  if(!B||B.ended) return; B.ended=true;
+  const cats=alive('cat');
+  if(win){
+    const gain=B.tier+B.fight; B.fish+=gain; G.fish+=gain;
+    for(const u of cats){ u.hp=Math.min(u.maxhp,u.hp+3); const c=u.ref; c.xp++; if(c.xp>=3){ c.xp=0; c.lv++; const k=pick(['hp','hp','atk','spd']); c[k]+=k==='hp'?2:1; u.lvup=k; } }
+    const lv=cats.filter(u=>u.lvup).map(u=>`${u.name} Lv↑(${{hp:'❤',atk:'⚔',spd:'💨'}[u.lvup]})`); cats.forEach(u=>delete u.lvup);
+    const deadTxt=B.dead.length?`<br><span class="dead">잃은 고양이: ${B.dead.map(c=>c.name).join(', ')}</span>`:'';
+    if(B.fight>=3){
+      G.tier++; let stray=''; if(Math.random()<.4&&G.cats.length<ROSTER_MAX){ const s=randomCat(G.cats, 0); G.cats.push(s); stray=`<br>🐈 길고양이 <b>${s.name}</b>이(가) 따라왔어요!`; }
+      $('fTitle').textContent='🏆 원정 완료!'; $('fBody').innerHTML=`🐟 ${gain} 획득 (원정 총 ${B.fish}). 다음 원정은 ${G.tier}단계.${lv.length?'<br>'+lv.join(' · '):''}${stray}${deadTxt}`;
+      $('btnNext').hidden=true;
+    } else {
+      $('fTitle').textContent=`${B.fight}번째 전투 승리`; $('fBody').innerHTML=`🐟 ${gain} 획득. 숨 고르기 +3, 체력은 이어집니다 — ${cats.map(u=>`${u.name} ❤${u.hp}/${u.maxhp}`).join(' · ')}${lv.length?'<br>'+lv.join(' · '):''}${deadTxt}`;
+      $('btnNext').hidden=false;
+    }
+  } else {
+    $('fTitle').textContent='🌧️ 전멸'; $('fBody').innerHTML=`파티가 모두 쓰러졌어요. 원정에서 얻은 🐟 ${B.fish}은 남습니다.<br><span class="dead">잃은 고양이: ${B.dead.map(c=>c.name).join(', ')}</span>`; $('btnNext').hidden=true;
+  }
+  B.dead=[]; save(); $('ovFight').hidden=false;
+}
+$('btnNext').onclick=()=>{ $('ovFight').hidden=true; startFight(); };
+$('btnHome').onclick=()=>{ $('ovFight').hidden=true; B=null; $('scBattle').hidden=true; $('scHome').hidden=false; renderHome(); };
+
+/* ═══════════════════ 전투 그리기 ═══════════════════ */
+function buildGrid(){ const g=$('grid'); g.innerHTML=''; for(let i=0;i<W*H;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/W)|0,i%W); g.appendChild(d); } }
+const cellEl=u=>$('grid').children[u.r*W+u.c];
+function fx(u,txt,heal){ const e=cellEl(u); if(!e) return; const s=document.createElement('span'); s.className='dmg'+(heal?' heal':''); s.textContent=txt; e.appendChild(s); setTimeout(()=>s.remove(),900); }
+function log(t){ $('log').textContent=t; }
+function render(){
+  if(!B) return;
+  const g=$('grid'); const cur=B.cur;
+  for(let r=0;r<H;r++) for(let c=0;c<W;c++){
+    const e=g.children[r*W+c], u=at(r,c); e.className='c'; e.innerHTML='';
+    if(u){ e.classList.add(u.kind); e.innerHTML=(u.kind==='cat'?catSVG(u.ref):`<span class="em">${u.ic}</span>`)+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="fx">🟢</span>':'');
+      if(u===cur) e.classList.add('now');
+      if(cur&&cur.kind==='cat'&&u.kind==='enemy'&&dist(cur,u)<=cur.rng) e.classList.add('hit');
+    } else if(cur&&cur.kind==='cat'&&!B.moved&&B.reach.some(([rr,cc])=>rr===r&&cc===c)) e.classList.add('reach');
+  }
+  $('order').innerHTML=B.order.map((u,i)=>u.hp>0?`<i class="${u.kind}${i===B.turn?' now':''}">${u.kind==='cat'?'🐱':u.ic}</i>`:'').join('');
+  const ub=$('unitbar');
+  if(cur&&cur.kind==='cat'){ ub.innerHTML=`${catSVG(cur.ref)}<div class="sp"><b>${cur.name}</b><small>❤${cur.hp}/${cur.maxhp} ⚔${effAtk(cur)} 👣${cur.mov}${cur.rng>1?' 🎯'+cur.rng:''} · ${cur.traits.map(t=>TRAITS[t].ic).join('')}</small></div><button id="btnWait">대기</button>`;
+    $('btnWait').onclick=endTurn; }
+  else if(cur){ ub.innerHTML=`<span class="em" style="font-size:28px">${cur.ic}</span><div class="sp"><b>${cur.name}</b><small>❤${cur.hp}/${cur.maxhp} ⚔${cur.atk}</small></div>`; }
+  else ub.innerHTML='<div class="sp"><small>…</small></div>';
+  $('bFish').textContent=B.fish;
+}
+
+renderHome();
+</script>
+</body>
+</html>
