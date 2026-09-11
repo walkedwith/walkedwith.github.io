@@ -83,12 +83,39 @@
   .owned{display:flex; flex-wrap:wrap; gap:6px; font-size:13px}
   .owned span{background:#fff; border-radius:8px; padding:3px 8px; box-shadow:0 2px 0 var(--line)}
   .stat{font-size:13px; opacity:.8}
+  /* 맥스 — 제목 옆 얼굴 하나. 말풍선은 튜토리얼과 리액션이 같이 쓴다. */
+  .maxrow{display:flex; align-items:center; gap:8px; width:100%; max-width:420px; justify-content:center; min-height:40px}
+  .max{width:46px; height:46px; flex:none; transform-origin:50% 90%}
+  .max.wag{animation:wag .5s ease-in-out} @keyframes wag{20%{transform:rotate(-8deg)} 60%{transform:rotate(8deg)}}
+  .max.hop{animation:hop .45s ease-out} @keyframes hop{30%{transform:translateY(-8px)}}
+  .bubble{position:relative; background:var(--paper); border-radius:12px; padding:7px 11px; font-size:13px; line-height:1.35; max-width:300px;
+    box-shadow:0 2px 0 var(--line); opacity:0; transition:opacity .2s}
+  .bubble.on{opacity:1}
+  .bubble::before{content:''; position:absolute; left:-6px; top:14px; border:6px solid transparent; border-right-color:var(--paper); border-left:0}
+  .bubble button{padding:2px 8px; font-size:11px; margin-left:6px; border-radius:8px; box-shadow:0 2px 0 var(--line)}
+  .cell.off{opacity:.35; pointer-events:none}
+  .cell .pv i{display:block; font-style:normal; font-size:9px; color:var(--accent); line-height:1; text-align:right}
+  .cell.react{box-shadow:inset 0 0 0 3px var(--good)}
+  .float.sm{font-size:12px; top:auto; bottom:2px; animation-duration:1.1s}
+  .float.sm.neg{color:var(--bad)}
   .mod{grid-column:1/-1; font-size:12px; opacity:.8; text-align:center}
   .board-list{margin:0; padding-left:22px; font-size:14px; line-height:1.35} .board-list li{margin-bottom:6px}
 </style>
 </head>
 <body>
-<h1>🐕 맥스의 텃밭</h1>
+<h1>맥스의 텃밭</h1>
+<div class="maxrow">
+  <svg class="max" id="maxFace" viewBox="0 0 60 60" aria-hidden="true">
+    <path d="M8 22 q-6 14 4 20 q6 0 6 -8z" fill="#8A5A3C"/><path d="M52 22 q6 14 -4 20 q-6 0 -6 -8z" fill="#8A5A3C"/>
+    <circle cx="30" cy="30" r="21" fill="#E9C79A"/><ellipse cx="30" cy="37" rx="11" ry="9" fill="#F7E6CC"/>
+    <g id="mxEyes"><circle cx="22" cy="27" r="3" fill="#3B2F2F"/><circle cx="38" cy="27" r="3" fill="#3B2F2F"/></g>
+    <g id="mxSad" opacity="0"><path d="M18 26 l8 3 M42 26 l-8 3" stroke="#3B2F2F" stroke-width="2.5" stroke-linecap="round"/></g>
+    <ellipse cx="30" cy="35" rx="4" ry="3" fill="#3B2F2F"/>
+    <path id="mxMouth" d="M25 41 q5 4 10 0" stroke="#3B2F2F" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path id="mxTongue" d="M27 42 q3 7 6 0z" fill="#E88A9A" opacity="0"/>
+  </svg>
+  <div class="bubble" id="bubble"></div>
+</div>
 
 <div class="hud">
   <div><small>스테이지</small><b id="hStage">1</b></div>
@@ -154,6 +181,7 @@
     <p><b>날씨</b> — 2스테이지부터 판마다 하나씩, 겹치지 않게.</p>
     <div class="rules" id="modList"></div>
     <p><b>콤보</b>: 놓은 타일과 반응한 이웃 수. 2개 ×1.5 · 3개 ×2 · 4개 ×2.5 · 8칸 반응(개집)도 같은 표.</p>
+    <p><button id="btnTut">튜토리얼 다시 보기</button></p>
     <p><b>점수는 놓는 순간에만</b> 납니다. 벌집을 먼저 놓고 꽃을 붙일지, 꽃을 깔고 벌집을 얹을지 — 순서가 곧 전략입니다.</p>
     <div class="owned" id="helpRelics"></div>
     <button id="btnHelpClose">닫기</button>
@@ -252,6 +280,52 @@ function newGrid(rand, rocks){
 // 결정론적 난수 — 시드가 같으면 판이 같다(재현·디버그).
 function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
 
+/* ═══════════════════ 맥스 — 말풍선과 표정. 튜토리얼도 이 입을 빌린다. ═══════════════════ */
+let sayT=null;
+function say(txt, opt={}){        // opt: {sticky, face:'happy'|'sad'|'wow', skip:fn}
+  const b=$('bubble'); clearTimeout(sayT);
+  b.innerHTML=txt+(opt.skip?`<button id="btnSkip">건너뛰기</button>`:''); b.classList.add('on');
+  if(opt.skip) $('btnSkip').onclick=opt.skip;
+  face(opt.face||'idle');
+  if(!opt.sticky) sayT=setTimeout(()=>{ b.classList.remove('on'); face('idle'); }, opt.ms||1800);
+}
+function face(kind){
+  const happy=kind==='happy'||kind==='wow', sad=kind==='sad';
+  $('mxSad').setAttribute('opacity', sad?1:0); $('mxEyes').setAttribute('opacity', sad?0:1);
+  $('mxTongue').setAttribute('opacity', happy?1:0);
+  $('mxMouth').setAttribute('d', sad?'M25 43 q5 -4 10 0':happy?'M23 40 q7 7 14 0':'M25 41 q5 4 10 0');
+  const m=$('maxFace'); m.classList.remove('wag','hop'); void m.offsetWidth;
+  if(kind==='wow') m.classList.add('hop'); else if(happy) m.classList.add('wag');
+}
+
+/* ═══════════════════ 튜토리얼 — 첫 판 앞 네 수. 손패를 정해 주고 놓을 칸만 밝힌다. ═══════════════════ */
+const TUT=[
+  {tile:'hive',   say:'나 맥스! 먼저 🐝<b>벌집</b>을 아무 빈 칸에 놓아봐.', allow:()=>true},
+  {tile:'flower', say:'🌸<b>꽃</b>은 벌집 옆에! 칸에 적힌 숫자가 놓았을 때 점수야.',
+    allow:(r,c)=>nearTile(r,c,'hive')},
+  {tile:'flower', say:'꽃 하나 더, 벌집 옆에. 두 꽃이 <b>ㄱ자</b>가 되게 놓아봐.',
+    allow:(r,c)=>nearTile(r,c,'hive')&&cornerWith(r,c,'flower')},
+  {tile:'hive',   say:'<b>점선 칸</b>을 봐 — 이웃 둘이 같이 반응하면 <b>콤보</b>야. 거기에 벌집!',
+    allow:(r,c)=>evalPlace(S.grid,r,c,'hive',S.relics,M()).combo>=2},
+];
+let tut=-1;                                            // -1 꺼짐, 0~3 진행 중
+const nearTile=(r,c,t)=>DIR4.some(([dr,dc])=>inb(r+dr,c+dc)&&S.grid[r+dr][c+dc]===t);
+// (r,c)에 놓으면 기존 t 와 대각으로 마주 보는 빈 칸이 생기는가 — 그 빈 칸이 다음 수의 콤보 자리다
+function cornerWith(r,c,t){
+  for(let rr=0;rr<N;rr++) for(let cc=0;cc<N;cc++){ if(S.grid[rr][cc]!==t) continue;
+    if(Math.abs(rr-r)===1&&Math.abs(cc-c)===1) return !S.grid[r][cc]||!S.grid[rr][c]; }
+  return false;
+}
+function tutStart(){ tut=0; tutStep(); }
+function tutStep(){
+  if(tut<0) return;
+  if(tut>=TUT.length){ tut=-1; store.set('garden.tut',1); fillHand(); render();
+    say('이제 네 마음대로! 목표를 넘기면 <b>유물</b>을 받아. 🐾', {face:'happy', ms:2600}); return; }
+  const st=TUT[tut]; S.hand=[st.tile]; S.sel=0; render();
+  say(st.say, {sticky:true, skip:()=>{ tut=-1; store.set('garden.tut',1); fillHand(); render(); say('알았어, 알아서 해봐!',{ms:1400}); }});
+}
+const tutAllow=(r,c)=>tut<0||TUT[tut].allow(r,c);
+
 /* ═══════════════════ 게임 상태 ═══════════════════ */
 const $=id=>document.getElementById(id);
 const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
@@ -270,38 +344,51 @@ function startRun(){
 }
 function startStage(){
   const st=S.stage;
-  S.grid=newGrid(S.rand, ROCKS[st]);
+  const firstTime = st===0 && !store.get('garden.tut',0);
+  S.grid=newGrid(S.rand, firstTime?0:ROCKS[st]);       // 튜토리얼 판은 돌 없이 — 안내한 자리가 늘 비어 있게
   S.score=0; S.left=PLACES[st]+(has(S.relics,'seeds')?2:0); S.disc=DISC+(has(S.relics,'shovel')?2:0);
   S.hand=[]; S.sel=-1; fillHand();
   render(); $('tip').textContent = M() ? `${MODS[M()].ic} ${MODS[M()].nm}: ${MODS[M()].desc}` : '손패에서 타일을 고르고, 빈 칸을 누르세요.';
+  if(firstTime) tutStart(); else if(st>0) say(`${MODS[M()].ic} ${MODS[M()].nm}이야!`, {ms:1600});
 }
 const handSize=()=>3+(has(S.relics,'bighand')?1:0);
 function fillHand(){ while(S.hand.length<handSize()) S.hand.push(draw(S.rand,S.relics)); }
 
 function place(r,c){
-  if(S.sel<0||S.grid[r][c]) return;
-  const t=S.hand[S.sel];
+  if(S.sel<0||S.grid[r][c]||!tutAllow(r,c)) return;
+  const t=S.hand[S.sel]; const wasUnder=S.score<GOALS[S.stage];
   const ev=evalPlace(S.grid,r,c,t,S.relics,M());
   S.grid[r][c]=t; S.score+=ev.score; S.total+=ev.score; S.left--;
-  S.hand.splice(S.sel,1); S.sel=-1; fillHand();
+  S.hand.splice(S.sel,1); S.sel=-1; if(tut<0) fillHand();
   render();
   // 연출 — 놓은 칸 튀고, 반응한 이웃 들썩이고, 점수 뜬다
   const cell=cellEl(r,c); cell.classList.add('pop');
   const f=document.createElement('span'); f.className='float'+(ev.mult>1?' big':'');
   f.textContent='+'+ev.score+(ev.mult>1?' ×'+ev.mult:''); cell.appendChild(f);
-  for(const [rr,cc] of ev.parts){ const e=cellEl(rr,cc); e.classList.remove('buzz'); void e.offsetWidth; e.classList.add('buzz'); }
+  ev.parts.forEach(([rr,cc,d],i)=>{ const e=cellEl(rr,cc); e.classList.remove('buzz','react'); void e.offsetWidth; e.classList.add('buzz','react');
+    setTimeout(()=>e.classList.remove('react'), 700);
+    const g=document.createElement('span'); g.className='float sm'+(d<0?' neg':''); g.textContent=(d>0?'+':'−')+Math.abs(d); g.style.animationDelay=(i*60)+'ms'; e.appendChild(g); });
   beep(ev.combo);
+  // 맥스 반응 — 튜토리얼 중엔 안내가 말풍선을 쓰고 있으니 표정만
+  const goalNow = wasUnder && S.score>=GOALS[S.stage];
+  if(tut>=0){ face(ev.combo>=2?'wow':'happy'); }
+  else if(goalNow) say('목표 달성! 남은 배치는 전부 <b>보너스</b> 🎉', {face:'wow', ms:2200});
+  else if(ev.combo>=3) say(`멍멍! 콤보 ${ev.combo}!`, {face:'wow'});
+  else if(ev.combo===2) say('멍!', {face:'happy', ms:900});
+  else if(ev.score===0) say('…거기?', {face:'sad', ms:1200});
   $('tip').textContent = ev.combo>=2 ? `콤보 ${ev.combo}! 배율 ×${ev.mult}` : (ev.bonus>0?`이웃 반응 +${ev.bonus}`:'');
+  if(tut>=0){ tut++; setTimeout(tutStep, 650); }
   if(S.left<=0||!emptyCount(S.grid)) setTimeout(endStage, 500);   // 판이 먼저 차도 끝
 }
 function emptyCount(g){ let n=0; for(const row of g) for(const v of row) if(!v) n++; return n; }
 function discard(){
-  if(S.disc<=0||S.sel<0) return;
+  if(S.disc<=0||S.sel<0||tut>=0) return;
   S.hand.splice(S.sel,1); S.sel=-1; S.disc--; fillHand(); render();
 }
 function endStage(){
   const goal=GOALS[S.stage];
   if(S.score<goal){ return endRun(false); }
+  say('해냈다! 유물 골라 🐾', {face:'happy', ms:2500});
   if(S.stage>=GOALS.length-1){ return endRun(true); }
   // 유물 셋 — 아직 없는 것 중에서
   const pool=Object.keys(RELICS).filter(k=>!has(S.relics,k));
@@ -327,6 +414,7 @@ function endRun(win){
   meta.board.push(entry); meta.board.sort((a,b)=>b.total-a.total); meta.board=meta.board.slice(0,5);
   const rank=meta.board.indexOf(entry)+1;
   store.set('garden.meta',meta);
+  face(win?'wow':'sad'); if(!win) say('다음엔 더 잘할 수 있어…', {face:'sad', ms:3000});
   $('endTitle').textContent = win ? '🏆 텃밭 완성!' : '🍂 오늘은 여기까지';
   $('endBody').textContent = win
     ? `다섯 스테이지를 모두 넘었습니다. 총 ${S.total}점.`
@@ -343,7 +431,7 @@ function render(){
   $('hStage').textContent=S.stage+1; $('hScore').textContent=S.score; $('hGoal').textContent=goal;
   $('hLeft').textContent=Math.min(S.left, emptyCount(S.grid)); $('hDisc').textContent=`(${S.disc})`;
   const bar=$('hBar'); bar.style.width=Math.min(100, S.score/goal*100)+'%'; bar.classList.toggle('over', S.score>=goal);
-  $('btnDiscard').disabled = S.disc<=0||S.sel<0;
+  $('btnDiscard').disabled = S.disc<=0||S.sel<0||tut>=0;
   $('hMod').textContent = M() ? `${MODS[M()].ic} ${MODS[M()].nm} · ${MODS[M()].desc}` : '☀️ 맑음';
 
   const b=$('board');
@@ -355,8 +443,11 @@ function render(){
     e.className='cell'+(v==='rock'?' rock':v?' filled':'');
     e.textContent = v==='rock'?'🪨' : v?TILES[v].ic : '';
     if(!v&&t){ // 놓으면 몇 점인지 미리 보여준다 — 규칙을 외우지 않아도 읽히게
+      if(!tutAllow(r,c)){ e.classList.add('off'); continue; }
       const ev=evalPlace(S.grid,r,c,t,S.relics,M());
-      const pv=document.createElement('span'); pv.className='pv'+(ev.score===0?' zero':''); pv.textContent=ev.score; e.appendChild(pv);
+      const pv=document.createElement('span'); pv.className='pv'+(ev.score===0?' zero':''); pv.textContent=ev.score;
+      if(ev.mult>1){ const i=document.createElement('i'); i.textContent='×'+ev.mult; pv.appendChild(i); }
+      e.appendChild(pv);
       if(ev.combo>=2) e.classList.add('can');
     }
   }
@@ -364,7 +455,8 @@ function render(){
   S.hand.forEach((k,i)=>{
     const d=document.createElement('div'); d.className='card'+(i===S.sel?' sel':'');
     d.innerHTML=`<span class="bs">${baseOf(k,S.relics,M())}</span><span class="ic">${TILES[k].ic}</span><span class="nm">${TILES[k].nm}</span>`;
-    d.onclick=()=>{ S.sel = S.sel===i?-1:i; $('tip').textContent = S.sel>=0 ? `${TILES[k].nm}: ${TILES[k].desc}` : ''; render(); };
+    d.onclick=()=>{ S.sel = (S.sel===i&&tut<0)?-1:i;   // 튜토리얼 중엔 다시 눌러도 안 풀린다 — 미리보기가 사라지면 안내가 끊긴다
+      $('tip').textContent = S.sel>=0 ? `${TILES[k].nm}: ${TILES[k].desc}` : ''; render(); };
     h.appendChild(d);
   });
 }
@@ -405,6 +497,7 @@ $('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; $('meta').textContent=metaLi
 $('btnDiscard').onclick=discard;
 $('btnHelp').onclick=()=>{ $('helpRelics').innerHTML = S&&S.relics.length ? '보유 유물: '+S.relics.map(k=>`<span>${RELICS[k].ic} ${RELICS[k].nm} — ${RELICS[k].desc}</span>`).join('') : ''; $('ovHelp').hidden=false; };
 $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+$('btnTut').onclick=()=>{ store.set('garden.tut',0); $('ovHelp').hidden=true; $('ovEnd').hidden=true; $('ovRelic').hidden=true; $('ovStart').hidden=true; startRun(); };
 document.addEventListener('keydown',e=>{ if(!S||!$('ovStart').hidden) return; const i=+e.key-1; if(i>=0&&i<S.hand.length){ S.sel=S.sel===i?-1:i; render(); } if(e.key==='d') discard(); });
 
 // 판을 그릴 빈 상태 — 시작 전에도 보드가 보이게
