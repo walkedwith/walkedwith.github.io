@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2B2F3A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>북쪽 문 길드</title>
+<style>
+  /* 단일 파일·외부 요청 0. 밤의 요새 — 어두운 돌빛 바탕에 횃불색 강조. 이 게임만 어둡다. */
+  :root{
+    --night:#2B2F3A; --stone:#5A6070; --stone-l:#7C8393; --paper:#F1E9D6; --ink:#2A2620; --mute:#8E8878; --line:#D8CDB2;
+    --torch:#E39A3B; --torch-d:#B8721F; --good:#5FA872; --bad:#D95B4E; --field:#3E4A38; --field-n:#2F3A2C; --keep:#6B5A44; --wall:#8A8F9B; --rubble:#6E6455;
+    --cell:min(10.2vw, 42px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
+  html,body{margin:0; min-height:100%; background:var(--night); color:var(--paper);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:14px}
+  body{display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
+  h1{font-size:19px; margin:0; letter-spacing:.5px}
+  .screen{width:100%; max-width:440px; display:flex; flex-direction:column; gap:8px; align-items:center}
+  .screen[hidden]{display:none}
+  .top{width:100%; background:var(--paper); color:var(--ink); border-radius:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-weight:700; font-variant-numeric:tabular-nums}
+  .top small{font-weight:400; color:var(--mute); font-size:11px; display:block}
+  .actions{width:100%; display:flex; gap:8px}
+  button{font:inherit; border:0; border-radius:12px; padding:10px 14px; background:var(--paper); color:var(--ink); font-weight:700; box-shadow:0 3px 0 #C9BE9F; cursor:pointer}
+  button:active{transform:translateY(2px); box-shadow:0 1px 0 #C9BE9F}
+  button.pri{background:var(--torch); color:#1F1810; box-shadow:0 3px 0 var(--torch-d); flex:1}
+  button:disabled{opacity:.4; cursor:default}
+  .hint{font-size:12px; color:#C9C2B0; text-align:center; min-height:16px; max-width:380px}
+
+  /* 길드 홀 — 카드 두 줄 */
+  .roster{width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .hero{background:var(--paper); color:var(--ink); border-radius:12px; padding:8px 10px; display:flex; flex-direction:column; gap:3px; border:2px solid transparent; position:relative}
+  .hero.mentor{border-color:#C36BA8} .hero.wounded{opacity:.6}
+  .hero .hd{display:flex; gap:8px; align-items:center} .hero .ic{font-size:26px; width:32px; text-align:center}
+  .hero .nm{font-weight:800} .hero .sub{font-size:11px; color:var(--mute)}
+  .hero .st{font-size:12px; font-variant-numeric:tabular-nums} .hero .tr{display:flex; gap:3px; flex-wrap:wrap; min-height:18px; font-size:14px}
+  .hero .tr span{background:#fff; border-radius:6px; padding:0 3px; box-shadow:0 1px 0 var(--line)}
+  .hero .bt{display:flex; gap:4px; margin-top:2px} .hero .bt button{flex:1; padding:5px 0; font-size:12px; border-radius:8px; box-shadow:0 2px 0 var(--line)}
+  .hero .bt button.on{background:#C36BA8; color:#fff}
+  .hero .lv{position:absolute; top:6px; right:8px; font-size:11px; color:var(--mute)}
+  .hero .tag{position:absolute; top:6px; right:8px; font-size:11px; color:var(--bad); font-weight:700}
+  .grave{width:100%; font-size:12px; color:#B9B2A0; line-height:1.5}
+
+  /* 공성 — 7×9. 왼쪽 두 열 안뜰, 셋째 열 성벽(가운데 성문), 나머지 들판. */
+  .wave{width:100%; background:var(--paper); color:var(--ink); border-radius:12px; padding:6px 10px; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .wave b{font-size:12px; color:var(--mute)} .wave .grp{background:#fff; border-radius:8px; padding:2px 7px; display:flex; align-items:center; gap:3px} .wave .grp i{font-style:normal; font-size:11px; color:var(--mute)}
+  .wave .night{margin-left:auto; font-size:12px}
+  .fort{display:grid; grid-template-columns:repeat(9,var(--cell)); gap:2px; padding:5px; background:#1F222B; border-radius:12px}
+  .c{width:var(--cell); height:var(--cell); background:var(--field); border-radius:5px; position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell)*.58); cursor:default}
+  .fort.night .c.f{background:var(--field-n)}
+  .c.k{background:var(--keep)} .c.w{background:var(--wall); box-shadow:inset 0 -4px 0 #6C707A} .c.gate{background:#A97C3F; box-shadow:inset 0 -4px 0 #7A5527} .c.rubble{background:var(--rubble)}
+  .c.gate.broken{background:#4A3A2A; box-shadow:none}
+  .c.spawn{background:#4A3B3B}
+  .c.ok{outline:2px dashed rgba(227,154,59,.9); outline-offset:-2px; cursor:pointer} .c.no{opacity:.5}
+  .c.path::after{content:''; position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(241,233,214,.45); left:3px; top:3px}
+  .c .hp{position:absolute; left:3px; right:3px; bottom:2px; height:3px; background:rgba(0,0,0,.35); border-radius:2px; overflow:hidden}
+  .c .hp i{display:block; height:100%; background:var(--good)} .c.e .hp i{background:var(--bad)}
+  .c .st{position:absolute; right:1px; top:0; font-size:10px} .c .n{position:absolute; left:2px; bottom:2px; font-size:10px; font-weight:700; background:#fff; color:#000; border-radius:6px; padding:0 3px}
+  .c .dmg{position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:800; font-size:12px; color:#FFB4A8; animation:rise .7s ease-out forwards; pointer-events:none; text-shadow:0 1px 0 #000}
+  .c .dmg.heal{color:#B9F0C4}
+  @keyframes rise{0%{opacity:0; transform:translate(-50%,4px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-20px)}}
+  .c.hitfx{animation:hit .25s} @keyframes hit{50%{filter:brightness(1.6)}}
+  .c.boom{animation:boom .5s} @keyframes boom{30%{background:#F7C46B; transform:scale(1.15)}}
+  .bench{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:440px; min-height:44px}
+  .chip{background:var(--paper); color:var(--ink); border-radius:10px; padding:5px 9px; font-size:12px; display:flex; align-items:center; gap:5px; box-shadow:0 3px 0 #C9BE9F; cursor:pointer}
+  .chip.sel{box-shadow:0 3px 0 var(--torch), 0 0 0 2px var(--torch)} .chip .ic{font-size:18px}
+  .gatebar{width:100%; max-width:440px; font-size:12px; color:#C9C2B0; display:flex; align-items:center; gap:8px}
+  .gatebar i{flex:1; height:6px; background:#1F222B; border-radius:3px; overflow:hidden; display:block} .gatebar i b{display:block; height:100%; background:var(--torch)}
+  .log{font-size:12px; color:#C9C2B0; min-height:16px; text-align:center}
+
+  .ov{position:fixed; inset:0; background:rgba(15,17,22,.7); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
+  .ov[hidden]{display:none}
+  .sheet{background:var(--paper); color:var(--ink); border-radius:16px; padding:18px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:10px; max-height:90vh; overflow:auto}
+  .sheet h2{margin:0; font-size:19px} .sheet p{margin:0; line-height:1.5}
+  .relics{display:flex; flex-direction:column; gap:8px} .relic{display:flex; gap:12px; align-items:center; text-align:left; padding:10px 12px}
+  .relic .ic{font-size:24px} .relic b{display:block; font-size:14px} .relic small{font-size:12px; color:var(--mute)}
+  .rules{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; align-items:center} .rules span:first-child{font-size:18px}
+  .litter{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .dead{color:var(--bad); font-weight:700}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+</style>
+</head>
+<body>
+<h1>🏰 북쪽 문 길드</h1>
+
+<!-- ═══ 길드 홀 ═══ -->
+<div class="screen" id="scHall">
+  <div class="top"><span><small>금화</small>🪙 <span id="hGold">0</span></span><span><small>다음 공성</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span>/8</span></div>
+  <div class="actions">
+    <button class="pri" id="btnSiege">공성 준비</button>
+    <button id="btnTrain">전승 🪙6</button>
+    <button id="btnRecruit">모집 🪙4</button>
+    <button id="btnHelp">규칙</button>
+  </div>
+  <div class="hint" id="hallHint"></div>
+  <div class="roster" id="roster"></div>
+  <div class="grave" id="grave"></div>
+</div>
+
+<!-- ═══ 공성 ═══ -->
+<div class="screen" id="scSiege" hidden>
+  <div class="top"><span><span id="bTier"></span>차 공성</span><span>웨이브 <span id="bWave"></span>/10</span><span>🪙 +<span id="bGold">0</span></span></div>
+  <div class="wave" id="wavebar"></div>
+  <div class="fort" id="fort"></div>
+  <div class="gatebar">성문 <i><b id="gateHp"></b></i><span id="gateTxt"></span></div>
+  <div class="bench" id="bench"></div>
+  <div class="hint" id="tip"></div>
+  <div class="actions"><button class="pri" id="btnStart">웨이브 시작</button></div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="ov" id="ovStart"><div class="sheet">
+  <h2>🏰 북쪽 문 길드</h2>
+  <p>밤마다 북쪽 문으로 무리가 몰려옵니다. 길드원을 <b>성벽과 안뜰</b>에 세우고 열 번의 웨이브를 버티세요. 동이 트면 기병이 옵니다.</p>
+  <p><b>사다리병</b>은 성벽을 기어오르고, <b>폭약병</b>은 성벽에 구멍을 냅니다. 죽은 길드원은 묘비에만 남고, 그가 가르친 제자만 그의 기술을 잇습니다.</p>
+  <div class="rules" id="classList"></div>
+  <p class="hint" id="meta" style="color:var(--mute)"></p>
+  <button class="pri" id="btnGo">길드 홀로</button>
+</div></div>
+
+<div class="ov" id="ovTrain" hidden><div class="sheet">
+  <h2>📜 전승</h2><p id="trainSub"></p><div class="litter" id="trainBox"></div><button class="pri" id="btnTrainOk">길드에 들이기</button>
+</div></div>
+
+<div class="ov" id="ovSupply" hidden><div class="sheet"><h2 id="supTitle"></h2><p id="supSub"></p><div class="relics" id="supList"></div></div></div>
+
+<div class="ov" id="ovEnd" hidden><div class="sheet"><h2 id="endTitle"></h2><p id="endBody"></p><button class="pri" id="btnHome">길드 홀로</button></div></div>
+
+<div class="ov" id="ovHelp" hidden><div class="sheet">
+  <h2>규칙</h2>
+  <div class="rules" id="classList2"></div>
+  <p><b>공성</b>: 빌드 단계에 길드원을 성벽(회색)·안뜰(갈색)·들판에 세웁니다. 매 틱 아군이 먼저 때리고 적이 움직입니다. 적은 <b>성문</b>을 두드려 부수고 안뜰로 들어옵니다 — 안뜰 왼쪽 끝에 닿으면 성채 위험 −1. 세 번이면 함락.</p>
+  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>전승</b>: 스승 둘을 고르면 신입이 각 스승의 형질을 55%씩 잇고, 20%는 제멋대로 배웁니다.</p>
+  <div class="rules" id="traitList"></div>
+  <button id="btnHelpClose">닫기</button>
+</div></div>
+
+<script>
+/* ═══════════════════ 데이터 ═══════════════════ */
+const R=7, C=9, WALL_C=2, GATE={r:3,c:2}, SPAWNS=[0,3,6], WAVES=10;
+const CLASSES={
+  warrior:{ic:'🛡️', nm:'전사',   hp:12, atk:3, rng:1, desc:'옆 칸을 벤다. 단단하다'},
+  archer: {ic:'🏹', nm:'궁수',   hp:8,  atk:2, rng:3, desc:'멀리 쏜다. 성벽 위에선 +1'},
+  mage:   {ic:'🔮', nm:'마법사', hp:7,  atk:1, rng:2, desc:'2칸 안 전부 1 피해 + 느려짐'},
+  dwarf:  {ic:'⛏️', nm:'드워프', hp:14, atk:2, rng:1, desc:'옆 칸을 치고, 옆 성문·성벽을 수리한다'},
+  elf:    {ic:'🧝', nm:'엘프',   hp:9,  atk:2, rng:2, desc:'2칸을 쏘고, 밤에도 잘 본다'},
+};
+const TRAITS={
+  shield: {ic:'🛡️', nm:'방패술',   desc:'받는 피해 −1'},
+  might:  {ic:'💪', nm:'힘',       desc:'공격 +2'},
+  taunt:  {ic:'📣', nm:'도발',     desc:'3칸 안의 적이 성문 대신 이쪽으로 온다'},
+  hawk:   {ic:'🦅', nm:'매의 눈',  desc:'사거리 +1'},
+  rapid:  {ic:'⚡', nm:'속사',     desc:'한 틱에 두 번 공격'},
+  venom:  {ic:'🐍', nm:'독화살',   desc:'맞은 적 중독(3턴, 턴마다 1)'},
+  stone:  {ic:'🪨', nm:'돌가죽',   desc:'체력 +6'},
+  mason:  {ic:'🧱', nm:'석공',     desc:'수리 +2'},
+  night:  {ic:'🌙', nm:'야간 시야', desc:'밤 사거리 감소 없음'},
+  fire:   {ic:'🔥', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
+  frail:  {ic:'🩹', nm:'허약',     desc:'체력 −3'},
+  proud:  {ic:'😤', nm:'오만',     desc:'인접 아군이 있으면 공격 −1'},
+  coward: {ic:'😰', nm:'겁쟁이',   desc:'체력 절반 이하면 공격 −2'},
+  ale:    {ic:'🍺', nm:'술 내성',  desc:'중독·화상 무효'},
+  mentor: {ic:'📖', nm:'스승 기질', desc:'전승 때 이 형질 외 하나를 확정으로 물려준다'},
+};
+const FOES={
+  wolf:   {ic:'🐺', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1},
+  orc:    {ic:'⚔️', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2},
+  ladder: {ic:'🪜', nm:'사다리병', hp:9,  atk:2, spd:1,  cost:3, climb:true},
+  bomber: {ic:'🧨', nm:'폭약병',   hp:7,  atk:0, spd:1,  cost:3, bomb:true},
+  shaman: {ic:'🏹', nm:'궁수 오크', hp:6, atk:1, spd:1,  cost:2, rng:2},
+  troll:  {ic:'🧌', nm:'트롤',     hp:26, atk:4, spd:.5, cost:7, boss:true},
+};
+const SUPPLY={
+  gatewood:{ic:'🚪', nm:'참나무 성문', desc:'성문 최대 체력 +10, 지금 수리'},
+  arrows:  {ic:'🏹', nm:'화살 더미',   desc:'궁수·엘프 공격 +1'},
+  oil:     {ic:'🛢️', nm:'끓는 기름',   desc:'성벽 위 아군이 앞 칸 적에게 +1'},
+  torches: {ic:'🔥', nm:'횃불 줄',     desc:'밤 사거리 감소 없음'},
+  masons:  {ic:'🧱', nm:'석공 조합',   desc:'폭파된 성벽이 다음 웨이브에 복구'},
+  medic:   {ic:'🧪', nm:'약초 상자',   desc:'웨이브마다 아군 체력 +3'},
+  horn:    {ic:'📯', nm:'뿔나팔',      desc:'웨이브 첫 틱에 적 전원 한 틱 멈춤'},
+  gold:    {ic:'🪙', nm:'전리품 상자', desc:'웨이브 보상 +3'},
+};
+const NAMES=['에오윈','하마','감린','테오','브레가','에르켄','아라','핀','로한','길다','토린','발린','레골','하르딘','이도','메리','피핀','두린','엘라','케른','오를','브란','시그','율'];
+
+/* ═══════════════════ 길드 — 영웅·전승 ═══════════════════ */
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let uid=1;
+const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+'Ⅱ'; };
+function randomHero(hs){ const cls=pick(Object.keys(CLASSES)); const t=[pick(Object.keys(TRAITS))]; if(Math.random()<.4){ const u=pick(Object.keys(TRAITS)); if(!t.includes(u)) t.push(u); }
+  return {id:uid++, name:newName(hs), cls, traits:t, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}}; }
+function inherit(a,b,hs){
+  const n=1+(Math.random()<.5?1:0), kids=[];
+  for(let i=0;i<n;i++){
+    let traits=[];
+    for(const m of [a,b]){ if(m.traits.includes('mentor')){ const sure=m.traits.filter(t=>t!=='mentor'); if(sure.length) traits.push(pick(sure)); } }
+    for(const t of a.traits.concat(b.traits)) if(Math.random()<.55&&!traits.includes(t)) traits.push(t);
+    if(Math.random()<.2){ const pool=Object.keys(TRAITS).filter(t=>!traits.includes(t)); traits.push(pick(pool)); }
+    while(traits.length>4) traits.splice(rnd(traits.length),1);
+    if(!traits.length) traits.push(pick(a.traits.concat(b.traits)));
+    const cls=Math.random()<.5?a.cls:b.cls;
+    kids.push({id:uid++, name:'', cls, traits, lv:1, xp:0, gen:Math.max(a.gen,b.gen)+1, wounded:false, bonus:{hp:Math.floor((a.bonus.hp+b.bonus.hp)/2), atk:Math.floor((a.bonus.atk+b.bonus.atk)/2)}, mentors:[a.name,b.name]});
+  }
+  const all=hs.slice(); for(const k of kids){ k.name=newName(all); all.push(k); } return kids;
+}
+function stats(h, sup){
+  const T=h.traits, has=t=>T.includes(t), c=CLASSES[h.cls]; sup=sup||[];
+  return { hp:c.hp+(has('stone')?6:0)-(has('frail')?3:0)+h.bonus.hp, atk:c.atk+(has('might')?2:0)+h.bonus.atk+((h.cls==='archer'||h.cls==='elf')&&sup.includes('arrows')?1:0),
+    rng:c.rng+(has('hawk')?1:0), repair:h.cls==='dwarf'?3+(has('mason')?2:0):0, area:h.cls==='mage' };
+}
+let G=store.get('keep.save',null);
+if(!G){ G={gold:8, fame:0, tier:1, heroes:[], grave:[], mentors:[], sup:[]}; for(let i=0;i<4;i++) G.heroes.push(randomHero(G.heroes)); }
+uid=Math.max(uid, ...G.heroes.map(h=>h.id+1));
+const save=()=>store.set('keep.save',G);
+const TRAIN_COST=6, RECRUIT_COST=4, MAX_HEROES=8;
+
+function renderHall(){
+  if(G.heroes.length<2){ const h=randomHero(G.heroes); G.heroes.push(h); flash(`떠돌이 ${CLASSES[h.cls].nm} ${h.name}이(가) 문을 두드렸다.`); save(); }
+  $('hGold').textContent=G.gold; $('hTier').textContent=G.tier; $('hFame').textContent=G.fame; $('hCount').textContent=G.heroes.length;
+  G.mentors=G.mentors.filter(id=>G.heroes.some(h=>h.id===id));
+  const ms=G.mentors.map(id=>G.heroes.find(h=>h.id===id));
+  $('btnTrain').disabled = !(ms.length===2 && ms.every(h=>!h.wounded) && G.gold>=TRAIN_COST && G.heroes.length<MAX_HEROES);
+  $('btnRecruit').disabled = !(G.gold>=RECRUIT_COST && G.heroes.length<MAX_HEROES);
+  $('btnSiege').disabled = !G.heroes.some(h=>!h.wounded);
+  const r=$('roster'); r.innerHTML='';
+  for(const h of G.heroes){ const s=stats(h,G.sup), isM=G.mentors.includes(h.id);
+    const d=document.createElement('div'); d.className='hero'+(isM?' mentor':'')+(h.wounded?' wounded':'');
+    d.innerHTML=`<span class="${h.wounded?'tag':'lv'}">${h.wounded?'부상 · 휴식':'Lv'+h.lv+(h.gen?' · '+h.gen+'대':'')}</span><div class="hd"><span class="ic">${CLASSES[h.cls].ic}</span><div><div class="nm">${h.name}</div><div class="sub">${CLASSES[h.cls].nm}${h.mentors?' · '+h.mentors.join('·')+'의 제자':''}</div></div></div>
+      <div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}${s.repair?' 🧱'+s.repair:''}</div><div class="tr">${h.traits.map(t=>`<span title="${TRAITS[t].nm}: ${TRAITS[t].desc}">${TRAITS[t].ic}</span>`).join('')}</div>
+      <div class="bt"><button class="${isM?'on':''}">스승</button><button title="내보내기">✕</button></div>`;
+    const [bm,bx]=d.querySelectorAll('button');
+    bm.onclick=()=>{ if(h.wounded) return flash('부상자는 가르칠 수 없어요.'); if(isM) G.mentors=G.mentors.filter(x=>x!==h.id); else { if(G.mentors.length>=2) G.mentors.shift(); G.mentors.push(h.id); } save(); renderHall(); };
+    bx.onclick=()=>{ if(G.heroes.length<=2) return flash('둘은 남겨야 해요.'); if(confirm(`${h.name}을(를) 내보낼까요?`)){ G.heroes=G.heroes.filter(x=>x!==h); save(); renderHall(); } };
+    r.appendChild(d); }
+  $('grave').innerHTML = G.grave.length ? '🪦 '+G.grave.slice(-8).map(g=>`${g.name}(${g.cls}, ${g.tier}차 ${g.wave}웨이브)`).join(' · ') : '';
+}
+function flash(t){ $('hallHint').textContent=t; }
+$('btnRecruit').onclick=()=>{ G.gold-=RECRUIT_COST; const h=randomHero(G.heroes); G.heroes.push(h); save(); flash(`${CLASSES[h.cls].nm} ${h.name} 합류.`); renderHall(); };
+$('btnTrain').onclick=()=>{
+  const [a,b]=G.mentors.map(id=>G.heroes.find(h=>h.id===id)); const kids=inherit(a,b,G.heroes); G.gold-=TRAIN_COST; G.mentors=[];
+  const kept=kids.slice(0, MAX_HEROES-G.heroes.length);
+  $('trainSub').textContent=`${a.name}와 ${b.name}가 가르쳤다 — 신입 ${kept.length}명`;
+  $('trainBox').innerHTML=kept.map(k=>{ const s=stats(k,G.sup); return `<div class="hero"><div class="hd"><span class="ic">${CLASSES[k.cls].ic}</span><div><div class="nm">${k.name}</div><div class="sub">${CLASSES[k.cls].nm} · ${k.gen}대</div></div></div><div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}</div><div class="tr">${k.traits.map(t=>`<span title="${TRAITS[t].nm}">${TRAITS[t].ic}</span>`).join('')}</div></div>`; }).join('');
+  G.heroes.push(...kept); save(); $('ovTrain').hidden=false; renderHall();
+};
+$('btnTrainOk').onclick=()=>$('ovTrain').hidden=true;
+
+/* ═══════════════════ 공성 ═══════════════════ */
+let B=null;  // {tier, wave, gold, units:[], gate, gateMax, wall:{r:'ok'|'rubble'}, phase, sel, dead:[]}
+const has=k=>B&&B.sup.includes(k);
+const inb=(r,c)=>r>=0&&r<R&&c>=0&&c<C;
+const DIR4=[[1,0],[-1,0],[0,1],[0,-1]];
+const isWall=(r,c)=>c===WALL_C&&!(r===GATE.r);
+const isGate=(r,c)=>r===GATE.r&&c===GATE.c;
+const isKeep=(r,c)=>c<WALL_C;
+const isNight=()=>B.wave>=4&&B.wave<=9;
+
+$('btnSiege').onclick=()=>{
+  B={tier:G.tier, wave:0, gold:0, sup:G.sup.slice(), gateMax:20+(G.sup.includes('gatewood')?10:0), wall:{}, danger:3, dead:[], phase:'build', sel:null, units:[]};
+  B.gate=B.gateMax;
+  for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, ic:CLASSES[h.cls].ic, cls:h.cls, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:h.traits, r:-1, c:-1, st:{}}); }
+  $('scHall').hidden=true; $('scSiege').hidden=false; buildFort(); nextWave();
+};
+function nextWave(){
+  B.wave++; B.phase='build'; B.sel=null;
+  if(has('masons')) for(const k in B.wall) delete B.wall[k];
+  for(const u of B.units) if(u.kind==='h'&&has('medic')) u.hp=Math.min(u.maxhp,u.hp+3);
+  B.units=B.units.filter(u=>u.kind==='h');
+  // 웨이브 구성 — 예산, 5·10은 트롤
+  const w=B.wave, t=B.tier; let budget=6+w*4+(t-1)*6; const list=[];   // 성벽 위 원거리가 들판을 녹이므로 수로 민다 — 봇 기준 1차 공성 ≈ 8~10웨이브
+  const keys=['wolf','orc'].concat(w>=2?['shaman']:[], w>=3?['ladder']:[], w>=4?['bomber']:[]);
+  if(w===5||w===10){ list.push('troll'); budget-=7; }
+  let guard=0; while(budget>0&&guard++<40){ const k=pick(keys); if(FOES[k].cost<=budget){ list.push(k); budget-=FOES[k].cost; } else { list.push('wolf'); budget-=1; } }
+  const hpUp=Math.floor((w-1)/2)+(t-1)*2;
+  list.forEach((k,i)=>{ const f=FOES[k]; B.units.push({kind:'e', key:k, ic:f.ic, name:f.nm, hp:f.hp+hpUp, maxhp:f.hp+hpUp, atk:f.atk+Math.floor((t-1)/2), spd:f.spd, rng:f.rng||1, climb:!!f.climb, bomb:!!f.bomb, boss:!!f.boss,
+    r:SPAWNS[rnd(3)], c:C-1, delay:i, slow:0, hold:has('horn')?1:0, st:{}, onWall:false}); });
+  render(); $('tip').textContent = w===1 ? '길드원 칩을 누르고 성벽·안뜰·들판 칸을 누르세요. 다시 누르면 옮깁니다.' : '';
+  if(w===4) log('🌙 밤이 됐다 — 궁수 사거리 −1'); else if(w===10) log('마지막 밤. 버티면 동이 튼다.'); else log('');
+}
+/* 길 — 성벽은 벽, 성문은 부서지면 길, 폭파된 성벽은 길. 영웅은 적에게 벽이 아니다(부딪히면 싸운다). */
+function blocked(r,c,u){ if(isWall(r,c)) return !(B.wall[r]==='rubble'||(u&&u.climb)); if(isGate(r,c)) return B.gate>0; return false; }
+function path(from,to,u){
+  const prev=new Map(), key=(r,c)=>r*C+c, q=[[from.r,from.c]]; prev.set(key(from.r,from.c),-1);
+  while(q.length){ const [r,c]=q.shift(); if(r===to.r&&c===to.c){ const out=[]; let k=key(r,c); while(k!==-1){ out.push([(k/C)|0,k%C]); k=prev.get(k); } return out.reverse(); }
+    for(const [dr,dc] of DIR4){ const rr=r+dr,cc=c+dc; if(!inb(rr,cc)) continue; const kk=key(rr,cc); if(prev.has(kk)) continue;
+      if(!(rr===to.r&&cc===to.c)&&(blocked(rr,cc,u)||(u&&at(rr,cc)))) continue;   // 다른 유닛이 선 칸은 돌아간다 — 안 그러면 스폰 열에서 줄줄이 막힌다
+      prev.set(kk,key(r,c)); q.push([rr,cc]); } }
+  return null;
+}
+const at=(r,c,kind)=>B.units.find(u=>u.hp>0&&u.r===r&&u.c===c&&(!kind||u.kind===kind)&&(u.kind==='h'||u.delay<=0));
+const alive=k=>B.units.filter(u=>u.hp>0&&u.kind===k&&(k==='h'||u.delay<=0));
+const dist=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
+// 성벽 위에선 앞 대각선도 닿는다 — 성문 앞 칸을 성벽에서 내려찍을 수 있어야 교착이 없다
+const reach=(u,e)=>isWall(u.r,u.c)&&Math.abs(u.r-e.r)<=1&&Math.abs(u.c-e.c)<=1&&e.c>u.c ? 1 : dist(u,e);
+
+/* 배치 */
+function onCell(r,c){
+  if(B.phase!=='build') return;
+  const h=at(r,c,'h');
+  if(B.sel==null){ if(h){ B.sel=h; render(); } return; }
+  if(c===C-1||isGate(r,c)||at(r,c)) { if(h===B.sel){ B.sel=null; render(); } return; }
+  B.sel.r=r; B.sel.c=c; B.sel=null; render();
+}
+function startWave(){ if(B.phase!=='build') return; if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; } B.phase='run'; B.sel=null; B.tick=0; render(); tickLoop(); }
+
+/* 틱 */
+function tickLoop(){
+  if(!B||B.phase!=='run') return; B.tick++;
+  const en=alive('e'), hs=alive('h').filter(u=>u.r>=0);
+  const hurt=(t,n,src)=>{ n=Math.max(0,n); if(t.kind==='h'&&t.traits.includes('shield')) n=Math.max(0,n-1); t.hp-=n; fx(t,'-'+n); if(t.hp<=0&&t.kind==='h'){ log(`${t.name} 전사`); B.dead.push(t.ref); G.grave.push({name:t.name, cls:CLASSES[t.cls].nm, tier:B.tier, wave:B.wave}); G.heroes=G.heroes.filter(h=>h!==t.ref); } };
+  const effAtk=u=>{ let a=u.atk; if(u.traits.includes('coward')&&u.hp*2<=u.maxhp) a-=2; if(u.traits.includes('proud')&&hs.some(o=>o!==u&&dist(o,u)===1)) a-=1; return Math.max(1,a); };
+  const hit=(u,t)=>{ let n=effAtk(u); if(has('oil')&&isWall(u.r,u.c)&&t.c===u.c+1&&t.r===u.r) n+=1; hurt(t,n,u); if(u.traits.includes('venom')) t.st.venom=3; if(u.traits.includes('fire')) t.st.fire=2; if(u.area) t.slow=1; };
+  // 1) 아군
+  for(const u of hs){
+    if(u.st.venom||u.st.fire){ if(!u.traits.includes('ale')){ if(u.st.venom){ hurt(u,1); u.st.venom--; } if(u.st.fire){ hurt(u,2); u.st.fire--; } } else u.st={}; if(u.hp<=0) continue; }
+    let rng=u.rng+(isWall(u.r,u.c)&&u.cls==='archer'?1:0); if(isNight()&&(u.cls==='archer'||u.cls==='elf')&&!u.traits.includes('night')&&!has('torches')) rng=Math.max(1,rng-1);
+    const times=u.traits.includes('rapid')?2:1;
+    for(let k=0;k<times;k++){
+      if(u.area){ for(const e of en) if(e.hp>0&&reach(u,e)<=rng){ hurt(e,effAtk(u),u); e.slow=1; } }
+      else { const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ ts.sort((a,b)=>(b.bomb?1:0)-(a.bomb?1:0)||reach(u,a)-reach(u,b)||a.hp-b.hp); hit(u,ts[0]); } }
+    }
+    if(u.repair){ if(dist(u,GATE)===1&&B.gate<B.gateMax&&B.gate>0){ B.gate=Math.min(B.gateMax,B.gate+u.repair); } for(const [dr,dc] of DIR4){ const rr=u.r+dr,cc=u.c+dc; if(inb(rr,cc)&&isWall(rr,cc)&&B.wall[rr]==='rubble'&&Math.random()<.5){ delete B.wall[rr]; log(`${u.name}이(가) 성벽을 메웠다`); } } }
+  }
+  // 2) 적
+  for(const e of B.units){
+    if(e.kind!=='e'||e.hp<=0) continue;
+    if(e.delay>0){ e.delay--; continue; }
+    if(e.st.venom){ hurt(e,1); e.st.venom--; } if(e.st.fire){ hurt(e,2); e.st.fire--; } if(e.hp<=0) continue;
+    if(e.hold>0){ e.hold--; continue; } if(e.slow>0){ e.slow--; continue; }
+    let steps=e.spd>=1?e.spd:(B.tick%2===0?1:0);
+    while(steps-->0&&e.hp>0){
+      // 옆에 아군 → 싸운다 (궁수 오크는 사거리 안이면)
+      const near=hs.filter(h=>h.hp>0&&dist(e,h)<=e.rng&&(e.rng>1||isWall(h.r,h.c)===isWall(e.r,e.c))); if(e.atk>0&&near.length){ near.sort((a,b)=>a.hp-b.hp); hurt(near[0],e.atk,e); break; }
+      // 폭약병 — 성벽 옆에 닿으면 터진다
+      if(e.bomb){ const wr=[...Array(R).keys()].filter(r=>isWall(r,WALL_C)&&B.wall[r]!=='rubble'); if(e.c===WALL_C+1&&wr.includes(e.r)){ B.wall[e.r]='rubble'; e.hp=0; boom(e.r,WALL_C); const hh=at(e.r,WALL_C,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
+        let best=null; for(const r of wr){ const p=path(e,{r,c:WALL_C+1},e); if(p&&(!best||p.length<best.length)) best=p; } if(!best||best.length<2) break; const [nr,nc]=best[1]; if(at(nr,nc)) break; e.r=nr; e.c=nc; continue; }
+      // 성문 앞 → 두드린다
+      if(B.gate>0&&dist(e,GATE)===1&&!isKeep(e.r,e.c)){ B.gate-=e.boss?4:e.atk||1; gateFx(); if(B.gate<=0){ B.gate=0; log('🚪 성문이 부서졌다!'); } break; }
+      // 목표: 도발 영웅 > 안뜰 왼쪽 끝
+      let target=null; const taunter=hs.find(h=>h.hp>0&&h.traits.includes('taunt')&&dist(e,h)<=3); if(taunter) target=taunter;
+      let p=null;
+      if(target){ p=path(e,target,e); }
+      else if(e.climb&&e.c>WALL_C){ let best=null; for(let r=0;r<R;r++){ if(!isWall(r,WALL_C)) continue; const q=path(e,{r,c:WALL_C},e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
+      if(!p){ let best=null; for(let r=0;r<R;r++){ const q=path(e,{r,c:0},e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
+      if(!p) p=path(e,{r:GATE.r,c:GATE.c+1},e);      // 안뜰로 가는 길이 없으면 성문 앞으로 — 거기서 두드린다
+      if(!p||p.length<2) break;
+      const [nr,nc]=p[1]; if(at(nr,nc)) break;   // 막히면 대기
+      const wasWall=isWall(e.r,e.c); e.r=nr; e.c=nc;
+      if(isWall(nr,nc)&&!wasWall&&B.wall[nr]!=='rubble'){ e.hold=2; break; }   // 사다리를 오르는 동안 성벽 위 아군이 때린다
+      if(wasWall&&isKeep(nr,nc)){ e.hold=1; break; }                          // 뛰어내리는 데 한 틱
+      if(e.c===0){ e.hp=0; B.danger--; log('적이 성채 안으로!'); break; }
+    }
+  }
+  render();
+  { const sig=JSON.stringify([B.gate, B.units.filter(u=>u.hp>0).map(u=>[u.r,u.c,u.hp,u.hold,u.delay])]);
+    if(sig===B.lastSig){ B.same=(B.same||0)+1; } else { B.same=0; B.lastSig=sig; }
+    if(B.same===40){ console.warn('STALL-DUMP '+JSON.stringify({wave:B.wave, gate:B.gate, wall:B.wall, en:B.units.filter(u=>u.kind==='e'&&u.hp>0).map(e=>({k:e.key,r:e.r,c:e.c,hold:e.hold,delay:e.delay,slow:e.slow, p0:!!path(e,{r:0,c:0},e), pg:(path(e,{r:GATE.r,c:GATE.c+1},e)||[]).slice(0,3)})), hs:hs.map(h=>[h.name,h.r,h.c,h.hp])})); } }
+  if(B.danger<=0) return setTimeout(()=>endSiege(false), 500);
+  if(!alive('e').length&&!B.units.some(u=>u.kind==='e'&&u.hp>0)) return setTimeout(endWave, 400);
+  setTimeout(tickLoop, 330);
+}
+function endWave(){
+  const gain=3+B.wave+(has('gold')?3:0); B.gold+=gain; G.gold+=gain;
+  for(const u of alive('h')){ const h=u.ref; h.xp++; if(h.xp>=3){ h.xp=0; h.lv++; if(Math.random()<.5){ h.bonus.hp+=2; } else h.bonus.atk+=1; } }
+  save();
+  if(B.wave>=WAVES) return endSiege(true);
+  if(B.wave%3===0) supplyPick(gain); else nextWave();
+}
+function supplyPick(gain){
+  const pool=Object.keys(SUPPLY).filter(k=>!B.sup.includes(k)); const three=[]; while(three.length<3&&pool.length) three.push(pool.splice(rnd(pool.length),1)[0]);
+  if(!three.length) return nextWave();
+  B.phase='supply';                                   // 고르는 동안은 틱이 돌지 않는다
+  $('supTitle').textContent=`웨이브 ${B.wave} 방어`; $('supSub').textContent=`🪙${gain} 획득. 보급 하나를 고르세요.`;
+  $('supList').innerHTML=''; for(const k of three){ const b=document.createElement('button'); b.className='relic'; b.innerHTML=`<span class="ic">${SUPPLY[k].ic}</span><span><b>${SUPPLY[k].nm}</b><small>${SUPPLY[k].desc}</small></span>`;
+    b.onclick=()=>{ B.sup.push(k); if(k==='gatewood'){ B.gateMax+=10; B.gate=B.gateMax; } if(k==='arrows') for(const u of alive('h')) if(u.cls==='archer'||u.cls==='elf') u.atk+=1; $('ovSupply').hidden=true; nextWave(); }; $('supList').appendChild(b); }
+  $('ovSupply').hidden=false;
+}
+function endSiege(win){
+  B.phase='over';
+  const survivors=alive('h');
+  for(const u of survivors) if(u.hp*2<=u.maxhp) u.ref.wounded=true;
+  for(const h of G.heroes) if(!survivors.some(u=>u.ref===h)&&!B.dead.includes(h)) { /* 안 나간 사람 */ }
+  // 쉬던 사람은 회복
+  for(const h of G.heroes) if(h.wounded&&!survivors.some(u=>u.ref===h)) h.wounded=false;
+  if(win){ G.tier++; G.fame+=B.tier*10; }
+  save();
+  $('endTitle').textContent = win ? '🌅 동이 텄다 — 기병이 온다!' : '🏴 북쪽 문이 뚫렸다';
+  $('endBody').innerHTML = (win ? `열 번의 밤을 버텼습니다. 명성 +${(B.tier)*10}, 다음 공성은 ${G.tier}차.` : `${B.wave}웨이브에서 성채가 무너졌습니다. 얻은 🪙${B.gold}은 남습니다.`)
+    + (B.dead.length?`<br><span class="dead">전사: ${B.dead.map(h=>h.name).join(', ')}</span>`:'') + (survivors.some(u=>u.ref.wounded)?`<br>부상: ${survivors.filter(u=>u.ref.wounded).map(u=>u.name).join(', ')} — 다음 공성은 쉽니다`:'');
+  $('ovEnd').hidden=false;
+}
+$('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
+$('btnStart').onclick=startWave;
+
+/* ═══════════════════ 그리기 ═══════════════════ */
+function buildFort(){ const f=$('fort'); f.innerHTML=''; for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/C)|0,i%C); f.appendChild(d); } }
+const cellEl=(r,c)=>$('fort').children[r*C+c];
+function fx(u,txt,heal){ if(u.r<0) return; const e=cellEl(u.r,u.c); if(!e) return; const s=document.createElement('span'); s.className='dmg'+(heal?' heal':''); s.textContent=txt; e.appendChild(s); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); setTimeout(()=>s.remove(),750); }
+function boom(r,c){ const e=cellEl(r,c); e.classList.remove('boom'); void e.offsetWidth; e.classList.add('boom'); }
+function gateFx(){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); }
+function log(t){ $('log').textContent=t; }
+function waveBarHTML(){
+  const g={}; for(const u of B.units){ if(u.kind!=='e'||u.hp<=0) continue; const k=u.r+'|'+u.key; g[k]=g[k]||{u,n:0}; g[k].n++; }
+  const rowName=r=>r===0?'위':r===6?'아래':'가운데';
+  return `<b>웨이브 ${B.wave}</b>`+Object.values(g).sort((a,b)=>a.u.r-b.u.r).map(({u,n})=>`<span class="grp">${u.ic}${n>1?'×'+n:''}<i>${rowName(u.r)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':B.wave===10?'🌅 마지막 밤':'🌤️ 저녁'}</span>`;
+}
+function render(){
+  $('bTier').textContent=B.tier; $('bWave').textContent=B.wave; $('bGold').textContent=B.gold; $('wavebar').innerHTML=waveBarHTML();
+  $('gateHp').style.width=(B.gate/B.gateMax*100)+'%'; $('gateTxt').textContent=B.gate>0?`${B.gate}/${B.gateMax}`:'부서짐'; 
+  $('fort').classList.toggle('night', isNight());
+  const pathCells=new Set();
+  if(B.phase==='build'){ for(const r of [...new Set(B.units.filter(u=>u.kind==='e').map(u=>u.r))]){ let best=null; for(let rr=0;rr<R;rr++){ const q=path({r,c:C-1},{r:rr,c:0},null); if(q&&(!best||q.length<best.length)) best=q; } if(best) for(const [a,b] of best) pathCells.add(a*C+b); } }
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    const e=cellEl(r,c); e.className='c'; e.innerHTML='';
+    if(isKeep(r,c)) e.classList.add('k'); else if(isWall(r,c)){ e.classList.add(B.wall[r]==='rubble'?'rubble':'w'); if(B.wall[r]==='rubble') e.innerHTML='🪨'; } else if(isGate(r,c)){ e.classList.add('gate'); if(B.gate<=0) e.classList.add('broken'); e.innerHTML=B.gate>0?'🚪':'💥'; } else { e.classList.add('f'); if(c===C-1) e.classList.add('spawn'); }
+    if(pathCells.has(r*C+c)&&!isGate(r,c)) e.classList.add('path');
+    const u=at(r,c);
+    if(u){ e.classList.add(u.kind); e.innerHTML=`<span>${u.ic}</span><div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
+    else if(B.phase==='build'&&B.sel){ if(c===C-1||isGate(r,c)) e.classList.add('no'); else e.classList.add('ok'); }
+  }
+  // 대기 중인 길드원 칩
+  const bench=$('bench'); bench.innerHTML='';
+  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<span class="ic">${u.ic}</span>${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build') return; B.sel=B.sel===u?null:u; render(); }; bench.appendChild(d); }
+  $('btnStart').disabled=B.phase!=='build'; $('btnStart').textContent=B.phase==='run'?'진행 중…':`웨이브 ${B.wave} 시작`;
+}
+
+/* ═══════════════════ 연결 ═══════════════════ */
+const classHTML=()=>Object.values(CLASSES).map(c=>`<span>${c.ic}</span><span><b>${c.nm}</b> ❤${c.hp} ⚔${c.atk} 🎯${c.rng} · ${c.desc}</span>`).join('');
+$('classList').innerHTML=$('classList2').innerHTML=classHTML();
+$('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
+$('meta').textContent = G.fame?`명성 ${G.fame} · 묘비 ${G.grave.length}`:'';
+$('btnGo').onclick=()=>{ $('ovStart').hidden=true; renderHall(); };
+$('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+renderHall();
+</script>
+</body>
+</html>
