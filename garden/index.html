@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#8FCDF0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>맥스의 텃밭 — 프로토타입</title>
+<style>
+  /* 단일 파일·외부 요청 0. play/ 와 같은 원칙이라 폰트는 시스템 것을 쓴다. */
+  :root{
+    --sky:#8FCDF0; --paper:#FFF9EC; --ink:#3B2F2F; --soil:#C9A87C; --soil-d:#A8865A;
+    --grass:#CFEBB4; --line:#E4D6BE; --accent:#F2994A; --good:#4FA36B; --bad:#D9534F;
+    --cell:min(17vw, 76px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
+  html,body{margin:0; height:100%; background:var(--sky); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif}
+  body{display:flex; flex-direction:column; align-items:center; padding:12px 16px calc(16px + env(safe-area-inset-bottom));
+    min-height:100%; gap:10px}
+  h1{font-size:20px; margin:0; letter-spacing:-.5px}
+  .hud{width:100%; max-width:420px; background:var(--paper); border-radius:14px; padding:10px 14px;
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; box-shadow:0 2px 0 var(--line)}
+  .hud b{display:block; font-size:22px; line-height:1.1}
+  .hud small{font-size:11px; opacity:.7}
+  .hud .mid{text-align:center} .hud .r{text-align:right}
+  .bar{grid-column:1/-1; height:8px; background:var(--line); border-radius:4px; overflow:hidden}
+  .bar i{display:block; height:100%; width:0; background:var(--good); transition:width .25s}
+  .bar i.over{background:var(--accent)}
+
+  /* 판 — 5×5. 흙색 바탕, 칸은 종이색. */
+  .board{display:grid; grid-template-columns:repeat(5, var(--cell)); gap:6px; padding:8px;
+    background:var(--soil); border-radius:16px; box-shadow:inset 0 -4px 0 var(--soil-d)}
+  .cell{width:var(--cell); height:var(--cell); background:var(--paper); border-radius:10px; position:relative;
+    display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell)*.52); cursor:pointer}
+  .cell.rock{background:#B8B0A4; cursor:default}
+  .cell.filled{cursor:default}
+  .cell .pv{position:absolute; right:5px; bottom:3px; font-size:12px; font-weight:700; color:var(--good)}
+  .cell .pv.neg{color:var(--bad)}
+  .cell .pv.zero{color:#999; font-weight:400}
+  .cell.can{outline:2px dashed rgba(79,163,107,.55); outline-offset:-2px}
+  .cell.pop{animation:pop .28s ease-out}
+  .cell.buzz{animation:buzz .35s ease-out}
+  @keyframes pop{0%{transform:scale(.6)} 70%{transform:scale(1.12)} 100%{transform:scale(1)}}
+  @keyframes buzz{0%{transform:translateY(0)} 40%{transform:translateY(-6px)} 100%{transform:translateY(0)}}
+  .float{position:absolute; left:50%; top:0; transform:translateX(-50%); font-size:15px; font-weight:800;
+    color:var(--good); pointer-events:none; animation:rise .9s ease-out forwards; text-shadow:0 1px 0 #fff}
+  .float.big{color:var(--accent); font-size:18px}
+  @keyframes rise{0%{opacity:0; transform:translate(-50%,6px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-34px)}}
+
+  /* 손패 — 3~4장. 고른 장은 위로 든다. */
+  .hand{display:flex; gap:10px; min-height:84px; align-items:flex-end}
+  .card{width:72px; height:84px; background:var(--paper); border-radius:12px; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:2px; box-shadow:0 3px 0 var(--line); cursor:pointer;
+    transition:transform .12s; position:relative}
+  .card .ic{font-size:30px} .card .nm{font-size:12px; font-weight:700}
+  .card .bs{position:absolute; top:4px; right:7px; font-size:11px; opacity:.6}
+  .card.sel{transform:translateY(-10px); box-shadow:0 3px 0 var(--accent), 0 0 0 3px var(--accent)}
+  .card:active{transform:translateY(-4px)}
+  .tip{font-size:12px; text-align:center; min-height:16px; opacity:.85; max-width:340px}
+
+  .row{display:flex; gap:8px}
+  button{font:inherit; border:0; border-radius:12px; padding:10px 16px; background:var(--paper); color:var(--ink);
+    font-weight:700; box-shadow:0 3px 0 var(--line); cursor:pointer}
+  button:active{transform:translateY(2px); box-shadow:0 1px 0 var(--line)}
+  button.pri{background:var(--accent); color:#fff; box-shadow:0 3px 0 #C97A2E}
+  button:disabled{opacity:.45; cursor:default}
+
+  /* 덮개 — 시작·유물·클리어·끝. */
+  .ov{position:fixed; inset:0; background:rgba(59,47,47,.55); display:flex; align-items:center; justify-content:center;
+    padding:16px; z-index:10}
+  .ov[hidden]{display:none}
+  .sheet{background:var(--paper); border-radius:18px; padding:20px 18px; width:100%; max-width:380px;
+    display:flex; flex-direction:column; gap:12px; max-height:90vh; overflow:auto}
+  .sheet h2{margin:0; font-size:20px} .sheet p{margin:0; font-size:14px; line-height:1.5}
+  .relics{display:flex; flex-direction:column; gap:8px}
+  .relic{display:flex; gap:12px; align-items:center; text-align:left; padding:10px 12px}
+  .relic .ic{font-size:26px} .relic b{display:block; font-size:14px} .relic small{font-size:12px; opacity:.75}
+  .rules{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; align-items:center}
+  .rules span:first-child{font-size:20px}
+  .owned{display:flex; flex-wrap:wrap; gap:6px; font-size:13px}
+  .owned span{background:#fff; border-radius:8px; padding:3px 8px; box-shadow:0 2px 0 var(--line)}
+  .stat{font-size:13px; opacity:.8}
+</style>
+</head>
+<body>
+<h1>🐕 맥스의 텃밭</h1>
+
+<div class="hud">
+  <div><small>스테이지</small><b id="hStage">1</b></div>
+  <div class="mid"><small>점수 / 목표</small><b><span id="hScore">0</span><span style="font-size:14px;opacity:.6"> / <span id="hGoal">0</span></span></b></div>
+  <div class="r"><small>남은 배치</small><b id="hLeft">0</b></div>
+  <div class="bar"><i id="hBar"></i></div>
+</div>
+
+<div class="board" id="board"></div>
+<div class="tip" id="tip"></div>
+<div class="hand" id="hand"></div>
+<div class="row">
+  <button id="btnDiscard">버리기 <span id="hDisc"></span></button>
+  <button id="btnHelp">규칙</button>
+</div>
+
+<!-- 시작 -->
+<div class="ov" id="ovStart">
+  <div class="sheet">
+    <h2>🐕 맥스의 텃밭</h2>
+    <p>5×5 텃밭에 타일을 놓아 점수를 모으세요. <b>이웃끼리 반응</b>하면 점수가 붙고, 한 번에 여러 이웃이 반응하면 <b>콤보 배율</b>이 걸립니다.</p>
+    <p>스테이지마다 목표 점수가 있고, 못 넘기면 그 판으로 끝. 넘기면 <b>유물</b> 하나를 골라 다음 판으로.</p>
+    <div class="rules" id="ruleList"></div>
+    <p class="stat" id="meta"></p>
+    <button class="pri" id="btnStart">산책 나가기</button>
+  </div>
+</div>
+
+<!-- 유물 고르기 -->
+<div class="ov" id="ovRelic" hidden>
+  <div class="sheet">
+    <h2 id="relicTitle">스테이지 클리어!</h2>
+    <p id="relicSub"></p>
+    <div class="relics" id="relicList"></div>
+  </div>
+</div>
+
+<!-- 끝 -->
+<div class="ov" id="ovEnd" hidden>
+  <div class="sheet">
+    <h2 id="endTitle"></h2>
+    <p id="endBody"></p>
+    <div class="owned" id="endRelics"></div>
+    <button class="pri" id="btnAgain">다시</button>
+  </div>
+</div>
+
+<!-- 규칙 -->
+<div class="ov" id="ovHelp" hidden>
+  <div class="sheet">
+    <h2>규칙</h2>
+    <div class="rules" id="ruleList2"></div>
+    <p><b>콤보</b>: 놓은 타일과 반응한 이웃 수. 2개 ×1.5 · 3개 ×2 · 4개 ×2.5 · 8칸 반응(개집)도 같은 표.</p>
+    <p><b>점수는 놓는 순간에만</b> 납니다. 벌집을 먼저 놓고 꽃을 붙일지, 꽃을 깔고 벌집을 얹을지 — 순서가 곧 전략입니다.</p>
+    <div class="owned" id="helpRelics"></div>
+    <button id="btnHelpClose">닫기</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════ 규칙 (DOM 없음 — 봇 시뮬에서 그대로 쓴다) ═══════════════════ */
+const N=5;
+const TILES={
+  grass: {ic:'🌱', nm:'풀',   base:1, w:30, desc:'이웃 풀마다 +1'},
+  flower:{ic:'🌸', nm:'꽃',   base:2, w:22, desc:'이웃 벌집마다 +3'},
+  hive:  {ic:'🐝', nm:'벌집', base:0, w:14, desc:'이웃 꽃마다 +2'},
+  pond:  {ic:'💧', nm:'연못', base:0, w:14, desc:'이웃 타일마다 +2, 이웃 연못은 −3'},
+  tree:  {ic:'🌳', nm:'나무', base:3, w:14, desc:'이웃 풀마다 +1, 이웃 나무마다 −2'},
+  house: {ic:'🏠', nm:'개집', base:4, w:6,  desc:'주변 8칸의 타일마다 +1'},
+};
+const RELICS={
+  honey: {ic:'🍯', nm:'꿀단지',   desc:'벌집 ↔ 꽃 보너스 +2'},
+  manure:{ic:'💩', nm:'거름',     desc:'풀 기본 점수 +1'},
+  bighand:{ic:'🖐️', nm:'큰 손',  desc:'손패 3장 → 4장'},
+  can:   {ic:'🚿', nm:'물뿌리개', desc:'연못 이웃 보너스 +1'},
+  axe:   {ic:'🪓', nm:'도끼',     desc:'나무끼리 붙어도 페널티 없음'},
+  bone:  {ic:'🦴', nm:'뼈다귀',   desc:'개집 기본 점수 +4, 등장 확률 2배'},
+  seeds: {ic:'🌰', nm:'씨앗 봉지', desc:'매 스테이지 배치 횟수 +2'},
+  shovel:{ic:'🥄', nm:'새 삽',    desc:'매 스테이지 버리기 +2회'},
+  charm: {ic:'🔮', nm:'콤보 부적', desc:'콤보 배율 한 단계 위로'},
+};
+const GOALS=[30, 46, 66, 90, 112];      // 탐욕 봇 400판 기준 클리어율 ≈ 95·70·50·40·30% — 미리 보기 없이 앞을 읽는 사람은 봇보다 낫다
+const PLACES=[12,14,16,18,20], DISC=2, ROCKS=[2,2,3,3,4];   // 판이 차 갈수록 콤보가 붙어 점수가 오른다
+
+const DIR4=[[1,0],[-1,0],[0,1],[0,-1]];
+const DIR8=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+const inb=(r,c)=>r>=0&&r<N&&c>=0&&c<N;
+const has=(R,k)=>R.includes(k);
+
+// 한 칸에 t 를 놓았을 때의 점수 — {score, combo, parts:[[r,c,delta]]}
+function evalPlace(g, r, c, t, R){
+  let base=TILES[t].base;
+  if(t==='grass'&&has(R,'manure')) base+=1;
+  if(t==='house'&&has(R,'bone'))   base+=4;
+  const parts=[]; let bonus=0;
+  const dirs = t==='house'?DIR8:DIR4;
+  for(const [dr,dc] of dirs){
+    const rr=r+dr, cc=c+dc; if(!inb(rr,cc)) continue;
+    const n=g[rr][cc]; if(!n||n==='rock') continue;
+    let d=0;
+    if(t==='grass'&&n==='grass') d=1;
+    else if(t==='flower'&&n==='hive') d=3+(has(R,'honey')?2:0);
+    else if(t==='hive'&&n==='flower') d=2+(has(R,'honey')?2:0);
+    else if(t==='pond') d = n==='pond' ? -3 : 2+(has(R,'can')?1:0);
+    else if(t==='tree') d = n==='grass'?1 : n==='tree'?(has(R,'axe')?0:-2) : 0;
+    else if(t==='house') d=1;
+    if(d!==0){ parts.push([rr,cc,d]); bonus+=d; }
+  }
+  const combo=parts.filter(p=>p[2]>0).length;
+  let step = combo<=1?0 : Math.min(combo-1, 3);          // 0,1,2,3 → ×1,1.5,2,2.5
+  if(has(R,'charm')&&combo>=2) step=Math.min(step+1,4);  // 부적: 한 단계 위(최대 ×3)
+  const mult=1+step*0.5;
+  return {score:Math.max(0, Math.floor((base+bonus)*mult)), combo, mult, parts, base, bonus};
+}
+
+// 가방 — 가중 무작위. 봇도 같은 함수를 쓴다.
+function draw(rand, R){
+  let sum=0; const ws=[];
+  for(const k in TILES){ let w=TILES[k].w; if(k==='house'&&has(R,'bone')) w*=2; ws.push([k,w]); sum+=w; }
+  let x=rand()*sum; for(const [k,w] of ws){ x-=w; if(x<0) return k; } return 'grass';
+}
+function newGrid(rand, rocks){
+  const g=Array.from({length:N},()=>Array(N).fill(null));
+  let n=0, guard=0;
+  while(n<rocks&&guard++<200){ const r=(rand()*N)|0, c=(rand()*N)|0; if(!g[r][c]){ g[r][c]='rock'; n++; } }
+  return g;
+}
+// 결정론적 난수 — 시드가 같으면 판이 같다(재현·디버그).
+function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+/* ═══════════════════ 게임 상태 ═══════════════════ */
+const $=id=>document.getElementById(id);
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } },
+              set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let S=null;   // {stage, grid, hand, sel, score, left, disc, relics, rand, seed}
+let meta=store.get('garden.meta',{runs:0, best:0, wins:0});
+
+function startRun(){
+  const seed=(Date.now()^(Math.random()*1e9))>>>0;
+  S={stage:0, relics:[], seed, rand:mulberry(seed), total:0};
+  meta.runs++; store.set('garden.meta',meta);
+  startStage();
+}
+function startStage(){
+  const st=S.stage;
+  S.grid=newGrid(S.rand, ROCKS[st]);
+  S.score=0; S.left=PLACES[st]+(has(S.relics,'seeds')?2:0); S.disc=DISC+(has(S.relics,'shovel')?2:0);
+  S.hand=[]; S.sel=-1; fillHand();
+  render(); $('tip').textContent='손패에서 타일을 고르고, 빈 칸을 누르세요.';
+}
+const handSize=()=>3+(has(S.relics,'bighand')?1:0);
+function fillHand(){ while(S.hand.length<handSize()) S.hand.push(draw(S.rand,S.relics)); }
+
+function place(r,c){
+  if(S.sel<0||S.grid[r][c]) return;
+  const t=S.hand[S.sel];
+  const ev=evalPlace(S.grid,r,c,t,S.relics);
+  S.grid[r][c]=t; S.score+=ev.score; S.total+=ev.score; S.left--;
+  S.hand.splice(S.sel,1); S.sel=-1; fillHand();
+  render();
+  // 연출 — 놓은 칸 튀고, 반응한 이웃 들썩이고, 점수 뜬다
+  const cell=cellEl(r,c); cell.classList.add('pop');
+  const f=document.createElement('span'); f.className='float'+(ev.mult>1?' big':'');
+  f.textContent='+'+ev.score+(ev.mult>1?' ×'+ev.mult:''); cell.appendChild(f);
+  for(const [rr,cc] of ev.parts){ const e=cellEl(rr,cc); e.classList.remove('buzz'); void e.offsetWidth; e.classList.add('buzz'); }
+  beep(ev.combo);
+  $('tip').textContent = ev.combo>=2 ? `콤보 ${ev.combo}! 배율 ×${ev.mult}` : (ev.bonus>0?`이웃 반응 +${ev.bonus}`:'');
+  if(S.left<=0||!emptyCount(S.grid)) setTimeout(endStage, 500);   // 판이 먼저 차도 끝
+}
+function emptyCount(g){ let n=0; for(const row of g) for(const v of row) if(!v) n++; return n; }
+function discard(){
+  if(S.disc<=0||S.sel<0) return;
+  S.hand.splice(S.sel,1); S.sel=-1; S.disc--; fillHand(); render();
+}
+function endStage(){
+  const goal=GOALS[S.stage];
+  if(S.score<goal){ return endRun(false); }
+  if(S.stage>=GOALS.length-1){ return endRun(true); }
+  // 유물 셋 — 아직 없는 것 중에서
+  const pool=Object.keys(RELICS).filter(k=>!has(S.relics,k));
+  const pick=[]; while(pick.length<3&&pool.length){ pick.push(pool.splice((S.rand()*pool.length)|0,1)[0]); }
+  $('relicTitle').textContent=`스테이지 ${S.stage+1} 클리어!`;
+  $('relicSub').textContent=`${S.score}점 / 목표 ${goal}점. 유물 하나를 고르세요.`;
+  const box=$('relicList'); box.innerHTML='';
+  for(const k of pick){
+    const b=document.createElement('button'); b.className='relic';
+    b.innerHTML=`<span class="ic">${RELICS[k].ic}</span><span><b>${RELICS[k].nm}</b><small>${RELICS[k].desc}</small></span>`;
+    b.onclick=()=>{ S.relics.push(k); $('ovRelic').hidden=true; S.stage++; startStage(); };
+    box.appendChild(b);
+  }
+  $('ovRelic').hidden=false;
+}
+function endRun(win){
+  const st=S.stage+1;
+  if(win){ meta.wins++; }
+  meta.best=Math.max(meta.best, win?GOALS.length+1:st); store.set('garden.meta',meta);
+  $('endTitle').textContent = win ? '🏆 텃밭 완성!' : '🍂 오늘은 여기까지';
+  $('endBody').textContent = win
+    ? `다섯 스테이지를 모두 넘었습니다. 총 ${S.total}점.`
+    : `스테이지 ${st}에서 ${S.score}점 — 목표 ${GOALS[S.stage]}점에 ${GOALS[S.stage]-S.score}점 모자랐습니다. 총 ${S.total}점.`;
+  $('endRelics').innerHTML = S.relics.map(k=>`<span>${RELICS[k].ic} ${RELICS[k].nm}</span>`).join('') || '<span>유물 없음</span>';
+  $('ovEnd').hidden=false;
+}
+
+/* ═══════════════════ 그리기 ═══════════════════ */
+const cellEl=(r,c)=>$('board').children[r*N+c];
+function render(){
+  const goal=GOALS[S.stage];
+  $('hStage').textContent=S.stage+1; $('hScore').textContent=S.score; $('hGoal').textContent=goal;
+  $('hLeft').textContent=Math.min(S.left, emptyCount(S.grid)); $('hDisc').textContent=`(${S.disc})`;
+  const bar=$('hBar'); bar.style.width=Math.min(100, S.score/goal*100)+'%'; bar.classList.toggle('over', S.score>=goal);
+  $('btnDiscard').disabled = S.disc<=0||S.sel<0;
+
+  const b=$('board');
+  if(b.children.length!==N*N){ b.innerHTML=''; for(let i=0;i<N*N;i++){ const d=document.createElement('div'); d.className='cell';
+    d.onclick=()=>place((i/N)|0, i%N); b.appendChild(d); } }
+  const t=S.sel>=0?S.hand[S.sel]:null;
+  for(let r=0;r<N;r++) for(let c=0;c<N;c++){
+    const e=cellEl(r,c), v=S.grid[r][c];
+    e.className='cell'+(v==='rock'?' rock':v?' filled':'');
+    e.textContent = v==='rock'?'🪨' : v?TILES[v].ic : '';
+    if(!v&&t){ // 놓으면 몇 점인지 미리 보여준다 — 규칙을 외우지 않아도 읽히게
+      const ev=evalPlace(S.grid,r,c,t,S.relics);
+      const pv=document.createElement('span'); pv.className='pv'+(ev.score===0?' zero':''); pv.textContent=ev.score; e.appendChild(pv);
+      if(ev.combo>=2) e.classList.add('can');
+    }
+  }
+  const h=$('hand'); h.innerHTML='';
+  S.hand.forEach((k,i)=>{
+    const d=document.createElement('div'); d.className='card'+(i===S.sel?' sel':'');
+    let base=TILES[k].base; if(k==='grass'&&has(S.relics,'manure')) base++; if(k==='house'&&has(S.relics,'bone')) base+=4;
+    d.innerHTML=`<span class="bs">${base}</span><span class="ic">${TILES[k].ic}</span><span class="nm">${TILES[k].nm}</span>`;
+    d.onclick=()=>{ S.sel = S.sel===i?-1:i; $('tip').textContent = S.sel>=0 ? `${TILES[k].nm}: ${TILES[k].desc}` : ''; render(); };
+    h.appendChild(d);
+  });
+}
+function ruleHTML(){ return Object.values(TILES).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> 기본 ${t.base} · ${t.desc}</span>`).join(''); }
+
+/* ═══════════════════ 소리 — 합성음 세 개. 실패해도 게임은 돈다. ═══════════════════ */
+let AC=null;
+function beep(combo){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==='suspended') AC.resume();
+    const n=Math.min(combo,3)+1;
+    for(let i=0;i<n;i++){
+      const o=AC.createOscillator(), g=AC.createGain(); o.type='triangle';
+      o.frequency.value=440*Math.pow(2,(i*4)/12); g.gain.value=.0001;
+      o.connect(g).connect(AC.destination);
+      const t0=AC.currentTime+i*.07; o.start(t0);
+      g.gain.setValueAtTime(.0001,t0); g.gain.exponentialRampToValueAtTime(.12,t0+.01); g.gain.exponentialRampToValueAtTime(.0001,t0+.18);
+      o.stop(t0+.2);
+    }
+  }catch(e){}
+}
+
+/* ═══════════════════ 연결 ═══════════════════ */
+$('ruleList').innerHTML=$('ruleList2').innerHTML=ruleHTML();
+$('meta').textContent = meta.runs ? `지금까지 ${meta.runs}번 산책 · 최고 스테이지 ${Math.min(meta.best,5)}${meta.wins?` · 완성 ${meta.wins}회`:''}` : '';
+$('btnStart').onclick=()=>{ $('ovStart').hidden=true; startRun(); };
+$('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; $('meta').textContent=`지금까지 ${meta.runs}번 산책 · 최고 스테이지 ${Math.min(meta.best,5)}${meta.wins?` · 완성 ${meta.wins}회`:''}`; $('ovStart').hidden=false; };
+$('btnDiscard').onclick=discard;
+$('btnHelp').onclick=()=>{ $('helpRelics').innerHTML = S&&S.relics.length ? '보유 유물: '+S.relics.map(k=>`<span>${RELICS[k].ic} ${RELICS[k].nm} — ${RELICS[k].desc}</span>`).join('') : ''; $('ovHelp').hidden=false; };
+$('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+document.addEventListener('keydown',e=>{ if(!S||!$('ovStart').hidden) return; const i=+e.key-1; if(i>=0&&i<S.hand.length){ S.sel=S.sel===i?-1:i; render(); } if(e.key==='d') discard(); });
+
+// 판을 그릴 빈 상태 — 시작 전에도 보드가 보이게
+S={stage:0,grid:newGrid(mulberry(1),3),hand:[],sel:-1,score:0,left:PLACES[0],disc:DISC,relics:[],total:0,rand:mulberry(1)}; render();
+</script>
+</body>
+</html>
