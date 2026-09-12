@@ -158,6 +158,8 @@
   .relic .cost{margin-left:auto; flex:none; font-weight:700; font-size:13px; color:var(--torch); white-space:nowrap}
   .relic[disabled] .cost{color:var(--mute)}
   .relic .pip{color:var(--torch); letter-spacing:1px; font-weight:400}
+  .wave .clock{margin-left:8px; font-size:12px; color:var(--mute); font-weight:700; font-variant-numeric:tabular-nums}
+  .wave .clock.on{color:var(--bad)}
   .rules{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; align-items:center} .rules span:first-child{font-size:18px}
   .litter{display:grid; grid-template-columns:1fr 1fr; gap:8px}
   .dead{color:var(--bad); font-weight:700}
@@ -228,7 +230,7 @@
 <div class="ov" id="ovHelp" hidden><div class="sheet">
   <h2>규칙</h2>
   <div class="rules" id="classList2"></div>
-  <p><b>원정</b>: 일행 <b>넷까지</b> 데려가 짧은 싸움 셋을 치릅니다. 왼쪽 세 열이 우리 자리 — <b>바위</b>(1~2열)는 받는 피해 −1, <b>둔덕</b>(3열 위아래)은 사거리 +1. 매 틱 일행이 먼저 때리고 적이 움직입니다. 싸움 사이에 <b>챙길 것</b>을 하나 고르지만 원정이 끝나면 사라집니다.</p>
+  <p><b>원정</b>: 일행 <b>넷까지</b> 데려가 짧은 싸움 셋을 치릅니다. 왼쪽 세 열이 우리 자리 — <b>바위</b>(1~2열)는 받는 피해 −1, <b>둔덕</b>(3열 위아래)은 사거리 +1. 매 틱 일행이 먼저 때리고 적이 움직입니다. <b>18틱</b>이 지나도 적이 남아 있으면 <b>포위</b>돼 매 틱 전원이 깎입니다 — 웅크리고 버티는 수는 통하지 않습니다. 싸움 사이에 <b>챙길 것</b>을 하나 고르지만 원정이 끝나면 사라집니다.</p>
   <p><b>시설</b>이 유일하게 남는 것입니다 — 숙소·대장간·약방·훈련장. 원정에서 번 금화를 여기 넣으면 다음 원정이 확실히 쉬워집니다.</p>
   <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 싸움 중에도 됩니다.</p>
   <p><b>상처</b>: 원정이 끝났을 때 체력이 <b>1/4 이하</b>로 살아남으면 몸에 자국이 하나 남습니다(절반 이하면 <b>부상</b> — 다음 원정은 쉽니다). 상처는 영영 안 사라지고, <b>셋이 되면 길을 떠납니다</b> — 무기는 창고에 남습니다. 사람을 갉아먹는 건 세월이 아니라 <b>어떻게 버텼느냐</b>입니다.</p>
@@ -242,6 +244,10 @@
 <script>
 /* ═══════════════════ 데이터 ═══════════════════ */
 const R=5, C=7, DEPLOY_C=2, SPAWNS=[0,2,4], FIGHTS=3;
+/* 포위 — 싸움이 길어지면 판 밖에서 조여온다. 이게 없으면 넓은 들판에
+   웅크린 채 한 마리씩 잡아내는 게 언제나 옳은 수가 된다. 적의 체력이
+   '시간'이라는 값을 갖게 하는 장치다. */
+const OVERRUN=18;
 /* 전장 — 왼쪽 세 열이 우리 자리다. 0~1열은 바위(엄폐), 2열 가운데 둔덕은 높다.
    지켜야 할 성문이 없으니 '지켜야 할 것'은 일행 자신이다. */
 /* 종족은 몸을, 역할은 하는 일을 정한다. 섞어 쓰면 드워프 궁수·엘프 전사가 나온다.
@@ -627,14 +633,15 @@ function nextFight(){
         traits:heroTraits(h), scars:scarsOf(h), r:-1, c:-1, st:{}}); }
   } else { for(const u of B.units){ u.st={}; u.r=-1; u.c=-1; } }   // 전투 사이 자리는 다시 잡는다
   // 적 — 전투가 깊어질수록, 원정 차수가 오를수록 는다
-  const f=B.fight, t=B.tier; let budget=4+f*4+(t-1)*5; const list=[];
+  const f=B.fight, t=B.tier; let budget=4+f*4+(t-1)*4; const list=[];
   const keys=['wolf','orc'].concat(f>=2?['shaman','rider']:[], f>=3?['thrower']:[]);
-  if(f===FIGHTS&&t>=2){ list.push('troll'); budget-=7; }
+  if(f===FIGHTS&&t>=2){ list.push('troll'); budget-=7; if(t>=7){ list.push('troll'); budget-=7; } }
   let guard=0; while(budget>0&&guard++<40){ const k=pick(keys); if(FOES[k].cost<=budget){ list.push(k); budget-=FOES[k].cost; } else { list.push('wolf'); budget-=1; } }
   const hpUp=Math.floor((f-1)/2)+(t-1)*2;
+  const rows = t>=4 ? [0,1,2,3,4] : SPAWNS;   // 차수가 오르면 전선이 넓어진다
   list.forEach((k,i)=>{ const e=FOES[k];
     B.units.push({kind:'e', key:k, ic:e.ic, name:e.nm, hp:e.hp+hpUp, maxhp:e.hp+hpUp, atk:e.atk+Math.floor((t-1)/2),
-      spd:e.spd, rng:e.rng||1, burn:!!e.burn, boss:!!e.boss, r:SPAWNS[i%SPAWNS.length], c:C-1, delay:Math.floor(i/3), slow:0, hold:0, st:{}}); });
+      spd:e.spd, rng:e.rng||1, burn:!!e.burn, boss:!!e.boss, r:rows[i%rows.length], c:C-1, delay:Math.floor(i/rows.length), slow:0, hold:0, st:{}}); });
   render();
   $('tip').innerHTML = f===1 ? '일행을 <b>왼쪽 세 열</b>에 세우세요 — 바위는 받는 피해 −1, 둔덕은 사거리 +1.' : '';
   log(f===FIGHTS?'🌙 해가 졌다. 마지막 싸움이다.':`${f}번째 싸움`);
@@ -649,7 +656,7 @@ function onCell(r,c){
   if(isHill(r,c)&&(B.sel.scars||[]).includes('limp')){ $('tip').innerHTML=`${B.sel.name}은(는) <b>절뚝여서</b> 둔덕에 못 오릅니다 — 바위 쪽에 세우세요.`; return; }
   B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; $('tip').textContent=''; render();
 }
-function startWave(){ if(B.phase!=='build') return; B.inspect=null;
+function startWave(){ if(B.phase!=='build') return; B.inspect=null; $('tip').textContent='';
   if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; }
   B.phase='run'; B.sel=null; B.tick=0; render(); tickLoop(); }
 function tickLoop(){
@@ -705,15 +712,26 @@ function tickLoop(){
       if(!target&&e.key==='rider'){ target=hs.slice().sort((a,b)=>a.hp-b.hp)[0]; }
       let p=target?path(e,target,e):null;
       if(!p){ let best=null; for(const h of hs){ const q=path(e,h,e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
+      // 동료 적에게 막혀 길이 아예 없으면, 막힌 걸 무시한 최단로를 잡고 앞의 동료와 자리를 바꾼다.
+      // 이게 없으면 좁은 판에서 적들이 서로 막아 영영 교착한다.
+      if(!p){ let best=null; for(const h of hs){ if(h.hp<=0) continue; const q=path(e,h,null); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
       if(!p||p.length<2) break;
-      const [nr,nc]=p[1]; if(at(nr,nc)) break;   // 막히면 대기
+      const [nr,nc]=p[1]; const blocker=at(nr,nc);
+      if(blocker){ if(blocker.kind!=='e') break; blocker.r=e.r; blocker.c=e.c; }   // 동료와 자리 교대
       e.r=nr; e.c=nc;
     }
   }
   render(); flushFX();
   { const sig=JSON.stringify(B.units.filter(u=>u.hp>0).map(u=>[u.r,u.c,u.hp,u.hold,u.delay]));
     if(sig===B.lastSig){ B.same=(B.same||0)+1; } else { B.same=0; B.lastSig=sig; }
-    if(B.same===40){ console.warn('STALL-DUMP '+JSON.stringify({fight:B.fight, en:B.units.filter(u=>u.kind==='e'&&u.hp>0).map(e=>({k:e.key,r:e.r,c:e.c,hold:e.hold,delay:e.delay,slow:e.slow})), hs:hs.map(h=>[h.name,h.r,h.c,h.hp])})); } }
+    if(B.same===40){ console.warn('STALL-DUMP '+JSON.stringify({fight:B.fight, en:B.units.filter(u=>u.kind==='e'&&u.hp>0).map(e=>({k:e.key,r:e.r,c:e.c,hold:e.hold,delay:e.delay,slow:e.slow})), hs:hs.map(h=>[h.name,h.r,h.c,h.hp])})); }
+  }
+  if(B.tick>=OVERRUN&&B.units.some(u=>u.kind==='e'&&u.hp>0)){
+    const n=1+Math.floor((B.tick-OVERRUN)/8);
+    if(B.tick===OVERRUN) log('🩸 포위됐다 — 오래 끌수록 깎인다.');
+    for(const h of alive('h')) if(h.r>=0){ h.hp-=n; fx(h,'-'+n); }
+    render(); flushFX();
+  }
   if(!alive('h').length) return setTimeout(()=>endRun(false), 600);
   if(!B.units.some(u=>u.kind==='e'&&u.hp>0)) return setTimeout(endFight, 500);
   setTimeout(tickLoop, 320);
@@ -818,7 +836,8 @@ function applyFX(o,fort){ {
 function waveBarHTML(){
   const g={}; for(const u of B.units){ if(u.kind!=='e'||u.hp<=0) continue; const k=u.r+'|'+u.key; g[k]=g[k]||{u,n:0}; g[k].n++; }
   const rowName=r=>r===0?'위':r===6?'아래':'가운데';
-  return `<b>이번 적</b>`+Object.values(g).sort((a,b)=>a.u.r-b.u.r).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated;transform:scaleX(-1)" alt="${u.name}">${n>1?'×'+n:''}<i>${rowName(u.r)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':'🌤️ 낮'}</span>`;
+  return `<b>이번 적</b>`+Object.values(g).sort((a,b)=>a.u.r-b.u.r).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated;transform:scaleX(-1)" alt="${u.name}">${n>1?'×'+n:''}<i>${rowName(u.r)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':'🌤️ 낮'}</span>`
+    +(B.phase==='run'?`<span class="clock${B.tick>=OVERRUN?' on':''}">${B.tick>=OVERRUN?`🩸 포위 −${1+Math.floor((B.tick-OVERRUN)/8)}`:`⏳ ${OVERRUN-B.tick}`}</span>`:`<span class="clock">⏳ ${OVERRUN}틱</span>`);
 }
 function render(){
   $('bTier').textContent=B.tier; $('bWave').textContent=B.fight; $('bGold').textContent=B.gold; $('wavebar').innerHTML=waveBarHTML();
