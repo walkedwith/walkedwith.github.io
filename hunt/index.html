@@ -71,7 +71,7 @@
 
   .ov{position:fixed; inset:0; background:rgba(30,34,22,.68); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
   .ov[hidden]{display:none}
-  .sheet{background:var(--paper); color:var(--ink); border-radius:16px; padding:18px; width:100%; max-width:390px;
+  .sheet{background:var(--paper); color:var(--ink); border-radius:16px; padding:18px 18px 22px; width:100%; max-width:390px;
     display:flex; flex-direction:column; gap:10px; max-height:90vh; overflow:auto}
   .sheet h2{margin:0; font-size:19px} .sheet p{margin:0; line-height:1.55}
   .rules{display:grid; grid-template-columns:auto 1fr; gap:8px 10px; font-size:13px; align-items:center}
@@ -131,7 +131,7 @@
 <div class="board" id="board"></div>
 <div class="tip" id="tip"></div>
 <div class="crew" id="crew"></div>
-<div class="row"><button id="btnHelp">규칙</button><button id="btnNew">새 추격</button></div>
+<div class="row"><button id="btnHelp">규칙</button><button id="btnNew">새 추격</button><button id="btnHome">처음 화면</button></div>
 </div>
 
 <div class="screen" id="scSiege" hidden>
@@ -155,7 +155,8 @@
   <p>조사할 때마다 <b>격차가 벌어집니다</b>. 바르게 짚으면 좁혀집니다. 끝 열까지 가거나 격차를 0으로 만들면 따라잡습니다.</p>
   <p class="stat" id="meta"></p>
   <button class="pri" id="btnGo">추격 시작</button>
-  <p class="stat" style="margin:2px 0 -4px">추격을 건너뛰고 <b>농성만</b> 해보기 — 괄호는 무리의 수</p>
+  <hr style="border:0; border-top:1px solid var(--line); margin:4px 0 0">
+  <p class="stat" style="margin:0">추격을 건너뛰고 <b>농성만</b> 해보기 — 괄호는 무리의 수</p>
   <div class="row" style="justify-content:center">
     <button id="btnP4">쉬움 (10)</button><button id="btnP8">보통 (12)</button><button id="btnP12">어려움 (13)</button>
   </div>
@@ -543,6 +544,7 @@ $('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; if(B&&B.practice&&practiceGa
 $('btnAgain2').onclick=()=>{ $('ovEnd').hidden=true; practiceGap=null; newRun(); };
 $('btnNew').onclick=()=>{ $('ovEnd').hidden=true; newRun(); };
 $('btnHold').onclick=holdLine;
+$('btnHome').onclick=()=>{ $('meta').textContent=metaLine(); $('ovStart').hidden=false; };
 $('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
 // 시작 전에도 판이 보이게
 S={P:makePath(mulberry(7)), gap:GAP0, col:0, sel:null, cell:{}, zone:{}, rowN:{}, over:true, looks:0, wrongs:0};
