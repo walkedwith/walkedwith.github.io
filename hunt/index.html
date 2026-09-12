@@ -77,6 +77,42 @@
   .rules{display:grid; grid-template-columns:auto 1fr; gap:8px 10px; font-size:13px; align-items:center}
   .rules img{width:28px; height:28px; image-rendering:pixelated}
   .stat{font-size:13px; color:var(--mute)}
+  .screen{width:100%; max-width:420px; display:flex; flex-direction:column; align-items:center; gap:8px}
+  .screen[hidden]{display:none}
+
+  /* 농성 — 밤. 왼쪽 두 열이 바위, 셋째 열이 높은 바위. */
+  body.night{background:#3C4436}
+  .fort{display:grid; grid-template-columns:repeat(7,var(--cell)); gap:2px; padding:5px; background:#2E3529; border-radius:12px; position:relative}
+  .f{width:var(--cell); height:var(--cell); background:#4A5540; border-radius:5px; position:relative; display:flex; align-items:center; justify-content:center}
+  .f.rock{background:#6A6E5C; box-shadow:inset 0 -3px 0 #4E5244}
+  .f.high{background:#83887A; box-shadow:2px 2px 0 rgba(0,0,0,.35); z-index:2}
+  .f.high .u{transform:translateY(-5px)}
+  .f.spawn{background:#43392F}
+  .f.ok{outline:2px dashed var(--track); outline-offset:-2px; cursor:pointer}
+  .f img{width:82%; height:82%; image-rendering:pixelated}
+  .f.e img{transform:scaleX(-1)} .f.high.e img{transform:scaleX(-1) translateY(-5px)}
+  .f .hp{position:absolute; left:3px; right:3px; bottom:2px; height:3px; background:rgba(0,0,0,.4); border-radius:2px; overflow:hidden}
+  .f .hp i{display:block; height:100%; background:var(--good)} .f.e .hp i{background:var(--bad)}
+  .f .dmg{position:absolute; left:50%; top:-2px; transform:translateX(-50%); font-weight:800; font-size:13px; color:#FFD9A0;
+    text-shadow:0 1px 0 #000; animation:rise .8s ease-out forwards; pointer-events:none; z-index:4}
+  .f .dmg.on{color:#FFB3A8}
+  .f .u.lunge{animation:lunge .4s cubic-bezier(.3,.9,.4,1); display:inline-block}
+  @keyframes lunge{22%{transform:translate(calc(var(--dx) * -.3),0) scale(.92,1.08) scaleX(var(--sx,1))}
+    50%{transform:translate(var(--dx),var(--dy)) scale(1.28,1.12) scaleX(var(--sx,1))} 100%{transform:scaleX(var(--sx,1))}}
+  .f .u.knock{animation:knock .36s ease-out; display:inline-block}
+  @keyframes knock{15%{transform:translate(var(--kx),0) scaleX(var(--sx,1)); filter:brightness(4) saturate(0)} 100%{transform:scaleX(var(--sx,1))}}
+  .f.gone{animation:gone .5s ease-in forwards} @keyframes gone{100%{opacity:0; transform:rotate(70deg) translateY(8px)}}
+  .shot{position:absolute; width:13px; height:3px; border-radius:2px; pointer-events:none; z-index:5; margin:-1px 0 0 -6px;
+    background:linear-gradient(90deg,transparent,#FFE28A 40%,#fff)}
+  .fort.quake{animation:qk .3s} @keyframes qk{25%{transform:translate(3px,-2px)} 75%{transform:translate(-3px,2px)}}
+  .bench{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; width:100%}
+  .chip{background:var(--paper); color:var(--ink); border-radius:10px; padding:4px 9px; font-size:12px; display:flex; align-items:center; gap:5px;
+    box-shadow:0 3px 0 var(--line); cursor:pointer}
+  .chip img{width:20px; height:20px; image-rendering:pixelated}
+  .chip.on{box-shadow:0 3px 0 var(--track), 0 0 0 2px var(--track)}
+  .chip.down{opacity:.45; text-decoration:line-through; cursor:default}
+  .log{font-size:12px; color:#EDE6D0; text-align:center; min-height:34px; line-height:1.4}
+  .log .lh{color:#FFD9A0} .log .le{color:#FFB3A8}   /* .h 는 추격 화면 사냥꾼 카드가 이미 쓴다 */
   @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
 </style>
 </head>
@@ -84,6 +120,7 @@
 <h1>세 사냥꾼</h1>
 <div class="sub">흔적을 읽어 뒤를 쫓는다</div>
 
+<div class="screen" id="scChase">
 <div class="hud">
   <span><small>격차</small><span id="hGap">0</span> 리그</span>
   <span><small>여기까지 왔다</small><span id="hCol">1</span>/9</span>
@@ -95,6 +132,20 @@
 <div class="tip" id="tip"></div>
 <div class="crew" id="crew"></div>
 <div class="row"><button id="btnHelp">규칙</button><button id="btnNew">새 추격</button></div>
+</div>
+
+<div class="screen" id="scSiege" hidden>
+  <div class="hud">
+    <span><small>밤</small>농성</span>
+    <span><small>남은 무리</small><span id="sLeft">0</span></span>
+    <span><small>선 사람</small><span id="sUp">0</span>/3</span>
+  </div>
+  <div class="fort" id="fort"></div>
+  <div class="bench" id="bench"></div>
+  <div class="tip" id="sTip"></div>
+  <div class="row"><button class="pri" id="btnHold">버틴다</button></div>
+  <div class="log" id="sLog"></div>
+</div>
 
 <div class="ov" id="ovStart"><div class="sheet">
   <h2>세 사냥꾼</h2>
@@ -118,6 +169,7 @@
   <p><b>격차</b>: 조사 1회 +1, 잘못 짚으면 +3, 바르게 짚으면 −1. <b>14리그</b>까지 벌어지면 놓치고, <b>0으로 좁히면 그 자리에서 따라잡습니다</b>.</p>
   <p>아라곤이 찾아낸 칸의 숫자는 <b>몇 번째로 지난 칸인지</b>입니다. 김리의 숫자는 <b>그 행을 몇 번 밟았는지</b>, 레골라스의 띠는 <b>그 열이 위·가운데·아래 중 어디인지</b>입니다.</p>
   <p>잘못 짚어도 그 칸이 아니라는 건 알게 됩니다 — 헛걸음도 정보입니다.</p>
+  <p><b>따라잡으면 밤이 옵니다.</b> 무리가 역습하고, 셋은 바위를 등지고 버팁니다. <b>남긴 격차가 그대로 조건이 됩니다</b> — 적은 <code>9 + 격차×0.4</code>마리이고, 4리그 이하로 좁혔다면 <b>기습</b>으로 첫 숨을 얻습니다. <b>바위 뒤</b>(왼쪽 두 열)는 받는 피해 −1, <b>높은 바위</b>는 사거리 +1 — 둘 다는 가질 수 없습니다. 구석에 등을 맞대면 한 번에 붙는 적이 줄어듭니다.</p>
   <button id="btnHelpClose">닫기</button>
 </div></div>
 
@@ -155,6 +207,8 @@ let meta=store.get('hunt.meta',{best:null, runs:0, wins:0});
 let S=null;   // {P, gap, col, sel, cell:{}, zone:{}, rowN:{}, over}
 
 function newRun(){
+  B=null; document.body.classList.remove('night');
+  $('scSiege').hidden=true; $('scChase').hidden=false;
   const seed=(Date.now()^(Math.random()*1e9))>>>0, rand=mulberry(seed);
   S={P:makePath(rand), gap:GAP0, col:0, sel:null, cell:{}, zone:{}, rowN:{}, over:false, looks:0, wrongs:0, seed};
   meta.runs++; store.set('hunt.meta',meta);
@@ -198,13 +252,11 @@ function step(r){
   }
 }
 function win(early){
-  if(S.over) return; S.over=true; meta.wins++;
+  if(S.over) return; S.over=true;
   const score=S.gap; if(meta.best===null||score<meta.best) meta.best=score;
   store.set('hunt.meta',meta);
-  $('endT').textContent = early ? '🏹 등 뒤까지 붙었다' : '🏹 따라잡았다';
-  $('endB').innerHTML=(early?`격차를 <b>0</b>으로 좁혔습니다 — ${S.col+1}번째 열에서 따라붙었습니다.`
-    :`끝 열까지 흔적을 놓치지 않았습니다. 남은 격차 <b>${S.gap}리그</b>.`)+` 조사 ${S.looks}회 · 헛걸음 ${S.wrongs}회`;
-  showPath(); $('ovEnd').hidden=false;
+  say(early?'등 뒤까지 붙었다. <b>해가 진다.</b>':'끝까지 놓치지 않았다. <b>해가 진다.</b>');
+  setTimeout(()=>startSiege(S.gap, early), 900);      // 추격의 점수가 농성의 시작 조건이 된다
 }
 function lose(){
   if(S.over) return; S.over=true; store.set('hunt.meta',meta);
@@ -263,15 +315,174 @@ function render(){
     crew.appendChild(d); }
 }
 
+/* ═══════════════════ 2단계 — 농성 ═══════════════════
+   추격이 끝나면 무리가 역습한다. 셋이서 바위를 등지고 버틴다.
+   남긴 격차가 곧 시작 조건이다: 잘 쫓았으면 적이 적고 기습까지 얻는다. */
+const FW=7, FH=5, ROCK_C=1, HIGH_C=2;
+const FOES={
+  orc:  {nm:'오크',   hp:9,  atk:3, spd:1},
+  uruk: {nm:'우루크', hp:16, atk:4, spd:1},
+  warg: {nm:'와르그', hp:7,  atk:3, spd:2},
+};
+const FIGHT={
+  ara:{nm:'아라곤', hp:14, atk:4, rng:1, note:'앞을 막는다'},
+  leg:{nm:'레골라스', hp:9, atk:3, rng:3, twice:true, note:'한 틱에 두 번 쏜다'},
+  gim:{nm:'김리', hp:16, atk:6, rng:1, armor:1, note:'한 방이 무겁다'},
+};
+// 자리의 값 — 바위 뒤는 받는 피해 −1, 높은 바위는 사거리 +1. 둘 다는 못 가진다.
+// 배치 2730가지 전수: 적 11이면 69%가 이기고, 15면 9%, 18이면 1%만 이긴다.
+// 이기는 자리는 구석에 몰린다 — 등을 맞대면 한 번에 붙는 적이 줄기 때문이다.
+let B=null;   // {units, sel, phase:'place'|'run'|'done', tick, ambush}
+const fInb=(r,c)=>r>=0&&r<FH&&c>=0&&c<FW;
+const D4=[[1,0],[-1,0],[0,1],[0,-1]];
+const fAt=(r,c)=>B.units.find(u=>u.hp>0&&u.r===r&&u.c===c);
+const fAlive=k=>B.units.filter(u=>u.hp>0&&u.kind===k);
+const fDist=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
+const isRock=(r,c)=>c<=ROCK_C, isHigh=(r,c)=>c===HIGH_C&&(r===1||r===3);
+
+function startSiege(gap, ambush){
+  document.body.classList.add('night');
+  const n=9+Math.floor(gap*0.4);                     // 격차 4→10마리, 7→11, 10→13, 13→14
+  // 배치 2730가지 전수 기준 이기는 배치 비율: 적 10=88%, 11=69%, 12=36%, 13=23%, 14=15%
+  const pool=['orc','orc','warg','uruk'];
+  B={units:[], sel:null, phase:'place', tick:0, ambush:gap<=4, gap};
+  for(const k of ['ara','leg','gim']){ const f=FIGHT[k];
+    B.units.push({kind:'h', key:k, nm:f.nm, hp:f.hp, maxhp:f.hp, atk:f.atk, rng:f.rng, twice:!!f.twice, armor:f.armor||0, r:-1, c:-1}); }
+  for(let i=0;i<n;i++){ const k=pool[i%pool.length], f=FOES[k];
+    B.units.push({kind:'e', key:k, nm:f.nm, hp:f.hp, maxhp:f.hp, atk:f.atk, spd:f.spd, rng:1,
+      r:(i*2+1)%FH, c:FW-1, delay:Math.floor(i/3), hold:B.ambush?1:0}); }
+  $('scChase').hidden=true; $('scSiege').hidden=false;
+  buildFort(); fRender();
+  sLog(B.ambush?'<b>기습이다</b> — 저들은 아직 우릴 못 봤다. 첫 숨은 우리 것이다.':'저들이 눈치챘다. 자리를 잡아라.');
+  $('sTip').innerHTML=`무리 <b>${n}</b>. <b>바위 뒤</b>(왼쪽 두 열)는 받는 피해 −1, <b>높은 바위</b>는 사거리 +1. 등을 맞댈수록 한 번에 붙는 적이 줄어든다.`;
+}
+function buildFort(){
+  const f=$('fort'); f.innerHTML='';
+  for(let i=0;i<FW*FH;i++){ const d=document.createElement('div'); d.className='f';
+    d.onclick=()=>fClick((i/FW)|0, i%FW); f.appendChild(d); }
+}
+const fEl=(r,c)=>$('fort').children[r*FW+c];
+function fClick(r,c){
+  if(!B||B.phase!=='place') return;
+  const u=fAt(r,c);
+  if(B.sel==null){ if(u&&u.kind==='h') { B.sel=u; fRender(); } return; }
+  if(c>HIGH_C||fAt(r,c)) return;                     // 배치는 바위·높은 바위까지만
+  B.sel.r=r; B.sel.c=c; B.sel=null; fRender();
+}
+function holdLine(){
+  if(!B||B.phase!=='place') return;
+  if(fAlive('h').some(u=>u.r<0)){ $('sTip').textContent='셋 다 자리를 잡아야 한다.'; return; }
+  B.phase='run'; fRender(); fTick();
+}
+/* 틱 — 아군 먼저, 그다음 무리. keep/ 과 같은 리듬. */
+function fTick(){
+  if(!B||B.phase!=='run') return; B.tick++;
+  const en=fAlive('e'), hs=fAlive('h');
+  const armorOf=u=>(u.armor||0)+(u.kind==='h'&&isRock(u.r,u.c)?1:0);
+  const hurt=(t,n,from)=>{ n=Math.max(1,n-armorOf(t)); t.hp-=n; fFx(t,'-'+n,t.kind==='h');
+    fKnock(t,from); if(t.hp<=0){ fGone(t); sLog(`${t.nm} 쓰러짐`, t.kind==='h'?'e':'h'); } };
+  const strike=(u,t)=>{ const n=Math.max(1,u.atk-armorOf(t)); if(fDist(u,t)<=1) fLunge(u,t); else fShot(u,t); hurt(t,u.atk,u);
+    sLog(`${u.nm} → ${t.nm} <b>${n}</b>`, u.kind==='h'?'h':'e'); };
+  for(const u of hs){
+    let rng=u.rng+(isHigh(u.r,u.c)?1:0);
+    for(let k=0;k<(u.twice?2:1);k++){
+      const ts=en.filter(e=>e.hp>0&&fDist(u,e)<=rng); if(!ts.length) break;
+      ts.sort((a,b)=>a.hp-b.hp); strike(u,ts[0]);
+    }
+  }
+  for(const e of B.units){
+    if(e.kind!=='e'||e.hp<=0) continue;
+    if(e.delay>0){ e.delay--; continue; }
+    if(e.hold>0){ e.hold--; continue; }
+    let steps=e.spd;
+    while(steps-->0&&e.hp>0){
+      const near=hs.filter(h=>h.hp>0&&fDist(e,h)<=1);
+      if(near.length){ near.sort((a,b)=>a.hp-b.hp); strike(e,near[0]); break; }
+      let best=null;                                  // 가장 가까운 사냥꾼 쪽으로 한 칸
+      for(const [dr,dc] of D4){ const rr=e.r+dr, cc=e.c+dc; if(!fInb(rr,cc)||fAt(rr,cc)) continue;
+        const d=Math.min(...hs.filter(h=>h.hp>0).map(h=>Math.abs(h.r-rr)+Math.abs(h.c-cc)));
+        if(!best||d<best.d) best={rr,cc,d}; }
+      if(!best) break; e.r=best.rr; e.c=best.cc;
+    }
+  }
+  fRender();
+  if(!fAlive('e').length) return setTimeout(()=>siegeEnd(true), 600);
+  if(!fAlive('h').length) return setTimeout(()=>siegeEnd(false), 600);
+  setTimeout(fTick, 520);
+}
+function siegeEnd(win){
+  B.phase='done';
+  if(win) meta.wins++;
+  store.set('hunt.meta',meta);
+  const down=B.units.filter(u=>u.kind==='h'&&u.hp<=0).map(u=>u.nm);
+  $('endT').textContent = win ? '🔥 무리를 흩었다' : '🌑 밤이 삼켰다';
+  $('endB').innerHTML = (win
+    ? `버텼습니다. 추격 ${S.looks}회 조사 · 남긴 격차 ${S.gap}리그로 <b>${B.units.filter(u=>u.kind==='e').length}</b>과 맞섰습니다.`
+    : `셋 다 쓰러졌습니다. 격차를 ${S.gap}리그나 두고 붙은 것이 화근이었습니다.`)
+    + (down.length&&win?`<br><span style="color:var(--bad)">쓰러진 이: ${down.join(', ')}</span>`:'');
+  showPath(); $('ovEnd').hidden=false;
+}
+/* 농성 그리기 */
+function fRender(){
+  $('sLeft').textContent=fAlive('e').length; $('sUp').textContent=fAlive('h').length;
+  for(let r=0;r<FH;r++) for(let c=0;c<FW;c++){
+    const e=fEl(r,c); e.className='f'; e.innerHTML='';
+    if(isHigh(r,c)) e.classList.add('high'); else if(isRock(r,c)) e.classList.add('rock');
+    if(c===FW-1) e.classList.add('spawn');
+    const u=fAt(r,c);
+    if(u&&(u.kind==='h'||u.delay<=0)){ e.classList.add(u.kind);
+      e.innerHTML=`<img class="u" src="${sprite(u.kind==='h'?u.key:u.key)}" alt="">`
+        +`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`; }
+    else if(B.phase==='place'&&B.sel&&c<=HIGH_C&&!u) e.classList.add('ok');
+  }
+  const bn=$('bench'); bn.innerHTML='';
+  for(const u of B.units.filter(x=>x.kind==='h')){
+    const d=document.createElement('div'); d.className='chip'+(B.sel===u?' on':'')+(u.hp<=0?' down':'');
+    d.innerHTML=`<img src="${sprite(u.key)}" alt="">${u.nm} <small>❤${Math.max(0,u.hp)}</small>${u.r<0?' <small style="color:var(--mute)">대기</small>':''}`;
+    d.onclick=()=>{ if(B.phase!=='place'||u.hp<=0) return; B.sel=B.sel===u?null:u; $('sTip').innerHTML=`${u.nm} — ${FIGHT[u.key].note}. 세울 칸을 눌러라.`; fRender(); };
+    bn.appendChild(d);
+  }
+  $('btnHold').disabled=B.phase!=='place';
+  $('btnHold').textContent=B.phase==='run'?'…':'버틴다';
+}
+/* 농성 연출 — keep/ 의 문법을 줄여서 */
+function fCenter(r,c){ const f=$('fort'), e=fEl(r,c); const a=f.getBoundingClientRect(), b=e.getBoundingClientRect();
+  return {x:b.left-a.left+b.width/2, y:b.top-a.top+b.height/2, w:b.width}; }
+function fFx(u,t,on){ const e=fEl(u.r,u.c); if(!e) return; const s=document.createElement('span'); s.className='dmg'+(on?' on':''); s.textContent=t; e.appendChild(s); setTimeout(()=>s.remove(),850); }
+function fLunge(u,t){ const img=fEl(u.r,u.c).querySelector('.u'); if(!img) return;
+  const a=fCenter(u.r,u.c), b=fCenter(t.r,t.c), d=Math.max(1,Math.hypot(b.x-a.x,b.y-a.y));
+  img.style.setProperty('--sx', u.kind==='e'?-1:1);
+  img.style.setProperty('--dx',((b.x-a.x)/d*a.w*.5)+'px'); img.style.setProperty('--dy',((b.y-a.y)/d*a.w*.5)+'px');
+  img.classList.remove('lunge'); void img.offsetWidth; img.classList.add('lunge'); }
+function fShot(u,t){ const a=fCenter(u.r,u.c), b=fCenter(t.r,t.c), f=$('fort');
+  const d=document.createElement('div'); d.className='shot'; d.style.left=a.x+'px'; d.style.top=a.y+'px';
+  d.style.transform=`rotate(${Math.atan2(b.y-a.y,b.x-a.x)*180/Math.PI}deg)`; f.appendChild(d);
+  d.animate([{transform:d.style.transform},{transform:`translate(${b.x-a.x}px,${b.y-a.y}px) ${d.style.transform}`}],{duration:190,easing:'ease-in'}).onfinish=()=>d.remove(); }
+function fKnock(t,from){ const img=fEl(t.r,t.c)?.querySelector('.u'); if(!img) return;
+  const a=fCenter(t.r,t.c), b=from?fCenter(from.r,from.c):{x:a.x-1,y:a.y};
+  img.style.setProperty('--sx', t.kind==='e'?-1:1);
+  img.style.setProperty('--kx',((a.x-b.x)>=0?1:-1)*a.w*.3+'px');
+  img.classList.remove('knock'); void img.offsetWidth; img.classList.add('knock');
+  const f=$('fort'); f.classList.remove('quake'); void f.offsetWidth; f.classList.add('quake'); }
+function fGone(u){ const e=fEl(u.r,u.c); if(e) e.classList.add('gone'); }
+function sLog(t,side){ const l=$('sLog'); B.ev=(B.ev||[]); if(t) B.ev.push({t,side:side||'h'}); B.ev=B.ev.slice(-3);
+  l.innerHTML=B.ev.map(e=>`<div class="l${e.side}">${e.t}</div>`).join(''); }
+
 /* ═══════════════════ 도트 스프라이트 — 12×12 를 코드로 굽는다 ═══════════════════ */
-const PAL={k:'#1b1b1b', s:'#f0c9a0', g:'#4a6b34', G:'#2f6b3a', m:'#c3ccd6', M:'#7c8895', r:'#b5443c', w:'#6b4525', W:'#4a2f18',
-  y:'#f2c94c', x:'#f5f0e6', c:'#8C8679', C:'#5d5a50', e:'#5E8F63', d:'#A8523F', h:'#7a4a22'};
+const PAL={k:'#1b1b1b', s:'#f0c9a0', g:'#6f9a4e', f:'#8a8a8a', G:'#2f6b3a', m:'#c3ccd6', M:'#7c8895', r:'#b5443c', w:'#6b4525', W:'#4a2f18',
+  y:'#f2c94c', x:'#f5f0e6', c:'#8C8679', C:'#5d5a50', e:'#5E8F63', d:'#A8523F', h:'#7a4a22', G:'#3f6b3a'};
 const BODY=['....HHHH....','...HHHHHH...','...HssssH...','...HssssH...','....ssss....','..CCCCCCCC..','..CCCCCCCC..','..CCCCCCCC..','..CCCCCCCC..','...LL..LL...','...LL..LL...','..kk....kk..'];
 const GEAR={
   sword:[[4,10,'m'],[5,10,'m'],[6,10,'m'],[7,10,'W']],
   bow:[[3,10,'W'],[4,11,'W'],[5,11,'W'],[6,11,'W'],[7,11,'W'],[8,10,'W'],[4,10,'x'],[5,10,'x'],[6,10,'x'],[7,10,'x']],
   axe:[[3,9,'m'],[3,10,'m'],[3,11,'m'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W']],
 };
+const ENEMY_SPR={
+  orc:{hat:'W', cloth:'W', skin:'g', gear:'axe'},
+  uruk:{hat:'k', cloth:'k', skin:'G', gear:'sword'},
+  warg:{wolf:true},
+};
+const WOLF=['............','..k.........','.kfk....kk..','.kffk..kffk.','..kfffffffk.','..kfxfffffk.','..kfffffffk.','...kffffkk..','...kfkkfk...','...kfk.kfk..','...kk..kk...','............'];
 const HUNTERS=[
   {k:'ara', nm:'아라곤', hat:'c', cloth:'C', gear:'sword', short:'칸 하나<br>밟았나', ask:'아라곤이 읽을 <b>칸 하나</b>를 짚어라. 밟았는지, 몇 번째였는지 말해 준다.'},
   {k:'leg', nm:'레골라스', hat:'e', cloth:'e', gear:'bow', hair:'y', short:'열 하나<br>위·중·아래', ask:'레골라스가 볼 <b>열 하나</b>를 위쪽 머리에서 골라라. 위·가운데·아래 중 어디로 지났는지 말해 준다.'},
@@ -280,23 +491,26 @@ const HUNTERS=[
 const CACHE={};
 function sprite(k){
   if(CACHE[k]) return CACHE[k];
-  const sp=HUNTERS.find(h=>h.k===k)||HUNTERS[0];
+  const en=ENEMY_SPR[k];
+  if(en&&en.wolf){ const g=WOLF.map(r=>r.split('')); return CACHE[k]=bake(outline(g)); }
+  const sp=en?{hat:en.hat, cloth:en.cloth, gear:en.gear, skin:en.skin}:(HUNTERS.find(h=>h.k===k)||HUNTERS[0]);
   const g=BODY.map(r=>r.split(''));
   for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c];
-    if(ch==='H') g[r][c]=sp.hat; else if(ch==='s') g[r][c]='s'; else if(ch==='C') g[r][c]=sp.cloth; else if(ch==='L') g[r][c]='W'; }
+    if(ch==='H') g[r][c]=sp.hat; else if(ch==='s') g[r][c]=sp.skin||'s'; else if(ch==='C') g[r][c]=sp.cloth; else if(ch==='L') g[r][c]='W'; }
   if(sp.beard){ for(const c of [3,4,5,6]){ g[3][c]='h'; g[4][c]='h'; } g[4][2]='h'; g[4][7]='h'; }
   if(sp.hair){ g[2][3]=sp.hair; g[2][8]=sp.hair; }
   g[2][5]='k'; g[2][7]='k';
   for(const [r,c,ch] of GEAR[sp.gear]) g[r][c]=ch;
-  // 외곽선
-  const out=g.map(r=>r.slice());
+  return CACHE[k]=bake(outline(g));
+}
+function outline(g){ const out=g.map(r=>r.slice());
   for(let r=0;r<12;r++) for(let c=0;c<12;c++){ if(g[r][c]!=='.') continue;
     let near=false; for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ const rr=r+dr,cc=c+dc;
       if(rr>=0&&rr<12&&cc>=0&&cc<12&&g[rr][cc]!=='.'&&g[rr][cc]!=='k') near=true; } if(near) out[r][c]='k'; }
-  const cv=document.createElement('canvas'); cv.width=12; cv.height=12; const x=cv.getContext('2d');
-  for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=out[r][c]; if(ch==='.') continue; x.fillStyle=PAL[ch]||'#f0f'; x.fillRect(c,r,1,1); }
-  return CACHE[k]=cv.toDataURL();
-}
+  return out; }
+function bake(g){ const cv=document.createElement('canvas'); cv.width=12; cv.height=12; const x=cv.getContext('2d');
+  for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c]; if(ch==='.') continue; x.fillStyle=PAL[ch]||'#f0f'; x.fillRect(c,r,1,1); }
+  return cv.toDataURL(); }
 
 /* ═══════════════════ 연결 ═══════════════════ */
 buildBoard();
@@ -307,6 +521,7 @@ $('meta').textContent=metaLine();
 $('btnGo').onclick=()=>{ $('ovStart').hidden=true; newRun(); };
 $('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; newRun(); };
 $('btnNew').onclick=()=>{ $('ovEnd').hidden=true; newRun(); };
+$('btnHold').onclick=holdLine;
 $('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
 // 시작 전에도 판이 보이게
 S={P:makePath(mulberry(7)), gap:GAP0, col:0, sel:null, cell:{}, zone:{}, rowN:{}, over:true, looks:0, wrongs:0};
