@@ -31,18 +31,49 @@
   button:disabled{opacity:.4; cursor:default}
   .hint{font-size:12px; color:#C9C2B0; text-align:center; min-height:16px; max-width:380px}
 
-  /* 길드 홀 — 카드 두 줄 */
-  .roster{width:100%; display:grid; grid-template-columns:1fr 1fr; gap:8px}
-  .hero{background:var(--paper); color:var(--ink); border-radius:12px; padding:8px 10px; display:flex; flex-direction:column; gap:3px; border:2px solid transparent; position:relative}
-  .hero.mentor{border-color:#C36BA8} .hero.wounded{opacity:.6}
-  .hero .hd{display:flex; gap:8px; align-items:center} .hero .ic{font-size:26px; width:32px; text-align:center}
-  .hero .nm{font-weight:800} .hero .sub{font-size:11px; color:var(--mute)}
-  .hero .st{font-size:12px; font-variant-numeric:tabular-nums} .hero .tr{display:flex; gap:3px; flex-wrap:wrap; min-height:18px; font-size:14px}
-  .hero .tr span{background:#fff; border-radius:6px; padding:0 3px; box-shadow:0 1px 0 var(--line)}
-  .hero .bt{display:flex; gap:4px; margin-top:2px} .hero .bt button{flex:1; padding:5px 0; font-size:12px; border-radius:8px; box-shadow:0 2px 0 var(--line)}
-  .hero .bt button.on{background:#C36BA8; color:#fff}
-  .hero .lv{position:absolute; top:6px; right:8px; font-size:11px; color:var(--mute)}
-  .hero .tag{position:absolute; top:6px; right:8px; font-size:11px; color:var(--bad); font-weight:700}
+  /* 길드 홀 — 한 줄에 한 사람. 왼쪽 띠가 흉터를, 가운데 타일이 능력치를 말한다. */
+  .go{width:100%; font-size:16px; padding:13px}
+  .subacts{width:100%; display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+  .subacts button{padding:7px 2px; display:flex; flex-direction:column; align-items:center; gap:1px; line-height:1.2}
+  .subacts b{font-size:12px; white-space:nowrap} .subacts i{font-style:normal; font-size:10px; color:var(--mute)}
+  .rosterHd{width:100%; display:flex; justify-content:space-between; align-items:baseline; font-size:11px;
+    letter-spacing:.08em; color:#A9A392; padding:2px 2px 0}
+  .roster{width:100%; display:flex; flex-direction:column; gap:8px}
+  .hero{background:var(--paper); color:var(--ink); border-radius:12px; overflow:hidden; position:relative;
+    display:grid; grid-template-columns:5px 52px 1fr auto; align-items:center; gap:0 10px; padding:9px 10px 9px 0;
+    box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .hero .stripe{grid-row:1; align-self:stretch; background:var(--line)}
+  .hero[data-scar="1"] .stripe{background:#E3B24A} .hero[data-scar="2"] .stripe{background:#D98A3C}
+  .hero.rest .stripe{background:var(--bad)}
+  .hero .port{display:flex; align-items:center; justify-content:center}
+  .hero .port img{width:44px; height:44px; image-rendering:pixelated}
+  .hero .body{display:flex; flex-direction:column; gap:5px; min-width:0}
+  .idline{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap}
+  .idline .nm{font-size:17px; font-weight:800; letter-spacing:-.2px}
+  .idline .cls{font-size:12px; color:var(--mute)}
+  .idline .rest{font-size:11px; font-weight:800; color:var(--bad); background:#F6E2DE; border-radius:5px; padding:1px 6px}
+  .idline .lv{font-size:11px; color:#A9A392; margin-left:auto}
+  .sttiles{display:grid; grid-template-columns:repeat(3,minmax(0,58px)); gap:6px}
+  .sttiles div{background:#FFFDF6; border-radius:7px; padding:2px 6px; box-shadow:inset 0 0 0 1px var(--line)}
+  .sttiles i{display:block; font-style:normal; font-size:9px; letter-spacing:.06em; color:#9A927E}
+  .sttiles b{font-size:16px; font-variant-numeric:tabular-nums; line-height:1.15}
+  .sttiles .hp b{color:#B5443C} .sttiles .at b{color:#9A6B1F} .sttiles .rg b{color:#3C6E96}
+  .kit{display:flex; gap:5px; flex-wrap:wrap; font-size:12px}
+  .kit span{border-radius:7px; padding:2px 7px; display:inline-flex; align-items:center; gap:4px; max-width:100%}
+  .kit .tp{background:#EFE9D8; box-shadow:inset 0 0 0 1px var(--line)}
+  .kit .gr{background:#F6EAD0; box-shadow:inset 0 0 0 1px #DFC79A; font-weight:700}
+  .kit .gr small{font-weight:400; color:#8A7A58}
+  .kit .none{color:#A9A392; background:transparent; box-shadow:none; padding-left:0}
+  .kit .warn{color:#9A927E; font-weight:400; font-size:11px}
+  /* ② 흉터가 카드에서 가장 중요한 상태다 — 가장 흐리면 안 된다 */
+  .scars{background:#F7E7D2; box-shadow:inset 0 0 0 1px #E3C79C; border-radius:7px; padding:3px 8px;
+    color:#7A5A28; font-size:11.5px; font-weight:600; align-self:flex-start}
+  .scars .dots{letter-spacing:2px; color:#C9762A; font-weight:800; font-size:13px}
+  .scars{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+  .hero .acts{display:flex; flex-direction:column; gap:5px}
+  .hero .acts button{padding:6px 8px; font-size:11.5px; border-radius:8px; box-shadow:0 2px 0 var(--line); min-width:44px}
+  .hero .acts .drop{background:transparent; box-shadow:none; color:#B5ACA0; padding:2px 8px; font-size:13px}
+  .hero .acts .drop:hover{color:var(--bad)}
   .grave{width:100%; font-size:12px; color:#B9B2A0; line-height:1.5}
 
   /* 공성 — 7×9. 왼쪽 두 열 안뜰, 셋째 열 성벽(가운데 성문), 나머지 들판. */
@@ -134,14 +165,15 @@
 <!-- ═══ 길드 홀 ═══ -->
 <div class="screen" id="scHall">
   <div class="top"><span><small>금화</small>🪙 <span id="hGold">0</span></span><span><small>다음 공성</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span>/8</span></div>
-  <div class="actions">
-    <button class="pri" id="btnSiege">공성 준비</button>
-    <button id="btnForge">대장간 🪙5</button>
-    <button id="btnRecruit">모집 🪙4</button>
-    <button id="btnLine">계보</button>
-    <button id="btnHelp">규칙</button>
+  <button class="pri go" id="btnSiege">공성 준비</button>
+  <div class="subacts">
+    <button id="btnForge"><b>🔨 대장간</b><i>🪙5</i></button>
+    <button id="btnRecruit"><b>🧍 모집</b><i>🪙4</i></button>
+    <button id="btnLine"><b>📜 계보</b><i>무기·사람</i></button>
+    <button id="btnHelp"><b>❓ 규칙</b><i>보기</i></button>
   </div>
   <div class="hint" id="hallHint"></div>
+  <div class="rosterHd"><span id="rosterCount"></span><span>흉터 셋이면 성벽을 떠납니다</span></div>
   <div class="roster" id="roster"></div>
   <div class="grave" id="grave"></div>
 </div>
@@ -310,7 +342,9 @@ const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filt
 function randomHero(hs){ const cls=pick(Object.keys(CLASSES)); const t=[pick(Object.keys(TEMPER))];
   return {id:uid++, name:newName(hs), cls, temper:t, gear:null, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}, age:22+rnd(13)}; }
 function newGear(){
-  const kind=pick(Object.keys(GEAR_KINDS));
+  // 길드에 있는 클래스에 맞는 종류를 우선 — 안 그러면 창고가 못 쓰는 무기로 찬다
+  const want=(G&&G.heroes||[]).flatMap(h=>Object.keys(GEAR_KINDS).filter(k=>GEAR_KINDS[k].fit.includes(h.cls)));
+  const kind=(want.length&&Math.random()<.75)?pick(want):pick(Object.keys(GEAR_KINDS));
   const tr=[pick(Object.keys(CRAFT))];
   if(Math.random()<.35){ const u=pick(Object.keys(CRAFT)); if(!tr.includes(u)) tr.push(u); }
   return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr, atk:2+rnd(2), gen:0, forged:null};   // 2~3 — 적성 절반이 0이 되지 않게
@@ -386,12 +420,31 @@ function renderHall(){
   $('btnForge').disabled = !(G.gear.length>=2 && G.gold>=FORGE_COST);
   $('btnRecruit').disabled = !(G.gold>=RECRUIT_COST && G.heroes.length<MAX_HEROES);
   $('btnSiege').disabled = !G.heroes.some(h=>!h.wounded);
+  $('rosterCount').textContent=`길드원 ${G.heroes.length}명 · 창고 무기 ${gearFree().length}`;
   const r=$('roster'); r.innerHTML='';
   for(const h of G.heroes){ const s=stats(h,G.sup), isM=G.mentors.includes(h.id);
-    const d=document.createElement('div'); d.className='hero'+(isM?' mentor':'')+(h.wounded?' wounded':'');
-    d.innerHTML=`<span class="${h.wounded?'tag':'lv'}">${h.wounded?'부상 · 휴식':'Lv'+h.lv+(h.gen?' · '+h.gen+'대':'')}</span><div class="hd"><span class="ic"><img src="${sprite(h.cls,false)}" style="width:30px;height:30px" alt=""></span><div><div class="nm">${h.name}</div><div class="sub">${CLASSES[h.cls].nm}${scarsOf(h).length?` · <b style="color:var(--bad)">흉터 ${scarsOf(h).length}/${SCAR_OUT}</b> ${scarsOf(h).map(k=>`<span title="${SCARS[k].nm}: ${SCARS[k].desc}">${SCARS[k].ic}</span>`).join('')}`:''}</div></div></div>
-      <div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}${s.repair?' 🧱'+s.repair:''}</div><div class="tr">${(h.temper||[]).map(t=>`<span title="${TEMPER[t].nm}: ${TEMPER[t].desc}">${TEMPER[t].ic}</span>`).join('')}${(()=>{const g=gearOf(h); return g?`<span style="background:#EFE3C8" title="${g.traits.map(t=>CRAFT[t].nm).join(', ')}">${GEAR_KINDS[g.kind].ic} ${g.nm} ${g.traits.map(t=>CRAFT[t].ic).join('')}${GEAR_KINDS[g.kind].fit.includes(h.cls)?'':' <b style="color:var(--bad)">✋</b>'}</span>`:'<span style="opacity:.5">맨손</span>';})()}</div>
-      <div class="bt"><button>무기</button><button title="내보내기">✕</button></div>`;
+    const g=gearOf(h), nSc=scarsOf(h).length, fit=g&&GEAR_KINDS[g.kind].fit.includes(h.cls);
+    const d=document.createElement('article'); d.className='hero'+(h.wounded?' rest':''); d.dataset.scar=nSc;
+    d.innerHTML=`<i class="stripe"></i>
+      <div class="port"><img src="${sprite(h.cls,false)}" alt="${CLASSES[h.cls].nm}"></div>
+      <div class="body">
+        <div class="idline"><b class="nm">${h.name}</b><span class="cls">${CLASSES[h.cls].nm}</span>
+          ${h.wounded?'<span class="rest">부상 · 이번 공성 휴식</span>':''}<span class="lv">Lv${h.lv}</span></div>
+        <div class="sttiles">
+          <div class="hp"><i>체력</i><b>${s.hp}</b></div>
+          <div class="at"><i>공격</i><b>${s.atk}</b></div>
+          <div class="rg"><i>사거리</i><b>${s.rng}</b></div>
+        </div>
+        <div class="kit">
+          ${(h.temper||[]).map(t=>`<span class="tp" title="${TEMPER[t].desc}">${TEMPER[t].ic} ${TEMPER[t].nm}</span>`).join('')}
+          ${g?`<span class="gr" title="${g.traits.map(t=>CRAFT[t].nm+' — '+CRAFT[t].desc).join(' / ')}">${GEAR_KINDS[g.kind].ic} ${g.nm}
+              <small>+${fit?g.atk:Math.floor(g.atk/2)}</small> ${g.traits.map(t=>CRAFT[t].ic).join('')}${fit?'':'<b class="warn">적성 아님</b>'}</span>`
+             :'<span class="none">🤲 맨손</span>'}
+        </div>
+        ${nSc?`<div class="scars"><span class="dots">${'●'.repeat(nSc)}${'○'.repeat(SCAR_OUT-nSc)}</span>
+          ${scarsOf(h).map(k=>`<span title="${SCARS[k].desc}">${SCARS[k].ic} ${SCARS[k].nm}</span>`).join(' · ')}</div>`:''}
+      </div>
+      <div class="acts"><button>무기</button><button class="drop" title="내보내기">✕</button></div>`;
     const [bm,bx]=d.querySelectorAll('button');
     bm.onclick=()=>openArmory('equip', h);
     bx.onclick=()=>{ if(G.heroes.length<=2) return flash('둘은 남겨야 해요.'); if(confirm(`${h.name}을(를) 내보낼까요?`)){ G.heroes=G.heroes.filter(x=>x!==h); save(); renderHall(); } };
