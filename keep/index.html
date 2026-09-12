@@ -51,8 +51,12 @@
   .wave .night{margin-left:auto; font-size:12px}
   .fort{display:grid; grid-template-columns:repeat(9,var(--cell)); gap:2px; padding:5px; background:#1F222B; border-radius:12px; position:relative}
   /* 연출 — 공격자는 상대 쪽으로 돌진(근접)하거나 발사체(원거리)를 보낸다. 아군은 금색, 적은 붉은색. */
-  .c .u{display:inline-block; transition:none}
-  .c .u.lunge{animation:lunge .32s ease-out} @keyframes lunge{35%{transform:translate(var(--dx),var(--dy)) scale(1.15)} 100%{transform:none}}
+  .c .u{display:inline-block; transition:none; position:relative; width:78%; height:78%; image-rendering:pixelated; image-rendering:crisp-edges}
+  .c.e .u{transform:scaleX(-1)} .c.w.e .u{transform:scaleX(-1) translateY(-6px)}   /* 적은 왼쪽을 본다 */
+  .c .u.big{width:96%; height:96%}
+  .c .u.bob{animation:bob 1s steps(2) infinite} @keyframes bob{0%{margin-top:0} 100%{margin-top:-2px}}
+  .chip img,.hero img{width:22px; height:22px; image-rendering:pixelated; vertical-align:middle}
+  .c .u.lunge{animation:lunge .32s ease-out} @keyframes lunge{35%{transform:translate(var(--dx),var(--dy)) scale(1.15) scaleX(var(--sx,1))} 100%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))}}
   .c .u.cast{animation:cast .4s ease-out} @keyframes cast{40%{transform:scale(1.3); filter:drop-shadow(0 0 6px #B48CFF)}}
   .shot{position:absolute; width:9px; height:9px; border-radius:50%; pointer-events:none; z-index:6; margin:-4px 0 0 -4px}
   .shot.h{background:#F7C46B; box-shadow:0 0 6px 2px rgba(247,196,107,.8)} .shot.e{background:#FF6B5A; box-shadow:0 0 6px 2px rgba(255,107,90,.8)}
@@ -70,7 +74,14 @@
   @keyframes crack{0%{opacity:0} 30%{opacity:1} 100%{opacity:0}}
   .c{width:var(--cell); height:var(--cell); background:var(--field); border-radius:5px; position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell)*.58); cursor:default}
   .fort.night .c.f{background:var(--field-n)}
-  .c.k{background:var(--keep)} .c.w{background:var(--wall); box-shadow:inset 0 -4px 0 #6C707A} .c.gate{background:#A97C3F; box-shadow:inset 0 -4px 0 #7A5527} .c.rubble{background:var(--rubble)}
+  .c.k{background:var(--keep)}
+  /* 성벽 — 윗면(밝음)·앞면(어둠)·오른쪽으로 떨어지는 그림자. 오른쪽 가장자리엔 흉벽 톱니. */
+  .c.w{background:linear-gradient(#A3A8B4, #8A8F9B 70%, #5C6170 70%); box-shadow:3px 3px 0 rgba(0,0,0,.35); z-index:2}
+  .c.w::before{content:''; position:absolute; right:0; top:0; bottom:30%; width:5px; background:repeating-linear-gradient(#5C6170 0 5px, #B7BCC7 5px 9px); border-radius:0 5px 0 0; pointer-events:none}
+  .c.w .u{transform:translateY(-6px)}                                   /* 성벽 위는 한 뼘 위에 선다 */
+  .c.w .u::after{content:''; position:absolute; left:15%; right:15%; bottom:-3px; height:4px; border-radius:50%; background:rgba(0,0,0,.35)}
+  .c.gate{background:linear-gradient(#B98A48, #A97C3F 70%, #6E4B22 70%); box-shadow:3px 3px 0 rgba(0,0,0,.35); z-index:2} .c.rubble{background:var(--rubble)}
+  .c.climb::before{content:''; position:absolute; right:2px; top:4px; bottom:4px; width:8px; background:repeating-linear-gradient(#9a6b3c 0 2px, transparent 2px 5px); border-left:2px solid #9a6b3c; border-right:2px solid #9a6b3c; z-index:3; pointer-events:none}
   .c.gate.broken{background:#4A3A2A; box-shadow:none}
   .c.spawn{background:#4A3B3B}
   .c.ok{outline:2px dashed rgba(227,154,59,.9); outline-offset:-2px; cursor:pointer} .c.no{opacity:.5}
@@ -207,6 +218,53 @@ const SUPPLY={
 };
 const NAMES=['에오윈','하마','감린','테오','브레가','에르켄','아라','핀','로한','길다','토린','발린','레골','하르딘','이도','메리','피핀','두린','엘라','케른','오를','브란','시그','율'];
 
+/* ═══════════════════ 도트 스프라이트 — 12×12 를 코드로 조립해 캔버스로 굽는다 ═══════════════════ */
+const PAL={k:'#1b1b1b', s:'#f0c9a0', S:'#c9946a', g:'#6f9a4e', G:'#4a6b34', m:'#c3ccd6', M:'#7c8895', r:'#c8463f', b:'#4d78c4', B:'#2f4f8a',
+  w:'#9a6b3c', W:'#6b4525', y:'#f2c94c', p:'#8d5bd9', P:'#5b3a99', e:'#3f8f5a', E:'#2c6640', h:'#6b4525', x:'#f5f0e6', f:'#8a8a8a', F:'#5c5c5c', o:'#ff8c3a', d:'#3d2b1f', t:'#7d8f6a'};
+// 사람형 틀 — H 머리쓰개, s 얼굴, C 옷, L 다리. 왼쪽 열(0~1)은 방패/왼손, 오른쪽 열(9~11)은 무기.
+const HUMAN=[
+'....HHHH....','...HHHHHH...','...HssssH...','...HssssH...','....ssss....','..CCCCCCCC..','..CCCCCCCC..','..CCCCCCCC..','..CCCCCCCC..','...LL..LL...','...LL..LL...','..kk....kk..'];
+const PROPS={ // [행, 열, 문자] — 오른손 무기. 공격 포즈는 한 칸 오른쪽·한 칸 위로 뻗는다
+  sword:[[5,10,'m'],[6,10,'m'],[7,10,'m'],[8,10,'W'],[4,10,'m']], shield:[[5,1,'r'],[6,1,'r'],[7,1,'r'],[6,0,'r'],[5,0,'y'],[7,0,'y']],
+  bow:[[3,10,'W'],[4,11,'W'],[5,11,'W'],[6,11,'W'],[7,11,'W'],[8,10,'W'],[4,10,'x'],[5,10,'x'],[6,10,'x'],[7,10,'x']],
+  staff:[[2,10,'y'],[3,10,'W'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W'],[8,10,'W'],[1,10,'y'],[2,11,'y'],[2,9,'y']],
+  pick:[[3,9,'m'],[3,10,'m'],[3,11,'m'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W']],
+  cleaver:[[4,10,'M'],[5,10,'m'],[5,11,'m'],[6,10,'m'],[6,11,'m'],[7,10,'W']],
+  ladder:[[1,10,'w'],[2,10,'w'],[3,10,'w'],[4,10,'w'],[5,10,'w'],[6,10,'w'],[7,10,'w'],[8,10,'w'],[9,10,'w'],[2,11,'w'],[4,11,'w'],[6,11,'w'],[8,11,'w']],
+  bomb:[[5,10,'k'],[5,11,'k'],[6,10,'k'],[6,11,'k'],[4,11,'o'],[3,11,'y']],
+};
+const SPRITES={
+  warrior:{hat:'m', cloth:'b', props:['sword','shield']}, archer:{hat:'e', cloth:'w', props:['bow']}, mage:{hat:'p', cloth:'p', props:['staff'], pointy:true},
+  dwarf:{hat:'m', cloth:'r', props:['pick'], beard:true}, elf:{hat:'e', cloth:'e', props:['bow'], hair:'y'},
+  orc:{hat:'d', cloth:'d', skin:'g', props:['cleaver']}, ladder:{hat:'d', cloth:'d', skin:'g', props:['ladder']}, bomber:{hat:'d', cloth:'d', skin:'g', props:['bomb']},
+  shaman:{hat:'P', cloth:'d', skin:'g', props:['bow'], pointy:true}, troll:{hat:'G', cloth:'t', skin:'G', props:['cleaver'], big:true},
+};
+const WOLF=['............','..k.........','.kfk....kk..','.kffk..kffk.','..kfffffffk.','..kfxfffffk.','..kfffffffk.','...kffffkk..','...kfkkfk...','...kfk.kfk..','...kk..kk...','............'];
+function spriteGrid(spec, atk){
+  let g=HUMAN.map(r=>r.split(''));
+  const skin=spec.skin||'s';
+  for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c]; if(ch==='H') g[r][c]=spec.hat; else if(ch==='s') g[r][c]=skin; else if(ch==='C') g[r][c]=spec.cloth; else if(ch==='L') g[r][c]=spec.legs||'W'; }
+  if(spec.pointy){ g[0]='.....'+spec.hat+spec.hat+'.....'.slice(0,5); g[0]=g[0].split(''); g[1]='....'+spec.hat.repeat(4)+'....'; g[1]=g[1].split(''); }
+  if(spec.beard){ for(const c of [3,4,5,6]){ g[3][c]='h'; g[4][c]='h'; } g[4][2]='h'; g[4][7]='h'; }
+  if(spec.hair){ g[2][3]=spec.hair; g[2][8]=spec.hair; }
+  g[2][5]='k'; g[2][6]= skin;  g[2][4]=skin; g[2][7]='k';        // 눈 둘
+  for(const pr of spec.props||[]) for(const [r,c,ch] of PROPS[pr]){ let rr=r, cc=c; if(atk&&c>=9){ cc=Math.min(11,c+1); rr=Math.max(0,r-1); } if(rr<12&&cc<12) g[rr][cc]=ch; }
+  if(atk){ for(let r=4;r<=8;r++){ g[r].pop(); g[r].unshift('.'); } }   // 몸을 앞으로 기울인다
+  return g;
+}
+function outline(g){ const out=g.map(r=>r.slice()); for(let r=0;r<12;r++) for(let c=0;c<12;c++){ if(g[r][c]!=='.') continue; let near=false; for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ const rr=r+dr,cc=c+dc; if(rr>=0&&rr<12&&cc>=0&&cc<12&&g[rr][cc]!=='.'&&g[rr][cc]!=='k') near=true; } if(near) out[r][c]='k'; } return out; }
+const SPR_CACHE={};
+function sprite(key, atk){
+  const k=key+(atk?':a':':i'); if(SPR_CACHE[k]) return SPR_CACHE[k];
+  let g = key==='wolf' ? WOLF.map(r=>r.split('')) : spriteGrid(SPRITES[key], atk);
+  if(key==='wolf'&&atk){ g=g.map(r=>r.slice(1).concat(['.'])); }
+  g=outline(g);
+  const cv=document.createElement('canvas'); cv.width=12; cv.height=12; const ctx=cv.getContext('2d');
+  for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c]; if(ch==='.') continue; ctx.fillStyle=PAL[ch]||'#f0f'; ctx.fillRect(c,r,1,1); }
+  return SPR_CACHE[k]=cv.toDataURL();
+}
+const unitImg=(u,extra='')=>`<img class="u${u.boss?' big':''} ${extra}" src="${sprite(u.kind==='h'?u.cls:u.key,false)}" data-k="${u.kind==='h'?u.cls:u.key}" alt="">`;
+
 /* ═══════════════════ 길드 — 영웅·전승 ═══════════════════ */
 const $=id=>document.getElementById(id);
 const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
@@ -251,7 +309,7 @@ function renderHall(){
   const r=$('roster'); r.innerHTML='';
   for(const h of G.heroes){ const s=stats(h,G.sup), isM=G.mentors.includes(h.id);
     const d=document.createElement('div'); d.className='hero'+(isM?' mentor':'')+(h.wounded?' wounded':'');
-    d.innerHTML=`<span class="${h.wounded?'tag':'lv'}">${h.wounded?'부상 · 휴식':'Lv'+h.lv+(h.gen?' · '+h.gen+'대':'')}</span><div class="hd"><span class="ic">${CLASSES[h.cls].ic}</span><div><div class="nm">${h.name}</div><div class="sub">${CLASSES[h.cls].nm}${h.mentors?' · '+h.mentors.join('·')+'의 제자':''}</div></div></div>
+    d.innerHTML=`<span class="${h.wounded?'tag':'lv'}">${h.wounded?'부상 · 휴식':'Lv'+h.lv+(h.gen?' · '+h.gen+'대':'')}</span><div class="hd"><span class="ic"><img src="${sprite(h.cls,false)}" style="width:30px;height:30px" alt=""></span><div><div class="nm">${h.name}</div><div class="sub">${CLASSES[h.cls].nm}${h.mentors?' · '+h.mentors.join('·')+'의 제자':''}</div></div></div>
       <div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}${s.repair?' 🧱'+s.repair:''}</div><div class="tr">${h.traits.map(t=>`<span title="${TRAITS[t].nm}: ${TRAITS[t].desc}">${TRAITS[t].ic}</span>`).join('')}</div>
       <div class="bt"><button class="${isM?'on':''}">스승</button><button title="내보내기">✕</button></div>`;
     const [bm,bx]=d.querySelectorAll('button');
@@ -446,14 +504,20 @@ function ev(t,side){ if(!B) return; B.events=B.events||[]; if(t) B.events.push({
 let FXQ=[];
 const qfx=o=>FXQ.push(o);
 function cellCenter(r,c){ const f=$('fort'), e=cellEl(r,c); const a=f.getBoundingClientRect(), b=e.getBoundingClientRect(); return {x:b.left-a.left+b.width/2, y:b.top-a.top+b.height/2, w:b.width}; }
+// 공격 포즈 — 0.3초 동안 공격 프레임으로 바꿨다가 돌아온다
+function pose(img){ const k=img.dataset.k; if(!k) return; img.src=sprite(k,true); setTimeout(()=>{ if(img.isConnected) img.src=sprite(k,false); }, 300); }
 function flushFX(){
   const q=FXQ; FXQ=[]; const fort=$('fort');
   for(const o of q){
     if(o.type==='lunge'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(!u) continue; const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=Math.max(1,Math.hypot(t.x-s.x,t.y-s.y));
-      u.style.setProperty('--dx',((t.x-s.x)/d*s.w*.45)+'px'); u.style.setProperty('--dy',((t.y-s.y)/d*s.w*.45)+'px'); u.classList.remove('lunge'); void u.offsetWidth; u.classList.add('lunge'); }
+      const en=cellEl(o.r,o.c).classList.contains('e'); u.style.setProperty('--sx', en?-1:1); u.style.setProperty('--ty', cellEl(o.r,o.c).classList.contains('w')?'-6px':'0px');
+      u.style.setProperty('--dx',((t.x-s.x)/d*s.w*.45)+'px'); u.style.setProperty('--dy',((t.y-s.y)/d*s.w*.45)+'px'); u.classList.remove('lunge'); void u.offsetWidth; u.classList.add('lunge'); pose(u); }
     else if(o.type==='shot'){ const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=document.createElement('div'); d.className='shot '+o.side; d.style.left=s.x+'px'; d.style.top=s.y+'px'; fort.appendChild(d);
-      d.animate([{transform:'translate(0,0)'},{transform:`translate(${t.x-s.x}px,${t.y-s.y}px)`}],{duration:200,easing:'ease-in'}).onfinish=()=>d.remove(); }
-    else if(o.type==='cast'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(u){ u.classList.add('cast'); } const s=cellCenter(o.r,o.c); const d=document.createElement('div'); d.className='ring'; const sz=s.w*(o.rng*2+1); d.style.cssText=`left:${s.x-sz/2}px; top:${s.y-sz/2}px; width:${sz}px; height:${sz}px`; fort.appendChild(d); setTimeout(()=>d.remove(),500); }
+      const u=cellEl(o.r,o.c).querySelector('.u'); if(u) pose(u);
+      const high=elev(o.r,o.c)||elev(o.tr,o.tc), dx=t.x-s.x, dy=t.y-s.y;   // 성벽이 끼면 포물선 — 높이가 보인다
+      const frames = high ? [{transform:'translate(0,-6px)'},{transform:`translate(${dx/2}px,${dy/2-18}px)`},{transform:`translate(${dx}px,${dy}px)`}] : [{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}];
+      d.animate(frames,{duration:high?300:200,easing:'ease-in'}).onfinish=()=>d.remove(); }
+    else if(o.type==='cast'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(u){ u.classList.add('cast'); pose(u); } const s=cellCenter(o.r,o.c); const d=document.createElement('div'); d.className='ring'; const sz=s.w*(o.rng*2+1); d.style.cssText=`left:${s.x-sz/2}px; top:${s.y-sz/2}px; width:${sz}px; height:${sz}px`; fort.appendChild(d); setTimeout(()=>d.remove(),500); }
     else if(o.type==='hit'){ const e=cellEl(o.r,o.c); e.classList.remove('hit-h','hit-e'); void e.offsetWidth; e.classList.add(o.side==='h'?'hit-h':'hit-e'); }
     else if(o.type==='dmg'){ const e=cellEl(o.r,o.c); const sp=document.createElement('span'); sp.className='dmg '+(o.cls||''); sp.textContent=o.txt; e.appendChild(sp); setTimeout(()=>sp.remove(),800); }
     else if(o.type==='gate'){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); const sp=document.createElement('span'); sp.className='gatecrack'; sp.textContent='💢'; e.appendChild(sp); setTimeout(()=>sp.remove(),500); const d=document.createElement('span'); d.className='dmg onh'; d.textContent='-'+o.n; e.appendChild(d); setTimeout(()=>d.remove(),800); }
@@ -463,7 +527,7 @@ function flushFX(){
 function waveBarHTML(){
   const g={}; for(const u of B.units){ if(u.kind!=='e'||u.hp<=0) continue; const k=u.r+'|'+u.key; g[k]=g[k]||{u,n:0}; g[k].n++; }
   const rowName=r=>r===0?'위':r===6?'아래':'가운데';
-  return `<b>웨이브 ${B.wave}</b>`+Object.values(g).sort((a,b)=>a.u.r-b.u.r).map(({u,n})=>`<span class="grp">${u.ic}${n>1?'×'+n:''}<i>${rowName(u.r)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':B.wave===10?'🌅 마지막 밤':'🌤️ 저녁'}</span>`;
+  return `<b>웨이브 ${B.wave}</b>`+Object.values(g).sort((a,b)=>a.u.r-b.u.r).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated;transform:scaleX(-1)" alt="${u.name}">${n>1?'×'+n:''}<i>${rowName(u.r)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':B.wave===10?'🌅 마지막 밤':'🌤️ 저녁'}</span>`;
 }
 function render(){
   $('bTier').textContent=B.tier; $('bWave').textContent=B.wave; $('bGold').textContent=B.gold; $('wavebar').innerHTML=waveBarHTML();
@@ -476,7 +540,7 @@ function render(){
     if(isKeep(r,c)) e.classList.add('k'); else if(isWall(r,c)){ e.classList.add(B.wall[r]==='rubble'?'rubble':'w'); if(B.wall[r]==='rubble') e.innerHTML='🪨'; } else if(isGate(r,c)){ e.classList.add('gate'); if(B.gate<=0) e.classList.add('broken'); e.innerHTML=B.gate>0?'🚪':'💥'; } else { e.classList.add('f'); if(c===C-1) e.classList.add('spawn'); }
     if(pathCells.has(r*C+c)&&!isGate(r,c)) e.classList.add('path');
     const u=at(r,c);
-    if(u){ e.classList.add(u.kind); e.innerHTML=`<span class="u">${u.ic}</span><div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
+    if(u){ e.classList.add(u.kind); if(u.kind==='e'&&u.hold>0&&isWall(r,c)) e.classList.add('climb'); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
     else if(B.phase==='build'&&B.sel){ if(c===C-1||isGate(r,c)) e.classList.add('no'); else e.classList.add('ok'); }
   }
   // 사거리 — 모드: sel(고른 하나) / all(전부) / off
@@ -494,12 +558,12 @@ function render(){
   else if(mode==='all') $('tip').innerHTML='<span style="color:#F7C46B">금색</span> = 아군이 때릴 수 있는 칸 · <span style="color:#FF8B7B">빗금</span> = 적이 다음 틱에 때릴 수 있는 칸';
   // 대기 중인 길드원 칩
   const bench=$('bench'); bench.innerHTML='';
-  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<span class="ic">${u.ic}</span>${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; } B.sel=B.sel===u?null:u; B.inspect=null; render(); }; bench.appendChild(d); }
+  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<img src="${sprite(u.cls,false)}" alt="">${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; } B.sel=B.sel===u?null:u; B.inspect=null; render(); }; bench.appendChild(d); }
   $('btnStart').disabled=B.phase!=='build'; $('btnStart').textContent=B.phase==='run'?'진행 중…':`웨이브 ${B.wave} 시작`;
 }
 
 /* ═══════════════════ 연결 ═══════════════════ */
-const classHTML=()=>Object.values(CLASSES).map(c=>`<span>${c.ic}</span><span><b>${c.nm}</b> ❤${c.hp} ⚔${c.atk} 🎯${c.rng} · ${c.desc}</span>`).join('');
+const classHTML=()=>Object.entries(CLASSES).map(([k,c])=>`<span><img src="${sprite(k,false)}" style="width:26px;height:26px;image-rendering:pixelated" alt=""></span><span><b>${c.nm}</b> ❤${c.hp} ⚔${c.atk} 🎯${c.rng} · ${c.desc}</span>`).join('');
 $('classList').innerHTML=$('classList2').innerHTML=classHTML();
 $('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
 $('meta').textContent = G.fame?`명성 ${G.fame} · 묘비 ${G.grave.length}`:'';
