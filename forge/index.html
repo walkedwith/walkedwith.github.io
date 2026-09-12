@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2B2F3A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex">
+<title>벼림 길드</title>
+<style>
+  /* 단일 파일·외부 요청 0. 밤의 요새 — 어두운 돌빛 바탕에 횃불색 강조. 이 게임만 어둡다. */
+  :root{
+    --night:#2B2F3A; --stone:#5A6070; --stone-l:#7C8393; --paper:#F1E9D6; --ink:#2A2620; --mute:#8E8878; --line:#D8CDB2;
+    --torch:#E39A3B; --torch-d:#B8721F; --good:#5FA872; --bad:#D95B4E; --field:#3E4A38; --field-n:#2F3A2C; --keep:#55585F; --wall:#8A8F9B; --rubble:#6E6455;
+    --cell:min(12.4vw, 52px);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
+  html,body{margin:0; min-height:100%; background:var(--night); color:var(--paper);
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:14px}
+  body{display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
+  h1{font-size:19px; margin:0; letter-spacing:.5px}
+  .screen{width:100%; max-width:440px; display:flex; flex-direction:column; gap:8px; align-items:center}
+  .screen[hidden]{display:none}
+  .top{width:100%; background:var(--paper); color:var(--ink); border-radius:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-weight:700; font-variant-numeric:tabular-nums}
+  .top small{font-weight:400; color:var(--mute); font-size:11px; display:block}
+  .actions{width:100%; display:flex; gap:8px}
+  button{font:inherit; border:0; border-radius:12px; padding:10px 14px; background:var(--paper); color:var(--ink); font-weight:700; box-shadow:0 3px 0 #C9BE9F; cursor:pointer}
+  button:active{transform:translateY(2px); box-shadow:0 1px 0 #C9BE9F}
+  button.pri{background:var(--torch); color:#1F1810; box-shadow:0 3px 0 var(--torch-d); flex:1}
+  button:disabled{opacity:.4; cursor:default}
+  .hint{font-size:12px; color:#C9C2B0; text-align:center; min-height:16px; max-width:380px}
+
+  /* 길드 홀 — 한 줄에 한 사람. 왼쪽 띠가 상처를, 가운데 타일이 능력치를 말한다. */
+  .go{width:100%; font-size:16px; padding:13px}
+  .subacts{width:100%; display:grid; grid-template-columns:repeat(4,1fr); gap:6px}
+  .subacts button{padding:7px 2px; display:flex; flex-direction:column; align-items:center; gap:1px; line-height:1.2}
+  .subacts b{font-size:12px; white-space:nowrap} .subacts i{font-style:normal; font-size:10px; color:var(--mute)}
+  .rosterHd{width:100%; display:flex; justify-content:space-between; align-items:baseline; font-size:11px;
+    letter-spacing:.08em; color:#A9A392; padding:2px 2px 0}
+  .roster{width:100%; display:flex; flex-direction:column; gap:8px}
+  .hero{background:var(--paper); color:var(--ink); border-radius:12px; overflow:hidden; position:relative;
+    display:grid; grid-template-columns:5px 52px 1fr auto; align-items:center; gap:0 10px; padding:9px 10px 9px 0;
+    box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .hero .stripe{grid-row:1; align-self:stretch; background:var(--line)}
+  .hero[data-scar="1"] .stripe{background:#E3B24A} .hero[data-scar="2"] .stripe{background:#D98A3C}
+  .hero.rest .stripe{background:var(--bad)}
+  .hero .port{display:flex; align-items:center; justify-content:center}
+  .hero .port img{width:44px; height:44px; image-rendering:pixelated}
+  .hero .body{display:flex; flex-direction:column; gap:5px; min-width:0}
+  .idline{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap}
+  .idline .nm{font-size:17px; font-weight:800; letter-spacing:-.2px}
+  .idline .cls{font-size:12px; color:var(--mute)}
+  .idline .rest{font-size:11px; font-weight:800; color:var(--bad); background:#F6E2DE; border-radius:5px; padding:1px 6px}
+  .idline .lv{font-size:11px; color:#A9A392; margin-left:auto}
+  .sttiles{display:grid; grid-template-columns:repeat(3,minmax(0,58px)); gap:6px}
+  .sttiles div{background:#FFFDF6; border-radius:7px; padding:2px 6px; box-shadow:inset 0 0 0 1px var(--line)}
+  .sttiles i{display:block; font-style:normal; font-size:9px; letter-spacing:.06em; color:#9A927E}
+  .sttiles b{font-size:16px; font-variant-numeric:tabular-nums; line-height:1.15}
+  .sttiles .hp b{color:#B5443C} .sttiles .at b{color:#9A6B1F} .sttiles .rg b{color:#3C6E96}
+  .kit{display:flex; gap:5px; flex-wrap:wrap; font-size:12px}
+  .kit span{border-radius:7px; padding:2px 7px; display:inline-flex; align-items:center; gap:4px; max-width:100%}
+  .kit .tp{background:#EFE9D8; box-shadow:inset 0 0 0 1px var(--line)}
+  .kit .gr{background:#F6EAD0; box-shadow:inset 0 0 0 1px #DFC79A; font-weight:700}
+  .kit .gr small{font-weight:400; color:#8A7A58}
+  .kit .none{color:#A9A392; background:transparent; box-shadow:none; padding-left:0}
+  .kit .warn{color:#9A927E; font-weight:400; font-size:11px}
+  /* ② 상처가 카드에서 가장 중요한 상태다 — 가장 흐리면 안 된다 */
+  .scars{background:#F7E7D2; box-shadow:inset 0 0 0 1px #E3C79C; border-radius:7px; padding:3px 8px;
+    color:#7A5A28; font-size:11.5px; font-weight:600; align-self:flex-start}
+  .scars .dots{letter-spacing:2px; color:#C9762A; font-weight:800; font-size:13px}
+  .scars{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+  .hero .acts{display:flex; flex-direction:column; gap:5px}
+  .hero .acts button{padding:5px 8px; font-size:11.5px; border-radius:8px; box-shadow:0 2px 0 var(--line); min-width:56px}
+  .hero .acts .pk.on{background:var(--torch); color:#1F1810; box-shadow:0 2px 0 var(--torch-d)}
+  .hero .acts .drop{background:transparent; box-shadow:none; color:#B5ACA0; padding:2px 8px; font-size:13px}
+  .hero .acts .drop:hover{color:var(--bad)}
+  .grave{width:100%; font-size:12px; color:#B9B2A0; line-height:1.5}
+
+  /* 전장 — 5×7. 왼쪽 두 열 바위(엄폐), 셋째 열 위아래 둔덕(높은 자리), 나머지 들판. */
+  .wave{width:100%; background:var(--paper); color:var(--ink); border-radius:12px; padding:6px 10px; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .wave b{font-size:12px; color:var(--mute)} .wave .grp{background:#fff; border-radius:8px; padding:2px 7px; display:flex; align-items:center; gap:3px} .wave .grp i{font-style:normal; font-size:11px; color:var(--mute)}
+  .wave .night{margin-left:auto; font-size:12px}
+  .fort{display:grid; grid-template-columns:repeat(7,var(--cell)); gap:2px; padding:5px; background:#1F222B; border-radius:12px; position:relative}
+  /* 연출 — 공격자는 상대 쪽으로 돌진(근접)하거나 발사체(원거리)를 보낸다. 아군은 금색, 적은 붉은색. */
+  .c .u{display:inline-block; transition:none; position:relative; width:78%; height:78%; image-rendering:pixelated; image-rendering:crisp-edges}
+  .c.e .u{transform:scaleX(-1)} .c.w.e .u{transform:scaleX(-1) translateY(-6px)}   /* 적은 왼쪽을 본다 */
+  .c .u.big{width:96%; height:96%}
+  .c .u.bob{animation:bob 1s steps(2) infinite} @keyframes bob{0%{margin-top:0} 100%{margin-top:-2px}}
+  .chip img,.hero img{width:22px; height:22px; image-rendering:pixelated; vertical-align:middle}
+  /* 공격 — 예비(뒤로 당김·납작) → 찌르기(크게 뻗음) → 복귀. 맞은 쪽은 밀려나며 하얗게 번쩍. */
+  .c .u.lunge{animation:lunge .42s cubic-bezier(.3,.9,.4,1)} 
+  @keyframes lunge{0%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))} 22%{transform:translate(calc(var(--dx) * -.3), var(--ty,0)) scale(.92,1.08) scaleX(var(--sx,1))}
+    50%{transform:translate(var(--dx),calc(var(--dy) + var(--ty,0px))) scale(1.3,1.15) scaleX(var(--sx,1))} 100%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))}}
+  .c .u.knock{animation:knock .38s ease-out} 
+  @keyframes knock{0%{filter:brightness(1)} 15%{transform:translate(var(--kx),var(--ky)) rotate(var(--rot)) scale(1.15) scaleX(var(--sx,1)); filter:brightness(4) saturate(0)} 60%{filter:brightness(1.6)} 100%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1)); filter:brightness(1)}}
+  .c .u.die{animation:die .55s ease-in forwards; z-index:4} @keyframes die{30%{transform:translateY(-8px) scaleX(var(--sx,1)) rotate(-10deg)} 100%{transform:translate(calc(var(--sx,1) * -10px),10px) scaleX(var(--sx,1)) rotate(calc(var(--sx,1) * 80deg)); opacity:0}}
+  .spark{position:absolute; width:0; height:0; pointer-events:none; z-index:7}
+  .spark i{position:absolute; left:-2px; top:-7px; width:4px; height:14px; border-radius:2px; transform-origin:50% 100%; animation:spark .32s ease-out forwards}
+  .spark.h i{background:#FFE28A; box-shadow:0 0 4px #F7C46B} .spark.e i{background:#FF8B7B; box-shadow:0 0 4px #FF6B5A}
+  @keyframes spark{0%{transform:rotate(var(--a)) translateY(0) scaleY(1); opacity:1} 100%{transform:rotate(var(--a)) translateY(-16px) scaleY(.3); opacity:0}}
+  .c .dmg{font-size:15px; animation:dmgpop .8s ease-out forwards} .c .dmg.crit{font-size:19px; color:#FFB347}
+  @keyframes dmgpop{0%{opacity:0; transform:translate(-50%,6px) scale(.4)} 18%{opacity:1; transform:translate(-50%,-4px) scale(1.35)} 40%{transform:translate(-50%,-10px) scale(1)} 100%{opacity:0; transform:translate(-50%,-30px) scale(.9)}}
+  .fort.quake{animation:quake .35s} @keyframes quake{20%{transform:translate(3px,-2px)} 40%{transform:translate(-3px,2px)} 60%{transform:translate(2px,2px)} 80%{transform:translate(-2px,-1px)}}
+  .shot{width:14px; height:4px; border-radius:2px; margin:-2px 0 0 -7px; transform-origin:50% 50%}
+  .shot.h{background:linear-gradient(90deg, transparent, #FFE28A 40%, #fff)} .shot.e{background:linear-gradient(90deg, transparent, #FF8B7B 40%, #fff)}
+  .c .u.cast{animation:cast .4s ease-out} @keyframes cast{40%{transform:scale(1.3); filter:drop-shadow(0 0 6px #B48CFF)}}
+  .shot{position:absolute; pointer-events:none; z-index:6; box-shadow:0 0 5px 1px rgba(255,220,150,.5)}
+  .ring{position:absolute; border-radius:50%; border:2px solid #B48CFF; pointer-events:none; z-index:5; animation:ring .45s ease-out forwards}
+  @keyframes ring{0%{transform:scale(.2); opacity:1} 100%{transform:scale(1); opacity:0}}
+  /* 사거리 — 아군은 금색 테두리, 적의 위협 칸은 붉은 빗금. 겹치면 둘 다 보인다. */
+  .c .rh{position:absolute; inset:2px; border-radius:4px; box-shadow:inset 0 0 0 2px rgba(247,196,107,.8); pointer-events:none; z-index:1}
+  .c .rh.me{box-shadow:inset 0 0 0 3px #F7C46B, 0 0 6px rgba(247,196,107,.6)}
+  .c .re{position:absolute; inset:0; border-radius:5px; background:repeating-linear-gradient(45deg, rgba(255,107,90,.42) 0 4px, transparent 4px 9px); pointer-events:none; z-index:1}
+  .c.inspect{outline:3px solid #FF8B7B; outline-offset:-3px}
+  .c.hit-e{animation:hitE .3s} @keyframes hitE{30%{filter:brightness(2.2); transform:translateX(3px)} 60%{transform:translateX(-3px)}}
+  .c.hit-h{animation:hitH .35s} @keyframes hitH{30%{background:#8E2F2F; transform:translateX(-3px)} 60%{transform:translateX(3px)}}
+  .c .dmg.one{color:#FFE28A} .c .dmg.onh{color:#FF8B7B; font-size:14px}
+  .c .gatecrack{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell)*.5); animation:crack .5s; pointer-events:none}
+  @keyframes crack{0%{opacity:0} 30%{opacity:1} 100%{opacity:0}}
+  .c{width:var(--cell); height:var(--cell); background:var(--field); border-radius:5px; position:relative; display:flex; align-items:center; justify-content:center; font-size:calc(var(--cell)*.58); cursor:default}
+  .fort.night .c.f{background:var(--field-n)}
+  .c.k{background:linear-gradient(#666A73,#55585F 70%,#3E4149 70%); box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}
+  /* 둔덕 — 윗면(밝음)·앞면(어둠)·오른쪽으로 떨어지는 그림자. */
+  .c.w{background:linear-gradient(#6E8452, #5C7044 70%, #3F4C2E 70%); box-shadow:3px 3px 0 rgba(0,0,0,.3); z-index:2}
+  .c.w::before{content:''; position:absolute; left:0; right:0; top:0; height:30%; background:linear-gradient(rgba(255,255,255,.16), transparent); border-radius:5px 5px 0 0; pointer-events:none}
+  .c.w .u{transform:translateY(-6px)}                                   /* 둔덕 위는 한 뼘 위에 선다 */
+  .c.w .u::after{content:''; position:absolute; left:15%; right:15%; bottom:-3px; height:4px; border-radius:50%; background:rgba(0,0,0,.35)}
+  .c.gate{background:linear-gradient(#B98A48, #A97C3F 70%, #6E4B22 70%); box-shadow:3px 3px 0 rgba(0,0,0,.35); z-index:2} .c.rubble{background:var(--rubble)}
+  .c.climb::before{content:''; position:absolute; right:2px; top:4px; bottom:4px; width:8px; background:repeating-linear-gradient(#9a6b3c 0 2px, transparent 2px 5px); border-left:2px solid #9a6b3c; border-right:2px solid #9a6b3c; z-index:3; pointer-events:none}
+  .c.gate.broken{background:#4A3A2A; box-shadow:none}
+  .c.spawn{background:#4A3B3B}
+  .c.ok{outline:2px dashed rgba(227,154,59,.9); outline-offset:-2px; cursor:pointer} .c.no{opacity:.5}
+  .c.path::after{content:''; position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(241,233,214,.45); left:3px; top:3px}
+  .c .terr{opacity:.35; font-size:calc(var(--cell)*.42); pointer-events:none; filter:saturate(.6)}
+  .c .hp{position:absolute; left:3px; right:3px; bottom:2px; height:3px; background:rgba(0,0,0,.35); border-radius:2px; overflow:hidden}
+  .c .hp i{display:block; height:100%; background:var(--good)} .c.e .hp i{background:var(--bad)}
+  .c .st{position:absolute; right:1px; top:0; font-size:10px} .c .n{position:absolute; left:2px; bottom:2px; font-size:10px; font-weight:700; background:#fff; color:#000; border-radius:6px; padding:0 3px}
+  .c .dmg{position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:800; font-size:12px; color:#FFB4A8; animation:rise .7s ease-out forwards; pointer-events:none; text-shadow:0 1px 0 #000}
+  .c .dmg.heal{color:#B9F0C4}
+  @keyframes rise{0%{opacity:0; transform:translate(-50%,4px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-20px)}}
+  .c.hitfx{animation:hit .25s} @keyframes hit{50%{filter:brightness(1.6)}}
+  .c.boom{animation:boom .5s} @keyframes boom{30%{background:#F7C46B; transform:scale(1.15)}}
+  .bench{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:440px; min-height:44px}
+  .chip{background:var(--paper); color:var(--ink); border-radius:10px; padding:5px 9px; font-size:12px; display:flex; align-items:center; gap:5px; box-shadow:0 3px 0 #C9BE9F; cursor:pointer}
+  .chip.sel{box-shadow:0 3px 0 var(--torch), 0 0 0 2px var(--torch)} .chip .ic{font-size:18px}
+  .gatebar{width:100%; max-width:440px; font-size:12px; color:#C9C2B0; display:flex; align-items:center; gap:8px}
+  .gatebar i{flex:1; height:6px; background:#1F222B; border-radius:3px; overflow:hidden; display:block} .gatebar i b{display:block; height:100%; background:var(--torch)}
+  .log{font-size:12px; color:#C9C2B0; min-height:54px; text-align:center; line-height:1.5}
+  .log .h{color:#F7C46B} .log .e{color:#FF8B7B} .log .sys{color:#C9C2B0}
+
+  .ov{position:fixed; inset:0; background:rgba(15,17,22,.7); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
+  .ov[hidden]{display:none}
+  .sheet{background:var(--paper); color:var(--ink); border-radius:16px; padding:18px; width:100%; max-width:400px; display:flex; flex-direction:column; gap:10px; max-height:90vh; overflow:auto}
+  .sheet h2{margin:0; font-size:19px} .sheet p{margin:0; line-height:1.5}
+  .relics{display:flex; flex-direction:column; gap:8px} .relic{display:flex; gap:12px; align-items:center; text-align:left; padding:10px 12px}
+  .relic .ic{font-size:24px} .relic b{display:block; font-size:14px} .relic small{display:block; font-size:12px; color:var(--mute); line-height:1.45}
+  .relic .cost{margin-left:auto; flex:none; font-weight:700; font-size:13px; color:var(--torch); white-space:nowrap}
+  .relic[disabled] .cost{color:var(--mute)}
+  .relic .pip{color:var(--torch); letter-spacing:1px; font-weight:400}
+  .rules{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; font-size:13px; align-items:center} .rules span:first-child{font-size:18px}
+  .litter{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  .dead{color:var(--bad); font-weight:700}
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important} }
+</style>
+</head>
+<body>
+<h1>⚒️ 벼림 길드</h1>
+
+<!-- ═══ 길드 홀 ═══ -->
+<div class="screen" id="scHall">
+  <div class="top"><span><small>금화</small>🪙 <span id="hGold">0</span></span><span><small>다음 원정</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span></span></div>
+  <button class="pri go" id="btnSiege">원정 출발</button>
+  <div class="subacts">
+    <button id="btnForge"><b>🔨 대장간</b><i>벼리기</i></button>
+    <button id="btnRecruit"><b>🧍 모집</b><i>🪙4</i></button>
+    <button id="btnFac"><b>🏗️ 시설</b><i>영구</i></button>
+    <button id="btnLine"><b>📜 계보</b><i>무기</i></button>
+    <button id="btnHelp"><b>❓ 규칙</b><i>보기</i></button>
+  </div>
+  <div class="hint" id="hallHint"></div>
+  <div class="rosterHd"><span id="rosterCount"></span><span>상처 셋이면 길을 떠납니다</span></div>
+  <div class="roster" id="roster"></div>
+  <div class="grave" id="grave"></div>
+</div>
+
+<!-- ═══ 원정 ═══ -->
+<div class="screen" id="scSiege" hidden>
+  <div class="top"><span><span id="bTier"></span>차 원정</span><span>싸움 <span id="bWave"></span>/3</span><span>🪙 +<span id="bGold">0</span></span></div>
+  <div class="wave" id="wavebar"></div>
+  <div class="fort" id="fort"></div>
+  <div class="bench" id="bench"></div>
+  <div class="hint" id="tip"></div>
+  <div class="actions"><button class="pri" id="btnStart">싸움 시작</button><button id="btnRange">사거리: 선택</button></div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="ov" id="ovStart"><div class="sheet">
+  <h2>⚒️ 벼림 길드</h2>
+  <p>일행을 꾸려 <b>원정</b>을 나갑니다. 짧은 싸움 셋을 넘기면 돌아옵니다 — 마지막 싸움은 밤입니다.</p>
+  <p>사람은 죽고, 살아 돌아와도 <b>상처</b>가 남습니다. 셋이 쌓이면 길을 떠납니다. <b>그래도 무기는 남습니다</b> — 솜씨는 사람이 아니라 쇠에 깃들기 때문입니다.</p>
+  <div class="rules" id="classList"></div>
+  <p class="hint" id="meta" style="color:var(--mute)"></p>
+  <button class="pri" id="btnGo">길드 홀로</button>
+</div></div>
+
+<div class="ov" id="ovFac" hidden><div class="sheet">
+  <h2>🏗️ 길드 시설</h2>
+  <p class="stat">원정은 끝나면 아무것도 안 남습니다. 시설만 남습니다.</p>
+  <div class="relics" id="facBox"></div>
+  <button id="btnFacClose">닫기</button>
+</div></div>
+
+<div class="ov" id="ovLine" hidden><div class="sheet">
+  <h2>📜 계보</h2><div id="lineBox"></div><button id="btnLineClose">닫기</button>
+</div></div>
+
+<div class="ov" id="ovArm" hidden><div class="sheet">
+  <h2 id="armT">🔨 대장간</h2><p id="armSub"></p>
+  <div id="armBox"></div>
+  <div class="actions"><button class="pri" id="btnForgeGo">벼리기 🪙5</button><button id="btnArmClose">닫기</button></div>
+</div></div>
+
+<div class="ov" id="ovSupply" hidden><div class="sheet"><h2 id="supTitle"></h2><p id="supSub"></p><div class="relics" id="supList"></div></div></div>
+
+<div class="ov" id="ovEnd" hidden><div class="sheet"><h2 id="endTitle"></h2><p id="endBody"></p><button class="pri" id="btnHome">길드 홀로</button></div></div>
+
+<div class="ov" id="ovHelp" hidden><div class="sheet">
+  <h2>규칙</h2>
+  <div class="rules" id="classList2"></div>
+  <p><b>원정</b>: 일행 <b>넷까지</b> 데려가 짧은 싸움 셋을 치릅니다. 왼쪽 세 열이 우리 자리 — <b>바위</b>(1~2열)는 받는 피해 −1, <b>둔덕</b>(3열 위아래)은 사거리 +1. 매 틱 일행이 먼저 때리고 적이 움직입니다. 싸움 사이에 <b>챙길 것</b>을 하나 고르지만 원정이 끝나면 사라집니다.</p>
+  <p><b>시설</b>이 유일하게 남는 것입니다 — 숙소·대장간·약방·훈련장. 원정에서 번 금화를 여기 넣으면 다음 원정이 확실히 쉬워집니다.</p>
+  <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 싸움 중에도 됩니다.</p>
+  <p><b>상처</b>: 원정이 끝났을 때 체력이 <b>1/4 이하</b>로 살아남으면 몸에 자국이 하나 남습니다(절반 이하면 <b>부상</b> — 다음 원정은 쉽니다). 상처는 영영 안 사라지고, <b>셋이 되면 길을 떠납니다</b> — 무기는 창고에 남습니다. 사람을 갉아먹는 건 세월이 아니라 <b>어떻게 버텼느냐</b>입니다.</p>
+  <div class="rules" id="scarList"></div>
+  <p><b>밤</b>(마지막 싸움)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 원정을 쉽니다. <b>종족과 역할</b>: 길드원은 <b>종족</b>(인간·드워프·엘프)과 <b>역할</b>(전사·궁수·마법사)을 따로 가집니다 — 드워프 궁수도, 엘프 전사도 나옵니다. 종족은 몸(체력·사거리·응급 처치·야간 시야)과 <b>무기 적성</b>을 정하고, 역할은 싸우는 방식을 정합니다.</p>
+  <p><b>무기</b>: 솜씨는 사람이 아니라 무기에 깃듭니다. 주인이 죽거나 은퇴해도 무기는 창고로 돌아옵니다. <b>대장간</b>에서 무기 둘을 벼려 하나로 만들면 솜씨가 각각 55%로 이어지고 20%로 새것이 깃듭니다. 사람이 타고나는 <b>기질</b>은 그 사람과 함께 사라집니다.</p>
+  <div class="rules" id="traitList"></div>
+  <button id="btnHelpClose">닫기</button>
+</div></div>
+
+<script>
+/* ═══════════════════ 데이터 ═══════════════════ */
+const R=5, C=7, DEPLOY_C=2, SPAWNS=[0,2,4], FIGHTS=3;
+/* 전장 — 왼쪽 세 열이 우리 자리다. 0~1열은 바위(엄폐), 2열 가운데 둔덕은 높다.
+   지켜야 할 성문이 없으니 '지켜야 할 것'은 일행 자신이다. */
+/* 종족은 몸을, 역할은 하는 일을 정한다. 섞어 쓰면 드워프 궁수·엘프 전사가 나온다.
+   무기 적성은 역할이 아니라 종족의 일이다 — 드워프가 쇠붙이를 아는 건 직업과 무관하다. */
+const RACES={
+  human:{ic:'🧍', nm:'인간',   hp:0,  rng:0, fit:['sword','bow','hammer','staff'], desc:'무엇이든 손에 맞는다 — 대신 타고난 보정이 없다'},
+  dwarf:{ic:'⛏️', nm:'드워프', hp:+4, rng:0, fit:['hammer','sword'], repair:true, desc:'체력 +4 · 옆 사람을 응급 처치한다 · 쇠붙이만 손에 맞는다'},
+  elf:  {ic:'🧝', nm:'엘프',   hp:-2, rng:+1, fit:['bow','staff'], night:true, desc:'체력 −2 사거리 +1 · 밤에도 잘 본다 · 활과 지팡이만'},
+};
+const ROLES={
+  warrior:{ic:'🛡️', nm:'전사',   hp:12, atk:3, rng:1, desc:'옆 칸을 벤다. 단단하다'},
+  archer: {ic:'🏹', nm:'궁수',   hp:8,  atk:2, rng:3, desc:'멀리 쏜다. 둔덕 위에선 +1'},
+  mage:   {ic:'🔮', nm:'마법사', hp:7,  atk:1, rng:2, area:true, desc:'2칸 안 전부 1 피해 + 느려짐'},
+};
+const raceOf=h=>RACES[h.race]||RACES.human, roleOf=h=>ROLES[h.role]||ROLES.warrior;
+const fullName=h=>`${raceOf(h).nm} ${roleOf(h).nm}`;
+/* 타고난 것은 사람에, 익힌 것은 물건에.
+   사람은 늙어 떠나지만 무기는 안 늙는다 — 그래서 솜씨가 세대를 넘는다. */
+const TEMPER={   // 기질 — 사람이 타고난다. 죽으면 같이 사라진다.
+  taunt:  {ic:'📣', nm:'도발',     desc:'3칸 안의 적이 이쪽으로 먼저 온다'},
+  night:  {ic:'🌙', nm:'야간 시야', desc:'밤 사거리 감소 없음'},
+  ale:    {ic:'🍺', nm:'술 내성',  desc:'중독·화상 무효'},
+  stone:  {ic:'🪨', nm:'돌가죽',   desc:'체력 +6'},
+  frail:  {ic:'🩹', nm:'허약',     desc:'체력 −3'},
+  proud:  {ic:'😤', nm:'오만',     desc:'인접 아군이 있으면 공격 −1'},
+  coward: {ic:'😰', nm:'겁쟁이',   desc:'체력 절반 이하면 공격 −2'},
+};
+const CRAFT={    // 솜씨 — 무기에 깃든다. 주인이 죽어도 창고로 돌아온다.
+  shield: {ic:'🛡️', nm:'방패술',   desc:'받는 피해 −1'},
+  might:  {ic:'💪', nm:'힘',       desc:'공격 +2'},
+  hawk:   {ic:'🦅', nm:'매의 눈',  desc:'사거리 +1'},
+  rapid:  {ic:'⚡', nm:'속사',     desc:'한 틱에 두 번 공격'},
+  venom:  {ic:'🐍', nm:'독니',     desc:'맞은 적 중독(3턴, 턴마다 1)'},
+  mason:  {ic:'🧱', nm:'석공',     desc:'수리 +2'},
+  fire:   {ic:'🔥', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
+};
+const TRAITS={...TEMPER, ...CRAFT};          // 조회용 — 전투부는 합쳐진 배열만 본다
+/* 무기 — 종류가 적성을 정하고, 솜씨가 값을 정한다. */
+const GEAR_KINDS={
+  sword: {nm:'검',     ic:'🗡️'},
+  bow:   {nm:'활',     ic:'🏹'},
+  hammer:{nm:'망치',   ic:'🔨'},
+  staff: {nm:'지팡이', ic:'🪄'},
+};
+const G_ADJ=['낡은','북쪽','서리','참나무','돌','여울','새벽','바람','검은','오래된','잿빛','첫'];
+const G_NOUN={sword:['검','칼날'], bow:['활','시위'], hammer:['망치','쇠메'], staff:['지팡이','막대']};
+const FOES={
+  wolf:   {ic:'🐺', nm:'늑대',      hp:4,  atk:1, spd:2,  cost:1, desc:'한 틱에 두 칸'},
+  orc:    {ic:'⚔️', nm:'오크',      hp:9,  atk:2, spd:1,  cost:2, desc:'근접. 앞에 선 사람을 친다'},
+  rider:  {ic:'🐗', nm:'멧돼지 기수', hp:9, atk:2, spd:2,  cost:3, desc:'한 틱에 두 칸 — 뒷줄까지 파고든다'},
+  thrower:{ic:'🔥', nm:'화염병 투척', hp:7, atk:2, spd:1,  cost:3, rng:2, burn:true, desc:'사거리 2 · 맞으면 불이 붙는다'},
+  shaman: {ic:'🏹', nm:'궁수 오크',  hp:6, atk:1, spd:1,  cost:2, rng:2, desc:'사거리 2 — 둔덕 위도 맞힌다'},
+  troll:  {ic:'🧌', nm:'트롤',       hp:26, atk:4, spd:.5, cost:7, boss:true, desc:'느리지만 한 방이 무겁다'},
+};
+const SUPPLY={
+  rations: {ic:'🥖', nm:'말린 고기',   desc:'지금 전원 체력 +5'},
+  arrows:  {ic:'🏹', nm:'화살 더미',   desc:'궁수·엘프 공격 +1'},
+  oil:     {ic:'🛢️', nm:'기름 항아리', desc:'둔덕 위 아군이 앞 칸 적에게 +1'},
+  torches: {ic:'🔥', nm:'횃불 줄',     desc:'밤 사거리 감소 없음'},
+  whet:    {ic:'🪨', nm:'숫돌',       desc:'전원 공격 +1'},
+  medic:   {ic:'🧪', nm:'약초 상자',   desc:'지금 전원 체력 +4'},
+  horn:    {ic:'📯', nm:'뿔나팔',      desc:'다음 싸움 첫 틱에 적 전원 한 틱 멈춤'},
+  gold:    {ic:'🪙', nm:'전리품 상자', desc:'싸움 보상 +3'},
+};
+const NAMES=['에오윈','하마','감린','테오','브레가','에르켄','아라','핀','로한','길다','토린','발린','레골','하르딘','이도','메리','피핀','두린','엘라','케른','오를','브란','시그','율'];
+
+/* ═══════════════════ 도트 스프라이트 — 12×12 를 코드로 조립해 캔버스로 굽는다 ═══════════════════ */
+const PAL={k:'#1b1b1b', s:'#f0c9a0', S:'#c9946a', g:'#6f9a4e', G:'#4a6b34', m:'#c3ccd6', M:'#7c8895', r:'#c8463f', b:'#4d78c4', B:'#2f4f8a',
+  w:'#9a6b3c', W:'#6b4525', y:'#f2c94c', p:'#8d5bd9', P:'#5b3a99', e:'#3f8f5a', E:'#2c6640', h:'#6b4525', x:'#f5f0e6', f:'#8a8a8a', F:'#5c5c5c', o:'#ff8c3a', d:'#3d2b1f', t:'#7d8f6a'};
+// 사람형 틀 — H 머리쓰개, s 얼굴, C 옷, L 다리. 왼쪽 열(0~1)은 방패/왼손, 오른쪽 열(9~11)은 무기.
+const HUMAN=[
+'....HHHH....','...HHHHHH...','...HssssH...','...HssssH...','....ssss....','..CCCCCCCC..','..CCCCCCCC..','..CCCCCCCC..','..CCCCCCCC..','...LL..LL...','...LL..LL...','..kk....kk..'];
+const PROPS={ // [행, 열, 문자] — 오른손 무기. 공격 포즈는 한 칸 오른쪽·한 칸 위로 뻗는다
+  sword:[[5,10,'m'],[6,10,'m'],[7,10,'m'],[8,10,'W'],[4,10,'m']], shield:[[5,1,'r'],[6,1,'r'],[7,1,'r'],[6,0,'r'],[5,0,'y'],[7,0,'y']],
+  bow:[[3,10,'W'],[4,11,'W'],[5,11,'W'],[6,11,'W'],[7,11,'W'],[8,10,'W'],[4,10,'x'],[5,10,'x'],[6,10,'x'],[7,10,'x']],
+  staff:[[2,10,'y'],[3,10,'W'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W'],[8,10,'W'],[1,10,'y'],[2,11,'y'],[2,9,'y']],
+  pick:[[3,9,'m'],[3,10,'m'],[3,11,'m'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W']],
+  cleaver:[[4,10,'M'],[5,10,'m'],[5,11,'m'],[6,10,'m'],[6,11,'m'],[7,10,'W']],
+  ladder:[[1,10,'w'],[2,10,'w'],[3,10,'w'],[4,10,'w'],[5,10,'w'],[6,10,'w'],[7,10,'w'],[8,10,'w'],[9,10,'w'],[2,11,'w'],[4,11,'w'],[6,11,'w'],[8,11,'w']],
+  bomb:[[5,10,'k'],[5,11,'k'],[6,10,'k'],[6,11,'k'],[4,11,'o'],[3,11,'y']],
+};
+/* 종족이 몸을, 역할이 옷과 무기를 준다 — 'dwarf:archer' 처럼 합쳐 부른다 */
+const RACE_SPR={ human:{}, dwarf:{beard:true, skin:'s'}, elf:{hair:'y', skin:'x'} };
+const ROLE_SPR={ warrior:{hat:'m', cloth:'b', props:['sword','shield']},
+                 archer:{hat:'e', cloth:'w', props:['bow']},
+                 mage:{hat:'p', cloth:'p', props:['staff'], pointy:true} };
+const SPRITES={
+  orc:{hat:'d', cloth:'d', skin:'g', props:['cleaver']}, ladder:{hat:'d', cloth:'d', skin:'g', props:['ladder']}, bomber:{hat:'d', cloth:'d', skin:'g', props:['bomb']},
+  shaman:{hat:'P', cloth:'d', skin:'g', props:['bow'], pointy:true}, troll:{hat:'G', cloth:'t', skin:'G', props:['cleaver'], big:true},
+};
+const sprKey=h=>`${h.race||'human'}:${h.role||'warrior'}`;
+function spriteSpec(key){
+  if(SPRITES[key]) return SPRITES[key];
+  const [ra,ro]=key.split(':');
+  return {...(ROLE_SPR[ro]||ROLE_SPR.warrior), ...(RACE_SPR[ra]||{})};
+}
+const WOLF=['............','..k.........','.kfk....kk..','.kffk..kffk.','..kfffffffk.','..kfxfffffk.','..kfffffffk.','...kffffkk..','...kfkkfk...','...kfk.kfk..','...kk..kk...','............'];
+function spriteGrid(spec, atk){
+  let g=HUMAN.map(r=>r.split(''));
+  const skin=spec.skin||'s';
+  for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c]; if(ch==='H') g[r][c]=spec.hat; else if(ch==='s') g[r][c]=skin; else if(ch==='C') g[r][c]=spec.cloth; else if(ch==='L') g[r][c]=spec.legs||'W'; }
+  if(spec.pointy){ g[0]='.....'+spec.hat+spec.hat+'.....'.slice(0,5); g[0]=g[0].split(''); g[1]='....'+spec.hat.repeat(4)+'....'; g[1]=g[1].split(''); }
+  if(spec.beard){ for(const c of [3,4,5,6]){ g[3][c]='h'; g[4][c]='h'; } g[4][2]='h'; g[4][7]='h'; }
+  if(spec.hair){ g[2][3]=spec.hair; g[2][8]=spec.hair; }
+  g[2][5]='k'; g[2][6]= skin;  g[2][4]=skin; g[2][7]='k';        // 눈 둘
+  for(const pr of spec.props||[]) for(const [r,c,ch] of PROPS[pr]){ let rr=r, cc=c; if(atk&&c>=9){ cc=Math.min(11,c+1); rr=Math.max(0,r-1); } if(rr<12&&cc<12) g[rr][cc]=ch; }
+  if(atk){ for(let r=4;r<=8;r++){ g[r].pop(); g[r].unshift('.'); } }   // 몸을 앞으로 기울인다
+  return g;
+}
+function outline(g){ const out=g.map(r=>r.slice()); for(let r=0;r<12;r++) for(let c=0;c<12;c++){ if(g[r][c]!=='.') continue; let near=false; for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){ const rr=r+dr,cc=c+dc; if(rr>=0&&rr<12&&cc>=0&&cc<12&&g[rr][cc]!=='.'&&g[rr][cc]!=='k') near=true; } if(near) out[r][c]='k'; } return out; }
+const SPR_CACHE={};
+function sprite(key, atk){
+  const k=key+(atk?':a':':i'); if(SPR_CACHE[k]) return SPR_CACHE[k];
+  let g = key==='wolf' ? WOLF.map(r=>r.split('')) : spriteGrid(spriteSpec(key), atk);
+  if(key==='wolf'&&atk){ g=g.map(r=>r.slice(1).concat(['.'])); }
+  g=outline(g);
+  const cv=document.createElement('canvas'); cv.width=12; cv.height=12; const ctx=cv.getContext('2d');
+  for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c]; if(ch==='.') continue; ctx.fillStyle=PAL[ch]||'#f0f'; ctx.fillRect(c,r,1,1); }
+  return SPR_CACHE[k]=cv.toDataURL();
+}
+const unitImg=(u,extra='')=>`<img class="u${u.boss?' big':''} ${extra}" src="${sprite(u.kind==='h'?u.cls:u.key,false)}" data-k="${u.kind==='h'?u.cls:u.key}" alt="">`;
+
+/* ═══════════════════ 길드 — 영웅·전승 ═══════════════════ */
+const $=id=>document.getElementById(id);
+const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
+const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
+let uid=1;
+const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+'Ⅱ'; };
+function randomHero(hs){ const race=pick(Object.keys(RACES)), role=pick(Object.keys(ROLES)); const t=[pick(Object.keys(TEMPER))];
+  return {id:uid++, name:newName(hs), race, role, temper:t, gear:null, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}, age:22+rnd(13)}; }
+function newGear(){
+  // 길드에 있는 클래스에 맞는 종류를 우선 — 안 그러면 창고가 못 쓰는 무기로 찬다
+  const want=(G&&G.heroes||[]).flatMap(h=>raceOf(h).fit);
+  const kind=(want.length&&Math.random()<.75)?pick(want):pick(Object.keys(GEAR_KINDS));
+  const tr=[pick(Object.keys(CRAFT))];
+  if(Math.random()<.35){ const u=pick(Object.keys(CRAFT)); if(!tr.includes(u)) tr.push(u); }
+  return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr, atk:2+rnd(2), gen:0, forged:null};   // 2~3 — 적성 절반이 0이 되지 않게
+}
+// 벼리기 — 무기 둘을 하나로. 솜씨는 55%씩 잇고 20%로 새것이 깃든다. 나르실이 안두릴이 되듯.
+function forge(a,b){
+  let tr=[];
+  const keepP=0.55+fac('smithy')*0.08;
+  for(const t of a.traits.concat(b.traits)) if(Math.random()<keepP&&!tr.includes(t)) tr.push(t);
+  if(Math.random()<.2){ const pool=Object.keys(CRAFT).filter(t=>!tr.includes(t)); if(pool.length) tr.push(pick(pool)); }
+  if(!tr.length) tr.push(pick(a.traits.concat(b.traits)));
+  while(tr.length>3) tr.splice(rnd(tr.length),1);
+  const kind=Math.random()<.5?a.kind:b.kind;
+  return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr,
+    atk:Math.max(a.atk,b.atk)+1, gen:Math.max(a.gen,b.gen)+1, forged:[a.nm,b.nm]};
+}
+const gearOf=h=>h.gear?G.gear.find(g=>g.id===h.gear)||null:null;
+const fitsGear=(h,g)=>!!g&&raceOf(h).fit.includes(g.kind);   // 적성은 종족이 정한다
+const gearFree=()=>G.gear.filter(g=>!G.heroes.some(h=>h.gear===g.id));
+const heroTraits=h=>(h.temper||[]).concat(gearOf(h)?gearOf(h).traits:[]);
+function stats(h, sup){
+  const T=heroTraits(h), has=t=>T.includes(t); sup=sup||[];
+  const R=raceOf(h), c=roleOf(h);
+  const S=scarsOf(h), sc=k=>S.includes(k);
+  const g=gearOf(h);
+  // 적성이 맞는 무기라야 값을 다 받는다 — 엘프가 망치를 들면 절반만
+  const gAtk=g ? (fitsGear(h,g) ? g.atk : Math.floor(g.atk/2)) : 0;
+  return { hp:c.hp+R.hp+(has('stone')?6:0)-(has('frail')?3:0)+h.bonus.hp-(sc('rib')?3:0)+(sc('tough')?2:0),
+    atk:c.atk+(has('might')?2:0)+h.bonus.atk+gAtk-(sc('hand')?1:0)+(h.role==='archer'&&sup.includes('arrows')?1:0),
+    rng:Math.max(1,c.rng+R.rng+(has('hawk')?1:0)-(sc('eye')?1:0)),
+    repair:R.repair?3+(has('mason')?2:0):0, area:!!c.area };
+}
+let G=store.get('forge.save',null);
+if(!G){ G={gold:8, fame:0, tier:1, heroes:[], grave:[], mentors:[], sup:[], retired:[], gear:[], fac:{}, party:[]}; for(let i=0;i<4;i++) G.heroes.push(randomHero(G.heroes)); }
+uid=Math.max(uid, ...G.heroes.map(h=>h.id+1));
+for(const h of G.heroes){ if(!h.scars) h.scars=[]; delete h.age; }   // 나이는 상처로 대체됐다
+if(!G.retired) G.retired=[];
+if(!G.gear) G.gear=[];
+if(!G.fac) G.fac={};
+if(!G.party) G.party=[];
+// 형질이 사람에 붙어 있던 옛 세이브 → 기질만 남기고 나머지 솜씨는 무기로 옮긴다
+for(const h of G.heroes){
+  if(h.temper===undefined){
+    const old=h.traits||[];
+    h.temper=old.filter(t=>TEMPER[t]).slice(0,1);
+    if(!h.temper.length) h.temper=[pick(Object.keys(TEMPER))];
+    const craft=old.filter(t=>CRAFT[t]);
+    const kind=(h.cls==='archer'||h.cls==='elf')?'bow':h.cls==='mage'?'staff':h.cls==='dwarf'?'hammer':'sword';   // 아직 cls 를 읽을 수 있는 시점
+    const g={id:'g'+(uid++), kind, nm:'물려받은 '+pick(G_NOUN[kind]), traits:craft.length?craft:[pick(Object.keys(CRAFT))], atk:1, gen:0, forged:null};
+    G.gear.push(g); h.gear=g.id; delete h.traits;
+  }
+  if(h.gear===undefined) h.gear=null;
+}
+// 클래스 하나였던 것을 종족 × 역할로 가른다 — 드워프·엘프는 원래 종족이었다.
+// 무기 이관이 h.cls 를 읽으므로 반드시 그 뒤에 지운다.
+const CLS2={warrior:['human','warrior'], archer:['human','archer'], mage:['human','mage'],
+            dwarf:['dwarf','warrior'],   elf:['elf','archer']};
+for(const h of G.heroes) if(!h.role){ const [r,o]=CLS2[h.cls]||CLS2.warrior; h.race=r; h.role=o; delete h.cls; }
+while(G.gear.length<5) G.gear.push(newGear());
+const save=()=>store.set('forge.save',G);
+const FORGE_COST=5, RECRUIT_COST=4, PARTY_MAX=4;
+/* 길드 시설 — 원정이 끝나도 남는 유일한 것. Mewgenics 가 NPC 강화로 하는 일이다.
+   사람은 상처로 떠나고 무기도 벼리다 잃지만, 시설만은 계속 쌓인다. */
+const FACILITIES={
+  quarters:{ic:'🏚️', nm:'숙소',   base:12, desc:'길드 정원 +2', eff:l=>`정원 ${6+l*2}명`},
+  smithy:  {ic:'⚒️', nm:'대장간', base:14, desc:'벼리기 값 −2 · 솜씨 계승률 +8%p', eff:l=>`값 ${Math.max(1,FORGE_COST-l*2)} · 계승 ${55+l*8}%`},
+  herbs:   {ic:'🌿', nm:'약방',   base:10, desc:'원정 시작 체력 +3 · 2단계부터 상처 확률 절반', eff:l=>`체력 +${l*3}${l>=2?' · 상처 절반':''}`},
+  ranges:  {ic:'🎯', nm:'훈련장', base:16, desc:'원정을 마치면 경험 +1', eff:l=>`경험 +${1+l}`},
+};
+const FAC_MAX=2;
+const fac=k=>(G.fac&&G.fac[k])||0;
+const facCost=k=>FACILITIES[k].base*(fac(k)+1);
+const MAX_HEROES=()=>6+fac('quarters')*2;
+/* 상처 — 사람을 갉아먹는 건 달력이 아니라 그 밤이다.
+   체력 1/4 이하로 살아남으면 몸에 자국이 남는다. 셋이면 더는 원정에 못 나간다.
+   즉 오래 버틴 자가 아니라 '어떻게 썼느냐'가 길드를 바꾼다. */
+const SCAR_OUT=3;                                  // 상처 셋이면 퇴역
+const SCARS={
+  hand:  {ic:'🤚', nm:'굳은 손',   desc:'공격 −1'},
+  eye:   {ic:'👁️', nm:'한쪽 눈',   desc:'사거리 −1'},
+  rib:   {ic:'🦴', nm:'갈라진 갈비', desc:'체력 −3'},
+  limp:  {ic:'🦯', nm:'절뚝임',    desc:'둔덕에 못 오른다 — 평지에만 선다'},
+  ring:  {ic:'👂', nm:'귀울림',    desc:'밤에 사거리 −1 더'},
+  shake: {ic:'🫨', nm:'떨리는 손',  desc:'속사가 듣지 않는다'},
+  grim:  {ic:'🩸', nm:'독한 상처',  desc:'겁을 잃었다 — 겁쟁이 무효, 받는 피해 −1'},
+  tough: {ic:'🪢', nm:'살아남은 자', desc:'체력 +2'},
+};
+const scarsOf=h=>h.scars||[];
+const hasScar=(h,k)=>scarsOf(h).includes(k);
+
+function renderHall(){
+  if(G.heroes.length<2){ const h=randomHero(G.heroes); G.heroes.push(h); flash(`떠돌이 ${fullName(h)} ${h.name}이(가) 문을 두드렸다.`); save(); }
+  $('hGold').textContent=G.gold; $('hTier').textContent=G.tier; $('hFame').textContent=G.fame; $('hCount').textContent=G.heroes.length;
+  G.party=G.party.filter(id=>G.heroes.some(h=>h.id===id&&!h.wounded)).slice(0,PARTY_MAX);
+  $('btnForge').disabled = !(G.gear.length>=2 && G.gold>=Math.max(1,FORGE_COST-fac('smithy')*2));
+  $('btnRecruit').disabled = !(G.gold>=RECRUIT_COST && G.heroes.length<MAX_HEROES());
+  $('btnSiege').disabled = !G.party.length;
+  $('btnSiege').textContent = G.party.length?`원정 출발 · ${G.party.length}명`:'원정 나갈 사람을 고르세요';
+  $('rosterCount').textContent=`길드원 ${G.heroes.length}/${MAX_HEROES()} · 창고 무기 ${gearFree().length} · 원정 ${G.party.length}/${PARTY_MAX}`;
+  const r=$('roster'); r.innerHTML='';
+  for(const h of G.heroes){ const s=stats(h,G.sup);
+    const g=gearOf(h), nSc=scarsOf(h).length, fit=fitsGear(h,g), inParty=G.party.includes(h.id);
+    const d=document.createElement('article'); d.className='hero'+(h.wounded?' rest':''); d.dataset.scar=nSc;
+    d.innerHTML=`<i class="stripe"></i>
+      <div class="port"><img src="${sprite(sprKey(h),false)}" alt="${fullName(h)}"></div>
+      <div class="body">
+        <div class="idline"><b class="nm">${h.name}</b><span class="cls"><b>${raceOf(h).nm}</b> ${roleOf(h).nm}</span>
+          ${h.wounded?'<span class="rest">부상 · 이번 원정 휴식</span>':''}<span class="lv">Lv${h.lv}</span></div>
+        <div class="sttiles">
+          <div class="hp"><i>체력</i><b>${s.hp}</b></div>
+          <div class="at"><i>공격</i><b>${s.atk}</b></div>
+          <div class="rg"><i>사거리</i><b>${s.rng}</b></div>
+        </div>
+        <div class="kit">
+          ${(h.temper||[]).map(t=>`<span class="tp" title="${TEMPER[t].desc}">${TEMPER[t].ic} ${TEMPER[t].nm}</span>`).join('')}
+          ${g?`<span class="gr" title="${g.traits.map(t=>CRAFT[t].nm+' — '+CRAFT[t].desc).join(' / ')}">${GEAR_KINDS[g.kind].ic} ${g.nm}
+              <small>+${fit?g.atk:Math.floor(g.atk/2)}</small> ${g.traits.map(t=>CRAFT[t].ic).join('')}${fit?'':'<b class="warn">적성 아님</b>'}</span>`
+             :'<span class="none">🤲 맨손</span>'}
+        </div>
+        ${nSc?`<div class="scars"><span class="dots">${'●'.repeat(nSc)}${'○'.repeat(SCAR_OUT-nSc)}</span>
+          ${scarsOf(h).map(k=>`<span title="${SCARS[k].desc}">${SCARS[k].ic} ${SCARS[k].nm}</span>`).join(' · ')}</div>`:''}
+      </div>
+      <div class="acts"><button class="pk${inParty?' on':''}">${inParty?'원정 ✓':'원정'}</button><button>무기</button><button class="drop" title="내보내기">✕</button></div>`;
+    const [bp,bm,bx]=d.querySelectorAll('button');
+    bp.onclick=()=>{ if(h.wounded) return flash(`${h.name}은(는) 부상이라 이번엔 못 나갑니다.`);
+      if(inParty) G.party=G.party.filter(x=>x!==h.id);
+      else { if(G.party.length>=PARTY_MAX) return flash(`원정은 ${PARTY_MAX}명까지입니다.`); G.party.push(h.id); }
+      save(); renderHall(); };
+    bm.onclick=()=>openArmory('equip', h);
+    bx.onclick=()=>{ if(G.heroes.length<=2) return flash('둘은 남겨야 해요.'); if(confirm(`${h.name}을(를) 내보낼까요?`)){ G.heroes=G.heroes.filter(x=>x!==h); save(); renderHall(); } };
+    r.appendChild(d); }
+  $('grave').innerHTML = G.grave.length ? '🪦 '+G.grave.slice(-8).map(g=>`${g.name}(${g.cls}, ${g.tier}차 ${g.wave}번째)`).join(' · ') : '';
+}
+function flash(t){ $('hallHint').textContent=t; }
+// 길드가 한 번이라도 가졌던 형질 중, 지금 아무도 안 가진 것 — 전승을 못 하면 기술이 끊긴다
+// 솜씨는 창고에 무기가 남아 있는 한 안 끊긴다 — 벼리다 잃어야 끊긴다
+function lostTraits(){
+  G.seenTraits=G.seenTraits||[];
+  for(const g of G.gear) for(const t of g.traits) if(!G.seenTraits.includes(t)) G.seenTraits.push(t);
+  const held=new Set(G.gear.flatMap(g=>g.traits));
+  return G.seenTraits.filter(t=>!held.has(t));
+}
+$('btnRecruit').onclick=()=>{ G.gold-=RECRUIT_COST; const h=randomHero(G.heroes); G.heroes.push(h); save(); flash(`${fullName(h)} ${h.name} 합류.`); renderHall(); };
+/* ═══ 창고 — 무기를 장착하거나, 둘을 골라 벼린다 ═══ */
+let armMode='forge', armHero=null, armPick=[];
+function openArmory(mode, hero){
+  armMode=mode; armHero=hero||null; armPick=[];
+  $('armT').textContent = mode==='forge' ? '🔨 대장간' : `🎒 ${hero.name}에게 줄 무기`;
+  renderArmory(); $('ovArm').hidden=false;
+}
+function gearCard(g, on, note){
+  const t=g.traits.map(k=>`${CRAFT[k].ic} ${CRAFT[k].nm}`).join(' · ');
+  return `<button class="relic" data-g="${g.id}" style="${on?'box-shadow:0 0 0 2px var(--accent) inset;':''}width:100%">
+    <span class="ic">${GEAR_KINDS[g.kind].ic}</span><span><b>${g.nm}</b>
+    <small>${GEAR_KINDS[g.kind].nm} · 공격 +${g.atk}${g.gen?` · ${g.gen}대`:''}${g.forged?` · ${g.forged.join(' × ')}`:''}</small>
+    <small>${t||'솜씨 없음'}</small>${note?`<small style="color:var(--bad)">${note}</small>`:''}</span></button>`;
+}
+function renderArmory(){
+  const box=$('armBox');
+  if(armMode==='equip'){
+    const cur=gearOf(armHero);
+    const list=gearFree().concat(cur?[cur]:[]);
+    $('armSub').innerHTML=`<b>${raceOf(armHero).nm}</b>의 손에 맞는 무기는 <b>${raceOf(armHero).fit.map(k=>GEAR_KINDS[k].nm).join('·')}</b>입니다 — 안 맞으면 공격 보너스가 절반입니다. 적성은 <b>종족</b>이 정합니다.`;
+    box.innerHTML=(cur?`<button class="relic" data-g="none" style="width:100%"><span class="ic">✋</span><span><b>맨손으로</b><small>무기를 창고에 돌려놓습니다</small></span></button>`:'')
+      +(list.length?list.map(g=>gearCard(g, cur&&g.id===cur.id, fitsGear(armHero,g)?'':'적성 안 맞음 — 공격 절반')).join(''):'<p class="stat">창고가 비었습니다.</p>');
+    box.querySelectorAll('button[data-g]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.g;
+      if(id==='none'){ armHero.gear=null; }
+      else { const other=G.heroes.find(h=>h!==armHero&&h.gear===id); if(other) other.gear=armHero.gear||null; armHero.gear=id; }
+      save(); $('ovArm').hidden=true; renderHall(); });
+    $('btnForgeGo').hidden=true;
+  } else {
+    $('armSub').innerHTML=`무기 <b>둘</b>을 골라 하나로 벼립니다. 솜씨는 각각 <b>55%</b>로 이어지고 <b>20%</b>로 새 솜씨가 깃듭니다 — 공격은 더 센 쪽 +1. <b>고른 둘은 사라집니다.</b>`;
+    box.innerHTML = G.gear.length<2 ? '<p class="stat">벼리려면 무기가 둘 이상 있어야 합니다.</p>'
+      : G.gear.map(g=>{ const owner=G.heroes.find(h=>h.gear===g.id);
+          return gearCard(g, armPick.includes(g.id), owner?`${owner.name}이(가) 들고 있음`:''); }).join('');
+    box.querySelectorAll('button[data-g]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.g;
+      if(armPick.includes(id)) armPick=armPick.filter(x=>x!==id);
+      else { if(armPick.length>=2) armPick.shift(); armPick.push(id); }
+      renderArmory(); });
+    $('btnForgeGo').hidden=false;
+    $('btnForgeGo').disabled = !(armPick.length===2 && G.gold>=Math.max(1,FORGE_COST-fac('smithy')*2));
+    $('btnForgeGo').textContent=`벼리기 🪙${Math.max(1,FORGE_COST-fac('smithy')*2)}`;
+  }
+}
+$('btnForge').onclick=()=>openArmory('forge');
+$('btnArmClose').onclick=()=>{ $('ovArm').hidden=true; renderHall(); };
+$('btnForgeGo').onclick=()=>{
+  const [a,b]=armPick.map(id=>G.gear.find(g=>g.id===id)); if(!a||!b) return;
+  const fc=Math.max(1,FORGE_COST-fac('smithy')*2);
+  const held=G.heroes.filter(h=>h.gear===a.id||h.gear===b.id);
+  if(held.length && !confirm(`${held.map(h=>h.name).join(', ')}이(가) 들고 있는 무기입니다. 벼리면 맨손이 됩니다. 계속할까요?`)) return;
+  const ng=forge(a,b); G.gold-=fc;
+  for(const h of G.heroes) if(h.gear===a.id||h.gear===b.id) h.gear=null;
+  G.gear=G.gear.filter(g=>g!==a&&g!==b); G.gear.push(ng);
+  armPick=[]; save();
+  $('armSub').innerHTML=`<b>${a.nm}</b> × <b>${b.nm}</b> →`;
+  $('armBox').innerHTML=gearCard(ng,true)+`<p class="stat">${ng.gen}대 무기입니다. 누구에게 줄지는 길드원 카드의 '무기'에서 정하세요.</p>`;
+  $('btnForgeGo').hidden=true; renderHall();
+};
+
+/* ═══════════════════ 원정 ═══════════════════ */
+let B=null;  // {tier, wave, gold, units:[], gate, gateMax, wall:{r:'ok'|'rubble'}, phase, sel, dead:[]}
+const has=k=>B&&B.sup.includes(k);
+const inb=(r,c)=>r>=0&&r<R&&c>=0&&c<C;
+const DIR4=[[1,0],[-1,0],[0,1],[0,-1]];
+const isRock=(r,c)=>c<=1;                       // 바위 그늘 — 받는 피해 −1
+const isHill=(r,c)=>c===DEPLOY_C&&(r===1||r===3); // 둔덕 — 사거리 +1, 절뚝이면 못 오른다
+const elev=(r,c)=>isHill(r,c);
+const isNight=()=>B.fight>=FIGHTS;               // 마지막 판은 밤이다 — 엘프가 빛나는 자리
+
+function path(from,to,u){
+  const prev=new Map(), key=(r,c)=>r*C+c, q=[[from.r,from.c]]; prev.set(key(from.r,from.c),-1);
+  while(q.length){ const [r,c]=q.shift(); if(r===to.r&&c===to.c){ const out=[]; let k=key(r,c); while(k!==-1){ out.push([(k/C)|0,k%C]); k=prev.get(k); } return out.reverse(); }
+    for(const [dr,dc] of DIR4){ const rr=r+dr,cc=c+dc; if(!inb(rr,cc)) continue; const kk=key(rr,cc); if(prev.has(kk)) continue;
+      if(!(rr===to.r&&cc===to.c)&&(u&&at(rr,cc))) continue;   // 다른 유닛이 선 칸은 돌아간다
+      prev.set(kk,key(r,c)); q.push([rr,cc]); } }
+  return null;
+}
+const at=(r,c,kind)=>B.units.find(u=>u.hp>0&&u.r===r&&u.c===c&&(!kind||u.kind===kind)&&(u.kind==='h'||u.delay<=0));
+const alive=k=>B.units.filter(u=>u.hp>0&&u.kind===k&&(k==='h'||u.delay<=0));
+const dist=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
+const uScar=(u,k)=>(u.scars||[]).includes(k);
+// 둔덕에 선 사람은 앞 대각선도 닿는다 — 높은 자리의 값
+const reach=(u,e)=>elev(u.r,u.c)&&Math.abs(u.r-e.r)<=1&&Math.abs(u.c-e.c)<=1&&e.c>u.c ? 1 : dist(u,e);
+// 사거리 — 둔덕 위 궁수 +1, 밤엔 −1(엘프·야간 시야·횃불 제외), 귀울림이면 한 번 더
+function heroRange(u){ let rng=u.rng+(elev(u.r,u.c)&&u.cls==='archer'?1:0);
+  if(isNight()&&u.cls!=='warrior'&&u.race!=='elf'&&!u.traits.includes('night')&&!has('torches')) rng-=1;
+  if(isNight()&&uScar(u,'ring')) rng-=1;
+  return Math.max(1,rng); }
+function heroCells(u){ if(u.r<0) return []; const rng=heroRange(u), out=[]; for(let r=0;r<R;r++) for(let c=0;c<C;c++){ if(r===u.r&&c===u.c) continue; if(reach(u,{r,c})<=rng) out.push([r,c]); } return out; }
+function enemyCells(e){ if(e.delay>0||e.atk<=0) return []; const out=[]; for(let r=0;r<R;r++) for(let c=0;c<C;c++){ if(r===e.r&&c===e.c) continue; if(dist(e,{r,c})<=e.rng) out.push([r,c]); } return out; }
+
+/* ═══════════════════ 원정 — 짧은 전투 셋. Mewgenics 의 원정 자리다. ═══════════════════ */
+$('btnSiege').onclick=()=>{
+  const party=G.heroes.filter(h=>G.party.includes(h.id));
+  if(!party.length) return flash('원정 나갈 사람을 고르세요.');
+  B={tier:G.tier, fight:0, gold:0, sup:[], dead:[], phase:'build', sel:null, units:[], party};
+  $('scHall').hidden=true; $('scSiege').hidden=false; buildFort(); nextFight();
+};
+function nextFight(){
+  B.fight++; B.phase='build'; B.sel=null; B.events=[];
+  B.units=B.units.filter(u=>u.kind==='h');
+  if(B.fight===1){
+    for(const h of B.party){ const s=stats(h,B.sup);
+      B.units.push({kind:'h', ref:h, name:h.name, ic:ROLES[h.role].ic, cls:h.role, race:h.race,
+        hp:s.hp+(fac('herbs')*3), maxhp:s.hp+(fac('herbs')*3), atk:s.atk, rng:s.rng, repair:s.repair, area:s.area,
+        traits:heroTraits(h), scars:scarsOf(h), r:-1, c:-1, st:{}}); }
+  } else { for(const u of B.units){ u.st={}; u.r=-1; u.c=-1; } }   // 전투 사이 자리는 다시 잡는다
+  // 적 — 전투가 깊어질수록, 원정 차수가 오를수록 는다
+  const f=B.fight, t=B.tier; let budget=4+f*4+(t-1)*5; const list=[];
+  const keys=['wolf','orc'].concat(f>=2?['shaman','rider']:[], f>=3?['thrower']:[]);
+  if(f===FIGHTS&&t>=2){ list.push('troll'); budget-=7; }
+  let guard=0; while(budget>0&&guard++<40){ const k=pick(keys); if(FOES[k].cost<=budget){ list.push(k); budget-=FOES[k].cost; } else { list.push('wolf'); budget-=1; } }
+  const hpUp=Math.floor((f-1)/2)+(t-1)*2;
+  list.forEach((k,i)=>{ const e=FOES[k];
+    B.units.push({kind:'e', key:k, ic:e.ic, name:e.nm, hp:e.hp+hpUp, maxhp:e.hp+hpUp, atk:e.atk+Math.floor((t-1)/2),
+      spd:e.spd, rng:e.rng||1, burn:!!e.burn, boss:!!e.boss, r:SPAWNS[i%SPAWNS.length], c:C-1, delay:Math.floor(i/3), slow:0, hold:0, st:{}}); });
+  render();
+  $('tip').innerHTML = f===1 ? '일행을 <b>왼쪽 세 열</b>에 세우세요 — 바위는 받는 피해 −1, 둔덕은 사거리 +1.' : '';
+  log(f===FIGHTS?'🌙 해가 졌다. 마지막 싸움이다.':`${f}번째 싸움`);
+}
+function onCell(r,c){
+  const anyU=at(r,c);
+  if(B.phase!=='build'){ B.inspect = (anyU&&B.inspect!==anyU) ? anyU : null; render(); return; }
+  const h=at(r,c,'h');
+  if(anyU&&anyU.kind==='e'){ B.inspect = B.inspect===anyU?null:anyU; render(); return; }
+  if(B.sel==null){ if(h){ B.sel=h; render(); } return; }
+  if(c>DEPLOY_C||at(r,c)) { if(h===B.sel){ B.sel=null; render(); } return; }
+  if(isHill(r,c)&&(B.sel.scars||[]).includes('limp')){ $('tip').innerHTML=`${B.sel.name}은(는) <b>절뚝여서</b> 둔덕에 못 오릅니다 — 바위 쪽에 세우세요.`; return; }
+  B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; $('tip').textContent=''; render();
+}
+function startWave(){ if(B.phase!=='build') return; B.inspect=null;
+  if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; }
+  B.phase='run'; B.sel=null; B.tick=0; render(); tickLoop(); }
+function tickLoop(){
+  if(!B||B.phase!=='run') return; B.tick++;
+  const en=alive('e'), hs=alive('h').filter(u=>u.r>=0);
+  const hurt=(t,n,src)=>{ n=Math.max(0,n);
+    if(t.kind==='h'&&t.traits.includes('shield')) n=Math.max(0,n-1);
+    if(t.kind==='h'&&isRock(t.r,t.c)) n=Math.max(0,n-1);      // 바위 그늘
+    if(t.kind==='h'&&uScar(t,'grim')) n=Math.max(0,n-1);
+    t.hp-=n; fx(t,'-'+n);
+    if(t.hp<=0&&t.kind==='h'){ B.dead.push(t.ref); G.grave.push({name:t.name, cls:fullName(t.ref), tier:B.tier, wave:B.fight}); G.heroes=G.heroes.filter(h=>h!==t.ref); } };
+  const effAtk=u=>{ let a=u.atk; if(u.traits.includes('coward')&&!uScar(u,'grim')&&u.hp*2<=u.maxhp) a-=2; if(u.traits.includes('proud')&&hs.some(o=>o!==u&&dist(o,u)===1)) a-=1; return Math.max(1,a); };
+  const hit=(u,t)=>{ let n=effAtk(u); if(has('oil')&&elev(u.r,u.c)&&dist(u,t)<=1) n+=1;
+    FX_FROM={r:u.r,c:u.c};
+    if(reach(u,t)<=1){ qfx({type:'lunge', r:u.r, c:u.c, tr:t.r, tc:t.c}); FX_DELAY=160; } else { qfx({type:'shot', r:u.r, c:u.c, tr:t.r, tc:t.c, side:'h'}); FX_DELAY=(elev(u.r,u.c)||elev(t.r,t.c))?300:200; }
+    hurt(t,n,u); FX_DELAY=0; FX_FROM=null; ev(`${u.ic} ${u.name} → ${t.ic} ${t.name} <b>${n}</b>${t.hp<=0?' 처치':''}`,'h');
+    if(u.traits.includes('venom')) t.st.venom=3; if(u.traits.includes('fire')) t.st.fire=2; if(u.area) t.slow=1; };
+  // 1) 일행
+  for(const u of hs){
+    if(u.st.venom||u.st.fire){ if(!u.traits.includes('ale')){ if(u.st.venom){ hurt(u,1); u.st.venom--; } if(u.st.fire){ hurt(u,2); u.st.fire--; } } else u.st={}; if(u.hp<=0) continue; }
+    const rng=heroRange(u);
+    const times=(u.traits.includes('rapid')&&!uScar(u,'shake'))?2:1;
+    for(let k=0;k<times;k++){
+      const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(!ts.length) break;
+      if(u.area){ qfx({type:'cast', r:u.r, c:u.c, rng}); FX_FROM={r:u.r,c:u.c}; FX_DELAY=180;
+        for(const e of ts){ hurt(e,effAtk(u),u); e.slow=1; } FX_DELAY=0; FX_FROM=null;
+        ev(`${u.ic} ${u.name} 냉기 — ${ts.length}명 <b>${effAtk(u)}</b>`,'h'); }
+      else { ts.sort((a,b)=>(b.rng>1?1:0)-(a.rng>1?1:0)||reach(u,a)-reach(u,b)||a.hp-b.hp); hit(u,ts[0]); }   // 원거리 적을 먼저
+    }
+    // 고치는 손은 어디서나 쓸모가 있다 — 드워프는 옆 사람을 손봐 준다
+    if(u.repair){ const w=hs.filter(o=>o!==u&&o.hp>0&&o.hp<o.maxhp&&dist(u,o)===1).sort((a,b)=>a.hp-b.hp)[0];
+      if(w){ const n=Math.min(u.repair, w.maxhp-w.hp); w.hp+=n; qfx({type:'dmg', r:w.r, c:w.c, txt:'+'+n, cls:'heal'}); ev(`${u.name} → ${w.name} 응급 처치 <b>${n}</b>`,'h'); } }
+  }
+  render(); flushFX();
+  setTimeout(()=>{ if(!B||B.phase!=='run') return;
+  // 2) 적
+  for(const e of B.units){
+    if(e.kind!=='e'||e.hp<=0) continue;
+    if(e.delay>0){ e.delay--; continue; }
+    if(e.st.venom){ hurt(e,1); e.st.venom--; } if(e.st.fire){ hurt(e,2); e.st.fire--; } if(e.hp<=0) continue;
+    if(e.hold>0){ e.hold--; continue; } if(e.slow>0){ e.slow--; continue; }
+    let steps=e.spd>=1?e.spd:(B.tick%2===0?1:0);
+    while(steps-->0&&e.hp>0){
+      const near=hs.filter(h=>h.hp>0&&dist(e,h)<=e.rng);
+      if(e.atk>0&&near.length){ near.sort((a,b)=>a.hp-b.hp); const t=near[0]; FX_FROM={r:e.r,c:e.c};
+        if(dist(e,t)<=1){ qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); FX_DELAY=160; }
+        else { qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); FX_DELAY=(elev(e.r,e.c)||elev(t.r,t.c))?300:200; }
+        hurt(t,e.atk,e); if(e.burn) t.st.fire=2; FX_DELAY=0; FX_FROM=null;
+        ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${e.atk}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
+      // 목표: 도발한 사람 > 기수는 가장 약한 사람 > 그 외엔 가장 가까운 사람
+      let target=null;
+      const taunter=hs.find(h=>h.hp>0&&h.traits.includes('taunt')&&dist(e,h)<=3); if(taunter) target=taunter;
+      if(!target&&e.key==='rider'){ target=hs.slice().sort((a,b)=>a.hp-b.hp)[0]; }
+      let p=target?path(e,target,e):null;
+      if(!p){ let best=null; for(const h of hs){ const q=path(e,h,e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
+      if(!p||p.length<2) break;
+      const [nr,nc]=p[1]; if(at(nr,nc)) break;   // 막히면 대기
+      e.r=nr; e.c=nc;
+    }
+  }
+  render(); flushFX();
+  { const sig=JSON.stringify(B.units.filter(u=>u.hp>0).map(u=>[u.r,u.c,u.hp,u.hold,u.delay]));
+    if(sig===B.lastSig){ B.same=(B.same||0)+1; } else { B.same=0; B.lastSig=sig; }
+    if(B.same===40){ console.warn('STALL-DUMP '+JSON.stringify({fight:B.fight, en:B.units.filter(u=>u.kind==='e'&&u.hp>0).map(e=>({k:e.key,r:e.r,c:e.c,hold:e.hold,delay:e.delay,slow:e.slow})), hs:hs.map(h=>[h.name,h.r,h.c,h.hp])})); } }
+  if(!alive('h').length) return setTimeout(()=>endRun(false), 600);
+  if(!B.units.some(u=>u.kind==='e'&&u.hp>0)) return setTimeout(endFight, 500);
+  setTimeout(tickLoop, 320);
+  }, 280);
+}
+function endFight(){
+  const gain=3+B.fight*2+B.tier; B.gold+=gain; G.gold+=gain;
+  if(B.fight>=FIGHTS) return endRun(true);
+  supplyPick(gain);
+}
+function supplyPick(gain){
+  const pool=Object.keys(SUPPLY).filter(k=>!B.sup.includes(k)); const three=[]; while(three.length<3&&pool.length) three.push(pool.splice(rnd(pool.length),1)[0]);
+  if(!three.length) return nextFight();
+  B.phase='supply';
+  $('supTitle').textContent=`${B.fight}번째 싸움을 이겼다`; $('supSub').textContent=`🪙${gain} 획득. 챙길 것을 하나 고르세요 — 원정이 끝나면 사라집니다.`;
+  $('supList').innerHTML=''; for(const k of three){ const b=document.createElement('button'); b.className='relic'; b.innerHTML=`<span class="ic">${SUPPLY[k].ic}</span><span><b>${SUPPLY[k].nm}</b><small>${SUPPLY[k].desc}</small></span>`;
+    b.onclick=()=>{ B.sup.push(k); if(k==='arrows') for(const u of alive('h')) if(u.cls==='archer') u.atk+=1;
+      if(k==='medic') for(const u of alive('h')) u.hp=Math.min(u.maxhp,u.hp+4);
+      $('ovSupply').hidden=true; nextFight(); }; $('supList').appendChild(b); }
+  $('ovSupply').hidden=false;
+}
+function endRun(win){
+  B.phase='over';
+  const survivors=alive('h');
+  for(const u of survivors) if(u.hp*2<=u.maxhp) u.ref.wounded=true;
+  for(const h of G.heroes) if(h.wounded&&!survivors.some(u=>u.ref===h)) h.wounded=false;
+  // 성한 몸으로 돌아온 사람은 없다 — 1/4 이하로 살아남으면 자국이 남는다
+  const scarred=[];
+  for(const u of survivors){ if(u.hp*4>u.maxhp) continue; if(fac('herbs')>=2&&Math.random()<.5) continue; const h=u.ref;
+    const pool=Object.keys(SCARS).filter(k=>!scarsOf(h).includes(k)); if(!pool.length) continue;
+    const k=pick(pool); (h.scars=h.scars||[]).push(k); scarred.push({h,k}); }
+  const retiring=G.heroes.filter(h=>scarsOf(h).length>=SCAR_OUT);
+  for(const h of retiring) G.retired.push({name:h.name, cls:fullName(h), scars:scarsOf(h).slice(), tier:B.tier});
+  G.heroes=G.heroes.filter(h=>scarsOf(h).length<SCAR_OUT);
+  if(win){ G.tier++; G.fame+=B.tier*10; for(const u of survivors){ const h=u.ref; h.xp+=1+fac('ranges'); while(h.xp>=3){ h.xp-=3; h.lv++; if(Math.random()<.5) h.bonus.hp+=2; else h.bonus.atk+=1; } } }
+  const lost=lostTraits();
+  save();
+  $('endTitle').textContent = win ? '🌅 돌아왔다' : '🏴 아무도 돌아오지 못했다';
+  $('endBody').innerHTML = (win ? `세 번의 싸움을 넘겼습니다. 명성 +${B.tier*10}, 다음은 ${G.tier}차 원정.` : `일행이 모두 쓰러졌습니다. 얻은 🪙${B.gold}은 남습니다.`)
+    + (B.dead.length?`<br><span class="dead">전사: ${B.dead.map(h=>h.name).join(', ')}</span>`:'')
+    + (survivors.some(u=>u.ref&&u.ref.wounded)?`<br>부상: ${survivors.filter(u=>u.ref.wounded).map(u=>u.name).join(', ')} — 다음 원정은 쉽니다`:'')
+    + (scarred.length?`<br>🩹 상처: ${scarred.map(x=>`${x.h.name} — ${SCARS[x.k].ic} ${SCARS[x.k].nm}`).join(', ')}`:'')
+    + (retiring.length?`<br>🕯️ 길을 떠남: ${retiring.map(h=>`${h.name}(상처 ${scarsOf(h).length})`).join(', ')} — 무기는 창고에 남습니다`:'')
+    + (lost.length?`<br><span class="dead">끊긴 솜씨: ${lost.map(t=>CRAFT[t]?CRAFT[t].ic+' '+CRAFT[t].nm:t).join(', ')}</span>`:'');
+  $('ovEnd').hidden=false;
+}
+
+$('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
+$('btnStart').onclick=startWave;
+$('btnRange').onclick=()=>{ const order=['sel','all','off']; B.rangeMode=order[(order.indexOf(B.rangeMode||'sel')+1)%3]; $('btnRange').textContent='사거리: '+({sel:'선택',all:'전체',off:'끔'})[B.rangeMode]; if(B.rangeMode!=='all'&&!B.inspect&&!B.sel) $('tip').textContent=''; render(); };
+
+function buildFort(){ const f=$('fort'); f.innerHTML=''; for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/C)|0,i%C); f.appendChild(d); } }
+const cellEl=(r,c)=>$('fort').children[r*C+c];
+function fx(u,txt,heal){ if(u.r<0) return; const n=parseInt(txt.replace(/[^0-9]/g,''))||0; qfx({type:'dmg', r:u.r, c:u.c, txt, cls:(heal?'heal':(u.kind==='h'?'onh':'one'))+(n>=4?' crit':'')}); if(!heal){ qfx({type:'hit', r:u.r, c:u.c, side:u.kind, n}); if(u.hp<=0) qfx({type:'die', r:u.r, c:u.c, key:u.kind==='h'?u.cls:u.key, side:u.kind}); } }
+function boom(r,c){ qfx({type:'boom', r, c}); }
+function gateFx(n){ qfx({type:'gate', n}); }
+function log(t){ ev(t,'sys'); }
+// 전투 로그 — 최근 세 줄. 아군 금색, 적 붉은색.
+function ev(t,side){ if(!B) return; B.events=B.events||[]; if(t) B.events.push({t,side}); B.events=B.events.slice(-3); $('log').innerHTML=B.events.map(e=>`<div class="${e.side}">${e.t}</div>`).join(''); }
+/* 연출 큐 — render() 가 칸을 다시 그리므로, 그린 뒤에 얹는다. 안 그러면 뜨자마자 지워진다. */
+let FXQ=[], FX_DELAY=0, FX_FROM=null;
+const qfx=o=>FXQ.push(Object.assign({delay:FX_DELAY, from:FX_FROM}, o));
+function cellCenter(r,c){ const f=$('fort'), e=cellEl(r,c); const a=f.getBoundingClientRect(), b=e.getBoundingClientRect(); return {x:b.left-a.left+b.width/2, y:b.top-a.top+b.height/2, w:b.width}; }
+// 공격 포즈 — 0.3초 동안 공격 프레임으로 바꿨다가 돌아온다
+function pose(img){ const k=img.dataset.k; if(!k) return; img.src=sprite(k,true); setTimeout(()=>{ if(img.isConnected) img.src=sprite(k,false); }, 300); }
+function flushFX(){
+  const q=FXQ; FXQ=[]; const fort=$('fort');
+  const later=q.filter(o=>o.delay>0), now=q.filter(o=>!o.delay);
+  for(const o of later) setTimeout(()=>applyFX(o,fort), o.delay);
+  for(const o of now) applyFX(o,fort);
+}
+function applyFX(o,fort){ {
+    if(o.type==='lunge'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(!u) return; const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=Math.max(1,Math.hypot(t.x-s.x,t.y-s.y));
+      const en=cellEl(o.r,o.c).classList.contains('e'); u.style.setProperty('--sx', en?-1:1); u.style.setProperty('--ty', cellEl(o.r,o.c).classList.contains('w')?'-6px':'0px');
+      u.style.setProperty('--dx',((t.x-s.x)/d*s.w*.45)+'px'); u.style.setProperty('--dy',((t.y-s.y)/d*s.w*.45)+'px'); u.classList.remove('lunge'); void u.offsetWidth; u.classList.add('lunge'); pose(u); }
+    else if(o.type==='shot'){ const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=document.createElement('div'); d.className='shot '+o.side; d.style.left=s.x+'px'; d.style.top=s.y+'px'; fort.appendChild(d);
+      const u=cellEl(o.r,o.c).querySelector('.u'); if(u) pose(u);
+      const high=elev(o.r,o.c)||elev(o.tr,o.tc), dx=t.x-s.x, dy=t.y-s.y;   // 둔덕이 끼면 포물선 — 높이가 보인다
+      const ang=Math.atan2(dy,dx)*180/Math.PI, rot=a=>`rotate(${a}deg)`;
+      const frames = high ? [{transform:`translate(0,-6px) ${rot(ang-35)}`},{transform:`translate(${dx/2}px,${dy/2-18}px) ${rot(ang)}`},{transform:`translate(${dx}px,${dy}px) ${rot(ang+35)}`}] : [{transform:`translate(0,0) ${rot(ang)}`},{transform:`translate(${dx}px,${dy}px) ${rot(ang)}`}];
+      d.animate(frames,{duration:high?300:200,easing:'ease-in'}).onfinish=()=>d.remove(); }
+    else if(o.type==='cast'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(u){ u.classList.add('cast'); pose(u); } const s=cellCenter(o.r,o.c); const d=document.createElement('div'); d.className='ring'; const sz=s.w*(o.rng*2+1); d.style.cssText=`left:${s.x-sz/2}px; top:${s.y-sz/2}px; width:${sz}px; height:${sz}px`; fort.appendChild(d); setTimeout(()=>d.remove(),500); }
+    else if(o.type==='hit'){ const e=cellEl(o.r,o.c); e.classList.remove('hit-h','hit-e'); void e.offsetWidth; e.classList.add(o.side==='h'?'hit-h':'hit-e');
+      const u=e.querySelector('.u'); const s=cellCenter(o.r,o.c);
+      if(u){ // 넉백 — 때린 쪽 반대로 밀린다
+        let kx=o.side==='h'?-1:1, ky=0; if(o.from){ const f=cellCenter(o.from.r,o.from.c); const d=Math.max(1,Math.hypot(s.x-f.x,s.y-f.y)); kx=(s.x-f.x)/d; ky=(s.y-f.y)/d; }
+        const amp=s.w*(o.n>=4?.4:.25); u.style.setProperty('--kx',(kx*amp)+'px'); u.style.setProperty('--ky',(ky*amp)+'px'); u.style.setProperty('--rot',(kx>=0?8:-8)+'deg');
+        u.style.setProperty('--sx', e.classList.contains('e')?-1:1); u.style.setProperty('--ty', e.classList.contains('w')?'-6px':'0px');
+        u.classList.remove('knock'); void u.offsetWidth; u.classList.add('knock'); }
+      // 불꽃 — 맞은 자리에서 여섯 가닥
+      const sp=document.createElement('div'); sp.className='spark '+(o.side==='h'?'e':'h'); sp.style.left=s.x+'px'; sp.style.top=s.y+'px';
+      for(let i=0;i<6;i++){ const b=document.createElement('i'); b.style.setProperty('--a',(i*60+Math.random()*30)+'deg'); sp.appendChild(b); } fort.appendChild(sp); setTimeout(()=>sp.remove(),350);
+      if(o.n>=4){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } }
+    else if(o.type==='die'){ const e=cellEl(o.r,o.c); if(!e) return; const g=document.createElement('img'); g.className='u die'+(o.key==='troll'?' big':''); g.src=sprite(o.key,false); g.style.setProperty('--sx', o.side==='e'?-1:1);
+      if(e.querySelector('.u')) return;   // 아직 살아 있는 그림이 있으면(같은 칸에 다른 유닛) 생략
+      e.appendChild(g); setTimeout(()=>g.remove(),600); if(o.side==='h'){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } }
+    else if(o.type==='dmg'){ const e=cellEl(o.r,o.c); const sp=document.createElement('span'); sp.className='dmg '+(o.cls||''); sp.textContent=o.txt; e.appendChild(sp); setTimeout(()=>sp.remove(),800); }
+    else if(o.type==='gate'){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); if(o.n>=4){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } const sp=document.createElement('span'); sp.className='gatecrack'; sp.textContent='💢'; e.appendChild(sp); setTimeout(()=>sp.remove(),500); const d=document.createElement('span'); d.className='dmg onh'; d.textContent='-'+o.n; e.appendChild(d); setTimeout(()=>d.remove(),800); }
+    else if(o.type==='boom'){ const e=cellEl(o.r,o.c); e.classList.remove('boom'); void e.offsetWidth; e.classList.add('boom'); fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); }
+  }
+}
+function waveBarHTML(){
+  const g={}; for(const u of B.units){ if(u.kind!=='e'||u.hp<=0) continue; const k=u.r+'|'+u.key; g[k]=g[k]||{u,n:0}; g[k].n++; }
+  const rowName=r=>r===0?'위':r===6?'아래':'가운데';
+  return `<b>이번 적</b>`+Object.values(g).sort((a,b)=>a.u.r-b.u.r).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated;transform:scaleX(-1)" alt="${u.name}">${n>1?'×'+n:''}<i>${rowName(u.r)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':'🌤️ 낮'}</span>`;
+}
+function render(){
+  $('bTier').textContent=B.tier; $('bWave').textContent=B.fight; $('bGold').textContent=B.gold; $('wavebar').innerHTML=waveBarHTML();
+  $('fort').classList.toggle('night', isNight());
+  const pathCells=new Set();
+  if(B.phase==='build'){ for(const r of [...new Set(B.units.filter(u=>u.kind==='e').map(u=>u.r))]){ let best=null; for(let rr=0;rr<R;rr++){ const q=path({r,c:C-1},{r:rr,c:0},null); if(q&&(!best||q.length<best.length)) best=q; } if(best) for(const [a,b] of best) pathCells.add(a*C+b); } }
+  for(let r=0;r<R;r++) for(let c=0;c<C;c++){
+    const e=cellEl(r,c); e.className='c'; e.innerHTML='';
+    if(isHill(r,c)){ e.classList.add('w'); e.innerHTML='<span class="terr">⛰️</span>'; } else if(isRock(r,c)){ e.classList.add('k'); e.innerHTML='<span class="terr">🪨</span>'; } else { e.classList.add('f'); if(c===C-1) e.classList.add('spawn'); }
+    if(pathCells.has(r*C+c)) e.classList.add('path');
+    const u=at(r,c);
+    if(u){ e.classList.add(u.kind); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
+    else if(B.phase==='build'&&B.sel){ if(c>DEPLOY_C) e.classList.add('no'); else e.classList.add('ok'); }
+  }
+  // 사거리 — 모드: sel(고른 하나) / all(전부) / off
+  const mode=B.rangeMode||'sel';
+  const paint=(cells,cls)=>{ for(const [r,c] of cells){ const e=cellEl(r,c); if(!e.querySelector('.'+cls)){ const i=document.createElement('i'); i.className=cls; e.appendChild(i); } } };
+  const focus = B.inspect || B.sel;
+  if(mode!=='off'){
+    if(mode==='all'){ for(const u of alive('h')) paint(heroCells(u),'rh'); for(const e of alive('e')) paint(enemyCells(e),'re'); }
+    if(focus){ if(focus.kind==='h'){ paint(heroCells(focus),'rh'); for(const [r,c] of heroCells(focus)) cellEl(r,c).querySelector('.rh').classList.add('me'); } else paint(enemyCells(focus),'re'); }
+  }
+  if(focus&&focus.r>=0){ cellEl(focus.r,focus.c).classList.add('inspect'); }
+  if(focus){ $('tip').innerHTML = focus.kind==='h'
+      ? `${focus.ic} <b>${focus.name}</b> 사거리 ${heroRange(focus)}${isNight()&&focus.cls!=='warrior'&&focus.race!=='elf'&&!focus.traits.includes('night')&&!has('torches')?' <small>(밤 −1)</small>':''}${elev(focus.r,focus.c)?' · 둔덕 위: 앞 대각선도 닿는다':''}`
+      : `${focus.ic} <b>${focus.name}</b> ❤${focus.hp}/${focus.maxhp} ⚔${focus.atk} — ${FOES[focus.key].desc}`; }
+  else if(mode==='all') $('tip').innerHTML='<span style="color:#F7C46B">금색</span> = 아군이 때릴 수 있는 칸 · <span style="color:#FF8B7B">빗금</span> = 적이 다음 틱에 때릴 수 있는 칸';
+  // 대기 중인 길드원 칩
+  const bench=$('bench'); bench.innerHTML='';
+  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<img src="${sprite((u.race||'human')+':'+u.cls,false)}" alt="">${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; } B.sel=B.sel===u?null:u; B.inspect=null; render(); }; bench.appendChild(d); }
+  $('btnStart').disabled=B.phase!=='build'; $('btnStart').textContent=B.phase==='run'?'진행 중…':`${B.fight}번째 싸움 시작`;
+}
+
+/* ═══════════════════ 연결 ═══════════════════ */
+const classHTML=()=>
+  Object.entries(RACES).map(([k,r])=>`<span><img src="${sprite(k+':warrior',false)}" style="width:26px;height:26px;image-rendering:pixelated" alt=""></span><span><b>${r.nm}</b> ${r.desc}</span>`).join('')
+  +Object.entries(ROLES).map(([k,c])=>`<span style="font-size:20px">${c.ic}</span><span><b>${c.nm}</b> ❤${c.hp} ⚔${c.atk} 🎯${c.rng} · ${c.desc}</span>`).join('');
+$('classList').innerHTML=$('classList2').innerHTML=classHTML();
+$('scarList').innerHTML=Object.values(SCARS).map(x=>`<span>${x.ic}</span><span><b>${x.nm}</b> ${x.desc}</span>`).join('');
+$('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
+$('meta').textContent = G.fame?`명성 ${G.fame} · 묘비 ${G.grave.length}`:'';
+$('btnGo').onclick=()=>{ $('ovStart').hidden=true; renderHall(); };
+function lineHTML(){
+  let out='<p class="stat" style="margin-top:2px">무기는 안 늙습니다 — 주인이 떠나도 창고로 돌아옵니다.</p>';
+  const gs=G.gear.slice().sort((a,b)=>b.gen-a.gen);
+  out+='<div class="relics">'+gs.map(g=>{ const o=G.heroes.find(h=>h.gear===g.id);
+    return `<div class="relic"><span class="ic">${GEAR_KINDS[g.kind].ic}</span><span><b>${g.nm}</b>${g.gen?` <small>${g.gen}대</small>`:''}
+      <small>${g.traits.map(t=>CRAFT[t].ic+' '+CRAFT[t].nm).join(' · ')||'솜씨 없음'}</small>
+      <small style="color:var(--mute)">${g.forged?`${g.forged.join(' × ')} 를 벼려 만듦`:'처음부터 있던 것'}${o?` · 지금은 ${o.name}이(가) 듦`:' · 창고'}</small></span></div>`;
+  }).join('')+'</div>';
+  out+=`<p class="stat" style="margin-top:8px">🧍 지금 길드</p><div class="owned">`
+    +G.heroes.map(h=>`<span>${raceOf(h).ic}${roleOf(h).ic} <b>${h.name}</b> ${(h.temper||[]).map(t=>TEMPER[t].ic).join('')}${scarsOf(h).map(k=>SCARS[k].ic).join('')}</span>`).join('')+'</div>';
+  if(G.retired.length) out+=`<p class="stat" style="margin-top:8px">🕯️ 길을 떠난 사람들</p><div class="owned">`
+    +G.retired.slice(-8).map(r=>`<span>${r.name} <small style="color:var(--mute)">${(r.scars||[]).map(k=>SCARS[k].ic).join('')} ${r.tier?r.tier+'차에서':''}</small></span>`).join('')+'</div>';
+  if(G.grave.length) out+=`<p class="stat" style="margin-top:8px">🪦 전사</p><div class="owned">`
+    +G.grave.slice(-8).map(g=>`<span>${g.name} <small style="color:var(--mute)">${g.tier}차 ${g.wave}웨이브</small></span>`).join('')+'</div>';
+  const lost=lostTraits();
+  out+=`<p class="stat" style="margin-top:8px">길드가 가진 솜씨</p><div class="owned">`
+    +[...new Set(G.gear.flatMap(g=>g.traits))].map(t=>`<span>${CRAFT[t].ic} ${CRAFT[t].nm}</span>`).join('')
+    +lost.map(t=>`<span style="opacity:.45; text-decoration:line-through">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')+'</div>';
+  if(lost.length) out+=`<p class="stat" style="margin-top:6px">줄 그어진 솜씨는 <b>길드에서 끊겼습니다</b> — 벼릴 때 55% 를 넘기지 못한 것들입니다.</p>`;
+  return out;
+}
+function renderFac(){
+  $('facBox').innerHTML=Object.entries(FACILITIES).map(([k,f])=>{
+    const l=fac(k), max=l>=FAC_MAX, cost=facCost(k), can=!max&&G.gold>=cost;
+    return `<button class="relic" data-f="${k}" ${max||!can?'disabled':''} style="width:100%">
+      <span class="ic">${f.ic}</span><span style="flex:1"><b>${f.nm} <span class="pip">${'●'.repeat(l)}${'○'.repeat(FAC_MAX-l)}</span></b>
+      <small>${f.desc}</small>
+      <small>지금 — ${f.eff(l)}</small></span><span class="cost">${max?'최대':`🪙${cost}`}</span></button>`;
+  }).join('');
+  $('facBox').querySelectorAll('button[data-f]').forEach(b=>b.onclick=()=>{
+    const k=b.dataset.f, cost=facCost(k);
+    if(fac(k)>=FAC_MAX||G.gold<cost) return;
+    G.gold-=cost; G.fac[k]=fac(k)+1; save(); renderFac(); renderHall(); });
+}
+$('btnFac').onclick=()=>{ renderFac(); $('ovFac').hidden=false; };
+$('btnFacClose').onclick=()=>$('ovFac').hidden=true;
+$('btnLine').onclick=()=>{ $('lineBox').innerHTML=lineHTML(); $('ovLine').hidden=false; };
+$('btnLineClose').onclick=()=>$('ovLine').hidden=true;
+$('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+renderHall();
+</script>
+</body>
+</html>
