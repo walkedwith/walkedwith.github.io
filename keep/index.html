@@ -136,8 +136,9 @@
   <div class="top"><span><small>금화</small>🪙 <span id="hGold">0</span></span><span><small>다음 공성</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span>/8</span></div>
   <div class="actions">
     <button class="pri" id="btnSiege">공성 준비</button>
-    <button id="btnTrain">전승 🪙6</button>
+    <button id="btnForge">대장간 🪙5</button>
     <button id="btnRecruit">모집 🪙4</button>
+    <button id="btnLine">계보</button>
     <button id="btnHelp">규칙</button>
   </div>
   <div class="hint" id="hallHint"></div>
@@ -166,8 +167,14 @@
   <button class="pri" id="btnGo">길드 홀로</button>
 </div></div>
 
-<div class="ov" id="ovTrain" hidden><div class="sheet">
-  <h2>📜 전승</h2><p id="trainSub"></p><div class="litter" id="trainBox"></div><button class="pri" id="btnTrainOk">길드에 들이기</button>
+<div class="ov" id="ovLine" hidden><div class="sheet">
+  <h2>📜 계보</h2><div id="lineBox"></div><button id="btnLineClose">닫기</button>
+</div></div>
+
+<div class="ov" id="ovArm" hidden><div class="sheet">
+  <h2 id="armT">🔨 대장간</h2><p id="armSub"></p>
+  <div id="armBox"></div>
+  <div class="actions"><button class="pri" id="btnForgeGo">벼리기 🪙5</button><button id="btnArmClose">닫기</button></div>
 </div></div>
 
 <div class="ov" id="ovSupply" hidden><div class="sheet"><h2 id="supTitle"></h2><p id="supSub"></p><div class="relics" id="supList"></div></div></div>
@@ -179,8 +186,9 @@
   <div class="rules" id="classList2"></div>
   <p><b>공성</b>: 빌드 단계에 길드원을 성벽(회색)·안뜰(갈색)·들판에 세웁니다. 매 틱 아군이 먼저 때리고 적이 움직입니다. 적은 <b>성문</b>을 두드려 부수고 안뜰로 들어옵니다 — 안뜰 왼쪽 끝에 닿으면 성채 위험 −1. 세 번이면 함락.</p>
   <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 웨이브 중에도 됩니다.</p>
+  <p><b>나이</b>: 공성이 끝날 때마다 세 살을 먹습니다. <b>38세</b>부터 공격이, <b>44세</b>부터 체력이 줄고, <b>50세</b>에 은퇴합니다. 모집한 사람은 22~34세로 오지만 전승 신입은 <b>17~20세</b>라 훨씬 오래 갑니다 — 그게 🪙6을 더 내는 이유입니다. 가진 사람이 다 떠나면 <b>그 기술은 길드에서 끊깁니다</b>.</p>
   <p><b>높이</b>: 성벽 위 아군은 지상 근접 적이 못 때립니다. 궁수 오크(사거리 2)·성벽에 오른 사다리병·폭약병(그 칸 3 피해)만 위협이고, 무너진 성벽 칸은 지상입니다.</p>
-  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>전승</b>: 스승 둘을 고르면 신입이 각 스승의 형질을 55%씩 잇고, 20%는 제멋대로 배웁니다.</p>
+  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>무기</b>: 솜씨는 사람이 아니라 무기에 깃듭니다. 주인이 죽거나 은퇴해도 무기는 창고로 돌아옵니다. <b>대장간</b>에서 무기 둘을 벼려 하나로 만들면 솜씨가 각각 55%로 이어지고 20%로 새것이 깃듭니다. 사람이 타고나는 <b>기질</b>은 그 사람과 함께 사라집니다.</p>
   <div class="rules" id="traitList"></div>
   <button id="btnHelpClose">닫기</button>
 </div></div>
@@ -195,23 +203,36 @@ const CLASSES={
   dwarf:  {ic:'⛏️', nm:'드워프', hp:14, atk:2, rng:1, desc:'옆 칸을 치고, 옆 성문·성벽을 수리한다'},
   elf:    {ic:'🧝', nm:'엘프',   hp:9,  atk:2, rng:2, desc:'2칸을 쏘고, 밤에도 잘 본다'},
 };
-const TRAITS={
-  shield: {ic:'🛡️', nm:'방패술',   desc:'받는 피해 −1'},
-  might:  {ic:'💪', nm:'힘',       desc:'공격 +2'},
+/* 타고난 것은 사람에, 익힌 것은 물건에.
+   사람은 늙어 떠나지만 무기는 안 늙는다 — 그래서 솜씨가 세대를 넘는다. */
+const TEMPER={   // 기질 — 사람이 타고난다. 죽으면 같이 사라진다.
   taunt:  {ic:'📣', nm:'도발',     desc:'3칸 안의 적이 성문 대신 이쪽으로 온다'},
-  hawk:   {ic:'🦅', nm:'매의 눈',  desc:'사거리 +1'},
-  rapid:  {ic:'⚡', nm:'속사',     desc:'한 틱에 두 번 공격'},
-  venom:  {ic:'🐍', nm:'독화살',   desc:'맞은 적 중독(3턴, 턴마다 1)'},
-  stone:  {ic:'🪨', nm:'돌가죽',   desc:'체력 +6'},
-  mason:  {ic:'🧱', nm:'석공',     desc:'수리 +2'},
   night:  {ic:'🌙', nm:'야간 시야', desc:'밤 사거리 감소 없음'},
-  fire:   {ic:'🔥', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
+  ale:    {ic:'🍺', nm:'술 내성',  desc:'중독·화상 무효'},
+  stone:  {ic:'🪨', nm:'돌가죽',   desc:'체력 +6'},
   frail:  {ic:'🩹', nm:'허약',     desc:'체력 −3'},
   proud:  {ic:'😤', nm:'오만',     desc:'인접 아군이 있으면 공격 −1'},
   coward: {ic:'😰', nm:'겁쟁이',   desc:'체력 절반 이하면 공격 −2'},
-  ale:    {ic:'🍺', nm:'술 내성',  desc:'중독·화상 무효'},
-  mentor: {ic:'📖', nm:'스승 기질', desc:'전승 때 이 형질 외 하나를 확정으로 물려준다'},
 };
+const CRAFT={    // 솜씨 — 무기에 깃든다. 주인이 죽어도 창고로 돌아온다.
+  shield: {ic:'🛡️', nm:'방패술',   desc:'받는 피해 −1'},
+  might:  {ic:'💪', nm:'힘',       desc:'공격 +2'},
+  hawk:   {ic:'🦅', nm:'매의 눈',  desc:'사거리 +1'},
+  rapid:  {ic:'⚡', nm:'속사',     desc:'한 틱에 두 번 공격'},
+  venom:  {ic:'🐍', nm:'독니',     desc:'맞은 적 중독(3턴, 턴마다 1)'},
+  mason:  {ic:'🧱', nm:'석공',     desc:'수리 +2'},
+  fire:   {ic:'🔥', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
+};
+const TRAITS={...TEMPER, ...CRAFT};          // 조회용 — 전투부는 합쳐진 배열만 본다
+/* 무기 — 종류가 적성을 정하고, 솜씨가 값을 정한다. */
+const GEAR_KINDS={
+  sword: {nm:'검',     ic:'🗡️', fit:['warrior','dwarf']},
+  bow:   {nm:'활',     ic:'🏹', fit:['archer','elf']},
+  hammer:{nm:'망치',   ic:'🔨', fit:['dwarf','warrior']},
+  staff: {nm:'지팡이', ic:'🪄', fit:['mage']},
+};
+const G_ADJ=['낡은','북쪽','서리','참나무','돌','여울','새벽','바람','검은','오래된','잿빛','첫'];
+const G_NOUN={sword:['검','칼날'], bow:['활','시위'], hammer:['망치','쇠메'], staff:['지팡이','막대']};
 const FOES={
   wolf:   {ic:'🐺', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1, desc:'한 틱에 두 칸. 근접 — 성벽 위는 못 때린다'},
   orc:    {ic:'⚔️', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2, desc:'근접. 성문을 두드린다'},
@@ -285,63 +306,152 @@ const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
 const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
 let uid=1;
 const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+'Ⅱ'; };
-function randomHero(hs){ const cls=pick(Object.keys(CLASSES)); const t=[pick(Object.keys(TRAITS))]; if(Math.random()<.4){ const u=pick(Object.keys(TRAITS)); if(!t.includes(u)) t.push(u); }
-  return {id:uid++, name:newName(hs), cls, traits:t, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}}; }
-function inherit(a,b,hs){
-  const n=1+(Math.random()<.5?1:0), kids=[];
-  for(let i=0;i<n;i++){
-    let traits=[];
-    for(const m of [a,b]){ if(m.traits.includes('mentor')){ const sure=m.traits.filter(t=>t!=='mentor'); if(sure.length) traits.push(pick(sure)); } }
-    for(const t of a.traits.concat(b.traits)) if(Math.random()<.55&&!traits.includes(t)) traits.push(t);
-    if(Math.random()<.2){ const pool=Object.keys(TRAITS).filter(t=>!traits.includes(t)); traits.push(pick(pool)); }
-    while(traits.length>4) traits.splice(rnd(traits.length),1);
-    if(!traits.length) traits.push(pick(a.traits.concat(b.traits)));
-    const cls=Math.random()<.5?a.cls:b.cls;
-    kids.push({id:uid++, name:'', cls, traits, lv:1, xp:0, gen:Math.max(a.gen,b.gen)+1, wounded:false, bonus:{hp:Math.floor((a.bonus.hp+b.bonus.hp)/2), atk:Math.floor((a.bonus.atk+b.bonus.atk)/2)}, mentors:[a.name,b.name]});
-  }
-  const all=hs.slice(); for(const k of kids){ k.name=newName(all); all.push(k); } return kids;
+function randomHero(hs){ const cls=pick(Object.keys(CLASSES)); const t=[pick(Object.keys(TEMPER))];
+  return {id:uid++, name:newName(hs), cls, temper:t, gear:null, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}, age:22+rnd(13)}; }
+function newGear(){
+  const kind=pick(Object.keys(GEAR_KINDS));
+  const tr=[pick(Object.keys(CRAFT))];
+  if(Math.random()<.35){ const u=pick(Object.keys(CRAFT)); if(!tr.includes(u)) tr.push(u); }
+  return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr, atk:2+rnd(2), gen:0, forged:null};   // 2~3 — 적성 절반이 0이 되지 않게
 }
+// 벼리기 — 무기 둘을 하나로. 솜씨는 55%씩 잇고 20%로 새것이 깃든다. 나르실이 안두릴이 되듯.
+function forge(a,b){
+  let tr=[];
+  for(const t of a.traits.concat(b.traits)) if(Math.random()<.55&&!tr.includes(t)) tr.push(t);
+  if(Math.random()<.2){ const pool=Object.keys(CRAFT).filter(t=>!tr.includes(t)); if(pool.length) tr.push(pick(pool)); }
+  if(!tr.length) tr.push(pick(a.traits.concat(b.traits)));
+  while(tr.length>3) tr.splice(rnd(tr.length),1);
+  const kind=Math.random()<.5?a.kind:b.kind;
+  return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr,
+    atk:Math.max(a.atk,b.atk)+1, gen:Math.max(a.gen,b.gen)+1, forged:[a.nm,b.nm]};
+}
+const gearOf=h=>h.gear?G.gear.find(g=>g.id===h.gear)||null:null;
+const gearFree=()=>G.gear.filter(g=>!G.heroes.some(h=>h.gear===g.id));
+const heroTraits=h=>(h.temper||[]).concat(gearOf(h)?gearOf(h).traits:[]);
 function stats(h, sup){
-  const T=h.traits, has=t=>T.includes(t), c=CLASSES[h.cls]; sup=sup||[];
-  return { hp:c.hp+(has('stone')?6:0)-(has('frail')?3:0)+h.bonus.hp, atk:c.atk+(has('might')?2:0)+h.bonus.atk+((h.cls==='archer'||h.cls==='elf')&&sup.includes('arrows')?1:0),
+  const T=heroTraits(h), has=t=>T.includes(t), c=CLASSES[h.cls]; sup=sup||[];
+  const band=ageBand(h.age??30), wane=(band==='wane'||band==='old')?1:0, old=band==='old'?3:0;
+  const g=gearOf(h);
+  // 적성이 맞는 무기라야 값을 다 받는다 — 마법사가 망치를 들면 절반만
+  const gAtk=g ? (GEAR_KINDS[g.kind].fit.includes(h.cls) ? g.atk : Math.floor(g.atk/2)) : 0;
+  return { hp:c.hp+(has('stone')?6:0)-(has('frail')?3:0)+h.bonus.hp-old,
+    atk:c.atk+(has('might')?2:0)+h.bonus.atk+gAtk-wane+((h.cls==='archer'||h.cls==='elf')&&sup.includes('arrows')?1:0),
     rng:c.rng+(has('hawk')?1:0), repair:h.cls==='dwarf'?3+(has('mason')?2:0):0, area:h.cls==='mage' };
 }
 let G=store.get('keep.save',null);
-if(!G){ G={gold:8, fame:0, tier:1, heroes:[], grave:[], mentors:[], sup:[]}; for(let i=0;i<4;i++) G.heroes.push(randomHero(G.heroes)); }
+if(!G){ G={gold:8, fame:0, tier:1, heroes:[], grave:[], mentors:[], sup:[], retired:[], gear:[]}; for(let i=0;i<4;i++) G.heroes.push(randomHero(G.heroes)); }
 uid=Math.max(uid, ...G.heroes.map(h=>h.id+1));
+for(const h of G.heroes) if(h.age===undefined) h.age=26+rnd(10);   // 나이 없던 세이브
+if(!G.retired) G.retired=[];
+if(!G.gear) G.gear=[];
+// 형질이 사람에 붙어 있던 옛 세이브 → 기질만 남기고 나머지 솜씨는 무기로 옮긴다
+for(const h of G.heroes){
+  if(h.temper===undefined){
+    const old=h.traits||[];
+    h.temper=old.filter(t=>TEMPER[t]).slice(0,1);
+    if(!h.temper.length) h.temper=[pick(Object.keys(TEMPER))];
+    const craft=old.filter(t=>CRAFT[t]);
+    const kind=(h.cls==='archer'||h.cls==='elf')?'bow':h.cls==='mage'?'staff':h.cls==='dwarf'?'hammer':'sword';
+    const g={id:'g'+(uid++), kind, nm:'물려받은 '+pick(G_NOUN[kind]), traits:craft.length?craft:[pick(Object.keys(CRAFT))], atk:1, gen:0, forged:null};
+    G.gear.push(g); h.gear=g.id; delete h.traits;
+  }
+  if(h.gear===undefined) h.gear=null;
+}
+while(G.gear.length<5) G.gear.push(newGear());
 const save=()=>store.set('keep.save',G);
-const TRAIN_COST=6, RECRUIT_COST=4, MAX_HEROES=8;
+const FORGE_COST=5, RECRUIT_COST=4, MAX_HEROES=8;
+/* 나이 — 전승에 시한을 준다. 모집은 싸고 즉시 전력이지만 금방 늙고,
+   전승 신입은 비싸고 약하게 시작하지만 오래 간다. 그게 유일한 전승 동기다. */
+const AGE_PER_SIEGE=3, AGE_PRIME=38, AGE_OLD=44, AGE_RETIRE=50;
+const ageBand=a=> a>=AGE_RETIRE?'retire' : a>=AGE_OLD?'old' : a>=AGE_PRIME?'wane' : 'prime';
+const AGE_NM={prime:'', wane:'노쇠', old:'노장', retire:'은퇴'};
 
 function renderHall(){
   if(G.heroes.length<2){ const h=randomHero(G.heroes); G.heroes.push(h); flash(`떠돌이 ${CLASSES[h.cls].nm} ${h.name}이(가) 문을 두드렸다.`); save(); }
   $('hGold').textContent=G.gold; $('hTier').textContent=G.tier; $('hFame').textContent=G.fame; $('hCount').textContent=G.heroes.length;
   G.mentors=G.mentors.filter(id=>G.heroes.some(h=>h.id===id));
   const ms=G.mentors.map(id=>G.heroes.find(h=>h.id===id));
-  $('btnTrain').disabled = !(ms.length===2 && ms.every(h=>!h.wounded) && G.gold>=TRAIN_COST && G.heroes.length<MAX_HEROES);
+  $('btnForge').disabled = !(G.gear.length>=2 && G.gold>=FORGE_COST);
   $('btnRecruit').disabled = !(G.gold>=RECRUIT_COST && G.heroes.length<MAX_HEROES);
   $('btnSiege').disabled = !G.heroes.some(h=>!h.wounded);
   const r=$('roster'); r.innerHTML='';
   for(const h of G.heroes){ const s=stats(h,G.sup), isM=G.mentors.includes(h.id);
     const d=document.createElement('div'); d.className='hero'+(isM?' mentor':'')+(h.wounded?' wounded':'');
-    d.innerHTML=`<span class="${h.wounded?'tag':'lv'}">${h.wounded?'부상 · 휴식':'Lv'+h.lv+(h.gen?' · '+h.gen+'대':'')}</span><div class="hd"><span class="ic"><img src="${sprite(h.cls,false)}" style="width:30px;height:30px" alt=""></span><div><div class="nm">${h.name}</div><div class="sub">${CLASSES[h.cls].nm}${h.mentors?' · '+h.mentors.join('·')+'의 제자':''}</div></div></div>
-      <div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}${s.repair?' 🧱'+s.repair:''}</div><div class="tr">${h.traits.map(t=>`<span title="${TRAITS[t].nm}: ${TRAITS[t].desc}">${TRAITS[t].ic}</span>`).join('')}</div>
-      <div class="bt"><button class="${isM?'on':''}">스승</button><button title="내보내기">✕</button></div>`;
+    d.innerHTML=`<span class="${h.wounded?'tag':'lv'}">${h.wounded?'부상 · 휴식':'Lv'+h.lv+(h.gen?' · '+h.gen+'대':'')}</span><div class="hd"><span class="ic"><img src="${sprite(h.cls,false)}" style="width:30px;height:30px" alt=""></span><div><div class="nm">${h.name}</div><div class="sub">${CLASSES[h.cls].nm} · ${h.age}세${AGE_NM[ageBand(h.age)]?' <b style="color:var(--bad)">'+AGE_NM[ageBand(h.age)]+'</b>':''}</div></div></div>
+      <div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}${s.repair?' 🧱'+s.repair:''}</div><div class="tr">${(h.temper||[]).map(t=>`<span title="${TEMPER[t].nm}: ${TEMPER[t].desc}">${TEMPER[t].ic}</span>`).join('')}${(()=>{const g=gearOf(h); return g?`<span style="background:#EFE3C8" title="${g.traits.map(t=>CRAFT[t].nm).join(', ')}">${GEAR_KINDS[g.kind].ic} ${g.nm} ${g.traits.map(t=>CRAFT[t].ic).join('')}${GEAR_KINDS[g.kind].fit.includes(h.cls)?'':' <b style="color:var(--bad)">✋</b>'}</span>`:'<span style="opacity:.5">맨손</span>';})()}</div>
+      <div class="bt"><button>무기</button><button title="내보내기">✕</button></div>`;
     const [bm,bx]=d.querySelectorAll('button');
-    bm.onclick=()=>{ if(h.wounded) return flash('부상자는 가르칠 수 없어요.'); if(isM) G.mentors=G.mentors.filter(x=>x!==h.id); else { if(G.mentors.length>=2) G.mentors.shift(); G.mentors.push(h.id); } save(); renderHall(); };
+    bm.onclick=()=>openArmory('equip', h);
     bx.onclick=()=>{ if(G.heroes.length<=2) return flash('둘은 남겨야 해요.'); if(confirm(`${h.name}을(를) 내보낼까요?`)){ G.heroes=G.heroes.filter(x=>x!==h); save(); renderHall(); } };
     r.appendChild(d); }
   $('grave').innerHTML = G.grave.length ? '🪦 '+G.grave.slice(-8).map(g=>`${g.name}(${g.cls}, ${g.tier}차 ${g.wave}웨이브)`).join(' · ') : '';
 }
 function flash(t){ $('hallHint').textContent=t; }
+// 길드가 한 번이라도 가졌던 형질 중, 지금 아무도 안 가진 것 — 전승을 못 하면 기술이 끊긴다
+// 솜씨는 창고에 무기가 남아 있는 한 안 끊긴다 — 벼리다 잃어야 끊긴다
+function lostTraits(){
+  G.seenTraits=G.seenTraits||[];
+  for(const g of G.gear) for(const t of g.traits) if(!G.seenTraits.includes(t)) G.seenTraits.push(t);
+  const held=new Set(G.gear.flatMap(g=>g.traits));
+  return G.seenTraits.filter(t=>!held.has(t));
+}
 $('btnRecruit').onclick=()=>{ G.gold-=RECRUIT_COST; const h=randomHero(G.heroes); G.heroes.push(h); save(); flash(`${CLASSES[h.cls].nm} ${h.name} 합류.`); renderHall(); };
-$('btnTrain').onclick=()=>{
-  const [a,b]=G.mentors.map(id=>G.heroes.find(h=>h.id===id)); const kids=inherit(a,b,G.heroes); G.gold-=TRAIN_COST; G.mentors=[];
-  const kept=kids.slice(0, MAX_HEROES-G.heroes.length);
-  $('trainSub').textContent=`${a.name}와 ${b.name}가 가르쳤다 — 신입 ${kept.length}명`;
-  $('trainBox').innerHTML=kept.map(k=>{ const s=stats(k,G.sup); return `<div class="hero"><div class="hd"><span class="ic">${CLASSES[k.cls].ic}</span><div><div class="nm">${k.name}</div><div class="sub">${CLASSES[k.cls].nm} · ${k.gen}대</div></div></div><div class="st">❤${s.hp} ⚔${s.atk} 🎯${s.rng}</div><div class="tr">${k.traits.map(t=>`<span title="${TRAITS[t].nm}">${TRAITS[t].ic}</span>`).join('')}</div></div>`; }).join('');
-  G.heroes.push(...kept); save(); $('ovTrain').hidden=false; renderHall();
+/* ═══ 창고 — 무기를 장착하거나, 둘을 골라 벼린다 ═══ */
+let armMode='forge', armHero=null, armPick=[];
+function openArmory(mode, hero){
+  armMode=mode; armHero=hero||null; armPick=[];
+  $('armT').textContent = mode==='forge' ? '🔨 대장간' : `🎒 ${hero.name}에게 줄 무기`;
+  renderArmory(); $('ovArm').hidden=false;
+}
+function gearCard(g, on, note){
+  const t=g.traits.map(k=>`${CRAFT[k].ic} ${CRAFT[k].nm}`).join(' · ');
+  return `<button class="relic" data-g="${g.id}" style="${on?'box-shadow:0 0 0 2px var(--accent) inset;':''}width:100%">
+    <span class="ic">${GEAR_KINDS[g.kind].ic}</span><span><b>${g.nm}</b>
+    <small>${GEAR_KINDS[g.kind].nm} · 공격 +${g.atk}${g.gen?` · ${g.gen}대`:''}${g.forged?` · ${g.forged.join(' × ')}`:''}</small>
+    <small>${t||'솜씨 없음'}</small>${note?`<small style="color:var(--bad)">${note}</small>`:''}</span></button>`;
+}
+function renderArmory(){
+  const box=$('armBox');
+  if(armMode==='equip'){
+    const cur=gearOf(armHero);
+    const list=gearFree().concat(cur?[cur]:[]);
+    $('armSub').innerHTML=`${CLASSES[armHero.cls].nm}에게 맞는 무기는 <b>${Object.entries(GEAR_KINDS).filter(([k,v])=>v.fit.includes(armHero.cls)).map(([k,v])=>v.nm).join('·')}</b>입니다 — 안 맞으면 공격 보너스가 절반입니다.`;
+    box.innerHTML=(cur?`<button class="relic" data-g="none" style="width:100%"><span class="ic">✋</span><span><b>맨손으로</b><small>무기를 창고에 돌려놓습니다</small></span></button>`:'')
+      +(list.length?list.map(g=>gearCard(g, cur&&g.id===cur.id, GEAR_KINDS[g.kind].fit.includes(armHero.cls)?'':'적성 안 맞음 — 공격 절반')).join(''):'<p class="stat">창고가 비었습니다.</p>');
+    box.querySelectorAll('button[data-g]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.g;
+      if(id==='none'){ armHero.gear=null; }
+      else { const other=G.heroes.find(h=>h!==armHero&&h.gear===id); if(other) other.gear=armHero.gear||null; armHero.gear=id; }
+      save(); $('ovArm').hidden=true; renderHall(); });
+    $('btnForgeGo').hidden=true;
+  } else {
+    $('armSub').innerHTML=`무기 <b>둘</b>을 골라 하나로 벼립니다. 솜씨는 각각 <b>55%</b>로 이어지고 <b>20%</b>로 새 솜씨가 깃듭니다 — 공격은 더 센 쪽 +1. <b>고른 둘은 사라집니다.</b>`;
+    box.innerHTML = G.gear.length<2 ? '<p class="stat">벼리려면 무기가 둘 이상 있어야 합니다.</p>'
+      : G.gear.map(g=>{ const owner=G.heroes.find(h=>h.gear===g.id);
+          return gearCard(g, armPick.includes(g.id), owner?`${owner.name}이(가) 들고 있음`:''); }).join('');
+    box.querySelectorAll('button[data-g]').forEach(b=>b.onclick=()=>{
+      const id=b.dataset.g;
+      if(armPick.includes(id)) armPick=armPick.filter(x=>x!==id);
+      else { if(armPick.length>=2) armPick.shift(); armPick.push(id); }
+      renderArmory(); });
+    $('btnForgeGo').hidden=false;
+    $('btnForgeGo').disabled = !(armPick.length===2 && G.gold>=FORGE_COST);
+  }
+}
+$('btnForge').onclick=()=>openArmory('forge');
+$('btnArmClose').onclick=()=>{ $('ovArm').hidden=true; renderHall(); };
+$('btnForgeGo').onclick=()=>{
+  const [a,b]=armPick.map(id=>G.gear.find(g=>g.id===id)); if(!a||!b) return;
+  const held=G.heroes.filter(h=>h.gear===a.id||h.gear===b.id);
+  if(held.length && !confirm(`${held.map(h=>h.name).join(', ')}이(가) 들고 있는 무기입니다. 벼리면 맨손이 됩니다. 계속할까요?`)) return;
+  const ng=forge(a,b); G.gold-=FORGE_COST;
+  for(const h of G.heroes) if(h.gear===a.id||h.gear===b.id) h.gear=null;
+  G.gear=G.gear.filter(g=>g!==a&&g!==b); G.gear.push(ng);
+  armPick=[]; save();
+  $('armSub').innerHTML=`<b>${a.nm}</b> × <b>${b.nm}</b> →`;
+  $('armBox').innerHTML=gearCard(ng,true)+`<p class="stat">${ng.gen}대 무기입니다. 누구에게 줄지는 길드원 카드의 '무기'에서 정하세요.</p>`;
+  $('btnForgeGo').hidden=true; renderHall();
 };
-$('btnTrainOk').onclick=()=>$('ovTrain').hidden=true;
 
 /* ═══════════════════ 공성 ═══════════════════ */
 let B=null;  // {tier, wave, gold, units:[], gate, gateMax, wall:{r:'ok'|'rubble'}, phase, sel, dead:[]}
@@ -357,7 +467,7 @@ const isNight=()=>B.wave>=4&&B.wave<=9;
 $('btnSiege').onclick=()=>{
   B={tier:G.tier, wave:0, gold:0, sup:G.sup.slice(), gateMax:20+(G.sup.includes('gatewood')?10:0), wall:{}, danger:3, dead:[], phase:'build', sel:null, units:[]};
   B.gate=B.gateMax;
-  for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, ic:CLASSES[h.cls].ic, cls:h.cls, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:h.traits, r:-1, c:-1, st:{}}); }
+  for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, ic:CLASSES[h.cls].ic, cls:h.cls, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:heroTraits(h), r:-1, c:-1, st:{}}); }
   $('scHall').hidden=true; $('scSiege').hidden=false; buildFort(); nextWave();
 };
 function nextWave(){
@@ -496,10 +606,19 @@ function endSiege(win){
   // 쉬던 사람은 회복
   for(const h of G.heroes) if(h.wounded&&!survivors.some(u=>u.ref===h)) h.wounded=false;
   if(win){ G.tier++; G.fame+=B.tier*10; }
+  // 한 해가 간다 — 나간 사람도 쉰 사람도 같이 늙는다
+  for(const h of G.heroes) h.age=(h.age??30)+AGE_PER_SIEGE;
+  const retiring=G.heroes.filter(h=>h.age>=AGE_RETIRE);
+  for(const h of retiring){ G.retired.push({name:h.name, cls:CLASSES[h.cls].nm, age:h.age, gen:h.gen,
+    traits:heroTraits(h), mentors:h.mentors||null, taught:G.heroes.some(x=>(x.mentors||[]).includes(h.name))}); }
+  G.heroes=G.heroes.filter(h=>h.age<AGE_RETIRE);
+  const lost=lostTraits();
   save();
   $('endTitle').textContent = win ? '🌅 동이 텄다 — 기병이 온다!' : '🏴 북쪽 문이 뚫렸다';
   $('endBody').innerHTML = (win ? `열 번의 밤을 버텼습니다. 명성 +${(B.tier)*10}, 다음 공성은 ${G.tier}차.` : `${B.wave}웨이브에서 성채가 무너졌습니다. 얻은 🪙${B.gold}은 남습니다.`)
-    + (B.dead.length?`<br><span class="dead">전사: ${B.dead.map(h=>h.name).join(', ')}</span>`:'') + (survivors.some(u=>u.ref.wounded)?`<br>부상: ${survivors.filter(u=>u.ref.wounded).map(u=>u.name).join(', ')} — 다음 공성은 쉽니다`:'');
+    + (B.dead.length?`<br><span class="dead">전사: ${B.dead.map(h=>h.name).join(', ')}</span>`:'') + (survivors.some(u=>u.ref.wounded)?`<br>부상: ${survivors.filter(u=>u.ref.wounded).map(u=>u.name).join(', ')} — 다음 공성은 쉽니다`:'')
+    + (retiring.length?`<br>🕯️ 은퇴: ${retiring.map(h=>`${h.name}(${h.age}세)`).join(', ')}`:'')
+    + (lost.length?`<br><span class="dead">길드에서 끊긴 기술: ${lost.map(t=>TRAITS[t].ic+' '+TRAITS[t].nm).join(', ')}</span>`:'');
   $('ovEnd').hidden=false;
 }
 $('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
@@ -601,6 +720,29 @@ $('classList').innerHTML=$('classList2').innerHTML=classHTML();
 $('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
 $('meta').textContent = G.fame?`명성 ${G.fame} · 묘비 ${G.grave.length}`:'';
 $('btnGo').onclick=()=>{ $('ovStart').hidden=true; renderHall(); };
+function lineHTML(){
+  let out='<p class="stat" style="margin-top:2px">무기는 안 늙습니다 — 주인이 떠나도 창고로 돌아옵니다.</p>';
+  const gs=G.gear.slice().sort((a,b)=>b.gen-a.gen);
+  out+='<div class="relics">'+gs.map(g=>{ const o=G.heroes.find(h=>h.gear===g.id);
+    return `<div class="relic"><span class="ic">${GEAR_KINDS[g.kind].ic}</span><span><b>${g.nm}</b>${g.gen?` <small>${g.gen}대</small>`:''}
+      <small>${g.traits.map(t=>CRAFT[t].ic+' '+CRAFT[t].nm).join(' · ')||'솜씨 없음'}</small>
+      <small style="color:var(--mute)">${g.forged?`${g.forged.join(' × ')} 를 벼려 만듦`:'처음부터 있던 것'}${o?` · 지금은 ${o.name}이(가) 듦`:' · 창고'}</small></span></div>`;
+  }).join('')+'</div>';
+  out+=`<p class="stat" style="margin-top:8px">🧍 지금 길드</p><div class="owned">`
+    +G.heroes.map(h=>`<span>${CLASSES[h.cls].ic} <b>${h.name}</b> ${h.age}세 ${(h.temper||[]).map(t=>TEMPER[t].ic).join('')}</span>`).join('')+'</div>';
+  if(G.retired.length) out+=`<p class="stat" style="margin-top:8px">🕯️ 은퇴</p><div class="owned">`
+    +G.retired.slice(-8).map(r=>`<span>${r.name} <small style="color:var(--mute)">${r.age}세${r.taught?' · 제자를 남김':' · 제자 없이'}</small></span>`).join('')+'</div>';
+  if(G.grave.length) out+=`<p class="stat" style="margin-top:8px">🪦 전사</p><div class="owned">`
+    +G.grave.slice(-8).map(g=>`<span>${g.name} <small style="color:var(--mute)">${g.tier}차 ${g.wave}웨이브</small></span>`).join('')+'</div>';
+  const lost=lostTraits();
+  out+=`<p class="stat" style="margin-top:8px">길드가 가진 솜씨</p><div class="owned">`
+    +[...new Set(G.gear.flatMap(g=>g.traits))].map(t=>`<span>${CRAFT[t].ic} ${CRAFT[t].nm}</span>`).join('')
+    +lost.map(t=>`<span style="opacity:.45; text-decoration:line-through">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')+'</div>';
+  if(lost.length) out+=`<p class="stat" style="margin-top:6px">줄 그어진 솜씨는 <b>길드에서 끊겼습니다</b> — 벼릴 때 55% 를 넘기지 못한 것들입니다.</p>`;
+  return out;
+}
+$('btnLine').onclick=()=>{ $('lineBox').innerHTML=lineHTML(); $('ovLine').hidden=false; };
+$('btnLineClose').onclick=()=>$('ovLine').hidden=true;
 $('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
 renderHall();
 </script>
