@@ -155,12 +155,16 @@
   <p>조사할 때마다 <b>격차가 벌어집니다</b>. 바르게 짚으면 좁혀집니다. 끝 열까지 가거나 격차를 0으로 만들면 따라잡습니다.</p>
   <p class="stat" id="meta"></p>
   <button class="pri" id="btnGo">추격 시작</button>
+  <p class="stat" style="margin:2px 0 -4px">추격을 건너뛰고 <b>농성만</b> 해보기 — 괄호는 무리의 수</p>
+  <div class="row" style="justify-content:center">
+    <button id="btnP4">쉬움 (10)</button><button id="btnP8">보통 (12)</button><button id="btnP12">어려움 (13)</button>
+  </div>
 </div></div>
 
 <div class="ov" id="ovEnd" hidden><div class="sheet">
   <h2 id="endT"></h2><p id="endB"></p>
   <div class="rules" id="endPath"></div>
-  <button class="pri" id="btnAgain">다시 쫓는다</button>
+  <div class="row"><button class="pri" id="btnAgain" style="flex:1">다시 쫓는다</button><button id="btnAgain2" hidden>추격부터</button></div>
 </div></div>
 
 <div class="ov" id="ovHelp" hidden><div class="sheet">
@@ -207,7 +211,7 @@ let meta=store.get('hunt.meta',{best:null, runs:0, wins:0});
 let S=null;   // {P, gap, col, sel, cell:{}, zone:{}, rowN:{}, over}
 
 function newRun(){
-  B=null; document.body.classList.remove('night');
+  B=null; practiceGap=null; document.body.classList.remove('night');
   $('scSiege').hidden=true; $('scChase').hidden=false;
   const seed=(Date.now()^(Math.random()*1e9))>>>0, rand=mulberry(seed);
   S={P:makePath(rand), gap:GAP0, col:0, sel:null, cell:{}, zone:{}, rowN:{}, over:false, looks:0, wrongs:0, seed};
@@ -340,12 +344,12 @@ const fAlive=k=>B.units.filter(u=>u.hp>0&&u.kind===k);
 const fDist=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
 const isRock=(r,c)=>c<=ROCK_C, isHigh=(r,c)=>c===HIGH_C&&(r===1||r===3);
 
-function startSiege(gap, ambush){
+function startSiege(gap, ambush, practice){
   document.body.classList.add('night');
   const n=9+Math.floor(gap*0.4);                     // 격차 4→10마리, 7→11, 10→13, 13→14
   // 배치 2730가지 전수 기준 이기는 배치 비율: 적 10=88%, 11=69%, 12=36%, 13=23%, 14=15%
   const pool=['orc','orc','warg','uruk'];
-  B={units:[], sel:null, phase:'place', tick:0, ambush:gap<=4, gap};
+  B={units:[], sel:null, phase:'place', tick:0, ambush:gap<=4, gap, practice:!!practice};
   for(const k of ['ara','leg','gim']){ const f=FIGHT[k];
     B.units.push({kind:'h', key:k, nm:f.nm, hp:f.hp, maxhp:f.hp, atk:f.atk, rng:f.rng, twice:!!f.twice, armor:f.armor||0, r:-1, c:-1}); }
   for(let i=0;i<n;i++){ const k=pool[i%pool.length], f=FOES[k];
@@ -415,12 +419,23 @@ function siegeEnd(win){
   if(win) meta.wins++;
   store.set('hunt.meta',meta);
   const down=B.units.filter(u=>u.kind==='h'&&u.hp<=0).map(u=>u.nm);
+  const total=B.units.filter(u=>u.kind==='e').length;
   $('endT').textContent = win ? '🔥 무리를 흩었다' : '🌑 밤이 삼켰다';
-  $('endB').innerHTML = (win
-    ? `버텼습니다. 추격 ${S.looks}회 조사 · 남긴 격차 ${S.gap}리그로 <b>${B.units.filter(u=>u.kind==='e').length}</b>과 맞섰습니다.`
-    : `셋 다 쓰러졌습니다. 격차를 ${S.gap}리그나 두고 붙은 것이 화근이었습니다.`)
-    + (down.length&&win?`<br><span style="color:var(--bad)">쓰러진 이: ${down.join(', ')}</span>`:'');
-  showPath(); $('ovEnd').hidden=false;
+  if(B.practice){
+    $('endB').innerHTML = (win ? `연습: <b>${total}</b>과 맞서 버텼습니다.` : `연습: <b>${total}</b>에게 셋 다 쓰러졌습니다.`)
+      + (down.length&&win?`<br><span style="color:var(--bad)">쓰러진 이: ${down.join(', ')}</span>`:'')
+      + `<br><span class="stat">이 수에도 이기는 배치가 있습니다 — 자리를 바꿔 다시 해보세요.</span>`;
+    $('endPath').innerHTML='';
+  } else {
+    $('endB').innerHTML = (win
+      ? `버텼습니다. 추격 ${S.looks}회 조사 · 남긴 격차 ${S.gap}리그로 <b>${total}</b>과 맞섰습니다.`
+      : `셋 다 쓰러졌습니다. 격차를 ${S.gap}리그나 두고 붙은 것이 화근이었습니다.`)
+      + (down.length&&win?`<br><span style="color:var(--bad)">쓰러진 이: ${down.join(', ')}</span>`:'');
+    showPath();
+  }
+  $('btnAgain').textContent = B.practice ? '다시 연습' : '다시 쫓는다';
+  $('btnAgain2').hidden = !B.practice;
+  $('ovEnd').hidden=false;
 }
 /* 농성 그리기 */
 function fRender(){
@@ -519,7 +534,13 @@ $('ruleList').innerHTML=$('ruleList2').innerHTML=ruleHTML();
 const metaLine=()=>meta.runs?`${meta.runs}번 쫓아 ${meta.wins}번 따라잡음${meta.best!==null?` · 최고 ${meta.best}리그`:''}`:'';
 $('meta').textContent=metaLine();
 $('btnGo').onclick=()=>{ $('ovStart').hidden=true; newRun(); };
-$('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; newRun(); };
+let practiceGap=null;
+function startPractice(gap){ practiceGap=gap; $('ovStart').hidden=true; $('ovEnd').hidden=true;
+  S={P:makePath(mulberry((Date.now()^Math.random()*1e9)>>>0)), gap, col:0, sel:null, cell:{}, zone:{}, rowN:{}, over:true, looks:0, wrongs:0};
+  startSiege(gap, gap<=4, true); }
+$('btnP4').onclick=()=>startPractice(4); $('btnP8').onclick=()=>startPractice(8); $('btnP12').onclick=()=>startPractice(12);
+$('btnAgain').onclick=()=>{ $('ovEnd').hidden=true; if(B&&B.practice&&practiceGap!==null) startPractice(practiceGap); else newRun(); };
+$('btnAgain2').onclick=()=>{ $('ovEnd').hidden=true; practiceGap=null; newRun(); };
 $('btnNew').onclick=()=>{ $('ovEnd').hidden=true; newRun(); };
 $('btnHold').onclick=holdLine;
 $('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
