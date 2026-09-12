@@ -56,10 +56,24 @@
   .c .u.big{width:96%; height:96%}
   .c .u.bob{animation:bob 1s steps(2) infinite} @keyframes bob{0%{margin-top:0} 100%{margin-top:-2px}}
   .chip img,.hero img{width:22px; height:22px; image-rendering:pixelated; vertical-align:middle}
-  .c .u.lunge{animation:lunge .32s ease-out} @keyframes lunge{35%{transform:translate(var(--dx),var(--dy)) scale(1.15) scaleX(var(--sx,1))} 100%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))}}
+  /* 공격 — 예비(뒤로 당김·납작) → 찌르기(크게 뻗음) → 복귀. 맞은 쪽은 밀려나며 하얗게 번쩍. */
+  .c .u.lunge{animation:lunge .42s cubic-bezier(.3,.9,.4,1)} 
+  @keyframes lunge{0%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))} 22%{transform:translate(calc(var(--dx) * -.3), var(--ty,0)) scale(.92,1.08) scaleX(var(--sx,1))}
+    50%{transform:translate(var(--dx),calc(var(--dy) + var(--ty,0px))) scale(1.3,1.15) scaleX(var(--sx,1))} 100%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))}}
+  .c .u.knock{animation:knock .38s ease-out} 
+  @keyframes knock{0%{filter:brightness(1)} 15%{transform:translate(var(--kx),var(--ky)) rotate(var(--rot)) scale(1.15) scaleX(var(--sx,1)); filter:brightness(4) saturate(0)} 60%{filter:brightness(1.6)} 100%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1)); filter:brightness(1)}}
+  .c .u.die{animation:die .55s ease-in forwards; z-index:4} @keyframes die{30%{transform:translateY(-8px) scaleX(var(--sx,1)) rotate(-10deg)} 100%{transform:translate(calc(var(--sx,1) * -10px),10px) scaleX(var(--sx,1)) rotate(calc(var(--sx,1) * 80deg)); opacity:0}}
+  .spark{position:absolute; width:0; height:0; pointer-events:none; z-index:7}
+  .spark i{position:absolute; left:-2px; top:-7px; width:4px; height:14px; border-radius:2px; transform-origin:50% 100%; animation:spark .32s ease-out forwards}
+  .spark.h i{background:#FFE28A; box-shadow:0 0 4px #F7C46B} .spark.e i{background:#FF8B7B; box-shadow:0 0 4px #FF6B5A}
+  @keyframes spark{0%{transform:rotate(var(--a)) translateY(0) scaleY(1); opacity:1} 100%{transform:rotate(var(--a)) translateY(-16px) scaleY(.3); opacity:0}}
+  .c .dmg{font-size:15px; animation:dmgpop .8s ease-out forwards} .c .dmg.crit{font-size:19px; color:#FFB347}
+  @keyframes dmgpop{0%{opacity:0; transform:translate(-50%,6px) scale(.4)} 18%{opacity:1; transform:translate(-50%,-4px) scale(1.35)} 40%{transform:translate(-50%,-10px) scale(1)} 100%{opacity:0; transform:translate(-50%,-30px) scale(.9)}}
+  .fort.quake{animation:quake .35s} @keyframes quake{20%{transform:translate(3px,-2px)} 40%{transform:translate(-3px,2px)} 60%{transform:translate(2px,2px)} 80%{transform:translate(-2px,-1px)}}
+  .shot{width:14px; height:4px; border-radius:2px; margin:-2px 0 0 -7px; transform-origin:50% 50%}
+  .shot.h{background:linear-gradient(90deg, transparent, #FFE28A 40%, #fff)} .shot.e{background:linear-gradient(90deg, transparent, #FF8B7B 40%, #fff)}
   .c .u.cast{animation:cast .4s ease-out} @keyframes cast{40%{transform:scale(1.3); filter:drop-shadow(0 0 6px #B48CFF)}}
-  .shot{position:absolute; width:9px; height:9px; border-radius:50%; pointer-events:none; z-index:6; margin:-4px 0 0 -4px}
-  .shot.h{background:#F7C46B; box-shadow:0 0 6px 2px rgba(247,196,107,.8)} .shot.e{background:#FF6B5A; box-shadow:0 0 6px 2px rgba(255,107,90,.8)}
+  .shot{position:absolute; pointer-events:none; z-index:6; box-shadow:0 0 5px 1px rgba(255,220,150,.5)}
   .ring{position:absolute; border-radius:50%; border:2px solid #B48CFF; pointer-events:none; z-index:5; animation:ring .45s ease-out forwards}
   @keyframes ring{0%{transform:scale(.2); opacity:1} 100%{transform:scale(1); opacity:0}}
   /* 사거리 — 아군은 금색 테두리, 적의 위협 칸은 붉은 빗금. 겹치면 둘 다 보인다. */
@@ -402,8 +416,9 @@ function tickLoop(){
   const hurt=(t,n,src)=>{ n=Math.max(0,n); if(t.kind==='h'&&t.traits.includes('shield')) n=Math.max(0,n-1); t.hp-=n; fx(t,'-'+n); if(t.hp<=0&&t.kind==='h'){ B.dead.push(t.ref); G.grave.push({name:t.name, cls:CLASSES[t.cls].nm, tier:B.tier, wave:B.wave}); G.heroes=G.heroes.filter(h=>h!==t.ref); } };
   const effAtk=u=>{ let a=u.atk; if(u.traits.includes('coward')&&u.hp*2<=u.maxhp) a-=2; if(u.traits.includes('proud')&&hs.some(o=>o!==u&&dist(o,u)===1)) a-=1; return Math.max(1,a); };
   const hit=(u,t)=>{ let n=effAtk(u); if(has('oil')&&elev(u.r,u.c)&&t.c===u.c+1&&t.r===u.r) n+=1;
-    if(reach(u,t)<=1) qfx({type:'lunge', r:u.r, c:u.c, tr:t.r, tc:t.c}); else qfx({type:'shot', r:u.r, c:u.c, tr:t.r, tc:t.c, side:'h'});
-    hurt(t,n,u); ev(`${u.ic} ${u.name} → ${t.ic} ${t.name} <b>${n}</b>${t.hp<=0?' 처치':''}`,'h');
+    FX_FROM={r:u.r,c:u.c};
+    if(reach(u,t)<=1){ qfx({type:'lunge', r:u.r, c:u.c, tr:t.r, tc:t.c}); FX_DELAY=160; } else { qfx({type:'shot', r:u.r, c:u.c, tr:t.r, tc:t.c, side:'h'}); FX_DELAY=(elev(u.r,u.c)||elev(t.r,t.c))?300:200; }
+    hurt(t,n,u); FX_DELAY=0; FX_FROM=null; ev(`${u.ic} ${u.name} → ${t.ic} ${t.name} <b>${n}</b>${t.hp<=0?' 처치':''}`,'h');
     if(u.traits.includes('venom')) t.st.venom=3; if(u.traits.includes('fire')) t.st.fire=2; if(u.area) t.slow=1; };
   // 1) 아군
   for(const u of hs){
@@ -411,7 +426,7 @@ function tickLoop(){
     const rng=heroRange(u);
     const times=u.traits.includes('rapid')?2:1;
     for(let k=0;k<times;k++){
-      if(u.area){ const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ qfx({type:'cast', r:u.r, c:u.c, rng}); for(const e of ts){ hurt(e,effAtk(u),u); e.slow=1; } ev(`${u.ic} ${u.name} 냉기 — ${ts.length}명 <b>${effAtk(u)}</b>`,'h'); } }
+      if(u.area){ const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ qfx({type:'cast', r:u.r, c:u.c, rng}); FX_FROM={r:u.r,c:u.c}; FX_DELAY=180; for(const e of ts){ hurt(e,effAtk(u),u); e.slow=1; } FX_DELAY=0; FX_FROM=null; ev(`${u.ic} ${u.name} 냉기 — ${ts.length}명 <b>${effAtk(u)}</b>`,'h'); } }
       else { const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ ts.sort((a,b)=>(b.bomb?1:0)-(a.bomb?1:0)||reach(u,a)-reach(u,b)||a.hp-b.hp); hit(u,ts[0]); } }
     }
     if(u.repair){ if(dist(u,GATE)===1&&B.gate<B.gateMax&&B.gate>0){ const before=B.gate; B.gate=Math.min(B.gateMax,B.gate+u.repair); qfx({type:'dmg', r:GATE.r, c:GATE.c, txt:'+'+(B.gate-before), cls:'heal'}); } for(const [dr,dc] of DIR4){ const rr=u.r+dr,cc=u.c+dc; if(inb(rr,cc)&&isWall(rr,cc)&&B.wall[rr]==='rubble'&&Math.random()<.5){ delete B.wall[rr]; log(`${u.name}이(가) 성벽을 메웠다`); } } }
@@ -427,7 +442,7 @@ function tickLoop(){
     let steps=e.spd>=1?e.spd:(B.tick%2===0?1:0);
     while(steps-->0&&e.hp>0){
       // 옆에 아군 → 싸운다 (궁수 오크는 사거리 안이면)
-      const near=hs.filter(h=>h.hp>0&&dist(e,h)<=e.rng&&(e.rng>1||elev(h.r,h.c)===elev(e.r,e.c))); if(e.atk>0&&near.length){ near.sort((a,b)=>a.hp-b.hp); const t=near[0]; if(dist(e,t)<=1) qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); else qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); hurt(t,e.atk,e); ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${e.atk}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
+      const near=hs.filter(h=>h.hp>0&&dist(e,h)<=e.rng&&(e.rng>1||elev(h.r,h.c)===elev(e.r,e.c))); if(e.atk>0&&near.length){ near.sort((a,b)=>a.hp-b.hp); const t=near[0]; FX_FROM={r:e.r,c:e.c}; if(dist(e,t)<=1){ qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); FX_DELAY=160; } else { qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); FX_DELAY=(elev(e.r,e.c)||elev(t.r,t.c))?300:200; } hurt(t,e.atk,e); FX_DELAY=0; FX_FROM=null; ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${e.atk}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
       // 폭약병 — 성벽 옆에 닿으면 터진다
       if(e.bomb){ const wr=[...Array(R).keys()].filter(r=>isWall(r,WALL_C)&&B.wall[r]!=='rubble'); if(e.c===WALL_C+1&&wr.includes(e.r)){ B.wall[e.r]='rubble'; e.hp=0; boom(e.r,WALL_C); const hh=at(e.r,WALL_C,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
         let best=null; for(const r of wr){ const p=path(e,{r,c:WALL_C+1},e); if(p&&(!best||p.length<best.length)) best=p; } if(!best||best.length<2) break; const [nr,nc]=best[1]; if(at(nr,nc)) break; e.r=nr; e.c=nc; continue; }
@@ -494,34 +509,52 @@ $('btnRange').onclick=()=>{ const order=['sel','all','off']; B.rangeMode=order[(
 /* ═══════════════════ 그리기 ═══════════════════ */
 function buildFort(){ const f=$('fort'); f.innerHTML=''; for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/C)|0,i%C); f.appendChild(d); } }
 const cellEl=(r,c)=>$('fort').children[r*C+c];
-function fx(u,txt,heal){ if(u.r<0) return; qfx({type:'dmg', r:u.r, c:u.c, txt, cls:heal?'heal':(u.kind==='h'?'onh':'one')}); if(!heal) qfx({type:'hit', r:u.r, c:u.c, side:u.kind}); }
+function fx(u,txt,heal){ if(u.r<0) return; const n=parseInt(txt.replace(/[^0-9]/g,''))||0; qfx({type:'dmg', r:u.r, c:u.c, txt, cls:(heal?'heal':(u.kind==='h'?'onh':'one'))+(n>=4?' crit':'')}); if(!heal){ qfx({type:'hit', r:u.r, c:u.c, side:u.kind, n}); if(u.hp<=0) qfx({type:'die', r:u.r, c:u.c, key:u.kind==='h'?u.cls:u.key, side:u.kind}); } }
 function boom(r,c){ qfx({type:'boom', r, c}); }
 function gateFx(n){ qfx({type:'gate', n}); }
 function log(t){ ev(t,'sys'); }
 // 전투 로그 — 최근 세 줄. 아군 금색, 적 붉은색.
 function ev(t,side){ if(!B) return; B.events=B.events||[]; if(t) B.events.push({t,side}); B.events=B.events.slice(-3); $('log').innerHTML=B.events.map(e=>`<div class="${e.side}">${e.t}</div>`).join(''); }
 /* 연출 큐 — render() 가 칸을 다시 그리므로, 그린 뒤에 얹는다. 안 그러면 뜨자마자 지워진다. */
-let FXQ=[];
-const qfx=o=>FXQ.push(o);
+let FXQ=[], FX_DELAY=0, FX_FROM=null;
+const qfx=o=>FXQ.push(Object.assign({delay:FX_DELAY, from:FX_FROM}, o));
 function cellCenter(r,c){ const f=$('fort'), e=cellEl(r,c); const a=f.getBoundingClientRect(), b=e.getBoundingClientRect(); return {x:b.left-a.left+b.width/2, y:b.top-a.top+b.height/2, w:b.width}; }
 // 공격 포즈 — 0.3초 동안 공격 프레임으로 바꿨다가 돌아온다
 function pose(img){ const k=img.dataset.k; if(!k) return; img.src=sprite(k,true); setTimeout(()=>{ if(img.isConnected) img.src=sprite(k,false); }, 300); }
 function flushFX(){
   const q=FXQ; FXQ=[]; const fort=$('fort');
-  for(const o of q){
-    if(o.type==='lunge'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(!u) continue; const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=Math.max(1,Math.hypot(t.x-s.x,t.y-s.y));
+  const later=q.filter(o=>o.delay>0), now=q.filter(o=>!o.delay);
+  for(const o of later) setTimeout(()=>applyFX(o,fort), o.delay);
+  for(const o of now) applyFX(o,fort);
+}
+function applyFX(o,fort){ {
+    if(o.type==='lunge'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(!u) return; const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=Math.max(1,Math.hypot(t.x-s.x,t.y-s.y));
       const en=cellEl(o.r,o.c).classList.contains('e'); u.style.setProperty('--sx', en?-1:1); u.style.setProperty('--ty', cellEl(o.r,o.c).classList.contains('w')?'-6px':'0px');
       u.style.setProperty('--dx',((t.x-s.x)/d*s.w*.45)+'px'); u.style.setProperty('--dy',((t.y-s.y)/d*s.w*.45)+'px'); u.classList.remove('lunge'); void u.offsetWidth; u.classList.add('lunge'); pose(u); }
     else if(o.type==='shot'){ const s=cellCenter(o.r,o.c), t=cellCenter(o.tr,o.tc); const d=document.createElement('div'); d.className='shot '+o.side; d.style.left=s.x+'px'; d.style.top=s.y+'px'; fort.appendChild(d);
       const u=cellEl(o.r,o.c).querySelector('.u'); if(u) pose(u);
       const high=elev(o.r,o.c)||elev(o.tr,o.tc), dx=t.x-s.x, dy=t.y-s.y;   // 성벽이 끼면 포물선 — 높이가 보인다
-      const frames = high ? [{transform:'translate(0,-6px)'},{transform:`translate(${dx/2}px,${dy/2-18}px)`},{transform:`translate(${dx}px,${dy}px)`}] : [{transform:'translate(0,0)'},{transform:`translate(${dx}px,${dy}px)`}];
+      const ang=Math.atan2(dy,dx)*180/Math.PI, rot=a=>`rotate(${a}deg)`;
+      const frames = high ? [{transform:`translate(0,-6px) ${rot(ang-35)}`},{transform:`translate(${dx/2}px,${dy/2-18}px) ${rot(ang)}`},{transform:`translate(${dx}px,${dy}px) ${rot(ang+35)}`}] : [{transform:`translate(0,0) ${rot(ang)}`},{transform:`translate(${dx}px,${dy}px) ${rot(ang)}`}];
       d.animate(frames,{duration:high?300:200,easing:'ease-in'}).onfinish=()=>d.remove(); }
     else if(o.type==='cast'){ const u=cellEl(o.r,o.c).querySelector('.u'); if(u){ u.classList.add('cast'); pose(u); } const s=cellCenter(o.r,o.c); const d=document.createElement('div'); d.className='ring'; const sz=s.w*(o.rng*2+1); d.style.cssText=`left:${s.x-sz/2}px; top:${s.y-sz/2}px; width:${sz}px; height:${sz}px`; fort.appendChild(d); setTimeout(()=>d.remove(),500); }
-    else if(o.type==='hit'){ const e=cellEl(o.r,o.c); e.classList.remove('hit-h','hit-e'); void e.offsetWidth; e.classList.add(o.side==='h'?'hit-h':'hit-e'); }
+    else if(o.type==='hit'){ const e=cellEl(o.r,o.c); e.classList.remove('hit-h','hit-e'); void e.offsetWidth; e.classList.add(o.side==='h'?'hit-h':'hit-e');
+      const u=e.querySelector('.u'); const s=cellCenter(o.r,o.c);
+      if(u){ // 넉백 — 때린 쪽 반대로 밀린다
+        let kx=o.side==='h'?-1:1, ky=0; if(o.from){ const f=cellCenter(o.from.r,o.from.c); const d=Math.max(1,Math.hypot(s.x-f.x,s.y-f.y)); kx=(s.x-f.x)/d; ky=(s.y-f.y)/d; }
+        const amp=s.w*(o.n>=4?.4:.25); u.style.setProperty('--kx',(kx*amp)+'px'); u.style.setProperty('--ky',(ky*amp)+'px'); u.style.setProperty('--rot',(kx>=0?8:-8)+'deg');
+        u.style.setProperty('--sx', e.classList.contains('e')?-1:1); u.style.setProperty('--ty', e.classList.contains('w')?'-6px':'0px');
+        u.classList.remove('knock'); void u.offsetWidth; u.classList.add('knock'); }
+      // 불꽃 — 맞은 자리에서 여섯 가닥
+      const sp=document.createElement('div'); sp.className='spark '+(o.side==='h'?'e':'h'); sp.style.left=s.x+'px'; sp.style.top=s.y+'px';
+      for(let i=0;i<6;i++){ const b=document.createElement('i'); b.style.setProperty('--a',(i*60+Math.random()*30)+'deg'); sp.appendChild(b); } fort.appendChild(sp); setTimeout(()=>sp.remove(),350);
+      if(o.n>=4){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } }
+    else if(o.type==='die'){ const e=cellEl(o.r,o.c); if(!e) return; const g=document.createElement('img'); g.className='u die'+(o.key==='troll'?' big':''); g.src=sprite(o.key,false); g.style.setProperty('--sx', o.side==='e'?-1:1);
+      if(e.querySelector('.u')) return;   // 아직 살아 있는 그림이 있으면(같은 칸에 다른 유닛) 생략
+      e.appendChild(g); setTimeout(()=>g.remove(),600); if(o.side==='h'){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } }
     else if(o.type==='dmg'){ const e=cellEl(o.r,o.c); const sp=document.createElement('span'); sp.className='dmg '+(o.cls||''); sp.textContent=o.txt; e.appendChild(sp); setTimeout(()=>sp.remove(),800); }
-    else if(o.type==='gate'){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); const sp=document.createElement('span'); sp.className='gatecrack'; sp.textContent='💢'; e.appendChild(sp); setTimeout(()=>sp.remove(),500); const d=document.createElement('span'); d.className='dmg onh'; d.textContent='-'+o.n; e.appendChild(d); setTimeout(()=>d.remove(),800); }
-    else if(o.type==='boom'){ const e=cellEl(o.r,o.c); e.classList.remove('boom'); void e.offsetWidth; e.classList.add('boom'); }
+    else if(o.type==='gate'){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); if(o.n>=4){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } const sp=document.createElement('span'); sp.className='gatecrack'; sp.textContent='💢'; e.appendChild(sp); setTimeout(()=>sp.remove(),500); const d=document.createElement('span'); d.className='dmg onh'; d.textContent='-'+o.n; e.appendChild(d); setTimeout(()=>d.remove(),800); }
+    else if(o.type==='boom'){ const e=cellEl(o.r,o.c); e.classList.remove('boom'); void e.offsetWidth; e.classList.add('boom'); fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); }
   }
 }
 function waveBarHTML(){
