@@ -58,6 +58,11 @@
   .shot.h{background:#F7C46B; box-shadow:0 0 6px 2px rgba(247,196,107,.8)} .shot.e{background:#FF6B5A; box-shadow:0 0 6px 2px rgba(255,107,90,.8)}
   .ring{position:absolute; border-radius:50%; border:2px solid #B48CFF; pointer-events:none; z-index:5; animation:ring .45s ease-out forwards}
   @keyframes ring{0%{transform:scale(.2); opacity:1} 100%{transform:scale(1); opacity:0}}
+  /* 사거리 — 아군은 금색 테두리, 적의 위협 칸은 붉은 빗금. 겹치면 둘 다 보인다. */
+  .c .rh{position:absolute; inset:2px; border-radius:4px; box-shadow:inset 0 0 0 2px rgba(247,196,107,.8); pointer-events:none; z-index:1}
+  .c .rh.me{box-shadow:inset 0 0 0 3px #F7C46B, 0 0 6px rgba(247,196,107,.6)}
+  .c .re{position:absolute; inset:0; border-radius:5px; background:repeating-linear-gradient(45deg, rgba(255,107,90,.42) 0 4px, transparent 4px 9px); pointer-events:none; z-index:1}
+  .c.inspect{outline:3px solid #FF8B7B; outline-offset:-3px}
   .c.hit-e{animation:hitE .3s} @keyframes hitE{30%{filter:brightness(2.2); transform:translateX(3px)} 60%{transform:translateX(-3px)}}
   .c.hit-h{animation:hitH .35s} @keyframes hitH{30%{background:#8E2F2F; transform:translateX(-3px)} 60%{transform:translateX(3px)}}
   .c .dmg.one{color:#FFE28A} .c .dmg.onh{color:#FF8B7B; font-size:14px}
@@ -123,7 +128,7 @@
   <div class="gatebar">성문 <i><b id="gateHp"></b></i><span id="gateTxt"></span></div>
   <div class="bench" id="bench"></div>
   <div class="hint" id="tip"></div>
-  <div class="actions"><button class="pri" id="btnStart">웨이브 시작</button></div>
+  <div class="actions"><button class="pri" id="btnStart">웨이브 시작</button><button id="btnRange">사거리: 선택</button></div>
   <div class="log" id="log"></div>
 </div>
 
@@ -148,6 +153,7 @@
   <h2>규칙</h2>
   <div class="rules" id="classList2"></div>
   <p><b>공성</b>: 빌드 단계에 길드원을 성벽(회색)·안뜰(갈색)·들판에 세웁니다. 매 틱 아군이 먼저 때리고 적이 움직입니다. 적은 <b>성문</b>을 두드려 부수고 안뜰로 들어옵니다 — 안뜰 왼쪽 끝에 닿으면 성채 위험 −1. 세 번이면 함락.</p>
+  <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 웨이브 중에도 됩니다.</p>
   <p><b>높이</b>: 성벽 위 아군은 지상 근접 적이 못 때립니다. 궁수 오크(사거리 2)·성벽에 오른 사다리병·폭약병(그 칸 3 피해)만 위협이고, 무너진 성벽 칸은 지상입니다.</p>
   <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>전승</b>: 스승 둘을 고르면 신입이 각 스승의 형질을 55%씩 잇고, 20%는 제멋대로 배웁니다.</p>
   <div class="rules" id="traitList"></div>
@@ -182,12 +188,12 @@ const TRAITS={
   mentor: {ic:'📖', nm:'스승 기질', desc:'전승 때 이 형질 외 하나를 확정으로 물려준다'},
 };
 const FOES={
-  wolf:   {ic:'🐺', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1},
-  orc:    {ic:'⚔️', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2},
-  ladder: {ic:'🪜', nm:'사다리병', hp:9,  atk:2, spd:1,  cost:3, climb:true},
-  bomber: {ic:'🧨', nm:'폭약병',   hp:7,  atk:0, spd:1,  cost:3, bomb:true},
-  shaman: {ic:'🏹', nm:'궁수 오크', hp:6, atk:1, spd:1,  cost:2, rng:2},
-  troll:  {ic:'🧌', nm:'트롤',     hp:26, atk:4, spd:.5, cost:7, boss:true},
+  wolf:   {ic:'🐺', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1, desc:'한 틱에 두 칸. 근접 — 성벽 위는 못 때린다'},
+  orc:    {ic:'⚔️', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2, desc:'근접. 성문을 두드린다'},
+  ladder: {ic:'🪜', nm:'사다리병', hp:9,  atk:2, spd:1,  cost:3, climb:true, desc:'성벽을 오른다(2틱). 올라오면 성벽 위 아군을 때린다'},
+  bomber: {ic:'🧨', nm:'폭약병',   hp:7,  atk:0, spd:1,  cost:3, bomb:true, desc:'성벽에 닿으면 폭발 — 그 칸 3 피해, 성벽이 무너진다. 먼저 잡아라'},
+  shaman: {ic:'🏹', nm:'궁수 오크', hp:6, atk:1, spd:1,  cost:2, rng:2, desc:'사거리 2 — 성벽 위도 맞힌다'},
+  troll:  {ic:'🧌', nm:'트롤',     hp:26, atk:4, spd:.5, cost:7, boss:true, desc:'느리지만 성문을 4씩 부순다'},
 };
 const SUPPLY={
   gatewood:{ic:'🚪', nm:'참나무 성문', desc:'성문 최대 체력 +10, 지금 수리'},
@@ -311,18 +317,25 @@ function path(from,to,u){
 const at=(r,c,kind)=>B.units.find(u=>u.hp>0&&u.r===r&&u.c===c&&(!kind||u.kind===kind)&&(u.kind==='h'||u.delay<=0));
 const alive=k=>B.units.filter(u=>u.hp>0&&u.kind===k&&(k==='h'||u.delay<=0));
 const dist=(a,b)=>Math.abs(a.r-b.r)+Math.abs(a.c-b.c);
+// 아군의 실제 사거리 — 성벽 위 궁수 +1, 밤엔 궁수·엘프 −1(야간 시야·횃불 제외)
+function heroRange(u){ let rng=u.rng+(elev(u.r,u.c)&&u.cls==='archer'?1:0); if(isNight()&&(u.cls==='archer'||u.cls==='elf')&&!u.traits.includes('night')&&!has('torches')) rng=Math.max(1,rng-1); return rng; }
+function heroCells(u){ if(u.r<0) return []; const rng=heroRange(u), out=[]; for(let r=0;r<R;r++) for(let c=0;c<C;c++){ if(r===u.r&&c===u.c) continue; if(reach(u,{r,c})<=rng) out.push([r,c]); } return out; }
+// 적이 다음 틱에 때릴 수 있는 칸 — 근접은 같은 높이만, 사거리 2 는 어디든
+function enemyCells(e){ if(e.delay>0||e.atk<=0) return []; const out=[]; for(let r=0;r<R;r++) for(let c=0;c<C;c++){ if(r===e.r&&c===e.c) continue; if(dist(e,{r,c})<=e.rng&&(e.rng>1||elev(r,c)===elev(e.r,e.c))) out.push([r,c]); } return out; }
 // 성벽 위에선 앞 대각선도 닿는다 — 성문 앞 칸을 성벽에서 내려찍을 수 있어야 교착이 없다
 const reach=(u,e)=>elev(u.r,u.c)&&Math.abs(u.r-e.r)<=1&&Math.abs(u.c-e.c)<=1&&e.c>u.c ? 1 : dist(u,e);
 
 /* 배치 */
 function onCell(r,c){
-  if(B.phase!=='build') return;
+  const anyU=at(r,c);
+  if(B.phase!=='build'){ B.inspect = (anyU&&B.inspect!==anyU) ? anyU : null; render(); return; }   // 진행 중엔 눌러서 사거리만 본다
   const h=at(r,c,'h');
+  if(anyU&&anyU.kind==='e'){ B.inspect = B.inspect===anyU?null:anyU; render(); return; }
   if(B.sel==null){ if(h){ B.sel=h; render(); } return; }
   if(c===C-1||isGate(r,c)||at(r,c)) { if(h===B.sel){ B.sel=null; render(); } return; }
-  B.sel.r=r; B.sel.c=c; B.sel=null; render();
+  B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; $('tip').textContent=''; render();
 }
-function startWave(){ if(B.phase!=='build') return; B.events=[]; if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; } B.phase='run'; B.sel=null; B.tick=0; render(); tickLoop(); }
+function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null; if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; } B.phase='run'; B.sel=null; B.tick=0; render(); tickLoop(); }
 
 /* 틱 */
 function tickLoop(){
@@ -337,7 +350,7 @@ function tickLoop(){
   // 1) 아군
   for(const u of hs){
     if(u.st.venom||u.st.fire){ if(!u.traits.includes('ale')){ if(u.st.venom){ hurt(u,1); u.st.venom--; } if(u.st.fire){ hurt(u,2); u.st.fire--; } } else u.st={}; if(u.hp<=0) continue; }
-    let rng=u.rng+(elev(u.r,u.c)&&u.cls==='archer'?1:0); if(isNight()&&(u.cls==='archer'||u.cls==='elf')&&!u.traits.includes('night')&&!has('torches')) rng=Math.max(1,rng-1);
+    const rng=heroRange(u);
     const times=u.traits.includes('rapid')?2:1;
     for(let k=0;k<times;k++){
       if(u.area){ const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ qfx({type:'cast', r:u.r, c:u.c, rng}); for(const e of ts){ hurt(e,effAtk(u),u); e.slow=1; } ev(`${u.ic} ${u.name} 냉기 — ${ts.length}명 <b>${effAtk(u)}</b>`,'h'); } }
@@ -418,6 +431,7 @@ function endSiege(win){
 }
 $('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
 $('btnStart').onclick=startWave;
+$('btnRange').onclick=()=>{ const order=['sel','all','off']; B.rangeMode=order[(order.indexOf(B.rangeMode||'sel')+1)%3]; $('btnRange').textContent='사거리: '+({sel:'선택',all:'전체',off:'끔'})[B.rangeMode]; if(B.rangeMode!=='all'&&!B.inspect&&!B.sel) $('tip').textContent=''; render(); };
 
 /* ═══════════════════ 그리기 ═══════════════════ */
 function buildFort(){ const f=$('fort'); f.innerHTML=''; for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/C)|0,i%C); f.appendChild(d); } }
@@ -465,9 +479,22 @@ function render(){
     if(u){ e.classList.add(u.kind); e.innerHTML=`<span class="u">${u.ic}</span><div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
     else if(B.phase==='build'&&B.sel){ if(c===C-1||isGate(r,c)) e.classList.add('no'); else e.classList.add('ok'); }
   }
+  // 사거리 — 모드: sel(고른 하나) / all(전부) / off
+  const mode=B.rangeMode||'sel';
+  const paint=(cells,cls)=>{ for(const [r,c] of cells){ const e=cellEl(r,c); if(!e.querySelector('.'+cls)){ const i=document.createElement('i'); i.className=cls; e.appendChild(i); } } };
+  const focus = B.inspect || B.sel;
+  if(mode!=='off'){
+    if(mode==='all'){ for(const u of alive('h')) paint(heroCells(u),'rh'); for(const e of alive('e')) paint(enemyCells(e),'re'); }
+    if(focus){ if(focus.kind==='h'){ paint(heroCells(focus),'rh'); for(const [r,c] of heroCells(focus)) cellEl(r,c).querySelector('.rh').classList.add('me'); } else paint(enemyCells(focus),'re'); }
+  }
+  if(focus&&focus.r>=0){ cellEl(focus.r,focus.c).classList.add('inspect'); }
+  if(focus){ $('tip').innerHTML = focus.kind==='h'
+      ? `${focus.ic} <b>${focus.name}</b> 사거리 ${heroRange(focus)}${isNight()&&(focus.cls==='archer'||focus.cls==='elf')&&!focus.traits.includes('night')&&!has('torches')?' <small>(밤 −1)</small>':''}${elev(focus.r,focus.c)?' · 성벽 위: 앞 대각선도 닿고 지상 근접은 못 때림':''}`
+      : `${focus.ic} <b>${focus.name}</b> ❤${focus.hp}/${focus.maxhp} ⚔${focus.atk} — ${FOES[focus.key].desc}`; }
+  else if(mode==='all') $('tip').innerHTML='<span style="color:#F7C46B">금색</span> = 아군이 때릴 수 있는 칸 · <span style="color:#FF8B7B">빗금</span> = 적이 다음 틱에 때릴 수 있는 칸';
   // 대기 중인 길드원 칩
   const bench=$('bench'); bench.innerHTML='';
-  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<span class="ic">${u.ic}</span>${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build') return; B.sel=B.sel===u?null:u; render(); }; bench.appendChild(d); }
+  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<span class="ic">${u.ic}</span>${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; } B.sel=B.sel===u?null:u; B.inspect=null; render(); }; bench.appendChild(d); }
   $('btnStart').disabled=B.phase!=='build'; $('btnStart').textContent=B.phase==='run'?'진행 중…':`웨이브 ${B.wave} 시작`;
 }
 
