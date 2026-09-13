@@ -220,7 +220,7 @@
 <div class="ov" id="ovArm" hidden><div class="sheet">
   <h2 id="armT">🔨 대장간</h2><p id="armSub"></p>
   <div id="armBox"></div>
-  <div class="actions"><button class="pri" id="btnForgeGo">벼리기 🪙5</button><button id="btnArmClose">닫기</button></div>
+  <div class="actions"><button class="pri" id="btnForgeGo">쇳물 붓기 🪙5</button><button id="btnScrap">🗑️ 버리기</button><button id="btnArmClose">닫기</button></div>
 </div></div>
 
 <div class="ov" id="ovSupply" hidden><div class="sheet"><h2 id="supTitle"></h2><p id="supSub"></p><div class="relics" id="supList"></div></div></div>
@@ -378,12 +378,17 @@ let uid=1;
 const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+'Ⅱ'; };
 function randomHero(hs){ const race=pick(Object.keys(RACES)), role=pick(Object.keys(ROLES)); const t=[pick(Object.keys(TEMPER))];
   return {id:uid++, name:newName(hs), race, role, temper:t, gear:null, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}, age:22+rnd(13)}; }
+function smelt(a,b){
+  // 형제마다 계승·돌연변이가 따로 굴러간다 — 같은 부모, 다른 결과
+  return Array.from({length:SMELT_N}, ()=>forge(a,b));
+}
 function newGear(){
   // 길드에 있는 클래스에 맞는 종류를 우선 — 안 그러면 창고가 못 쓰는 무기로 찬다
   const want=(G&&G.heroes||[]).flatMap(h=>raceOf(h).fit);
   const kind=(want.length&&Math.random()<.75)?pick(want):pick(Object.keys(GEAR_KINDS));
   const tr=[pick(Object.keys(CRAFT))];
-  if(Math.random()<.35){ const u=pick(Object.keys(CRAFT)); if(!tr.includes(u)) tr.push(u); }
+  while(tr.length<2){ const u=pick(Object.keys(CRAFT)); if(!tr.includes(u)) tr.push(u); }
+  if(Math.random()<.25){ const u=pick(Object.keys(CRAFT)); if(!tr.includes(u)) tr.push(u); }
   return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr, atk:2+rnd(2), gen:0, forged:null};   // 2~3 — 적성 절반이 0이 되지 않게
 }
 // 벼리기 — 무기 둘을 하나로. 솜씨는 55%씩 잇고 20%로 새것이 깃든다. 나르실이 안두릴이 되듯.
@@ -393,10 +398,19 @@ function forge(a,b){
   for(const t of a.traits.concat(b.traits)) if(Math.random()<keepP&&!tr.includes(t)) tr.push(t);
   if(Math.random()<.2){ const pool=Object.keys(CRAFT).filter(t=>!tr.includes(t)); if(pool.length) tr.push(pick(pool)); }
   if(!tr.length) tr.push(pick(a.traits.concat(b.traits)));
-  while(tr.length>3) tr.splice(rnd(tr.length),1);
   const kind=Math.random()<.5?a.kind:b.kind;
+  const hi=Math.max(a.atk,b.atk), lo=Math.min(a.atk,b.atk);
+  const base=Math.random()<.35?lo:hi;                      // 셋에 하나는 약한 쪽을 닮는다
+  // 위로 갈수록 오르기 어렵고 무르기 쉽다 — 공격은 5~6에서 평형을 이룬다.
+  // 그래야 "날을 포기하고 솜씨를 담은 형제"가 실제로 나와서 고를 수 있다.
+  const drift=Math.random()<(1-hi/ATK_CAP) ? 1 : (Math.random()<.4 ? -1 : 0);
+  const atk=Math.max(2, Math.min(ATK_CAP, base+drift));
+  // 쇠 한 자루가 품는 데에는 총량이 있다 — 날을 세울수록 솜씨가 들어설 자리가 준다.
+  // 이게 없으면 공격만 쫓아도 솜씨가 따라와서 "제일 센 것만 남긴다"가 언제나 정답이 된다.
+  const room=traitRoom(atk);
+  while(tr.length>room) tr.splice(rnd(tr.length),1);
   return {id:'g'+(uid++), kind, nm:pick(G_ADJ)+' '+pick(G_NOUN[kind]), traits:tr,
-    atk:Math.max(a.atk,b.atk)+1, gen:Math.max(a.gen,b.gen)+1, forged:[a.nm,b.nm]};
+    atk, gen:Math.max(a.gen,b.gen)+1, forged:[a.nm,b.nm]};
 }
 const gearOf=h=>h.gear?G.gear.find(g=>g.id===h.gear)||null:null;
 const fitsGear=(h,g)=>!!g&&raceOf(h).fit.includes(g.kind);   // 적성은 종족이 정한다
@@ -443,6 +457,16 @@ for(const h of G.heroes) if(!h.role){ const [r,o]=CLS2[h.cls]||CLS2.warrior; h.r
 while(G.gear.length<5) G.gear.push(newGear());
 const save=()=>store.set('forge.save',G);
 const FORGE_COST=5, RECRUIT_COST=4, PARTY_MAX=4;
+/* 한 쇳물 — 무기 둘을 녹여 형제 셋을 뽑는다.
+   2→1이면 표본이 줄어 유전이 재미가 아니라 노동이 된다. 늘어나야
+   고르고 버리는 선택이 생긴다. 창고 한도가 그 선택을 강제한다 —
+   벼릴 때마다 한 자루는 반드시 버려야 한다. */
+const SMELT_N=3, GEAR_MAX=6;
+/* 공격은 대를 거듭한다고 거저 오르지 않는다. 그러면 "제일 센 것만 남긴다"가
+   언제나 정답이 되어 형질을 볼 이유가 없어진다. 형제마다 갈리게 하고,
+   위로 갈수록 잘 안 오르게 해서 결국 솜씨로 승부가 나게 한다. */
+const ATK_CAP=8;
+const traitRoom=atk=>Math.max(1, 3-Math.max(0, Math.ceil((atk-4)/2)));
 /* 길드 시설 — 원정이 끝나도 남는 유일한 것. Mewgenics 가 NPC 강화로 하는 일이다.
    사람은 상처로 떠나고 무기도 벼리다 잃지만, 시설만은 계속 쌓인다. */
 const FACILITIES={
@@ -476,11 +500,11 @@ function renderHall(){
   if(G.heroes.length<2){ const h=randomHero(G.heroes); G.heroes.push(h); flash(`떠돌이 ${fullName(h)} ${h.name}이(가) 문을 두드렸다.`); save(); }
   $('hGold').textContent=G.gold; $('hTier').textContent=G.tier; $('hFame').textContent=G.fame; $('hCount').textContent=G.heroes.length;
   G.party=G.party.filter(id=>G.heroes.some(h=>h.id===id&&!h.wounded)).slice(0,PARTY_MAX);
-  $('btnForge').disabled = !(G.gear.length>=2 && G.gold>=Math.max(1,FORGE_COST-fac('smithy')*2));
+  $('btnForge').disabled = G.gear.length<2;
   $('btnRecruit').disabled = !(G.gold>=RECRUIT_COST && G.heroes.length<MAX_HEROES());
   $('btnSiege').disabled = !G.party.length;
   $('btnSiege').textContent = G.party.length?`원정 출발 · ${G.party.length}명`:'원정 나갈 사람을 고르세요';
-  $('rosterCount').textContent=`길드원 ${G.heroes.length}/${MAX_HEROES()} · 창고 무기 ${gearFree().length} · 원정 ${G.party.length}/${PARTY_MAX}`;
+  $('rosterCount').textContent=`길드원 ${G.heroes.length}/${MAX_HEROES()} · 창고 ${gearFree().length}/${GEAR_MAX} · 원정 ${G.party.length}/${PARTY_MAX}`;
   const r=$('roster'); r.innerHTML='';
   for(const h of G.heroes){ const s=stats(h,G.sup);
     const g=gearOf(h), nSc=scarsOf(h).length, fit=fitsGear(h,g), inParty=G.party.includes(h.id);
@@ -526,17 +550,17 @@ function lostTraits(){
 }
 $('btnRecruit').onclick=()=>{ G.gold-=RECRUIT_COST; const h=randomHero(G.heroes); G.heroes.push(h); save(); flash(`${fullName(h)} ${h.name} 합류.`); renderHall(); };
 /* ═══ 창고 — 무기를 장착하거나, 둘을 골라 벼린다 ═══ */
-let armMode='forge', armHero=null, armPick=[];
+let armMode='forge', armHero=null, armPick=[], armNew=[], armMsg='';
 function openArmory(mode, hero){
-  armMode=mode; armHero=hero||null; armPick=[];
+  armMode=mode; armHero=hero||null; armPick=[]; armNew=[];
   $('armT').textContent = mode==='forge' ? '🔨 대장간' : `🎒 ${hero.name}에게 줄 무기`;
   renderArmory(); $('ovArm').hidden=false;
 }
-function gearCard(g, on, note){
+function gearCard(g, on, note, fresh){
   const t=g.traits.map(k=>`${CRAFT[k].ic} ${CRAFT[k].nm}`).join(' · ');
-  return `<button class="relic" data-g="${g.id}" style="${on?'box-shadow:0 0 0 2px var(--accent) inset;':''}width:100%">
-    <span class="ic">${GEAR_KINDS[g.kind].ic}</span><span><b>${g.nm}</b>
-    <small>${GEAR_KINDS[g.kind].nm} · 공격 +${g.atk}${g.gen?` · ${g.gen}대`:''}${g.forged?` · ${g.forged.join(' × ')}`:''}</small>
+  return `<button class="relic" data-g="${g.id}" style="${on?'box-shadow:0 0 0 2px var(--accent) inset;':fresh?'box-shadow:0 0 0 2px var(--good) inset;':''}width:100%">
+    <span class="ic">${GEAR_KINDS[g.kind].ic}</span><span><b>${fresh?'✨ ':''}${g.nm}</b>
+    <small>${GEAR_KINDS[g.kind].nm} · 공격 +${g.atk} · 솜씨 자리 ${traitRoom(g.atk)}${g.gen?` · ${g.gen}대`:''}${g.forged?` · ${g.forged.join(' × ')}`:''}</small>
     <small>${t||'솜씨 없음'}</small>${note?`<small style="color:var(--bad)">${note}</small>`:''}</span></button>`;
 }
 function renderArmory(){
@@ -552,20 +576,28 @@ function renderArmory(){
       if(id==='none'){ armHero.gear=null; }
       else { const other=G.heroes.find(h=>h!==armHero&&h.gear===id); if(other) other.gear=armHero.gear||null; armHero.gear=id; }
       save(); $('ovArm').hidden=true; renderHall(); });
-    $('btnForgeGo').hidden=true;
+    $('btnForgeGo').hidden=true; $('btnScrap').hidden=true;
   } else {
-    $('armSub').innerHTML=`무기 <b>둘</b>을 골라 하나로 벼립니다. 솜씨는 각각 <b>55%</b>로 이어지고 <b>20%</b>로 새 솜씨가 깃듭니다 — 공격은 더 센 쪽 +1. <b>고른 둘은 사라집니다.</b>`;
+    const free=gearFree().length, full=free>=GEAR_MAX;
+    $('armSub').innerHTML=(armMsg
+      ? `<span style="color:var(--good)">${armMsg}</span>`
+      : `무기 <b>둘</b>을 녹여 <b>형제 ${SMELT_N}자루</b>를 뽑습니다. 솜씨는 각각 <b>${Math.round((0.55+fac('smithy')*0.08)*100)}%</b>로 이어지고 <b>20%</b>로 새것이 깃듭니다. 날을 세울수록 <b>솜씨 자리</b>가 줄어듭니다.`)
+      + `<br><span style="color:${full?'var(--bad)':'var(--mute)'}">창고 ${free}/${GEAR_MAX}${full?' — 가득 찼습니다. 한 자루를 골라 버리세요.':''}</span>`;
     box.innerHTML = G.gear.length<2 ? '<p class="stat">벼리려면 무기가 둘 이상 있어야 합니다.</p>'
       : G.gear.map(g=>{ const owner=G.heroes.find(h=>h.gear===g.id);
-          return gearCard(g, armPick.includes(g.id), owner?`${owner.name}이(가) 들고 있음`:''); }).join('');
+          return gearCard(g, armPick.includes(g.id), owner?`${owner.name}이(가) 들고 있음`:'', armNew.includes(g.id)); }).join('');
     box.querySelectorAll('button[data-g]').forEach(b=>b.onclick=()=>{
       const id=b.dataset.g;
       if(armPick.includes(id)) armPick=armPick.filter(x=>x!==id);
       else { if(armPick.length>=2) armPick.shift(); armPick.push(id); }
       renderArmory(); });
-    $('btnForgeGo').hidden=false;
-    $('btnForgeGo').disabled = !(armPick.length===2 && G.gold>=Math.max(1,FORGE_COST-fac('smithy')*2));
-    $('btnForgeGo').textContent=`벼리기 🪙${Math.max(1,FORGE_COST-fac('smithy')*2)}`;
+    const fc=Math.max(1,FORGE_COST-fac('smithy')*2);
+    $('btnForgeGo').hidden=false; $('btnScrap').hidden=false;
+    $('btnForgeGo').disabled = !(armPick.length===2 && G.gold>=fc && !full);
+    $('btnForgeGo').textContent=`쇳물 붓기 🪙${fc}`;
+    $('btnScrap').disabled = armPick.length!==1;
+    $('btnScrap').textContent = armPick.length===1 ? '🗑️ 버리기' : '🗑️ 버릴 것 하나';
+    armMsg='';
   }
 }
 $('btnForge').onclick=()=>openArmory('forge');
@@ -573,16 +605,28 @@ $('btnArmClose').onclick=()=>{ $('ovArm').hidden=true; renderHall(); };
 $('btnForgeGo').onclick=()=>{
   const [a,b]=armPick.map(id=>G.gear.find(g=>g.id===id)); if(!a||!b) return;
   const fc=Math.max(1,FORGE_COST-fac('smithy')*2);
+  if(gearFree().length>=GEAR_MAX) return;
   const held=G.heroes.filter(h=>h.gear===a.id||h.gear===b.id);
-  if(held.length && !confirm(`${held.map(h=>h.name).join(', ')}이(가) 들고 있는 무기입니다. 벼리면 맨손이 됩니다. 계속할까요?`)) return;
-  const ng=forge(a,b); G.gold-=fc;
+  if(held.length && !confirm(`${held.map(h=>h.name).join(', ')}이(가) 들고 있는 무기입니다. 녹이면 맨손이 됩니다. 계속할까요?`)) return;
+  const kids=smelt(a,b); G.gold-=fc;
   for(const h of G.heroes) if(h.gear===a.id||h.gear===b.id) h.gear=null;
-  G.gear=G.gear.filter(g=>g!==a&&g!==b); G.gear.push(ng);
-  armPick=[]; save();
-  $('armSub').innerHTML=`<b>${a.nm}</b> × <b>${b.nm}</b> →`;
-  $('armBox').innerHTML=gearCard(ng,true)+`<p class="stat">${ng.gen}대 무기입니다. 누구에게 줄지는 길드원 카드의 '무기'에서 정하세요.</p>`;
-  $('btnForgeGo').hidden=true; renderHall();
+  G.gear=G.gear.filter(g=>g!==a&&g!==b); G.gear.push(...kids);
+  armPick=[]; armNew=kids.map(g=>g.id); save();
+  flashArm(`<b>${a.nm}</b> × <b>${b.nm}</b> → 형제 <b>${kids.length}자루</b>가 나왔습니다. 같은 부모인데 솜씨가 제각각입니다.`);
+  renderArmory(); renderHall();
 };
+/* 버리기 — 창고 한도가 있으니 무엇을 남길지가 매번 선택이 된다 */
+$('btnScrap').onclick=()=>{
+  if(armPick.length!==1) return;
+  const g=G.gear.find(x=>x.id===armPick[0]); if(!g) return;
+  const owner=G.heroes.find(h=>h.gear===g.id);
+  if(!confirm(`${g.nm}을(를) 버립니다.${owner?` ${owner.name}이(가) 맨손이 됩니다.`:''} 되돌릴 수 없습니다.`)) return;
+  for(const h of G.heroes) if(h.gear===g.id) h.gear=null;
+  G.gear=G.gear.filter(x=>x!==g); armPick=[]; armNew=armNew.filter(id=>id!==g.id); save();
+  flashArm(`<b>${g.nm}</b>을(를) 버렸습니다.`);
+  renderArmory(); renderHall();
+};
+function flashArm(html){ armMsg=html; }
 
 /* ═══════════════════ 원정 ═══════════════════ */
 let B=null;  // {tier, wave, gold, units:[], gate, gateMax, wall:{r:'ok'|'rubble'}, phase, sel, dead:[]}
