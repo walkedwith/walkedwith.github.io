@@ -170,7 +170,8 @@
   <div class="top"><span><small>금화</small>🪙 <span id="hGold">0</span></span><span><small>다음 공성</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span>/8</span></div>
   <button class="pri go" id="btnSiege">공성 준비</button>
   <div class="subacts">
-    <button id="btnRecruit"><b>🧍 모집</b><i>🪙4</i></button>
+    <button id="btnTeach"><b>📜 전승</b><i>🪙6</i></button>
+    <button id="btnRecruit"><b>🧍 모집</b><i>새 피 🪙4</i></button>
     <button id="btnHelp"><b>❓ 규칙</b><i>보기</i></button>
   </div>
   <div class="hint" id="hallHint"></div>
@@ -206,6 +207,11 @@
 
 <div class="ov" id="ovEnd" hidden><div class="sheet"><h2 id="endTitle"></h2><p id="endBody"></p><button class="pri" id="btnHome">길드 홀로</button></div></div>
 
+<div class="ov" id="ovTeach" hidden><div class="sheet">
+  <h2>📜 전승</h2><p id="teachSub"></p><div id="teachBox"></div>
+  <div class="actions"><button class="pri" id="btnTeachGo">가르치기 🪙6</button><button id="btnTeachClose">닫기</button></div>
+</div></div>
+
 <div class="ov" id="ovHelp" hidden><div class="sheet">
   <h2>규칙</h2>
   <div class="rules" id="classList2"></div>
@@ -215,7 +221,8 @@
   <div class="rules" id="scarList"></div>
   <p><b>높이</b>: 성벽 위 아군은 지상 근접 적이 못 때립니다. 궁수 오크(사거리 2)·성벽에 오른 사다리병·폭약병(그 칸 3 피해)만 위협이고, 무너진 성벽 칸은 지상입니다.</p>
   <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>종족과 역할</b>: 길드원은 <b>종족</b>(인간·드워프·엘프)과 <b>역할</b>(전사·궁수·마법사)을 따로 가집니다 — 드워프 궁수도, 엘프 전사도 나옵니다. 종족은 몸(체력·사거리·수리·야간 시야)을, 역할은 싸우는 방식을 정합니다.</p>
-  <p><b>기질과 솜씨</b>: 길드원은 태어날 때 <b>둘</b>을 지닙니다 — 도발·돌가죽 같은 <b>기질</b>과 방패술·속사 같은 <b>솜씨</b>를 가리지 않습니다. 그 사람이 죽으면 같이 사라집니다. 따로 챙길 무기나 창고는 없습니다.
+  <p><b>기질과 솜씨</b>: 길드원은 <b>유전자 네 칸</b>을 가집니다. <b>우성</b>(도발·돌가죽·방패술·힘 등)은 한 칸만 있어도 드러나고, <b>열성</b>(🌙야간 시야·⚡속사·🐍독니·🔥화염·🧱석공·🍺술 내성)은 <b>두 칸이 같아야</b> 드러납니다. 드러나지 않은 열성은 계보에 숨어 있다가 제자에게서 나옵니다.</p>
+  <p><b>전승</b>: 길드원 <b>둘</b>을 스승으로 세우면 제자 하나가 옵니다 — 각자 유전자 두 칸씩 넘깁니다. 22%로 <b>돌연변이</b>가 깃듭니다. 같은 사람이 자꾸 스승을 서면 <b>솜씨가 굳어</b> 돌연변이가 멎고, 더 굳으면 유전자 한 칸이 비고 몸이 약해집니다. <b>모집</b>으로 밖에서 데려온 사람은 계보가 없어 굳음을 씻습니다.</p>
   <div class="rules" id="traitList"></div>
   <button id="btnHelpClose">닫기</button>
 </div></div>
@@ -239,7 +246,6 @@ const RACES={
 const ROLES={
   warrior:{ic:'🛡️', nm:'전사',   hp:12, atk:5, rng:1, desc:'옆 칸을 벤다. 단단하다'},
   archer: {ic:'🏹', nm:'궁수',   hp:8,  atk:4, rng:3, desc:'멀리 쏜다. 성벽 위에선 +1'},
-  mage:   {ic:'🔮', nm:'마법사', hp:7,  atk:2, rng:2, area:true, desc:'2칸 안 전부 1 피해 + 느려짐'},
 };
 const raceOf=h=>RACES[h.race]||RACES.human, roleOf=h=>ROLES[h.role]||ROLES.warrior;
 const fullName=h=>`${raceOf(h).nm} ${roleOf(h).nm}`;
@@ -265,7 +271,40 @@ const CRAFT={    // 솜씨 — 몸으로 익힌 것. 이제 이것도 사람이 
   mason:  {ic:'🧱', nm:'석공',     desc:'수리 +2'},
   fire:   {ic:'🔥', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
 };
-const TRAITS={...TEMPER, ...CRAFT};          // 길드원은 이 둘에서 섞어 타고난다
+const TRAITS={...TEMPER, ...CRAFT};
+/* 우성은 한 칸만 있어도 드러나고, 열성은 두 칸이 같아야 드러난다.
+   그래서 드러나지 않은 열성이 계보에 숨어 있다가 제자에게서 튀어나온다. */
+const RECESSIVE=new Set(['night','ale','rapid','venom','mason','fire']);
+const GENE_SLOTS=4, SHOW_MAX=3;
+function expressed(genes){
+  const n={}; for(const g of genes||[]) n[g]=(n[g]||0)+1;
+  const out=[];
+  for(const k in n) if(!RECESSIVE.has(k)) out.push(k);          // 우성 — 하나면 충분
+  for(const k in n) if(RECESSIVE.has(k)&&n[k]>=2) out.push(k);  // 열성 — 둘이라야
+  return out.slice(0,SHOW_MAX);
+}
+function randomGenes(){
+  const ks=Object.keys(TRAITS), g=[];
+  for(let i=0;i<GENE_SLOTS;i++) g.push(pick(ks));
+  if(!expressed(g).length) g[0]=pick(ks.filter(k=>!RECESSIVE.has(k)));   // 아무것도 안 드러나면 허전하다
+  return g;
+}
+/* 전승 — 스승 둘이 제자 하나를 기른다. 각자 유전자 두 칸씩 넘긴다.
+   같은 둘이 계속 가르치면 솜씨가 굳는다. 그래서 가끔은 밖에서 사람을 데려와야 한다. */
+const TEACH_COST=6;
+const staleOf=(a,b)=>Math.min(3, Math.floor(((a.taught||0)+(b.taught||0))/2));
+function teach(a,b,hs){
+  const st=staleOf(a,b);
+  const take=(h)=>{ const g=(h.genes||[]).slice(); const out=[];
+    for(let i=0;i<2&&g.length;i++) out.push(g.splice(rnd(g.length),1)[0]); return out; };
+  let genes=take(a).concat(take(b));
+  if(st<2 && Math.random()<.22) genes[rnd(genes.length)]=pick(Object.keys(TRAITS));   // 돌연변이 — 굳으면 안 난다
+  if(st>=3) genes.pop();                                                             // 굳으면 한 칸이 빈다
+  const race=Math.random()<.5?a.race:b.race;
+  return {id:uid++, name:newName(hs), race, role:pick(Object.keys(ROLES)), genes,
+    lv:1, xp:0, gen:Math.max(a.gen||0,b.gen||0)+1, taught:0, wounded:false,
+    bonus:{hp:st>=3?-3:0, atk:0}, scars:[], from:[a.name,b.name]};
+}
 const FOES={
   wolf:   {ic:'🐺', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1, desc:'한 틱에 두 칸. 근접 — 성벽 위는 못 때린다'},
   orc:    {ic:'⚔️', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2, desc:'근접. 성문을 두드린다'},
@@ -305,7 +344,7 @@ const PROPS={ // [행, 열, 문자] — 오른손 무기. 공격 포즈는 한 �
 const RACE_SPR={ human:{}, dwarf:{beard:true, skin:'s'}, elf:{hair:'y', skin:'x'} };
 const ROLE_SPR={ warrior:{hat:'m', cloth:'b', props:['sword','shield']},
                  archer:{hat:'e', cloth:'w', props:['bow']},
-                 mage:{hat:'p', cloth:'p', props:['staff'], pointy:true} };
+};
 const SPRITES={
   orc:{hat:'d', cloth:'d', skin:'g', props:['cleaver']}, ladder:{hat:'d', cloth:'d', skin:'g', props:['ladder']}, bomber:{hat:'d', cloth:'d', skin:'g', props:['bomb']},
   shaman:{hat:'P', cloth:'d', skin:'g', props:['bow'], pointy:true}, troll:{hat:'G', cloth:'t', skin:'G', props:['cleaver'], big:true},
@@ -348,12 +387,10 @@ const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
 const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
 let uid=1;
 const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+'Ⅱ'; };
-function randomHero(hs){
-  const race=pick(Object.keys(RACES)), role=pick(Object.keys(ROLES));
-  const t=[pick(Object.keys(TRAITS))];                       // 기질과 솜씨를 가리지 않는다
-  while(t.length<2){ const u=pick(Object.keys(TRAITS)); if(!t.includes(u)) t.push(u); }
-  return {id:uid++, name:newName(hs), race, role, temper:t, lv:1, xp:0, gen:0, wounded:false, bonus:{hp:0,atk:0}, age:22+rnd(13)}; }
-const heroTraits=h=>h.temper||[];
+function randomHero(hs){   // 밖에서 데려온 사람 — 계보가 없어 굳음을 씻는다
+  return {id:uid++, name:newName(hs), race:pick(Object.keys(RACES)), role:pick(Object.keys(ROLES)),
+    genes:randomGenes(), lv:1, xp:0, gen:0, taught:0, wounded:false, bonus:{hp:0,atk:0}, scars:[]}; }
+const heroTraits=h=>expressed(h.genes);
 function stats(h, sup){
   const T=heroTraits(h), has=t=>T.includes(t); sup=sup||[];
   const R=raceOf(h), c=roleOf(h);
@@ -368,21 +405,24 @@ if(!G){ G={gold:8, fame:0, tier:1, heroes:[], grave:[], mentors:[], sup:[], reti
 uid=Math.max(uid, ...G.heroes.map(h=>h.id+1));
 for(const h of G.heroes){ if(!h.scars) h.scars=[]; delete h.age; }   // 나이는 상처로 대체됐다
 if(!G.retired) G.retired=[];
-// 옛 세이브 — 형질이 사람에 붙어 있던 판, 무기에 있던 판 둘 다 사람에게로 모은다
+// 옛 세이브 — 사람·무기에 흩어져 있던 형질을 유전자 칸으로 모은다
 for(const h of G.heroes){
-  if(h.temper===undefined){ const old=h.traits||[]; h.temper=old.filter(t=>TRAITS[t]); delete h.traits; }
-  h.temper=(h.temper||[]).filter(t=>TRAITS[t]);
-  if(h.gear!==undefined){                         // 들고 있던 무기의 솜씨를 몸에 새긴다
+  if(!h.genes){
+    let t=(h.temper||h.traits||[]).filter(x=>TRAITS[x]);
     const g=(G.gear||[]).find(x=>x.id===h.gear);
-    if(g) for(const t of g.traits) if(!h.temper.includes(t)) h.temper.push(t);
-    delete h.gear;
+    if(g) for(const x of g.traits) if(!t.includes(x)) t.push(x);
+    const genes=[];
+    for(const x of t){ genes.push(x); if(RECESSIVE.has(x)) genes.push(x); }   // 드러나 있던 건 계속 드러나게
+    while(genes.length<GENE_SLOTS) genes.push(pick(Object.keys(TRAITS)));
+    h.genes=genes.slice(0,GENE_SLOTS);
+    delete h.temper; delete h.traits; delete h.gear;
   }
-  while(h.temper.length<2){ const u=pick(Object.keys(TRAITS)); if(!h.temper.includes(u)) h.temper.push(u); }
-  while(h.temper.length>3) h.temper.pop();
+  if(h.taught===undefined) h.taught=0;
+  if(h.role==='mage') h.role='archer';
 }
 delete G.gear; delete G.seenTraits;
 // 클래스 하나였던 것을 종족 × 역할로 가른다 — 드워프·엘프는 원래 종족이었다
-const CLS2={warrior:['human','warrior'], archer:['human','archer'], mage:['human','mage'],
+const CLS2={warrior:['human','warrior'], archer:['human','archer'], mage:['human','archer'],
             dwarf:['dwarf','warrior'],   elf:['elf','archer']};
 for(const h of G.heroes) if(!h.role){ const [r,o]=CLS2[h.cls]||CLS2.warrior; h.race=r; h.role=o; delete h.cls; }
 const save=()=>store.set('keep.save',G);
@@ -410,6 +450,7 @@ function renderHall(){
   G.mentors=G.mentors.filter(id=>G.heroes.some(h=>h.id===id));
   const ms=G.mentors.map(id=>G.heroes.find(h=>h.id===id));
   $('btnRecruit').disabled = !(G.gold>=RECRUIT_COST && G.heroes.length<MAX_HEROES);
+  $('btnTeach').disabled = !(G.gold>=TEACH_COST && G.heroes.length>=2 && G.heroes.length<MAX_HEROES);
   $('btnSiege').disabled = !G.heroes.some(h=>!h.wounded);
   $('rosterCount').textContent=`길드원 ${G.heroes.length}/${MAX_HEROES}명`;
   const r=$('roster'); r.innerHTML='';
@@ -427,7 +468,9 @@ function renderHall(){
           <div class="rg"><i>사거리</i><b>${s.rng}</b></div>
         </div>
         <div class="kit">
-          ${(h.temper||[]).map(t=>`<span class="${CRAFT[t]?'gr':'tp'}" title="${TRAITS[t].desc}">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')}
+          ${heroTraits(h).map(t=>`<span class="${CRAFT[t]?'gr':'tp'}" title="${TRAITS[t].desc}">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')}
+          ${h.from?`<span class="none" title="${h.from.join(' × ')} 가 가르침">📜 ${h.gen}대</span>`:''}
+          ${h.taught?`<span class="none" title="스승을 선 횟수 — 많을수록 솜씨가 굳는다">👐 ${h.taught}</span>`:''}
         </div>
         ${nSc?`<div class="scars"><span class="dots">${'●'.repeat(nSc)}${'○'.repeat(SCAR_OUT-nSc)}</span>
           ${scarsOf(h).map(k=>`<span title="${SCARS[k].desc}">${SCARS[k].ic} ${SCARS[k].nm}</span>`).join(' · ')}</div>`:''}
@@ -439,6 +482,47 @@ function renderHall(){
   $('grave').innerHTML = G.grave.length ? '🪦 '+G.grave.slice(-8).map(g=>`${g.name}(${g.cls}, ${g.tier}차 ${g.wave}웨이브)`).join(' · ') : '';
 }
 function flash(t){ $('hallHint').textContent=t; }
+/* 전승 — 스승 둘이 제자를 기른다 */
+let teachPick=[];
+function renderTeach(){
+  const full=G.heroes.length>=MAX_HEROES;
+  const [ia,ib]=teachPick.map(id=>G.heroes.find(h=>h.id===id));
+  const st=(ia&&ib)?staleOf(ia,ib):0;
+  const note=['새로운 짝 — 돌연변이가 날 수 있다','아직 괜찮다','솜씨가 굳었다 — 돌연변이 없음','너무 굳었다 — 유전자 한 칸이 비고 몸이 약하다'];
+  $('teachSub').innerHTML = (full
+    ? '<span style="color:var(--bad)">길드가 가득 찼습니다 — 누군가 내보내야 합니다.</span>'
+    : '스승 <b>둘</b>을 고르면 제자 하나가 옵니다. 각자 유전자 <b>두 칸</b>씩 넘겨줍니다.<br>'
+      +'<span style="color:var(--mute)">우성은 한 칸만 있어도 드러나고, <b>열성은 두 칸이 같아야</b> 드러납니다 — 숨은 것이 제자에게서 나옵니다.</span>')
+    + (ia&&ib?`<br><b style="color:${st>=2?'var(--bad)':'var(--good)'}">${note[st]}</b>`:'');
+  $('teachBox').innerHTML=G.heroes.map(h=>{
+    const on=teachPick.includes(h.id);
+    return `<button class="relic" data-h="${h.id}" style="${on?'box-shadow:0 0 0 2px var(--torch) inset;':''}width:100%">
+      <span class="ic"><img src="${sprite(sprKey(h),false)}" style="width:28px;height:28px;image-rendering:pixelated" alt=""></span>
+      <span><b>${h.name}</b> <small>${raceOf(h).nm} ${roleOf(h).nm}${h.gen?` · ${h.gen}대`:''}</small>
+      <small>${heroTraits(h).map(t=>TRAITS[t].ic+' '+TRAITS[t].nm).join(' · ')||'드러난 것 없음'}</small>
+      <small style="color:var(--mute)">가르친 횟수 <b>${h.taught||0}</b>${(h.taught||0)>=2?' — 굳어간다':''}</small></span></button>`; }).join('');
+  $('teachBox').querySelectorAll('button[data-h]').forEach(b=>b.onclick=()=>{
+    const id=+b.dataset.h;
+    if(teachPick.includes(id)) teachPick=teachPick.filter(x=>x!==id);
+    else { if(teachPick.length>=2) teachPick.shift(); teachPick.push(id); }
+    renderTeach(); });
+  $('btnTeachGo').disabled = !(teachPick.length===2 && G.gold>=TEACH_COST && !full);
+}
+$('btnTeach').onclick=()=>{ teachPick=[]; renderTeach(); $('ovTeach').hidden=false; };
+$('btnTeachClose').onclick=()=>{ $('ovTeach').hidden=true; renderHall(); };
+$('btnTeachGo').onclick=()=>{
+  const [a,b]=teachPick.map(id=>G.heroes.find(h=>h.id===id));
+  if(!a||!b||G.gold<TEACH_COST||G.heroes.length>=MAX_HEROES) return;
+  G.gold-=TEACH_COST; a.taught=(a.taught||0)+1; b.taught=(b.taught||0)+1;
+  const kid=teach(a,b,G.heroes); G.heroes.push(kid); save();
+  const shown=heroTraits(kid);
+  const fresh=shown.filter(t=>!heroTraits(a).includes(t)&&!heroTraits(b).includes(t));
+  teachPick=[]; renderTeach(); renderHall();
+  $('teachSub').innerHTML=`<b>${a.name}</b> × <b>${b.name}</b> → <b style="color:var(--torch)">${kid.name}</b>`
+    +`<br><small>${raceOf(kid).nm} ${roleOf(kid).nm} · ${kid.gen}대</small>`
+    +`<br>${shown.map(t=>`<b>${TRAITS[t].ic} ${TRAITS[t].nm}</b>`).join(' · ')||'<span style="color:var(--mute)">드러난 것이 없습니다 — 숨은 것은 다음 대에서 나옵니다</span>'}`
+    +(fresh.length?`<br><span style="color:var(--good)">✨ 스승에게 없던 것: ${fresh.map(t=>TRAITS[t].nm).join(', ')}</span>`:'');
+};
 $('btnRecruit').onclick=()=>{ G.gold-=RECRUIT_COST; const h=randomHero(G.heroes); G.heroes.push(h); save(); flash(`${fullName(h)} ${h.name} 합류.`); renderHall(); };
 /* ═══════════════════ 공성 ═══════════════════ */
 let B=null;  // {tier, wave, gold, units:[], gate, gateMax, wall:{c:'rubble'}, phase, sel, dead:[]}
