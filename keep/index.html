@@ -129,6 +129,16 @@
   .c.climb::before{content:''; position:absolute; right:2px; top:4px; bottom:4px; width:8px; background:repeating-linear-gradient(#9a6b3c 0 2px, transparent 2px 5px); border-left:2px solid #9a6b3c; border-right:2px solid #9a6b3c; z-index:3; pointer-events:none}
   .c.gate.broken{background:#4A3A2A; box-shadow:none}
   .c.spawn{background:#4A3B3B}
+  /* 예고 — 붉은 빗금은 '이번 틱에 맞는 칸', 화살표는 '적이 갈 칸' */
+  .c.aim{box-shadow:inset 0 0 0 3px var(--bad)}
+  .c.aim::after{content:''; position:absolute; inset:0; border-radius:5px; pointer-events:none;
+    background:repeating-linear-gradient(45deg, rgba(217,91,78,.30) 0 5px, transparent 5px 10px)}
+  .c .step{position:absolute; left:50%; top:50%; width:0; height:0; margin:-10px 0 0 -8px; z-index:4;
+    border-left:8px solid transparent; border-right:8px solid transparent; border-bottom:15px solid #F5D06B;
+    transform:rotate(var(--rot,0deg)); filter:drop-shadow(0 1px 2px rgba(0,0,0,.7)); pointer-events:none}
+  .c .step.soft{opacity:.45; transform:rotate(var(--rot,0deg)) scale(.78)}
+  .c .bang{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:5;
+    font-size:calc(var(--cell)*.46); pointer-events:none; filter:drop-shadow(0 1px 2px rgba(0,0,0,.7))}
   /* 마을 — 지켜야 할 줄. 따뜻한 색이라야 잃을 때 아프다 */
   .c.vil{background:linear-gradient(#7A5F3E,#5E4830)}
   .c.vil.burn{background:linear-gradient(#6E3A2A,#4A241A)}
@@ -216,11 +226,12 @@
   <h2>규칙</h2>
   <div class="rules" id="classList2"></div>
   <p><b>공성</b>: 빌드 단계에 길드원을 성벽(회색)·안뜰(갈색)·들판에 세웁니다. 매 틱 아군이 먼저 때리고 적이 움직입니다. 적은 <b>위에서 내려옵니다</b>. 성문을 두드려 부수거나 사다리로 성벽을 넘어, 맨 아랫줄 <b>마을</b>로 갑니다 — 한 마리가 닿을 때마다 <b>집이 하나 탑니다</b>. 셋이 타면 끝입니다.</p>
+  <p><b>예고</b>: 적이 <b>이번 틱에 할 일</b>이 판 위에 미리 보입니다. <b style="color:#F5D06B">노란 화살표</b>는 적이 갈 칸, 흐린 화살표는 두 칸 가는 놈의 둘째 걸음입니다. <b style="color:var(--bad)">붉은 빗금</b>은 무슨 일이 벌어질 칸이고, 그 안의 그림이 무슨 일인지 말합니다 — ⚔️ 길드원을 친다, 🔨 성문을 두드린다, 🧨 성벽을 터뜨린다, 🔥 집을 태운다. <b>추측할 것이 없습니다</b> — 배치는 운이 아니라 퍼즐입니다.</p>
   <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 웨이브 중에도 됩니다.</p>
   <p><b>상처</b>: 공성이 끝났을 때 체력이 <b>1/4 이하</b>로 살아남으면 몸에 자국이 하나 남습니다(절반 이하면 부상 — 다음 공성 휴식). 상처는 영영 안 사라지고, <b>셋이 되면 더는 성벽에 못 섭니다</b>. 사람을 갉아먹는 건 세월이 아니라 <b>그 밤을 어떻게 버텼느냐</b>입니다.</p>
   <div class="rules" id="scarList"></div>
   <p><b>높이</b>: 성벽 위 아군은 지상 근접 적이 못 때립니다. 궁수 오크(사거리 2)·성벽에 오른 사다리병·폭약병(그 칸 3 피해)만 위협이고, 무너진 성벽 칸은 지상입니다.</p>
-  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>종족과 역할</b>: 길드원은 <b>종족</b>(인간·드워프·엘프)과 <b>역할</b>(전사·궁수·마법사)을 따로 가집니다 — 드워프 궁수도, 엘프 전사도 나옵니다. 종족은 몸(체력·사거리·수리·야간 시야)을, 역할은 싸우는 방식을 정합니다.</p>
+  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>종족과 역할</b>: 길드원은 <b>종족</b>(인간·드워프·엘프)과 <b>역할</b>(전사·궁수)을 따로 가집니다 — 드워프 궁수도, 엘프 전사도 나옵니다. 종족은 몸(체력·사거리·수리·야간 시야)을, 역할은 싸우는 방식을 정합니다.</p>
   <p><b>기질과 솜씨</b>: 길드원은 <b>유전자 네 칸</b>을 가집니다. <b>우성</b>(도발·돌가죽·방패술·힘 등)은 한 칸만 있어도 드러나고, <b>열성</b>(🌙야간 시야·⚡속사·🐍독니·🔥화염·🧱석공·🍺술 내성)은 <b>두 칸이 같아야</b> 드러납니다. 드러나지 않은 열성은 계보에 숨어 있다가 제자에게서 나옵니다.</p>
   <p><b>전승</b>: 길드원 <b>둘</b>을 스승으로 세우면 제자 하나가 옵니다 — 각자 유전자 두 칸씩 넘깁니다. 22%로 <b>돌연변이</b>가 깃듭니다. 같은 사람이 자꾸 스승을 서면 <b>솜씨가 굳어</b> 돌연변이가 멎고, 더 굳으면 유전자 한 칸이 비고 몸이 약해집니다. <b>모집</b>으로 밖에서 데려온 사람은 계보가 없어 굳음을 씻습니다.</p>
   <div class="rules" id="traitList"></div>
@@ -544,6 +555,7 @@ $('btnSiege').onclick=()=>{
   $('scHall').hidden=true; $('scSiege').hidden=false; buildFort(); nextWave();
 };
 function nextWave(){
+  B.fTick=1;                                  // 배치 화면은 다음 판의 첫 틱을 예고한다
   B.wave++; B.phase='build'; B.sel=null;
   if(has('masons')) for(const k in B.wall) delete B.wall[k];
   for(const u of B.units) if(u.kind==='h'&&has('medic')) u.hp=Math.min(u.maxhp,u.hp+3);
@@ -558,6 +570,76 @@ function nextWave(){
     r:0, c:SPAWNS[rnd(3)], delay:i, slow:0, hold:has('horn')?1:0, st:{}, onWall:false}); });
   render(); $('tip').textContent = w===1 ? '길드원 칩을 누르고 성벽·안뜰·들판 칸을 누르세요. 다시 누르면 옮깁니다.' : '';
   if(w===4) log('🌙 밤이 됐다 — 궁수 사거리 −1'); else if(w===10) log('마지막 밤. 버티면 동이 튼다.'); else log('');
+}
+/* 적 한 걸음의 판단 — 실제 틱과 예고가 같은 함수를 부른다.
+   갈라지면 예고가 거짓말이 되므로, 판단은 여기 한 곳에만 둔다.
+   pos 는 가상 위치(예고는 두 칸째를 미리 걸어본다). 아무것도 바꾸지 않는다. */
+function enemyPlan(e, pos, hs){
+  const P={r:pos.r, c:pos.c};
+  const near=hs.filter(h=>h.hp>0&&dist(P,h)<=e.rng&&(e.rng>1||elev(h.r,h.c)===elev(P.r,P.c)));
+  if(e.atk>0&&near.length){ near.sort((a,b)=>a.hp-b.hp); return {type:'hit', t:near[0], n:e.atk}; }
+  if(e.bomb){                                        // 폭약병 — 성벽 옆에 닿으면 터진다
+    const wc=[...Array(C).keys()].filter(c=>isWall(WALL_R,c)&&B.wall[c]!=='rubble');
+    if(P.r===WALL_R-1&&wc.includes(P.c)) return {type:'boom', r:WALL_R, c:P.c};
+    let best=null; for(const c of wc){ const q=path(P,{r:WALL_R-1,c},e); if(q&&(!best||q.length<best.length)) best=q; }
+    if(!best||best.length<2) return {type:'stop'};
+    const [nr,nc]=best[1]; if(at(nr,nc)) return {type:'stop'};
+    return {type:'move', r:nr, c:nc, raw:true};
+  }
+  if(B.gate>0&&dist(P,GATE)===1&&!isKeep(P.r,P.c)) return {type:'gate', r:GATE.r, c:GATE.c, n:e.boss?4:e.atk||1};
+  // 목표: 도발 영웅 > (기어오르는 놈이면) 성벽 > 마을 > 성문 앞
+  let target=null; const taunter=hs.find(h=>h.hp>0&&h.traits.includes('taunt')&&dist(P,h)<=3); if(taunter) target=taunter;
+  let p=null;
+  if(target){ p=path(P,target,e); }
+  else if(e.climb&&P.r<WALL_R){ let best=null; for(let c=0;c<C;c++){ if(!isWall(WALL_R,c)) continue; const q=path(P,{r:WALL_R,c},e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
+  if(!p){ let best=null; for(let c=0;c<C;c++){ const q=path(P,{r:R-1,c},e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
+  if(!p) p=path(P,{r:GATE.r-1,c:GATE.c},e);          // 마을로 가는 길이 없으면 성문 앞으로
+  if(!p||p.length<2) return {type:'stop'};
+  const [nr,nc]=p[1]; if(at(nr,nc)) return {type:'stop'};
+  return {type:'move', r:nr, c:nc};
+}
+// 불탈 집을 고른다 — 이미 탄 집이면 가장 가까운 성한 집으로 옮겨 붙는다
+function burnCol(c){ if(!B.burn.includes(c)) return c;
+  const free=[...Array(C).keys()].filter(x=>!B.burn.includes(x)).sort((a,b)=>Math.abs(a-c)-Math.abs(b-c));
+  return free.length?free[0]:c; }
+
+/* 예고 — 다음 틱에 각 적이 무엇을 할지 판 위에 미리 보여준다.
+   Into the Breach 의 방식: 추측할 게 없어야 배치가 퍼즐이 된다.
+   적은 차례대로 움직이며 서로 길을 막으므로, 실제 순서 그대로 걸어본 뒤 전부 되돌린다. */
+function foretell(){
+  if(!B||!B.units||B.phase==='over') return [];
+  const hs=alive('h').filter(u=>u.r>=0), out=[];
+  const en=B.units.filter(u=>u.kind==='e');
+  const snap=en.map(e=>[e.r,e.c,e.hp]), gate0=B.gate, wall0=Object.assign({},B.wall);
+  const nextTick=(B.fTick==null?B.tick+1:B.fTick);   // 다음 '적 차례'가 몇 번째 틱인가 — 느린 놈의 쉬는 틱이 여기 달렸다
+  try{
+    for(const e of en){
+      if(e.hp<=0||e.delay>0) continue;
+      let dot=0; if(e.st.venom) dot+=1; if(e.st.fire) dot+=2;
+      if(dot>=e.hp){ e.hp=0; continue; }              // 독·불로 이번 틱에 죽는다 — 아무것도 못 한다
+      if(e.hold>0||e.slow>0){ out.push({e,type:'wait'}); continue; }
+      const steps=e.spd>=1?e.spd:(nextTick%2===0?1:0);
+      if(steps<=0){ out.push({e,type:'wait'}); continue; }
+      const mv=[]; let done=false;
+      for(let s=0;s<steps&&!done;s++){
+        const a=enemyPlan(e,e,hs);
+        if(a.type==='hit'){ out.push({e,type:'hit',r:a.t.r,c:a.t.c,n:a.n,path:mv.slice()}); done=true; break; }
+        if(a.type==='boom'){ out.push({e,type:'bomb',r:a.r,c:a.c,path:mv.slice()}); B.wall[a.c]='rubble'; e.hp=0; done=true; break; }
+        if(a.type==='gate'){ out.push({e,type:'gate',r:a.r,c:a.c,n:a.n,path:mv.slice()}); done=true; break; }
+        if(a.type==='stop'){ out.push({e,type:mv.length?'move':'wait',path:mv}); done=true; break; }
+        const wasWall=isWall(e.r,e.c); e.r=a.r; e.c=a.c; mv.push([a.r,a.c]);
+        if(a.raw) continue;
+        if(isWall(a.r,a.c)&&!wasWall&&B.wall[a.c]!=='rubble'){ out.push({e,type:'move',path:mv}); done=true; break; }
+        if(wasWall&&isKeep(a.r,a.c)){ out.push({e,type:'move',path:mv}); done=true; break; }
+        if(isVillage(a.r,a.c)){ out.push({e,type:'burn',r:VILLAGE_R,c:burnCol(a.c),path:mv}); e.hp=0; done=true; break; }
+      }
+      if(!done) out.push({e,type:'move',path:mv});
+    }
+  } finally{
+    en.forEach((e,i)=>{ e.r=snap[i][0]; e.c=snap[i][1]; e.hp=snap[i][2]; });
+    B.gate=gate0; B.wall=wall0;
+  }
+  return out;
 }
 /* 길 — 성벽은 벽, 성문은 부서지면 길, 폭파된 성벽은 길. 영웅은 적에게 벽이 아니다(부딪히면 싸운다). */
 function blocked(r,c,u){ if(isWall(r,c)) return !(B.wall[c]==='rubble'||(u&&u.climb)); if(isGate(r,c)) return B.gate>0; return false; }
@@ -595,7 +677,7 @@ function onCell(r,c){
   if(isWall(r,c)&&(B.sel.scars||[]).includes('limp')){ $('tip').innerHTML=`${B.sel.name}은(는) <b>절뚝여서</b> 성벽에 못 오릅니다 — 안뜰에 세우세요.`; return; }
   B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; $('tip').textContent=''; render();
 }
-function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null; if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; } B.phase='run'; B.sel=null; B.tick=0; render(); tickLoop(); }
+function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null; if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; } B.phase='run'; B.sel=null; B.tick=0; B.fTick=1; render(); tickLoop(); }
 
 /* 틱 */
 function tickLoop(){
@@ -623,7 +705,7 @@ function tickLoop(){
     }
     if(u.repair){ if(dist(u,GATE)===1&&B.gate<B.gateMax&&B.gate>0){ const before=B.gate; B.gate=Math.min(B.gateMax,B.gate+u.repair); qfx({type:'dmg', r:GATE.r, c:GATE.c, txt:'+'+(B.gate-before), cls:'heal'}); } for(const [dr,dc] of DIR4){ const rr=u.r+dr,cc=u.c+dc; if(inb(rr,cc)&&isWall(rr,cc)&&B.wall[cc]==='rubble'&&Math.random()<.5){ delete B.wall[cc]; log(`${u.name}이(가) 성벽을 메웠다`); } } }
   }
-  render(); flushFX();
+  B.fTick=B.tick; render(); flushFX();
   setTimeout(()=>{ if(!B||B.phase!=='run') return;
   // 2) 적
   for(const e of B.units){
@@ -633,34 +715,24 @@ function tickLoop(){
     if(e.hold>0){ e.hold--; continue; } if(e.slow>0){ e.slow--; continue; }
     let steps=e.spd>=1?e.spd:(B.tick%2===0?1:0);
     while(steps-->0&&e.hp>0){
-      // 옆에 아군 → 싸운다 (궁수 오크는 사거리 안이면)
-      const near=hs.filter(h=>h.hp>0&&dist(e,h)<=e.rng&&(e.rng>1||elev(h.r,h.c)===elev(e.r,e.c))); if(e.atk>0&&near.length){ near.sort((a,b)=>a.hp-b.hp); const t=near[0]; FX_FROM={r:e.r,c:e.c}; if(dist(e,t)<=1){ qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); FX_DELAY=160; } else { qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); FX_DELAY=(elev(e.r,e.c)||elev(t.r,t.c))?300:200; } hurt(t,e.atk,e); FX_DELAY=0; FX_FROM=null; ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${e.atk}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
-      // 폭약병 — 성벽 옆에 닿으면 터진다
-      if(e.bomb){ const wc=[...Array(C).keys()].filter(c=>isWall(WALL_R,c)&&B.wall[c]!=='rubble'); if(e.r===WALL_R-1&&wc.includes(e.c)){ B.wall[e.c]='rubble'; e.hp=0; boom(WALL_R,e.c); const hh=at(WALL_R,e.c,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
-        let best=null; for(const c of wc){ const p=path(e,{r:WALL_R-1,c},e); if(p&&(!best||p.length<best.length)) best=p; } if(!best||best.length<2) break; const [nr,nc]=best[1]; if(at(nr,nc)) break; e.r=nr; e.c=nc; continue; }
-      // 성문 앞 → 두드린다
-      if(B.gate>0&&dist(e,GATE)===1&&!isKeep(e.r,e.c)){ const n=e.boss?4:e.atk||1; B.gate-=n; qfx({type:'lunge', r:e.r, c:e.c, tr:GATE.r, tc:GATE.c}); gateFx(n); ev(`${e.ic} ${e.name} → 🚪 성문 <b>${n}</b>`,'e'); if(B.gate<=0){ B.gate=0; log('🚪 성문이 부서졌다!'); } break; }
-      // 목표: 도발 영웅 > 안뜰 맨 아래
-      let target=null; const taunter=hs.find(h=>h.hp>0&&h.traits.includes('taunt')&&dist(e,h)<=3); if(taunter) target=taunter;
-      let p=null;
-      if(target){ p=path(e,target,e); }
-      else if(e.climb&&e.r<WALL_R){ let best=null; for(let c=0;c<C;c++){ if(!isWall(WALL_R,c)) continue; const q=path(e,{r:WALL_R,c},e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
-      if(!p){ let best=null; for(let c=0;c<C;c++){ const q=path(e,{r:R-1,c},e); if(q&&(!best||q.length<best.length)) best=q; } p=best; }
-      if(!p) p=path(e,{r:GATE.r-1,c:GATE.c},e);      // 안뜰로 가는 길이 없으면 성문 앞으로 — 거기서 두드린다
-      if(!p||p.length<2) break;
-      const [nr,nc]=p[1]; if(at(nr,nc)) break;   // 막히면 대기
-      const wasWall=isWall(e.r,e.c); e.r=nr; e.c=nc;
-      if(isWall(nr,nc)&&!wasWall&&B.wall[nc]!=='rubble'){ e.hold=2; break; }   // 사다리를 오르는 동안 성벽 위 아군이 때린다
-      if(wasWall&&isKeep(nr,nc)){ e.hold=1; break; }                          // 뛰어내리는 데 한 틱
-      if(isVillage(e.r,e.c)){                    // 닿은 집이 탄다. 이미 탄 집이면 옆집이 탄다
-        e.hp=0; let bc=e.c;
-        if(B.burn.includes(bc)){ const free=[...Array(C).keys()].filter(x=>!B.burn.includes(x))
-          .sort((a,b)=>Math.abs(a-e.c)-Math.abs(b-e.c)); if(free.length) bc=free[0]; }
+      const a=enemyPlan(e,e,hs);
+      if(a.type==='stop') break;
+      if(a.type==='hit'){ const t=a.t; FX_FROM={r:e.r,c:e.c};
+        if(dist(e,t)<=1){ qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); FX_DELAY=160; }
+        else { qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); FX_DELAY=(elev(e.r,e.c)||elev(t.r,t.c))?300:200; }
+        hurt(t,a.n,e); FX_DELAY=0; FX_FROM=null; ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${a.n}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
+      if(a.type==='boom'){ B.wall[a.c]='rubble'; e.hp=0; boom(a.r,a.c); const hh=at(a.r,a.c,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
+      if(a.type==='gate'){ B.gate-=a.n; qfx({type:'lunge', r:e.r, c:e.c, tr:GATE.r, tc:GATE.c}); gateFx(a.n); ev(`${e.ic} ${e.name} → 🚪 성문 <b>${a.n}</b>`,'e'); if(B.gate<=0){ B.gate=0; log('🚪 성문이 부서졌다!'); } break; }
+      const wasWall=isWall(e.r,e.c); e.r=a.r; e.c=a.c;
+      if(a.raw) continue;
+      if(isWall(a.r,a.c)&&!wasWall&&B.wall[a.c]!=='rubble'){ e.hold=2; break; }   // 사다리를 오르는 동안 성벽 위 아군이 때린다
+      if(wasWall&&isKeep(a.r,a.c)){ e.hold=1; break; }                           // 뛰어내리는 데 한 틱
+      if(isVillage(e.r,e.c)){ e.hp=0; const bc=burnCol(e.c);                     // 닿은 집이 탄다. 이미 탄 집이면 옆집이 탄다
         if(!B.burn.includes(bc)) B.burn.push(bc);
         boom(VILLAGE_R,bc); log(`🔥 집이 탔다 — ${B.burn.length}/${BURN_MAX}`); break; }
     }
   }
-  render(); flushFX();
+  B.fTick=B.tick+1; render(); flushFX();
   { const sig=JSON.stringify([B.gate, B.units.filter(u=>u.hp>0).map(u=>[u.r,u.c,u.hp,u.hold,u.delay])]);
     if(sig===B.lastSig){ B.same=(B.same||0)+1; } else { B.same=0; B.lastSig=sig; }
     if(B.same>=30&&B.same%6===0){                    // 대치가 길어지면 적이 마을로 내닫는다
@@ -790,6 +862,28 @@ function render(){
     if(u){ e.classList.add(u.kind); if(u.kind==='e'&&u.hold>0&&isWall(r,c)) e.classList.add('climb'); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
     else if(B.phase==='build'&&B.sel){ if(r===0||isVillage(r,c)||isGate(r,c)) e.classList.add('no'); else e.classList.add('ok'); }
   }
+  /* 예고 — 적이 이번 틱에 할 일을 판 위에 그린다.
+     붉은 빗금 = 맞는 칸, 노란 화살표 = 적이 갈 칸. 흐린 화살표는 두 칸 가는 놈의 둘째 걸음. */
+  if(B.phase==='build'||B.phase==='run'){
+    const dirRot=(dr,dc)=> dr<0?0 : dr>0?180 : dc<0?-90 : 90;
+    const mark=(r,c,txt)=>{ const el=cellEl(r,c); if(!el) return;
+      el.classList.add('aim');
+      const b=document.createElement('span'); b.className='bang'; b.textContent=txt; el.appendChild(b); };
+    for(const f of foretell()){
+      if(f.path&&f.path.length){                       // 걸어간 뒤에 치는 놈 — 발자국도 그린다
+        let pr=f.e.r, pc=f.e.c;
+        f.path.forEach(([r,c],i)=>{ const el=cellEl(r,c); if(!el) return;
+          const i2=document.createElement('i'); i2.className='step'+(i?' soft':'');
+          i2.style.setProperty('--rot', dirRot(r-pr,c-pc)+'deg'); el.appendChild(i2);
+          pr=r; pc=c; });
+      }
+      if(f.type==='hit') mark(f.r,f.c,'⚔️');
+      else if(f.type==='gate') mark(f.r,f.c,'🔨');
+      else if(f.type==='bomb') mark(f.r,f.c,'🧨');
+      else if(f.type==='burn') mark(f.r,f.c,'🔥');
+    }
+  }
+
   // 사거리 — 모드: sel(고른 하나) / all(전부) / off
   const mode=B.rangeMode||'sel';
   const paint=(cells,cls)=>{ for(const [r,c] of cells){ const e=cellEl(r,c); if(!e.querySelector('.'+cls)){ const i=document.createElement('i'); i.className=cls; e.appendChild(i); } } };
