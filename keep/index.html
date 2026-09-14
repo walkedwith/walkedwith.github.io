@@ -13,12 +13,21 @@
   :root{
     --night:#2B2F3A; --stone:#5A6070; --stone-l:#7C8393; --paper:#F1E9D6; --ink:#2A2620; --mute:#8E8878; --line:#D8CDB2;
     --torch:#E39A3B; --torch-d:#B8721F; --good:#5FA872; --bad:#D95B4E; --field:#3E4A38; --field-n:#2F3A2C; --keep:#6B5A44; --wall:#8A8F9B; --rubble:#6E6455;
-    --cell:min(12.4vw, 50px);
+    /* 판 밖 UI가 먹는 세로 총합. 칸 크기는 이 값에서 역산한다 —
+       가로로도 세로로도 절대 넘치지 않아야 한다. 판은 스크롤하지 않는다. */
+    --chrome:228px;
+    --cell:min( calc((100vw - 34px)/7), calc((100dvh - var(--chrome))/9), 58px );
   }
+  @supports not (height:100dvh){ :root{ --cell:min( calc((100vw - 34px)/7), calc((100vh - var(--chrome))/9), 58px ) } }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none}
   html,body{margin:0; min-height:100%; background:var(--night); color:var(--paper);
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif; font-size:14px}
-  body{display:flex; flex-direction:column; align-items:center; gap:8px; padding:10px 16px calc(16px + env(safe-area-inset-bottom))}
+  body{display:flex; flex-direction:column; align-items:center; gap:6px; overscroll-behavior:none;
+    padding:calc(6px + env(safe-area-inset-top)) 16px calc(8px + env(safe-area-inset-bottom))}
+  body.siege{height:100dvh; overflow:hidden}      /* 공성 중엔 판이 화면 밖으로 나가지 않는다 */
+  body.siege #scSiege{height:100%}
+  body.siege .fortwrap{margin-block:auto}         /* 남는 세로는 판 위아래로 나눈다 */
+  body.siege h1{display:none}                     /* 제목은 상태줄이 대신한다 */
   h1{font-size:19px; margin:0; letter-spacing:.5px}
   .screen{width:100%; max-width:440px; display:flex; flex-direction:column; gap:8px; align-items:center}
   .screen[hidden]{display:none}
@@ -77,9 +86,18 @@
   .grave{width:100%; font-size:12px; color:#B9B2A0; line-height:1.5}
 
   /* 공성 — 7×9. 왼쪽 두 열 안뜰, 셋째 열 성벽(가운데 성문), 나머지 들판. */
-  .wave{width:100%; background:var(--paper); color:var(--ink); border-radius:12px; padding:6px 10px; font-size:13px; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+  .top.slim{padding:5px 10px; font-size:12.5px; gap:5px; min-height:30px; font-variant-numeric:tabular-nums}
+  .top.slim b{font-weight:800}
+  /* 웨이브 구성 — 한 줄로 눕히고, 누르면 펼친다 */
+  .wave{width:100%; background:var(--paper); color:var(--ink); border-radius:10px; padding:3px 8px; font-size:12px; display:flex; gap:6px; align-items:center;
+    flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; min-height:28px; cursor:pointer}
+  .wave::-webkit-scrollbar{display:none}
+  .wave.open{flex-wrap:wrap; overflow:visible}
+  .wave .grp{flex:0 0 auto}
   .wave b{font-size:12px; color:var(--mute)} .wave .grp{background:#fff; border-radius:8px; padding:2px 7px; display:flex; align-items:center; gap:3px} .wave .grp i{font-style:normal; font-size:11px; color:var(--mute)}
   .wave .night{margin-left:auto; font-size:12px}
+  .wave>*{flex:0 0 auto; white-space:nowrap} .wave .grp img{flex:0 0 auto}          /* 글자가 줄바꿈하면 한 줄이 세 줄이 된다 */
+  @media (max-height:620px){ :root{--chrome:192px} .wave{display:none} }   /* 아주 짧은 화면 — 웨이브 구성을 접는다 */
   .fort{display:grid; grid-template-columns:repeat(7,var(--cell)); gap:2px; padding:5px; background:#1F222B; border-radius:12px; position:relative}
   /* 연출 — 공격자는 상대 쪽으로 돌진(근접)하거나 발사체(원거리)를 보낸다. 아군은 금색, 적은 붉은색. */
   .c .u{display:inline-block; transition:none; position:relative; width:78%; height:78%; image-rendering:pixelated; image-rendering:crisp-edges}
@@ -152,13 +170,66 @@
   @keyframes rise{0%{opacity:0; transform:translate(-50%,4px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-20px)}}
   .c.hitfx{animation:hit .25s} @keyframes hit{50%{filter:brightness(1.6)}}
   .c.boom{animation:boom .5s} @keyframes boom{30%{background:#F7C46B; transform:scale(1.15)}}
-  .bench{display:flex; gap:6px; flex-wrap:wrap; justify-content:center; max-width:440px; min-height:44px}
-  .chip{background:var(--paper); color:var(--ink); border-radius:10px; padding:5px 9px; font-size:12px; display:flex; align-items:center; gap:5px; box-shadow:0 3px 0 #C9BE9F; cursor:pointer}
+  /* 성문 체력은 성문 칸 위에 직접 — 판 아래 게이지 한 줄을 없앤다 */
+  .c.gate .gbar{position:absolute; left:3px; right:3px; bottom:2px; height:4px; background:rgba(0,0,0,.5); border-radius:2px; overflow:hidden; z-index:3}
+  .c.gate .gbar i{display:block; height:100%; background:var(--torch); transition:width .2s}
+
+  /* 안내와 전투 기록은 판 위에 겹쳐 뜨고 스스로 사라진다 — 세로를 한 줄도 안 먹는다 */
+  .fortwrap{position:relative; display:flex; justify-content:center}
+  .toast{position:absolute; left:0; right:0; top:-13px; z-index:9; pointer-events:none; text-align:center;
+    background:rgba(16,18,24,.95); border-radius:9px; padding:6px 10px; font-size:12px; line-height:1.35; color:#E8E2D2;
+    box-shadow:0 3px 10px rgba(0,0,0,.55);
+    opacity:0; transform:translateY(-5px); transition:opacity .18s, transform .18s}
+  .toast.on{opacity:1; transform:none}
+  .sub{position:absolute; left:5px; right:5px; bottom:5px; z-index:9; pointer-events:none; text-align:center;
+    font-size:12px; line-height:1.5; padding:9px 6px 4px; border-radius:0 0 7px 7px;
+    background:linear-gradient(transparent, rgba(10,12,16,.82) 38%, rgba(10,12,16,.92));
+    text-shadow:0 1px 3px #000; opacity:0; transition:opacity .25s}
+  .sub.on{opacity:1}
+  .sub .h{color:#F7C46B} .sub .e{color:#FF8B7B} .sub .sys{color:#E3DCCA}
+
+  /* 대기줄 — 한 줄로 눕히고 옆으로 민다 */
+  .bench{display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
+    width:100%; min-height:54px; align-items:center}
+  .bench::-webkit-scrollbar{display:none}
+  .bench{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent);
+         mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent)}
+  .chip{background:var(--paper); color:var(--ink); border-radius:10px; padding:5px 9px; font-size:12px; display:flex; align-items:center; gap:5px;
+    box-shadow:0 3px 0 #C9BE9F; cursor:pointer; flex:0 0 auto; min-height:44px; white-space:nowrap; touch-action:pan-x}
   .chip.sel{box-shadow:0 3px 0 var(--torch), 0 0 0 2px var(--torch)} .chip .ic{font-size:18px}
-  .gatebar{width:100%; max-width:440px; font-size:12px; color:#C9C2B0; display:flex; align-items:center; gap:8px}
-  .gatebar i{flex:1; height:6px; background:#1F222B; border-radius:3px; overflow:hidden; display:block} .gatebar i b{display:block; height:100%; background:var(--torch)}
-  .log{font-size:12px; color:#C9C2B0; min-height:54px; text-align:center; line-height:1.5}
-  .log .h{color:#F7C46B} .log .e{color:#FF8B7B} .log .sys{color:#C9C2B0}
+  .chip.placed{opacity:.62}
+
+  /* 끌어 놓기 */
+  .fort{touch-action:none}
+  /* 그림은 기본이 '끌 수 있음'이라, 누른 채 움직이면 브라우저가 제 드래그를 켜고
+     우리 포인터 이벤트를 pointercancel 로 끊어 버린다. 그걸 막는다. */
+  .c img, .chip img{-webkit-user-drag:none; user-drag:none; pointer-events:none}
+  .ghost{position:fixed; z-index:30; width:46px; height:46px; margin:-32px 0 0 -23px; image-rendering:pixelated;
+    pointer-events:none; filter:drop-shadow(0 5px 7px rgba(0,0,0,.65)); opacity:.94}
+  .c.drop{outline:3px solid var(--torch); outline-offset:-3px}
+
+  /* 손가락에 맞는 버튼 — 최소 46px */
+  .actions{min-height:48px; gap:6px}
+  .actions button{min-height:46px; padding:7px 10px; border-radius:11px; flex:0 0 auto; font-size:13px; line-height:1.15}
+  .actions .pri{flex:1 1 auto; font-size:15px}
+  .actions .ic{min-width:50px; font-size:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px}
+  .actions .ic small{font-size:9px; font-weight:700; color:var(--mute); letter-spacing:-.2px}
+  .actions button[hidden]{display:none}
+
+  /* 가로로 눕히면 판 왼쪽, 조작 오른쪽 */
+  @media (orientation:landscape) and (max-height:560px){
+    :root{ --cell:min( calc((100dvh - 50px)/9), calc((100vw - 210px)/7), 58px ) }
+    body.siege{gap:0; padding-top:4px}
+    body.siege .fortwrap{margin-block:0}
+    #scSiege{display:grid; max-width:none; gap:5px 10px; align-items:start;
+      grid-template-columns:auto minmax(150px,1fr);
+      grid-template-rows:auto auto 1fr auto;
+      grid-template-areas:"fort top" "fort wave" "fort bench" "fort acts"}
+    #scSiege .fortwrap{grid-area:fort; align-self:center} #scSiege .top{grid-area:top}
+    #scSiege .wave{grid-area:wave; display:flex} #scSiege .bench{grid-area:bench; flex-wrap:wrap; overflow:visible; align-content:flex-start; -webkit-mask-image:none; mask-image:none}
+    #scSiege .actions{grid-area:acts; flex-wrap:wrap; align-self:end}
+    #scSiege .toast{top:3px; left:4px; right:4px}       /* 위로 걸칠 자리가 없다 */
+  }
 
   .ov{position:fixed; inset:0; background:rgba(15,17,22,.7); display:flex; align-items:center; justify-content:center; padding:16px; z-index:10}
   .ov[hidden]{display:none}
@@ -173,7 +244,7 @@
 </style>
 </head>
 <body>
-<h1>🏰 북쪽 문 길드</h1>
+<h1 id="appTitle">🏰 북쪽 문 길드</h1>
 
 <!-- ═══ 길드 홀 ═══ -->
 <div class="screen" id="scHall">
@@ -192,15 +263,29 @@
 
 <!-- ═══ 공성 ═══ -->
 <div class="screen" id="scSiege" hidden>
-  <div class="top"><span><span id="bTier"></span>차 공성</span><span>웨이브 <span id="bWave"></span>/10</span><span>🪙 +<span id="bGold">0</span></span></div>
+  <div class="top slim">
+    <span>🏰 <b id="bTier"></b>차 <b id="bWave"></b>/10<span id="bNight"></span></span>
+    <span id="gateTxt"></span><span id="vilTxt"></span>
+    <span>🪙<b id="bGold">0</b></span>
+  </div>
   <div class="wave" id="wavebar"></div>
-  <div class="fort" id="fort"></div>
-  <div class="gatebar">성문 <i><b id="gateHp"></b></i><span id="gateTxt"></span><span id="vilTxt" class="vil"></span></div>
+  <div class="fortwrap">
+    <div class="fort" id="fort"></div>
+    <div class="toast" id="tip"></div>
+    <div class="sub" id="log"></div>
+  </div>
   <div class="bench" id="bench"></div>
-  <div class="hint" id="tip"></div>
-  <div class="actions"><button class="pri" id="btnStart">웨이브 시작</button><button id="btnRange">사거리: 선택</button></div>
-  <div class="log" id="log"></div>
+  <div class="actions">
+    <button class="pri" id="btnStart">웨이브 시작</button>
+    <button class="pri" id="btnPause" hidden>⏸ 멈춤</button>
+    <button class="ic" id="btnUndo">⏮<small>되돌림</small></button>
+    <button class="ic" id="btnStep" hidden>⏭<small>한 틱</small></button>
+    <button class="ic" id="btnSpeed" hidden>1×<small>속도</small></button>
+    <button class="ic" id="btnRange">🎯<small>선택</small></button>
+  </div>
 </div>
+
+<div class="ov" id="ovUnit" hidden><div class="sheet" id="unitCard"></div></div>
 
 <div class="ov" id="ovStart"><div class="sheet">
   <h2>🏰 북쪽 문 길드</h2>
@@ -227,6 +312,7 @@
   <div class="rules" id="classList2"></div>
   <p><b>공성</b>: 빌드 단계에 길드원을 성벽(회색)·안뜰(갈색)·들판에 세웁니다. 매 틱 아군이 먼저 때리고 적이 움직입니다. 적은 <b>위에서 내려옵니다</b>. 성문을 두드려 부수거나 사다리로 성벽을 넘어, 맨 아랫줄 <b>마을</b>로 갑니다 — 한 마리가 닿을 때마다 <b>집이 하나 탑니다</b>. 셋이 타면 끝입니다.</p>
   <p><b>예고</b>: 적이 <b>이번 틱에 할 일</b>이 판 위에 미리 보입니다. <b style="color:#F5D06B">노란 화살표</b>는 적이 갈 칸, 흐린 화살표는 두 칸 가는 놈의 둘째 걸음입니다. <b style="color:var(--bad)">붉은 빗금</b>은 무슨 일이 벌어질 칸이고, 그 안의 그림이 무슨 일인지 말합니다 — ⚔️ 길드원을 친다, 🔨 성문을 두드린다, 🧨 성벽을 터뜨린다, 🔥 집을 태운다. <b>추측할 것이 없습니다</b> — 배치는 운이 아니라 퍼즐입니다.</p>
+  <p><b>조작</b>: 길드원 칩이나 판 위의 길드원을 <b>끌어서</b> 칸에 놓습니다(눌렀다 놓기도 됩니다). 누구든 <b>길게 누르면</b> 그 사람·그 적의 카드가 열립니다. <b>⏮ 되돌림</b>은 배치를 웨이브 시작 때로 돌립니다. 진행 중에는 <b>⏸ 멈춤</b>·<b>⏭ 한 틱</b>으로 한 걸음씩 넘겨 보고, <b>속도</b>로 1×→2×→4× 빨리감기를 합니다. 예고가 다 보이니 한 틱씩 넘기면 이 판은 퍼즐이 됩니다.</p>
   <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 웨이브 중에도 됩니다.</p>
   <p><b>상처</b>: 공성이 끝났을 때 체력이 <b>1/4 이하</b>로 살아남으면 몸에 자국이 하나 남습니다(절반 이하면 부상 — 다음 공성 휴식). 상처는 영영 안 사라지고, <b>셋이 되면 더는 성벽에 못 섭니다</b>. 사람을 갉아먹는 건 세월이 아니라 <b>그 밤을 어떻게 버텼느냐</b>입니다.</p>
   <div class="rules" id="scarList"></div>
@@ -552,11 +638,12 @@ $('btnSiege').onclick=()=>{
   B={tier:G.tier, wave:0, gold:0, sup:G.sup.slice(), gateMax:20+(G.sup.includes('gatewood')?10:0), wall:{}, burn:[], dead:[], phase:'build', sel:null, units:[]};
   B.gate=B.gateMax;
   for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, ic:ROLES[h.role].ic, cls:h.role, race:h.race, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:heroTraits(h), scars:scarsOf(h), r:-1, c:-1, st:{}}); }
-  $('scHall').hidden=true; $('scSiege').hidden=false; buildFort(); nextWave();
+  B.speed=1; B.paused=false;
+  $('scHall').hidden=true; $('scSiege').hidden=false; document.body.classList.add('siege'); buildFort(); nextWave();
 };
 function nextWave(){
   B.fTick=1;                                  // 배치 화면은 다음 판의 첫 틱을 예고한다
-  B.wave++; B.phase='build'; B.sel=null;
+  B.wave++; B.phase='build'; B.sel=null; B.paused=false; B.step=false;
   if(has('masons')) for(const k in B.wall) delete B.wall[k];
   for(const u of B.units) if(u.kind==='h'&&has('medic')) u.hp=Math.min(u.maxhp,u.hp+3);
   B.units=B.units.filter(u=>u.kind==='h');
@@ -568,7 +655,8 @@ function nextWave(){
   const hpUp=Math.floor((w-1)/2)+(t-1)*2;
   list.forEach((k,i)=>{ const f=FOES[k]; B.units.push({kind:'e', key:k, ic:f.ic, name:f.nm, hp:f.hp+hpUp, maxhp:f.hp+hpUp, atk:f.atk+Math.floor((t-1)/2), spd:f.spd, rng:f.rng||1, climb:!!f.climb, bomb:!!f.bomb, boss:!!f.boss,
     r:0, c:SPAWNS[rnd(3)], delay:i, slow:0, hold:has('horn')?1:0, st:{}, onWall:false}); });
-  render(); $('tip').textContent = w===1 ? '길드원 칩을 누르고 성벽·안뜰·들판 칸을 누르세요. 다시 누르면 옮깁니다.' : '';
+  B.snapPos=B.units.filter(u=>u.kind==='h'&&u.hp>0).map(u=>[u,u.r,u.c]);   // ↺ 가 되돌릴 자리
+  render(); if(w===1) tipMsg('칩을 <b>끌어서</b> 칸에 놓으세요. 눌렀다 놓기도 됩니다. 길게 누르면 카드가 열립니다.', 5200);
   if(w===4) log('🌙 밤이 됐다 — 궁수 사거리 −1'); else if(w===10) log('마지막 밤. 버티면 동이 튼다.'); else log('');
 }
 /* 적 한 걸음의 판단 — 실제 틱과 예고가 같은 함수를 부른다.
@@ -674,20 +762,23 @@ function onCell(r,c){
   if(anyU&&anyU.kind==='e'){ B.inspect = B.inspect===anyU?null:anyU; render(); return; }
   if(B.sel==null){ if(h){ B.sel=h; render(); } return; }
   if(r===0||isVillage(r,c)||isGate(r,c)||at(r,c)) { if(h===B.sel){ B.sel=null; render(); } return; }
-  if(isWall(r,c)&&(B.sel.scars||[]).includes('limp')){ $('tip').innerHTML=`${B.sel.name}은(는) <b>절뚝여서</b> 성벽에 못 오릅니다 — 안뜰에 세우세요.`; return; }
-  B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; $('tip').textContent=''; render();
+  if(isWall(r,c)&&(B.sel.scars||[]).includes('limp')){ tipMsg(`${B.sel.name}은(는) <b>절뚝여서</b> 성벽에 못 오릅니다 — 안뜰에 세우세요.`); return; }
+  B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; haptic(5); tipMsg(''); render();
 }
-function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null; if(!alive('h').some(u=>u.r>=0)) { $('tip').textContent='아무도 안 세웠어요.'; return; } B.phase='run'; B.sel=null; B.tick=0; B.fTick=1; render(); tickLoop(); }
+function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null; if(!alive('h').some(u=>u.r>=0)) { tipMsg('아무도 안 세웠어요.'); return; } B.phase='run'; B.sel=null; B.tick=0; B.fTick=1; render(); tickLoop(); }
 
 /* 틱 */
+const TICK_A=280, TICK_E=320;              // 아군 차례 → 적 차례 → 다음 틱
 function tickLoop(){
-  if(!B||B.phase!=='run') return; B.tick++;
+  if(!B||B.phase!=='run') return;
+  if(B.paused&&!B.step){ B.waiting=true; renderCtl(); return; }   // ⏭ 나 ▶ 가 다시 부른다
+  B.waiting=false; B.step=false; B.tick++;
   const en=alive('e'), hs=alive('h').filter(u=>u.r>=0);
   const hurt=(t,n,src)=>{ const raw=Math.max(0,n); n=raw;
     if(t.kind==='h'&&t.traits.includes('shield')) n-=1;
     if(t.kind==='h'&&uScar(t,'grim')) n-=1;
     if(raw>0) n=Math.max(1,n); else n=Math.max(0,n);   // 감쇄해도 한 대는 들어간다 — 안 그러면 무한 대치
-    t.hp-=n; fx(t,'-'+n); if(t.hp<=0&&t.kind==='h'){ B.dead.push(t.ref); G.grave.push({name:t.name, cls:fullName(t.ref), tier:B.tier, wave:B.wave}); G.heroes=G.heroes.filter(h=>h!==t.ref); } };
+    t.hp-=n; fx(t,'-'+n); if(t.hp<=0&&t.kind==='h'){ B.dead.push(t.ref); haptic([40,55,40]); G.grave.push({name:t.name, cls:fullName(t.ref), tier:B.tier, wave:B.wave}); G.heroes=G.heroes.filter(h=>h!==t.ref); } };
   const effAtk=u=>{ let a=u.atk; if(u.traits.includes('coward')&&!uScar(u,'grim')&&u.hp*2<=u.maxhp) a-=2; if(u.traits.includes('proud')&&hs.some(o=>o!==u&&dist(o,u)===1)) a-=1; return Math.max(1,a); };
   const hit=(u,t)=>{ let n=effAtk(u); if(has('oil')&&elev(u.r,u.c)&&t.c===u.c+1&&t.r===u.r) n+=1;
     FX_FROM={r:u.r,c:u.c};
@@ -721,15 +812,15 @@ function tickLoop(){
         if(dist(e,t)<=1){ qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); FX_DELAY=160; }
         else { qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); FX_DELAY=(elev(e.r,e.c)||elev(t.r,t.c))?300:200; }
         hurt(t,a.n,e); FX_DELAY=0; FX_FROM=null; ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${a.n}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
-      if(a.type==='boom'){ B.wall[a.c]='rubble'; e.hp=0; boom(a.r,a.c); const hh=at(a.r,a.c,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
-      if(a.type==='gate'){ B.gate-=a.n; qfx({type:'lunge', r:e.r, c:e.c, tr:GATE.r, tc:GATE.c}); gateFx(a.n); ev(`${e.ic} ${e.name} → 🚪 성문 <b>${a.n}</b>`,'e'); if(B.gate<=0){ B.gate=0; log('🚪 성문이 부서졌다!'); } break; }
+      if(a.type==='boom'){ B.wall[a.c]='rubble'; e.hp=0; boom(a.r,a.c); haptic([18,30,40]); const hh=at(a.r,a.c,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
+      if(a.type==='gate'){ B.gate-=a.n; qfx({type:'lunge', r:e.r, c:e.c, tr:GATE.r, tc:GATE.c}); gateFx(a.n); ev(`${e.ic} ${e.name} → 🚪 성문 <b>${a.n}</b>`,'e'); if(B.gate<=0){ B.gate=0; haptic([22,35,22]); log('🚪 성문이 부서졌다!'); } break; }
       const wasWall=isWall(e.r,e.c); e.r=a.r; e.c=a.c;
       if(a.raw) continue;
       if(isWall(a.r,a.c)&&!wasWall&&B.wall[a.c]!=='rubble'){ e.hold=2; break; }   // 사다리를 오르는 동안 성벽 위 아군이 때린다
       if(wasWall&&isKeep(a.r,a.c)){ e.hold=1; break; }                           // 뛰어내리는 데 한 틱
       if(isVillage(e.r,e.c)){ e.hp=0; const bc=burnCol(e.c);                     // 닿은 집이 탄다. 이미 탄 집이면 옆집이 탄다
         if(!B.burn.includes(bc)) B.burn.push(bc);
-        boom(VILLAGE_R,bc); log(`🔥 집이 탔다 — ${B.burn.length}/${BURN_MAX}`); break; }
+        boom(VILLAGE_R,bc); haptic([28,45,60]); log(`🔥 집이 탔다 — ${B.burn.length}/${BURN_MAX}`); break; }
     }
   }
   B.fTick=B.tick+1; render(); flushFX();
@@ -741,8 +832,8 @@ function tickLoop(){
     if(B.same===40){ console.warn('STALL-DUMP '+JSON.stringify({wave:B.wave, gate:B.gate, wall:B.wall, en:B.units.filter(u=>u.kind==='e'&&u.hp>0).map(e=>({k:e.key,r:e.r,c:e.c,hold:e.hold,delay:e.delay,slow:e.slow, p0:!!path(e,{r:R-1,c:0},e), pg:(path(e,{r:GATE.r-1,c:GATE.c},e)||[]).slice(0,3)})), hs:hs.map(h=>[h.name,h.r,h.c,h.hp])})); } }
   if(B.burn.length>=BURN_MAX) return setTimeout(()=>endSiege(false), 500);
   if(!alive('e').length&&!B.units.some(u=>u.kind==='e'&&u.hp>0)) return setTimeout(endWave, 400);
-  setTimeout(tickLoop, 320);
-  }, 280);
+  setTimeout(tickLoop, TICK_E/spd());
+  }, TICK_A/spd());
 }
 function endWave(){
   const gain=3+B.wave+(has('gold')?3:0); B.gold+=gain; G.gold+=gain;
@@ -786,19 +877,118 @@ function endSiege(win){
     + (B.burn.length?`<br><span class="dead">🔥 불탄 집 ${B.burn.length}채</span>`:'');
   $('ovEnd').hidden=false;
 }
-$('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
+$('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; document.body.classList.remove('siege'); $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
 $('btnStart').onclick=startWave;
-$('btnRange').onclick=()=>{ const order=['sel','all','off']; B.rangeMode=order[(order.indexOf(B.rangeMode||'sel')+1)%3]; $('btnRange').textContent='사거리: '+({sel:'선택',all:'전체',off:'끔'})[B.rangeMode]; if(B.rangeMode!=='all'&&!B.inspect&&!B.sel) $('tip').textContent=''; render(); };
+$('btnRange').onclick=()=>{ const order=['sel','all','off']; B.rangeMode=order[(order.indexOf(B.rangeMode||'sel')+1)%3];
+  if(B.rangeMode!=='all'&&!B.inspect&&!B.sel) tipMsg(''); render(); };
+$('btnUndo').onclick=()=>{ if(!B||B.phase!=='build'||!B.snapPos) return;
+  for(const [u,r,c] of B.snapPos){ u.r=r; u.c=c; }
+  B.sel=null; B.inspect=null; haptic(8); tipMsg('배치를 웨이브 시작 때로 되돌렸습니다.'); render(); };
+$('btnPause').onclick=()=>{ if(!B||B.phase!=='run') return;
+  B.paused=!B.paused; renderCtl();
+  if(!B.paused&&B.waiting) tickLoop();
+  else if(B.paused) tipMsg('멈췄습니다 — <b>⏭ 한 틱</b>으로 한 걸음씩 넘기세요.'); };
+$('btnStep').onclick=()=>{ if(!B||B.phase!=='run'||!B.paused) return; B.step=true; tickLoop(); };
+$('btnSpeed').onclick=()=>{ if(!B) return; B.speed=({1:2,2:4,4:1})[spd()]; renderCtl(); };
+$('wavebar').onclick=()=>$('wavebar').classList.toggle('open');
+$('ovUnit').onclick=e=>{ if(e.target===$('ovUnit')) $('ovUnit').hidden=true; };
 
 /* ═══════════════════ 그리기 ═══════════════════ */
-function buildFort(){ const f=$('fort'); f.innerHTML=''; for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c'; d.onclick=()=>onCell((i/C)|0,i%C); f.appendChild(d); } }
+function buildFort(){ const f=$('fort'); f.innerHTML='';
+  for(let i=0;i<R*C;i++){ const d=document.createElement('div'); d.className='c';
+    d.onclick=()=>{ if(eaten()) return; onCell((i/C)|0,i%C); };
+    d.addEventListener('pointerdown', ev=>{ const u=at((i/C)|0, i%C); if(u) pdStart(u,ev); });
+    f.appendChild(d); } }
+
+/* ── 손가락 ────────────────────────────────────────────────
+   칩이든 판 위 길드원이든 잡아서 칸에 떨군다. 눌렀다 놓기(탭-탭)도 그대로 된다.
+   길게 누르면 그 유닛의 카드가 열린다 — 적도 된다. */
+let DRAG=null, PD=null, LP=0, SUPPRESS=false;
+/* 끌기나 길게 누르기로 끝난 제스처는 뒤따라오는 click 한 번만 삼킨다.
+   시간으로 막으면 바로 다음 탭까지 먹는다. */
+const eaten=()=>{ if(!SUPPRESS) return false; SUPPRESS=false; return true; };
+addEventListener('pointerdown', ()=>{ SUPPRESS=false; }, true);
+const fortCell=el=>{ const c=el&&el.closest?el.closest('.c'):null; return (c&&c.parentElement===$('fort'))?c:null; };
+function pdStart(u, e){ if(!u) return; PD={u, x:e.clientX, y:e.clientY};
+  clearTimeout(LP); LP=setTimeout(()=>{ if(PD&&!DRAG){ haptic(14); showUnitCard(PD.u); SUPPRESS=true; PD=null; } }, 460); }
+function startDrag(u,x,y){
+  if(!B||B.phase!=='build'||!u||u.kind!=='h') return false;
+  DRAG={u, el:document.createElement('img'), over:null};
+  DRAG.el.className='ghost'; DRAG.el.src=sprite((u.race||'human')+':'+u.cls,false);
+  document.body.appendChild(DRAG.el);
+  B.sel=u; B.inspect=null; haptic(6); render(); moveDrag(x,y); return true;
+}
+function moveDrag(x,y){
+  if(!DRAG) return;
+  DRAG.el.style.left=x+'px'; DRAG.el.style.top=y+'px';
+  DRAG.el.style.visibility='hidden'; const cell=fortCell(document.elementFromPoint(x,y)); DRAG.el.style.visibility='';
+  if(DRAG.over&&DRAG.over!==cell) DRAG.over.classList.remove('drop');
+  DRAG.over=cell; if(cell) cell.classList.add('drop');
+}
+function endDrag(x,y){
+  const d=DRAG; DRAG=null; if(!d) return;
+  d.el.remove(); if(d.over) d.over.classList.remove('drop');
+  if(d.over){ const i=[...$('fort').children].indexOf(d.over); if(i>=0){ onCell((i/C)|0, i%C); return; } }
+  render();
+}
+addEventListener('pointermove', e=>{
+  if(DRAG){ moveDrag(e.clientX,e.clientY); e.preventDefault(); return; }
+  if(!PD) return;
+  if(Math.abs(e.clientX-PD.x)+Math.abs(e.clientY-PD.y)>9){ clearTimeout(LP);
+    const u=PD.u; PD=null; startDrag(u, e.clientX, e.clientY); }
+}, {passive:false});
+addEventListener('pointerup', e=>{ clearTimeout(LP); if(DRAG){ SUPPRESS=true; endDrag(e.clientX,e.clientY); } PD=null; });
+addEventListener('pointercancel', ()=>{ clearTimeout(LP); PD=null;
+  if(DRAG){ DRAG.el.remove(); if(DRAG.over) DRAG.over.classList.remove('drop'); DRAG=null; render(); } });
+
+/* 유닛 카드 — 길게 누르면 열린다. 칩 한 줄에 다 못 쓰는 것을 여기서 말한다. */
+function showUnitCard(u){
+  if(!u) return;
+  const key = u.kind==='h' ? (u.race||'human')+':'+u.cls : u.key;
+  const head = u.kind==='h'
+    ? `<b style="font-size:19px">${u.name}</b><div style="color:var(--mute); font-size:12px">${fullName(u.ref)} · Lv${u.ref.lv}</div>`
+    : `<b style="font-size:19px">${u.ic} ${u.name}</b>`;
+  const tiles = `<div class="sttiles"><div class="hp"><i>체력</i><b>${u.hp}/${u.maxhp}</b></div><div class="at"><i>공격</i><b>${u.atk}</b></div><div class="rg"><i>사거리</i><b>${u.kind==='h'?heroRange(u):u.rng}</b></div></div>`;
+  let rest='';
+  if(u.kind==='h'){
+    const tr=(u.traits||[]).map(t=>`<span class="tp">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')||'<span class="none">기질 없음</span>';
+    const sc=(u.scars||[]).map(k=>`<span class="tp">${SCARS[k].ic} ${SCARS[k].nm}</span>`).join('')||'<span class="none">상처 없음</span>';
+    rest=`<div class="kit">${tr}</div><div class="kit">${sc}</div>`
+      +(elev(u.r,u.c)?'<p style="font-size:12px; color:var(--mute)">성벽 위 — 앞 대각선도 닿고, 지상 근접은 못 때립니다.</p>':'');
+  } else {
+    rest=`<p style="font-size:13px">${FOES[u.key].desc}</p>`
+      +`<p style="font-size:12px; color:var(--mute)">걸음 ${u.spd>=2?'한 틱에 두 칸':(u.spd<1?'두 틱에 한 칸':'한 틱에 한 칸')}${u.climb?' · 성벽을 기어오름':''}${u.bomb?' · 성벽을 터뜨림':''}</p>`;
+  }
+  $('unitCard').innerHTML=`<div style="display:flex; gap:12px; align-items:center"><img src="${sprite(key,false)}" style="width:58px;height:58px;image-rendering:pixelated" alt=""><div>${head}</div></div>${tiles}${rest}<button id="btnCardClose">닫기</button>`;
+  $('ovUnit').hidden=false;
+  $('btnCardClose').onclick=()=>$('ovUnit').hidden=true;
+}
 const cellEl=(r,c)=>$('fort').children[r*C+c];
 function fx(u,txt,heal){ if(u.r<0) return; const n=parseInt(txt.replace(/[^0-9]/g,''))||0; qfx({type:'dmg', r:u.r, c:u.c, txt, cls:(heal?'heal':(u.kind==='h'?'onh':'one'))+(n>=4?' crit':'')}); if(!heal){ qfx({type:'hit', r:u.r, c:u.c, side:u.kind, n}); if(u.hp<=0) qfx({type:'die', r:u.r, c:u.c, key:u.kind==='h'?u.cls:u.key, side:u.kind}); } }
 function boom(r,c){ qfx({type:'boom', r, c}); }
 function gateFx(n){ qfx({type:'gate', n}); }
 function log(t){ ev(t,'sys'); }
 // 전투 로그 — 최근 세 줄. 아군 금색, 적 붉은색.
-function ev(t,side){ if(!B) return; B.events=B.events||[]; if(t) B.events.push({t,side}); B.events=B.events.slice(-3); $('log').innerHTML=B.events.map(e=>`<div class="${e.side}">${e.t}</div>`).join(''); }
+let LOG_T=0;
+function ev(t,side){ if(!B) return; B.events=B.events||[]; if(t) B.events.push({t,side}); B.events=B.events.slice(-2);
+  const el=$('log'); el.innerHTML=B.events.map(e=>`<div class="${e.side}">${e.t}</div>`).join('');
+  clearTimeout(LOG_T);
+  if(!B.events.length){ el.classList.remove('on'); return; }
+  el.classList.add('on'); LOG_T=setTimeout(()=>el.classList.remove('on'), 1800/spd()); }
+
+/* 안내 — 판 위에 떠서 스스로 사라진다. ms=0 이면 붙잡아 둔다(고른 유닛 설명). */
+let TIP_T=0, TIP_UNTIL=0;
+function tipMsg(html, ms){
+  const el=$('tip'); clearTimeout(TIP_T);
+  if(!html){ TIP_UNTIL=0; el.classList.remove('on'); return; }
+  el.innerHTML=html; el.classList.add('on');
+  if(ms===0){ TIP_UNTIL=Infinity; return; }
+  TIP_UNTIL=Date.now()+(ms||2600);
+  TIP_T=setTimeout(()=>{ el.classList.remove('on'); TIP_UNTIL=0; }, ms||2600);
+}
+/* 손끝 — 아프고 무거운 순간에만 울린다. 매 타격마다 울리면 금세 성가시다. */
+const haptic=p=>{ try{ navigator.vibrate&&navigator.vibrate(p); }catch(e){} };
+const spd=()=>(B&&B.speed)||1;
 /* 연출 큐 — render() 가 칸을 다시 그리므로, 그린 뒤에 얹는다. 안 그러면 뜨자마자 지워진다. */
 let FXQ=[], FX_DELAY=0, FX_FROM=null;
 const qfx=o=>FXQ.push(Object.assign({delay:FX_DELAY, from:FX_FROM}, o));
@@ -808,7 +998,7 @@ function pose(img){ const k=img.dataset.k; if(!k) return; img.src=sprite(k,true)
 function flushFX(){
   const q=FXQ; FXQ=[]; const fort=$('fort');
   const later=q.filter(o=>o.delay>0), now=q.filter(o=>!o.delay);
-  for(const o of later) setTimeout(()=>applyFX(o,fort), o.delay);
+  for(const o of later) setTimeout(()=>applyFX(o,fort), o.delay/spd());
   for(const o of now) applyFX(o,fort);
 }
 function applyFX(o,fort){ {
@@ -844,19 +1034,21 @@ function applyFX(o,fort){ {
 function waveBarHTML(){
   const g={}; for(const u of B.units){ if(u.kind!=='e'||u.hp<=0) continue; const k=u.c+'|'+u.key; g[k]=g[k]||{u,n:0}; g[k].n++; }
   const colName=c=>c<=1?'왼쪽':c>=C-2?'오른쪽':'가운데';
-  return `<b>웨이브 ${B.wave}</b>`+Object.values(g).sort((a,b)=>a.u.c-b.u.c).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated" alt="${u.name}">${n>1?'×'+n:''}<i>${colName(u.c)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':B.wave===10?'🌅 마지막 밤':'🌤️ 저녁'}</span>`;
+  return Object.values(g).sort((a,b)=>a.u.c-b.u.c).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated" alt="${u.name}">${n>1?'×'+n:''}<i>${colName(u.c)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':B.wave===10?'🌅 마지막 밤':'🌤️ 저녁'}</span>`;
 }
 function render(){
-  $('vilTxt').innerHTML=B.burn.length?`<b style="color:var(--bad)">🔥 ${B.burn.length}/${BURN_MAX}</b>`:'🏠 마을 무사';
+  $('vilTxt').innerHTML=B.burn.length?`<b style="color:var(--bad)">🔥${B.burn.length}/${BURN_MAX}</b>`:'🏠무사';
   $('bTier').textContent=B.tier; $('bWave').textContent=B.wave; $('bGold').textContent=B.gold; $('wavebar').innerHTML=waveBarHTML();
-  $('gateHp').style.width=(B.gate/B.gateMax*100)+'%'; $('gateTxt').textContent=B.gate>0?`${B.gate}/${B.gateMax}`:'부서짐'; 
+  $('bNight').textContent=isNight()?' 🌙':(B.wave===10?' 🌅':'');
+  $('gateTxt').innerHTML=B.gate>0?`🚪${B.gate}/${B.gateMax}`:'<b style="color:var(--bad)">🚪부서짐</b>';
   $('fort').classList.toggle('night', isNight());
   const pathCells=new Set();
   if(B.phase==='build'){ for(const c of [...new Set(B.units.filter(u=>u.kind==='e').map(u=>u.c))]){ let best=null; for(let cc=0;cc<C;cc++){ const q=path({r:0,c},{r:R-1,c:cc},null); if(q&&(!best||q.length<best.length)) best=q; } if(best) for(const [a,b] of best) pathCells.add(a*C+b); } }
   for(let r=0;r<R;r++) for(let c=0;c<C;c++){
     const e=cellEl(r,c); e.className='c'; e.innerHTML='';
     if(isVillage(r,c)){ const b=B.burn.includes(c); e.classList.add('vil'); if(b) e.classList.add('burn'); e.innerHTML=b?'🔥':'🏠'; }
-    else if(isKeep(r,c)) e.classList.add('k'); else if(isWall(r,c)){ e.classList.add(B.wall[c]==='rubble'?'rubble':'w'); if(B.wall[c]==='rubble') e.innerHTML='🪨'; } else if(isGate(r,c)){ e.classList.add('gate'); if(B.gate<=0) e.classList.add('broken'); e.innerHTML=B.gate>0?'🚪':'💥'; } else { e.classList.add('f'); if(r===0) e.classList.add('spawn'); }
+    else if(isKeep(r,c)) e.classList.add('k'); else if(isWall(r,c)){ e.classList.add(B.wall[c]==='rubble'?'rubble':'w'); if(B.wall[c]==='rubble') e.innerHTML='🪨'; } else if(isGate(r,c)){ e.classList.add('gate'); if(B.gate<=0) e.classList.add('broken');
+      e.innerHTML=(B.gate>0?'🚪':'💥')+(B.gate>0?`<div class="gbar"><i style="width:${B.gate/B.gateMax*100}%"></i></div>`:''); } else { e.classList.add('f'); if(r===0) e.classList.add('spawn'); }
     if(pathCells.has(r*C+c)&&!isGate(r,c)) e.classList.add('path');
     const u=at(r,c);
     if(u){ e.classList.add(u.kind); if(u.kind==='e'&&u.hold>0&&isWall(r,c)) e.classList.add('climb'); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
@@ -893,14 +1085,34 @@ function render(){
     if(focus){ if(focus.kind==='h'){ paint(heroCells(focus),'rh'); for(const [r,c] of heroCells(focus)) cellEl(r,c).querySelector('.rh').classList.add('me'); } else paint(enemyCells(focus),'re'); }
   }
   if(focus&&focus.r>=0){ cellEl(focus.r,focus.c).classList.add('inspect'); }
-  if(focus){ $('tip').innerHTML = focus.kind==='h'
+  if(focus){ tipMsg(focus.kind==='h'
       ? `${focus.ic} <b>${focus.name}</b> 사거리 ${heroRange(focus)}${isNight()&&focus.cls!=='warrior'&&focus.race!=='elf'&&!focus.traits.includes('night')&&!has('torches')?' <small>(밤 −1)</small>':''}${elev(focus.r,focus.c)?' · 성벽 위: 앞 대각선도 닿고 지상 근접은 못 때림':''}`
-      : `${focus.ic} <b>${focus.name}</b> ❤${focus.hp}/${focus.maxhp} ⚔${focus.atk} — ${FOES[focus.key].desc}`; }
-  else if(mode==='all') $('tip').innerHTML='<span style="color:#F7C46B">금색</span> = 아군이 때릴 수 있는 칸 · <span style="color:#FF8B7B">빗금</span> = 적이 다음 틱에 때릴 수 있는 칸';
+      : `${focus.ic} <b>${focus.name}</b> ❤${focus.hp}/${focus.maxhp} ⚔${focus.atk} — ${FOES[focus.key].desc}`, 0); }
+  else if(mode==='all') tipMsg('<span style="color:#F7C46B">금색</span> = 아군이 때릴 칸 · <span style="color:#FF8B7B">빗금</span> = 적이 때릴 칸', 0);
+  else if(TIP_UNTIL===Infinity||Date.now()>=TIP_UNTIL) tipMsg('');   // 고른 걸 놓으면 붙잡힌 설명도 걷는다
   // 대기 중인 길드원 칩
   const bench=$('bench'); bench.innerHTML='';
-  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':''); d.innerHTML=`<img src="${sprite((u.race||'human')+':'+u.cls,false)}" alt="">${u.name}${u.r>=0?' <small style="color:#8E8878">배치됨</small>':''} <small>❤${u.hp}</small>`; d.onclick=()=>{ if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; } B.sel=B.sel===u?null:u; B.inspect=null; render(); }; bench.appendChild(d); }
-  $('btnStart').disabled=B.phase!=='build'; $('btnStart').textContent=B.phase==='run'?'진행 중…':`웨이브 ${B.wave} 시작`;
+  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':'')+(u.r>=0?' placed':'');
+    d.innerHTML=`<img src="${sprite((u.race||'human')+':'+u.cls,false)}" alt="">${u.name} <small>❤${u.hp}</small>`;
+    d.onclick=()=>{ if(eaten()) return;
+      if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; }
+      B.sel=B.sel===u?null:u; B.inspect=null; render(); };
+    d.addEventListener('pointerdown', ev=>pdStart(u,ev));
+    bench.appendChild(d); }
+  renderCtl();
+}
+
+/* 조작줄 — 배치 중과 진행 중에 필요한 버튼이 다르다. 좁은 화면에 다 욱여넣지 않는다. */
+function renderCtl(){
+  const build=!!B&&B.phase==='build', run=!!B&&B.phase==='run';
+  $('btnStart').hidden=!build; $('btnUndo').hidden=!build;
+  $('btnPause').hidden=!run; $('btnStep').hidden=!run; $('btnSpeed').hidden=!run;
+  if(build){ $('btnStart').textContent=`웨이브 ${B.wave} 시작`;
+    $('btnUndo').disabled=!B.snapPos||B.snapPos.every(([u,r,c])=>u.r===r&&u.c===c); }
+  if(run){ $('btnPause').innerHTML=B.paused?'▶ 이어서':'⏸ 멈춤';
+    $('btnStep').disabled=!B.paused;
+    $('btnSpeed').innerHTML=spd()+'×<small>속도</small>'; }
+  $('btnRange').innerHTML='🎯<small>'+({sel:"선택",all:"전체",off:"끔"})[(B&&B.rangeMode)||"sel"]+'</small>';
 }
 
 /* ═══════════════════ 연결 ═══════════════════ */
