@@ -55,7 +55,8 @@
     padding:9px 26px 9px 0; box-shadow:0 2px 0 rgba(0,0,0,.25)}
   .hero .role{align-self:stretch}
   .hero .role.warrior{background:#4D78C4} .hero .role.archer{background:#5C8A44}
-  .hero.rest{opacity:.72}
+  .hero.rest{background:#E7DFCB}
+  .hero.rest .h2body,.hero.rest .reach{opacity:.6}   /* 사람은 제 색으로, 수치만 가라앉는다 */
   .face{position:relative; width:52px; height:52px; border-radius:11px; background:#E6DCC4;
     display:flex; align-items:center; justify-content:center; box-shadow:inset 0 0 0 2px #D8CDB2}
   .face.dwarf{background:#EDDFBE; box-shadow:inset 0 0 0 2px #C9A86A}
@@ -256,8 +257,9 @@
   .chip .mini i.atk{background:#F7DCD8} .chip .mini i.def{background:#D9E3F5}
   .chip .mini i.ctl{background:#DCEFDF} .chip .mini i.bad{background:#39352F}
   .chip.sel{box-shadow:0 3px 0 var(--torch), 0 0 0 2px var(--torch)} .chip .ic{font-size:18px}
-  .chip.placed{box-shadow:0 3px 0 #C9BE9F, inset 0 0 0 2px #7FBE92}
-  .chip:not(.placed){opacity:.66}                    /* 아직 안 세운 사람이 흐리다 */
+  .chip.placed{box-shadow:0 3px 0 #C9BE9F, inset 0 0 0 2px #CBC2A8}   /* 다 세웠다 — 조용히 */
+  .chip.wait{box-shadow:0 3px 0 var(--torch-d), inset 0 0 0 2px var(--torch)}  /* 아직 세울 사람 — 눈에 띄게 */
+  .chip.wait .nm{color:var(--torch-d)}
 
   /* 끌어 놓기 */
   .fort{touch-action:none}
@@ -1277,7 +1279,7 @@ function render(){
   else if(TIP_UNTIL===Infinity||Date.now()>=TIP_UNTIL) tipMsg('');   // 고른 걸 놓으면 붙잡힌 설명도 걷는다
   // 대기 중인 길드원 칩
   const bench=$('bench'); bench.innerHTML='';
-  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':'')+(u.r>=0?' placed':'');
+  for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':'')+(u.r>=0?' placed':(B.phase==='build'?' wait':''));
     const p=Math.max(0,u.hp/u.maxhp), C=2*Math.PI*17;
     const col=p>.6?'#5FA872':p>.3?'#E39A3B':'#D95B4E';
     const mini=(u.traits||[]).slice(0,3).map(t=>`<i class="${TRAITS[t].cat}">${gi(TRAITS[t].g, CAT_INK[TRAITS[t].cat])}</i>`).join('');
