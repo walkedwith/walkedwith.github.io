@@ -509,7 +509,7 @@ const SUPPLY={
 const NAMES=['에오윈','하마','감린','테오','브레가','에르켄','아라','핀','로한','길다','토린','발린','레골','하르딘','이도','메리','피핀','두린','엘라','케른','오를','브란','시그','율'];
 
 /* ═══════════════════ 도트 스프라이트 — 12×12 를 코드로 조립해 캔버스로 굽는다 ═══════════════════ */
-const PAL={k:'#1b1b1b', s:'#f0c9a0', S:'#c9946a', g:'#6f9a4e', G:'#4a6b34', m:'#c3ccd6', M:'#7c8895', r:'#c8463f', b:'#4d78c4', B:'#2f4f8a',
+const PAL={A:'#DDE4EC', Q:'#5A3A1C', J:'#F2C94C', k:'#1b1b1b', s:'#f0c9a0', S:'#c9946a', g:'#6f9a4e', G:'#4a6b34', m:'#c3ccd6', M:'#7c8895', r:'#c8463f', b:'#4d78c4', B:'#2f4f8a',
   w:'#9a6b3c', W:'#6b4525', y:'#f2c94c', p:'#8d5bd9', P:'#5b3a99', e:'#3f8f5a', E:'#2c6640', h:'#D5CFC0', x:'#f5f0e6', f:'#8a8a8a', F:'#5c5c5c', o:'#ff8c3a', d:'#3d2b1f', t:'#7d8f6a'};
 // 사람형 틀 — H 머리쓰개, s 얼굴, C 옷, L 다리. 왼쪽 열(0~1)은 방패/왼손, 오른쪽 열(9~11)은 무기.
 /* 몸은 종족이 정한다 — 실루엣만 봐도 누가 누군지 알아야 한다.
@@ -533,7 +533,7 @@ const RACE_FIT={
 };
 const PROPS={ // [행, 열, 문자] — 오른손 무기. 공격 포즈는 한 칸 오른쪽·한 칸 위로 뻗는다
   sword:[[5,10,'m'],[6,10,'m'],[7,10,'m'],[8,10,'W'],[4,10,'m']], shield:[[5,1,'r'],[6,1,'r'],[7,1,'r'],[6,0,'r'],[5,0,'y'],[7,0,'y']],
-  bow:[[3,10,'W'],[4,11,'W'],[5,11,'W'],[6,11,'W'],[7,11,'W'],[8,10,'W'],[4,10,'x'],[5,10,'x'],[6,10,'x'],[7,10,'x']],
+  bow:[[3,10,'W'],[4,11,'W'],[5,11,'W'],[6,11,'W'],[7,11,'W'],[8,10,'W'],[3,9,'x'],[4,9,'x'],[5,9,'x'],[6,9,'x'],[7,9,'x'],[8,9,'x']],
   staff:[[2,10,'y'],[3,10,'W'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W'],[8,10,'W'],[1,10,'y'],[2,11,'y'],[2,9,'y']],
   pick:[[3,9,'m'],[3,10,'m'],[3,11,'m'],[4,10,'W'],[5,10,'W'],[6,10,'W'],[7,10,'W']],
   cleaver:[[4,10,'M'],[5,10,'m'],[5,11,'m'],[6,10,'m'],[6,11,'m'],[7,10,'W']],
@@ -549,20 +549,42 @@ const SPRITES={
   orc:{hat:'d', cloth:'d', skin:'g', props:['cleaver']}, ladder:{hat:'d', cloth:'d', skin:'g', props:['ladder']}, bomber:{hat:'d', cloth:'d', skin:'g', props:['bomb']},
   shaman:{hat:'P', cloth:'d', skin:'g', props:['bow'], pointy:true}, troll:{hat:'G', cloth:'t', skin:'G', props:['cleaver'], big:true},
 };
+/* 역할은 실루엣으로도 말한다.
+   전사 — 어깨에 쇠 한 줄(어깨받이)과 옆판, 투구 이마에 그늘.
+   궁수 — 등에 화살통과 노란 깃.
+   몸틀(문자)에 얹은 뒤 색을 입히므로 종족이 달라도 제자리를 찾는다. */
+function applyRole(g, role){
+  const cols=r=>{ const o=[]; for(let c=0;c<12;c++) if(g[r][c]==='C') o.push(c); return o; };
+  const body=[]; for(let r=0;r<12;r++) if(cols(r).length) body.push(r);
+  if(!body.length) return;
+  const r0=body[0];
+  if(role==='warrior'){
+    for(const c of cols(r0)) g[r0][c]='A';                                   // 어깨받이
+    const c2=cols(r0+1); if(c2.length){ g[r0+1][c2[0]]='A'; g[r0+1][c2[c2.length-1]]='A'; }
+    for(let r=0;r<r0;r++) for(let c=0;c<12;c++) if(g[r][c]==='H'&&g[r+1] && g[r+1][c]==='s') g[r][c]='D';  // 투구 이마 그늘
+  } else if(role==='archer'){
+    let left=12; for(const r of body){ const cs=cols(r); if(cs.length) left=Math.min(left, cs[0]); }
+    const q=left-1;                                                          // 몸통에서 가장 왼쪽 바깥 — 등 쪽
+    if(q>=0){ for(const r of [r0-1,r0,r0+1]) if(r>=0&&r<12&&g[r][q]==='.') g[r][q]='Q';
+      if(r0-2>=0&&g[r0-2][q]==='.') g[r0-2][q]='J'; }
+  }
+}
 const sprKey=h=>`${h.race||'human'}:${h.role||'warrior'}`;
 function spriteSpec(key){
   if(SPRITES[key]) return SPRITES[key];                 // 적은 종족이 없다 — 사람 몸을 쓴다
   const [ra,ro]=key.split(':');
-  return {...(ROLE_SPR[ro]||ROLE_SPR.warrior), ...(RACE_SPR[ra]||{}), race:ra};
+  return {...(ROLE_SPR[ro]||ROLE_SPR.warrior), ...(RACE_SPR[ra]||{}), race:ra, role:ro};
 }
 const WOLF=['............','..k.........','.kfk....kk..','.kffk..kffk.','..kfffffffk.','..kfxfffffk.','..kfffffffk.','...kffffkk..','...kfkkfk...','...kfk.kfk..','...kk..kk...','............'];
 function spriteGrid(spec, atk){
   const fit=RACE_FIT[spec.race]||RACE_FIT.human;
   let g=(RACE_BODY[spec.race]||HUMAN).map(r=>r.split(''));
+  if(spec.role) applyRole(g, spec.role);
   const skin=spec.skin||'s';
   for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c];
     if(ch==='H') g[r][c]=spec.hat; else if(ch==='s') g[r][c]=skin;
-    else if(ch==='C') g[r][c]=spec.cloth; else if(ch==='L') g[r][c]=spec.legs||'W'; }
+    else if(ch==='C') g[r][c]=spec.cloth; else if(ch==='L') g[r][c]=spec.legs||'W';
+    else if(ch==='D') g[r][c]='M'; }
   if(spec.pointy){ g[0]='.....'+spec.hat+spec.hat+'.....'.slice(0,5); g[0]=g[0].split(''); g[1]='....'+spec.hat.repeat(4)+'....'; g[1]=g[1].split(''); }
   const [er,el,eR]=fit.eyes; g[er][el]='k'; g[er][eR]='k';        // 눈 둘
   for(const pr of spec.props||[]) for(const [r,c,ch] of PROPS[pr]){
@@ -1344,7 +1366,7 @@ function renderCtl(){
 /* ═══════════════════ 연결 ═══════════════════ */
 const classHTML=()=>
   Object.entries(RACES).map(([k,r])=>`<span><img src="${sprite(k+':warrior',false)}" style="width:26px;height:26px;image-rendering:pixelated" alt=""></span><span><b>${r.nm}</b> ${r.desc}</span>`).join('')
-  +Object.entries(ROLES).map(([k,c])=>`<span>${gi(c.g,'#2A2620')}</span><span><b>${c.nm}</b> ${gi('heart','#B5443C','inl')}${c.hp} ${gi('sword','#9A6B1F','inl')}${c.atk} ${gi('board','#3C6E96','inl')}${c.rng} · ${c.desc}</span>`).join('');
+  +Object.entries(ROLES).map(([k,c])=>`<span><img src="${sprite('human:'+k,false)}" style="width:26px;height:26px;image-rendering:pixelated" alt=""></span><span><b>${c.nm}</b> ${gi('heart','#B5443C','inl')}${c.hp} ${gi('sword','#9A6B1F','inl')}${c.atk} ${gi('board','#3C6E96','inl')}${c.rng} · ${c.desc}</span>`).join('');
 $('classList').innerHTML=$('classList2').innerHTML=classHTML();
 $('scarList').innerHTML=Object.values(SCARS).map(x=>`<span>${gi(x.g, CAT_INK.scar)}</span><span><b>${x.nm}</b> ${x.desc}</span>`).join('');
 $('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${gi(t.g, CAT_INK[t.cat])}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
