@@ -15,7 +15,7 @@
     --torch:#E39A3B; --torch-d:#B8721F; --good:#5FA872; --bad:#D95B4E; --field:#3E4A38; --field-n:#2F3A2C; --keep:#6B5A44; --wall:#8A8F9B; --rubble:#6E6455;
     /* 판 밖 UI가 먹는 세로 총합. 칸 크기는 이 값에서 역산한다 —
        가로로도 세로로도 절대 넘치지 않아야 한다. 판은 스크롤하지 않는다. */
-    --chrome:228px;
+    --chrome:246px;
     --cell:min( calc((100vw - 34px)/7), calc((100dvh - var(--chrome))/9), 58px );
   }
   @supports not (height:100dvh){ :root{ --cell:min( calc((100vw - 34px)/7), calc((100vh - var(--chrome))/9), 58px ) } }
@@ -33,6 +33,7 @@
   .screen[hidden]{display:none}
   .top{width:100%; background:var(--paper); color:var(--ink); border-radius:12px; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-weight:700; font-variant-numeric:tabular-nums}
   .top small{font-weight:400; color:var(--mute); font-size:11px; display:block}
+  .sg{display:inline-flex; align-items:center}
   .actions{width:100%; display:flex; gap:8px}
   button{font:inherit; border:0; border-radius:12px; padding:10px 14px; background:var(--paper); color:var(--ink); font-weight:700; box-shadow:0 3px 0 #C9BE9F; cursor:pointer}
   button:active{transform:translateY(2px); box-shadow:0 1px 0 #C9BE9F}
@@ -48,41 +49,68 @@
   .rosterHd{width:100%; display:flex; justify-content:space-between; align-items:baseline; font-size:11px;
     letter-spacing:.08em; color:#A9A392; padding:2px 2px 0}
   .roster{width:100%; display:flex; flex-direction:column; gap:8px}
-  .hero{background:var(--paper); color:var(--ink); border-radius:12px; overflow:hidden; position:relative;
-    display:grid; grid-template-columns:5px 52px 1fr auto; align-items:center; gap:0 10px; padding:9px 10px 9px 0;
-    box-shadow:0 2px 0 rgba(0,0,0,.25)}
-  .hero .stripe{grid-row:1; align-self:stretch; background:var(--line)}
-  .hero[data-scar="1"] .stripe{background:#E3B24A} .hero[data-scar="2"] .stripe{background:#D98A3C}
-  .hero.rest .stripe{background:var(--bad)}
-  .hero .port{display:flex; align-items:center; justify-content:center}
-  .hero .port img{width:44px; height:44px; image-rendering:pixelated}
-  .hero .body{display:flex; flex-direction:column; gap:5px; min-width:0}
-  .idline{display:flex; align-items:baseline; gap:7px; flex-wrap:wrap}
-  .idline .nm{font-size:17px; font-weight:800; letter-spacing:-.2px}
-  .idline .cls{font-size:12px; color:var(--mute)}
-  .idline .rest{font-size:11px; font-weight:800; color:var(--bad); background:#F6E2DE; border-radius:5px; padding:1px 6px}
-  .idline .lv{font-size:11px; color:#A9A392; margin-left:auto}
-  .sttiles{display:grid; grid-template-columns:repeat(3,minmax(0,58px)); gap:6px}
-  .sttiles div{background:#FFFDF6; border-radius:7px; padding:2px 6px; box-shadow:inset 0 0 0 1px var(--line)}
-  .sttiles i{display:block; font-style:normal; font-size:9px; letter-spacing:.06em; color:#9A927E}
-  .sttiles b{font-size:16px; font-variant-numeric:tabular-nums; line-height:1.15}
-  .sttiles .hp b{color:#B5443C} .sttiles .at b{color:#9A6B1F} .sttiles .rg b{color:#3C6E96}
-  .kit{display:flex; gap:5px; flex-wrap:wrap; font-size:12px}
-  .kit span{border-radius:7px; padding:2px 7px; display:inline-flex; align-items:center; gap:4px; max-width:100%}
-  .kit .tp{background:#EFE9D8; box-shadow:inset 0 0 0 1px var(--line)}
-  .kit .gr{background:#F6EAD0; box-shadow:inset 0 0 0 1px #DFC79A; font-weight:700}
-  .kit .gr small{font-weight:400; color:#8A7A58}
-  .kit .none{color:#A9A392; background:transparent; box-shadow:none; padding-left:0}
-  .kit .warn{color:#9A927E; font-weight:400; font-size:11px}
-  /* ② 상처가 카드에서 가장 중요한 상태다 — 가장 흐리면 안 된다 */
-  .scars{background:#F7E7D2; box-shadow:inset 0 0 0 1px #E3C79C; border-radius:7px; padding:3px 8px;
-    color:#7A5A28; font-size:11.5px; font-weight:600; align-self:flex-start}
-  .scars .dots{letter-spacing:2px; color:#C9762A; font-weight:800; font-size:13px}
-  .scars{display:flex; align-items:center; gap:6px; flex-wrap:wrap}
-  .hero .acts{display:flex; flex-direction:column; gap:5px}
-  .hero .acts button{padding:6px 8px; font-size:11.5px; border-radius:8px; box-shadow:0 2px 0 var(--line); min-width:44px}
-  .hero .acts .drop{background:transparent; box-shadow:none; color:#B5ACA0; padding:2px 8px; font-size:13px}
-  .hero .acts .drop:hover{color:var(--bad)}
+  /* 길드원 카드 — 왼쪽 띠가 역할을, 초상이 종족과 상처를, 눈금이 대소를 말한다 */
+  .hero{background:var(--paper); color:var(--ink); border-radius:13px; position:relative; overflow:hidden;
+    display:grid; grid-template-columns:6px auto minmax(0,1fr) auto; gap:0 11px; align-items:center;
+    padding:9px 26px 9px 0; box-shadow:0 2px 0 rgba(0,0,0,.25)}
+  .hero .role{align-self:stretch}
+  .hero .role.warrior{background:#4D78C4} .hero .role.archer{background:#5C8A44}
+  .hero.rest{opacity:.72}
+  .face{position:relative; width:52px; height:52px; border-radius:11px; background:#E6DCC4;
+    display:flex; align-items:center; justify-content:center; box-shadow:inset 0 0 0 2px #D8CDB2}
+  .face.dwarf{background:#EDDFBE; box-shadow:inset 0 0 0 2px #C9A86A}
+  .face.elf{background:#DFE8DC; box-shadow:inset 0 0 0 2px #A2BF95}
+  .face img{width:44px; height:44px; image-rendering:pixelated}
+  .face .cracks i{position:absolute; width:2px; background:#C9762A; border-radius:1px; box-shadow:0 0 0 1px rgba(255,253,246,.85)}
+  .face .cracks i:nth-child(1){height:17px; left:6px; top:-1px; transform:rotate(18deg)}
+  .face .cracks i:nth-child(2){height:14px; right:9px; bottom:-1px; transform:rotate(-24deg)}
+  .face .cracks i:nth-child(3){height:12px; right:3px; top:9px; transform:rotate(58deg)}
+  .face .rest{position:absolute; left:0; right:0; bottom:0; border-radius:0 0 9px 9px; background:rgba(217,91,78,.92); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:9.5px; font-weight:800; letter-spacing:.04em; padding:1px 0}
+  .face.foe{background:#EADFD0; box-shadow:inset 0 0 0 2px #C7BAA6}
+  .ucard{display:flex; gap:11px; align-items:center}
+  .ucard .meters{gap:9px} .ucard>div{flex:1 1 auto; min-width:0}
+  .h2body{display:flex; flex-direction:column; gap:6px; min-width:0}
+  .h2id{display:flex; align-items:baseline; gap:6px; min-width:0; flex-wrap:nowrap}
+  .h2id .nm{font-size:17px; font-weight:800; letter-spacing:-.3px; white-space:nowrap; flex:0 0 auto}
+  .h2id .cls{font-size:11px; color:var(--mute); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1 1 auto; min-width:0}
+  .h2id .lv{font-size:10px; color:#A9A392; margin-left:auto; font-variant-numeric:tabular-nums; white-space:nowrap}
+  /* 눈금 — 같은 자로 잰다 */
+  .meters{display:flex; align-items:center; gap:13px; flex-wrap:wrap}
+  .mt{display:flex; align-items:center; gap:5px}
+  .mt .v{font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; min-width:16px; text-align:right; letter-spacing:-.6px}
+  .mt.hp .v{color:#B5443C} .mt.at .v{color:#9A6B1F}
+  .pips{display:flex; gap:1.5px}
+  .pips i{width:3px; height:11px; border-radius:1px; background:#DED4BA}
+  .mt.hp .pips i.on{background:#B5443C} .mt.at .pips i.on{background:#D89A2E}
+  /* 닿는 칸 — 범위는 숫자가 아니라 판으로 말한다 */
+  .reach{background:#FFFDF6; border-radius:9px; box-shadow:inset 0 0 0 1px var(--line); padding:5px 6px 4px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; flex:0 0 auto}
+  .rgrid{display:grid; grid-template-columns:repeat(7,6px); grid-auto-rows:6px; gap:1.5px}
+  .rgrid i{background:#E6DCC2; border-radius:1.5px; transition:background .18s}
+  .rgrid i.on{background:#3C6E96} .rgrid i.up{background:#E3A93B} .rgrid i.pv{background:#5FA872}
+  .rgrid i.me{background:#2A2620; box-shadow:0 0 0 1.5px #FFFDF6}
+  .rlab{font-size:9px; color:#9A927E; letter-spacing:.06em; font-weight:700}
+  /* 문장 배지 — 좋은 것과 나쁜 것이 한눈에 갈린다 */
+  .badges{display:flex; gap:5px; flex-wrap:wrap; align-items:center}
+  .bg{width:27px; height:27px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+    position:relative; cursor:pointer; border:0; padding:0; box-shadow:none}
+  .bg:active{transform:none}
+  .bg.atk{background:#F7DCD8; box-shadow:inset 0 0 0 1.5px #D95B4E}
+  .bg.def{background:#D9E3F5; box-shadow:inset 0 0 0 1.5px #4D78C4}
+  .bg.ctl{background:#DCEFDF; box-shadow:inset 0 0 0 1.5px #5FA872}
+  .bg.bad{background:#39352F; box-shadow:inset 0 0 0 1.5px #6E6B63}
+  .bg.bad::after{content:''; position:absolute; left:2px; right:2px; top:50%; height:2px; background:#D95B4E; border-radius:1px; transform:rotate(-38deg)}
+  .bg.scar{background:#F7E7D2; box-shadow:inset 0 0 0 1.5px #C9762A}
+  .bg .rec{position:absolute; right:-2px; bottom:-2px; width:9px; height:9px; border-radius:50%;
+    background:#FFFDF6; box-shadow:inset 0 0 0 2px #8E6BC9}
+  .genes{display:flex; gap:3px; align-self:center; margin-left:auto; flex:0 0 auto}
+  .genes i{width:8px; height:8px; border-radius:50%; box-shadow:inset 0 0 0 1.5px #B9AE90}
+  .genes i.on{background:#7A6A48; box-shadow:none} .genes i.pair{background:#8E6BC9; box-shadow:none}
+  @media (max-width:344px){ .h2id .lv{display:none} }
+  .hero .x{position:absolute; right:2px; top:4px; background:none; box-shadow:none; padding:4px; opacity:.55}
+  .hero .x:active{transform:none; opacity:1}
+  .hero .x img{width:13px; height:13px}
   .grave{width:100%; font-size:12px; color:#B9B2A0; line-height:1.5}
 
   /* 공성 — 7×9. 왼쪽 두 열 안뜰, 셋째 열 성벽(가운데 성문), 나머지 들판. */
@@ -97,14 +125,19 @@
   .wave b{font-size:12px; color:var(--mute)} .wave .grp{background:#fff; border-radius:8px; padding:2px 7px; display:flex; align-items:center; gap:3px} .wave .grp i{font-style:normal; font-size:11px; color:var(--mute)}
   .wave .night{margin-left:auto; font-size:12px}
   .wave>*{flex:0 0 auto; white-space:nowrap} .wave .grp img{flex:0 0 auto}          /* 글자가 줄바꿈하면 한 줄이 세 줄이 된다 */
-  @media (max-height:620px){ :root{--chrome:192px} .wave{display:none} }   /* 아주 짧은 화면 — 웨이브 구성을 접는다 */
+  @media (max-height:620px){ :root{--chrome:210px} .wave{display:none} }   /* 아주 짧은 화면 — 웨이브 구성을 접는다 */
   .fort{display:grid; grid-template-columns:repeat(7,var(--cell)); gap:2px; padding:5px; background:#1F222B; border-radius:12px; position:relative}
   /* 연출 — 공격자는 상대 쪽으로 돌진(근접)하거나 발사체(원거리)를 보낸다. 아군은 금색, 적은 붉은색. */
   .c .u{display:inline-block; transition:none; position:relative; width:78%; height:78%; image-rendering:pixelated; image-rendering:crisp-edges}
   .c.e .u{transform:scaleX(-1)} .c.w.e .u{transform:scaleX(-1) translateY(-6px)}   /* 적은 왼쪽을 본다 */
   .c .u.big{width:96%; height:96%}
   .c .u.bob{animation:bob 1s steps(2) infinite} @keyframes bob{0%{margin-top:0} 100%{margin-top:-2px}}
-  .chip img,.hero img{width:22px; height:22px; image-rendering:pixelated; vertical-align:middle}
+  .chip img,.hero img{image-rendering:pixelated; vertical-align:middle}
+  /* 글립 — 글자가 아니라 구운 도트. 기본 17px, 글줄 안에서는 13px */
+  img.gl{width:17px; height:17px; image-rendering:pixelated; vertical-align:-3px; flex:0 0 auto}
+  img.gl.inl{width:13px; height:13px; vertical-align:-2px; margin-right:3px}
+  img.gl.big{width:22px; height:22px; vertical-align:-4px}
+  .c img.gl{width:calc(var(--cell)*.5); height:calc(var(--cell)*.5); vertical-align:0}
   /* 공격 — 예비(뒤로 당김·납작) → 찌르기(크게 뻗음) → 복귀. 맞은 쪽은 밀려나며 하얗게 번쩍. */
   .c .u.lunge{animation:lunge .42s cubic-bezier(.3,.9,.4,1)} 
   @keyframes lunge{0%{transform:translateY(var(--ty,0)) scaleX(var(--sx,1))} 22%{transform:translate(calc(var(--dx) * -.3), var(--ty,0)) scale(.92,1.08) scaleX(var(--sx,1))}
@@ -164,7 +197,8 @@
   .c.path::after{content:''; position:absolute; width:5px; height:5px; border-radius:50%; background:rgba(241,233,214,.45); left:3px; top:3px}
   .c .hp{position:absolute; left:3px; right:3px; bottom:2px; height:3px; background:rgba(0,0,0,.35); border-radius:2px; overflow:hidden}
   .c .hp i{display:block; height:100%; background:var(--good)} .c.e .hp i{background:var(--bad)}
-  .c .st{position:absolute; right:1px; top:0; font-size:10px} .c .n{position:absolute; left:2px; bottom:2px; font-size:10px; font-weight:700; background:#fff; color:#000; border-radius:6px; padding:0 3px}
+  .c .st{position:absolute; right:2px; top:2px; width:7px; height:7px; border-radius:50%; box-shadow:0 0 0 1.5px rgba(0,0,0,.45)}
+  .c .st.ven{background:#5FD98A} .c .st.bur{background:#FF8B3A} .c .st.slw{background:#9AC4FF} .c .n{position:absolute; left:2px; bottom:2px; font-size:10px; font-weight:700; background:#fff; color:#000; border-radius:6px; padding:0 3px}
   .c .dmg{position:absolute; left:50%; top:0; transform:translateX(-50%); font-weight:800; font-size:12px; color:#FFB4A8; animation:rise .7s ease-out forwards; pointer-events:none; text-shadow:0 1px 0 #000}
   .c .dmg.heal{color:#B9F0C4}
   @keyframes rise{0%{opacity:0; transform:translate(-50%,4px)} 20%{opacity:1} 100%{opacity:0; transform:translate(-50%,-20px)}}
@@ -190,14 +224,25 @@
 
   /* 대기줄 — 한 줄로 눕히고 옆으로 민다 */
   .bench{display:flex; gap:6px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; -webkit-overflow-scrolling:touch;
-    width:100%; min-height:54px; align-items:center}
+    width:100%; min-height:72px; align-items:center}
   .bench::-webkit-scrollbar{display:none}
   .bench{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent);
          mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 22px),transparent)}
-  .chip{background:var(--paper); color:var(--ink); border-radius:10px; padding:5px 9px; font-size:12px; display:flex; align-items:center; gap:5px;
-    box-shadow:0 3px 0 #C9BE9F; cursor:pointer; flex:0 0 auto; min-height:44px; white-space:nowrap; touch-action:pan-x}
+  .chip{background:var(--paper); color:var(--ink); border-radius:11px; padding:5px 8px 4px; min-width:62px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
+    box-shadow:0 3px 0 #C9BE9F; cursor:pointer; flex:0 0 auto; white-space:nowrap; touch-action:pan-x}
+  .chip .hpr{position:relative; width:34px; height:34px; flex:0 0 auto; display:flex; align-items:center; justify-content:center}
+  .chip .hpr svg{position:absolute; inset:0; transform:rotate(-90deg)}
+  .chip .hpr img{width:25px; height:25px; flex:0 0 auto}
+  .chip .nm{font-size:10px; font-weight:700; letter-spacing:-.3px; flex:0 0 auto}
+  .chip .mini{display:flex; gap:2px; min-height:12px; flex:0 0 auto}
+  .chip .mini i{width:12px; height:12px; border-radius:3px; display:flex; align-items:center; justify-content:center}
+  .chip .mini i img{width:9px; height:9px}
+  .chip .mini i.atk{background:#F7DCD8} .chip .mini i.def{background:#D9E3F5}
+  .chip .mini i.ctl{background:#DCEFDF} .chip .mini i.bad{background:#39352F}
   .chip.sel{box-shadow:0 3px 0 var(--torch), 0 0 0 2px var(--torch)} .chip .ic{font-size:18px}
-  .chip.placed{opacity:.62}
+  .chip.placed{box-shadow:0 3px 0 #C9BE9F, inset 0 0 0 2px #7FBE92}
+  .chip:not(.placed){opacity:.66}                    /* 아직 안 세운 사람이 흐리다 */
 
   /* 끌어 놓기 */
   .fort{touch-action:none}
@@ -244,16 +289,16 @@
 </style>
 </head>
 <body>
-<h1 id="appTitle">🏰 북쪽 문 길드</h1>
+<h1 id="appTitle">북쪽 문 길드</h1>
 
 <!-- ═══ 길드 홀 ═══ -->
 <div class="screen" id="scHall">
-  <div class="top"><span><small>금화</small>🪙 <span id="hGold">0</span></span><span><small>다음 공성</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span>/8</span></div>
+  <div class="top"><span><small>금화</small><i class="sg" id="sgHall"></i><span id="hGold">0</span></span><span><small>다음 공성</small><span id="hTier">1</span>차</span><span><small>명성</small><span id="hFame">0</span></span><span><small>길드원</small><span id="hCount">0</span>/8</span></div>
   <button class="pri go" id="btnSiege">공성 준비</button>
   <div class="subacts">
-    <button id="btnTeach"><b>📜 전승</b><i>🪙6</i></button>
-    <button id="btnRecruit"><b>🧍 모집</b><i>새 피 🪙4</i></button>
-    <button id="btnHelp"><b>❓ 규칙</b><i>보기</i></button>
+    <button id="btnTeach"><b>전승</b><i>금화 6</i></button>
+    <button id="btnRecruit"><b>모집</b><i>새 피 · 금화 4</i></button>
+    <button id="btnHelp"><b>규칙</b><i>보기</i></button>
   </div>
   <div class="hint" id="hallHint"></div>
   <div class="rosterHd"><span id="rosterCount"></span><span>상처 셋이면 성벽을 떠납니다</span></div>
@@ -264,9 +309,9 @@
 <!-- ═══ 공성 ═══ -->
 <div class="screen" id="scSiege" hidden>
   <div class="top slim">
-    <span>🏰 <b id="bTier"></b>차 <b id="bWave"></b>/10<span id="bNight"></span></span>
+    <span><i class="sg" id="sgKeep"></i><b id="bTier"></b>차 <b id="bWave"></b>/10<span id="bNight"></span></span>
     <span id="gateTxt"></span><span id="vilTxt"></span>
-    <span>🪙<b id="bGold">0</b></span>
+    <span><i class="sg" id="sgGold"></i><b id="bGold">0</b></span>
   </div>
   <div class="wave" id="wavebar"></div>
   <div class="fortwrap">
@@ -277,18 +322,18 @@
   <div class="bench" id="bench"></div>
   <div class="actions">
     <button class="pri" id="btnStart">웨이브 시작</button>
-    <button class="pri" id="btnPause" hidden>⏸ 멈춤</button>
-    <button class="ic" id="btnUndo">⏮<small>되돌림</small></button>
-    <button class="ic" id="btnStep" hidden>⏭<small>한 틱</small></button>
-    <button class="ic" id="btnSpeed" hidden>1×<small>속도</small></button>
-    <button class="ic" id="btnRange">🎯<small>선택</small></button>
+    <button class="pri" id="btnPause" hidden></button>
+    <button class="ic" id="btnUndo"></button>
+    <button class="ic" id="btnStep" hidden></button>
+    <button class="ic" id="btnSpeed" hidden></button>
+    <button class="ic" id="btnRange"></button>
   </div>
 </div>
 
 <div class="ov" id="ovUnit" hidden><div class="sheet" id="unitCard"></div></div>
 
 <div class="ov" id="ovStart"><div class="sheet">
-  <h2>🏰 북쪽 문 길드</h2>
+  <h2>북쪽 문 길드</h2>
   <p>밤마다 북쪽 문으로 무리가 몰려옵니다. 길드원을 <b>성벽과 안뜰</b>에 세우고 열 번의 웨이브를 버티세요. 동이 트면 기병이 옵니다.</p>
   <p><b>사다리병</b>은 성벽을 기어오르고, <b>폭약병</b>은 성벽에 구멍을 냅니다. 죽은 길드원은 묘비에만 남고, 그가 가르친 제자만 그의 기술을 잇습니다.</p>
   <div class="rules" id="classList"></div>
@@ -303,22 +348,22 @@
 <div class="ov" id="ovEnd" hidden><div class="sheet"><h2 id="endTitle"></h2><p id="endBody"></p><button class="pri" id="btnHome">길드 홀로</button></div></div>
 
 <div class="ov" id="ovTeach" hidden><div class="sheet">
-  <h2>📜 전승</h2><p id="teachSub"></p><div id="teachBox"></div>
-  <div class="actions"><button class="pri" id="btnTeachGo">가르치기 🪙6</button><button id="btnTeachClose">닫기</button></div>
+  <h2>전승</h2><p id="teachSub"></p><div id="teachBox"></div>
+  <div class="actions"><button class="pri" id="btnTeachGo">가르치기 · 금화 6</button><button id="btnTeachClose">닫기</button></div>
 </div></div>
 
 <div class="ov" id="ovHelp" hidden><div class="sheet">
   <h2>규칙</h2>
   <div class="rules" id="classList2"></div>
   <p><b>공성</b>: 빌드 단계에 길드원을 성벽(회색)·안뜰(갈색)·들판에 세웁니다. 매 틱 아군이 먼저 때리고 적이 움직입니다. 적은 <b>위에서 내려옵니다</b>. 성문을 두드려 부수거나 사다리로 성벽을 넘어, 맨 아랫줄 <b>마을</b>로 갑니다 — 한 마리가 닿을 때마다 <b>집이 하나 탑니다</b>. 셋이 타면 끝입니다.</p>
-  <p><b>예고</b>: 적이 <b>이번 틱에 할 일</b>이 판 위에 미리 보입니다. <b style="color:#F5D06B">노란 화살표</b>는 적이 갈 칸, 흐린 화살표는 두 칸 가는 놈의 둘째 걸음입니다. <b style="color:var(--bad)">붉은 빗금</b>은 무슨 일이 벌어질 칸이고, 그 안의 그림이 무슨 일인지 말합니다 — ⚔️ 길드원을 친다, 🔨 성문을 두드린다, 🧨 성벽을 터뜨린다, 🔥 집을 태운다. <b>추측할 것이 없습니다</b> — 배치는 운이 아니라 퍼즐입니다.</p>
-  <p><b>조작</b>: 길드원 칩이나 판 위의 길드원을 <b>끌어서</b> 칸에 놓습니다(눌렀다 놓기도 됩니다). 누구든 <b>길게 누르면</b> 그 사람·그 적의 카드가 열립니다. <b>⏮ 되돌림</b>은 배치를 웨이브 시작 때로 돌립니다. 진행 중에는 <b>⏸ 멈춤</b>·<b>⏭ 한 틱</b>으로 한 걸음씩 넘겨 보고, <b>속도</b>로 1×→2×→4× 빨리감기를 합니다. 예고가 다 보이니 한 틱씩 넘기면 이 판은 퍼즐이 됩니다.</p>
+  <p><b>예고</b>: 적이 <b>이번 틱에 할 일</b>이 판 위에 미리 보입니다. <b style="color:#F5D06B">노란 화살표</b>는 적이 갈 칸, 흐린 화살표는 두 칸 가는 놈의 둘째 걸음입니다. <b style="color:var(--bad)">붉은 빗금</b>은 무슨 일이 벌어질 칸이고, 그 안의 그림이 무슨 일인지 말합니다 — <b>검</b> 길드원을 친다, <b>망치</b> 성문을 두드린다, <b>폭약</b> 성벽을 터뜨린다, <b>불</b> 집을 태운다. <b>추측할 것이 없습니다</b> — 배치는 운이 아니라 퍼즐입니다.</p>
+  <p><b>조작</b>: 길드원 칩이나 판 위의 길드원을 <b>끌어서</b> 칸에 놓습니다(눌렀다 놓기도 됩니다). 누구든 <b>길게 누르면</b> 그 사람·그 적의 카드가 열립니다. <b><i class="rg-back"></i> 되돌림</b>은 배치를 웨이브 시작 때로 돌립니다. 진행 중에는 <b><i class="rg-pause"></i> 멈춤</b>·<b><i class="rg-step"></i> 한 틱</b>으로 한 걸음씩 넘겨 보고, <b>속도</b>로 1×→2×→4× 빨리감기를 합니다. 예고가 다 보이니 한 틱씩 넘기면 이 판은 퍼즐이 됩니다.</p>
   <p><b>사거리 보기</b>: 길드원을 고르면 금색 칸이 그가 때릴 수 있는 곳, 적을 누르면 붉은 빗금이 그 적이 다음 틱에 때릴 수 있는 곳. "사거리: 전체"로 판 위 모두를 한꺼번에 봅니다. 웨이브 중에도 됩니다.</p>
   <p><b>상처</b>: 공성이 끝났을 때 체력이 <b>1/4 이하</b>로 살아남으면 몸에 자국이 하나 남습니다(절반 이하면 부상 — 다음 공성 휴식). 상처는 영영 안 사라지고, <b>셋이 되면 더는 성벽에 못 섭니다</b>. 사람을 갉아먹는 건 세월이 아니라 <b>그 밤을 어떻게 버텼느냐</b>입니다.</p>
   <div class="rules" id="scarList"></div>
   <p><b>높이</b>: 성벽 위 아군은 지상 근접 적이 못 때립니다. 궁수 오크(사거리 2)·성벽에 오른 사다리병·폭약병(그 칸 3 피해)만 위협이고, 무너진 성벽 칸은 지상입니다.</p>
-  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(🌙 야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>종족과 역할</b>: 길드원은 <b>종족</b>(인간·드워프·엘프)과 <b>역할</b>(전사·궁수)을 따로 가집니다 — 드워프 궁수도, 엘프 전사도 나옵니다. 종족은 몸(체력·사거리·수리·야간 시야)을, 역할은 싸우는 방식을 정합니다.</p>
-  <p><b>기질과 솜씨</b>: 길드원은 <b>유전자 네 칸</b>을 가집니다. <b>우성</b>(도발·돌가죽·방패술·힘 등)은 한 칸만 있어도 드러나고, <b>열성</b>(🌙야간 시야·⚡속사·🐍독니·🔥화염·🧱석공·🍺술 내성)은 <b>두 칸이 같아야</b> 드러납니다. 드러나지 않은 열성은 계보에 숨어 있다가 제자에게서 나옵니다.</p>
+  <p><b>밤</b>(4~9웨이브)엔 궁수 사거리 −1(야간 시야 제외). <b>부상</b>(체력 절반 이하로 살아남음)은 다음 공성을 쉽니다. <b>종족과 역할</b>: 길드원은 <b>종족</b>(인간·드워프·엘프)과 <b>역할</b>(전사·궁수)을 따로 가집니다 — 드워프 궁수도, 엘프 전사도 나옵니다. 종족은 몸(체력·사거리·수리·야간 시야)을, 역할은 싸우는 방식을 정합니다.</p>
+  <p><b>기질과 솜씨</b>: 길드원은 <b>유전자 네 칸</b>을 가집니다. <b>우성</b>(도발·돌가죽·방패술·힘 등)은 한 칸만 있어도 드러나고, <b>열성</b>(야간 시야·속사·독니·화염·석공·술 내성)은 <b>두 칸이 같아야</b> 드러납니다. 드러나지 않은 열성은 계보에 숨어 있다가 제자에게서 나옵니다.</p>
   <p><b>전승</b>: 길드원 <b>둘</b>을 스승으로 세우면 제자 하나가 옵니다 — 각자 유전자 두 칸씩 넘깁니다. 22%로 <b>돌연변이</b>가 깃듭니다. 같은 사람이 자꾸 스승을 서면 <b>솜씨가 굳어</b> 돌연변이가 멎고, 더 굳으면 유전자 한 칸이 비고 몸이 약해집니다. <b>모집</b>으로 밖에서 데려온 사람은 계보가 없어 굳음을 씻습니다.</p>
   <div class="rules" id="traitList"></div>
   <button id="btnHelpClose">닫기</button>
@@ -336,13 +381,13 @@ const R=9, C=7, WALL_R=6, GATE={r:6,c:3}, VILLAGE_R=8, SPAWNS=[0,3,6], WAVES=10,
 /* 종족은 몸을, 역할은 하는 일을 정한다. 섞어 쓰면 드워프 궁수·엘프 전사가 나온다.
 */
 const RACES={
-  human:{ic:'🧍', nm:'인간',   hp:0,  rng:0, desc:'치우침이 없다 — 대신 타고난 보정도 없다'},
-  dwarf:{ic:'⛏️', nm:'드워프', hp:+4, rng:0, repair:true, desc:'체력 +4 · 성문과 성벽을 고친다'},
-  elf:  {ic:'🧝', nm:'엘프',   hp:-2, rng:+1, night:true, desc:'체력 −2 · 사거리 +1 · 밤에도 잘 본다'},
+  human:{g:'tally', nm:'인간',   hp:0,  rng:0, desc:'치우침이 없다 — 대신 타고난 보정도 없다'},
+  dwarf:{g:'hammer', nm:'드워프', hp:+4, rng:0, repair:true, desc:'체력 +4 · 성문과 성벽을 고친다'},
+  elf:  {g:'moon', nm:'엘프',   hp:-2, rng:+1, night:true, desc:'체력 −2 · 사거리 +1 · 밤에도 잘 본다'},
 };
 const ROLES={
-  warrior:{ic:'🛡️', nm:'전사',   hp:12, atk:5, rng:1, desc:'옆 칸을 벤다. 단단하다'},
-  archer: {ic:'🏹', nm:'궁수',   hp:8,  atk:4, rng:3, desc:'멀리 쏜다. 성벽 위에선 +1'},
+  warrior:{g:'shld', nm:'전사',   hp:12, atk:5, rng:1, desc:'옆 칸을 벤다. 단단하다'},
+  archer: {g:'arrow', nm:'궁수',   hp:8,  atk:4, rng:3, desc:'멀리 쏜다. 성벽 위에선 +1'},
 };
 const raceOf=h=>RACES[h.race]||RACES.human, roleOf=h=>ROLES[h.role]||ROLES.warrior;
 const fullName=h=>`${raceOf(h).nm} ${roleOf(h).nm}`;
@@ -351,22 +396,22 @@ const fullName=h=>`${raceOf(h).nm} ${roleOf(h).nm}`;
    전에는 절반이 무기에 깃들어 있었는데, 창고·벼리기·적성이 판마다 따라다녀
    머릿속이 복잡했다. 전부 사람에게로 옮겼다. */
 const TEMPER={
-  taunt:  {ic:'📣', nm:'도발',     desc:'3칸 안의 적이 성문 대신 이쪽으로 온다'},
-  night:  {ic:'🌙', nm:'야간 시야', desc:'밤 사거리 감소 없음'},
-  ale:    {ic:'🍺', nm:'술 내성',  desc:'중독·화상 무효'},
-  stone:  {ic:'🪨', nm:'돌가죽',   desc:'체력 +6'},
-  frail:  {ic:'🩹', nm:'허약',     desc:'체력 −3'},
-  proud:  {ic:'😤', nm:'오만',     desc:'인접 아군이 있으면 공격 −1'},
-  coward: {ic:'😰', nm:'겁쟁이',   desc:'체력 절반 이하면 공격 −2'},
+  taunt:  {g:'horn',  cat:'ctl', nm:'도발',     desc:'3칸 안의 적이 성문 대신 이쪽으로 온다', area:3},
+  night:  {g:'moon',  cat:'ctl', nm:'야간 시야', desc:'밤 사거리 감소 없음'},
+  ale:    {g:'mug',   cat:'ctl', nm:'술 내성',  desc:'중독·화상 무효'},
+  stone:  {g:'rock',  cat:'def', nm:'돌가죽',   desc:'체력 +6'},
+  frail:  {g:'crack', cat:'bad', nm:'허약',     desc:'체력 −3'},
+  proud:  {g:'crown', cat:'bad', nm:'오만',     desc:'인접 아군이 있으면 공격 −1'},
+  coward: {g:'dn2',   cat:'bad', nm:'겁쟁이',   desc:'체력 절반 이하면 공격 −2'},
 };
 const CRAFT={    // 솜씨 — 몸으로 익힌 것. 이제 이것도 사람이 지닌다.
-  shield: {ic:'🛡️', nm:'방패술',   desc:'받는 피해 −1'},
-  might:  {ic:'💪', nm:'힘',       desc:'공격 +2'},
-  hawk:   {ic:'🦅', nm:'매의 눈',  desc:'사거리 +1'},
-  rapid:  {ic:'⚡', nm:'속사',     desc:'한 틱에 두 번 공격'},
-  venom:  {ic:'🐍', nm:'독니',     desc:'맞은 적 중독(3턴, 턴마다 1)'},
-  mason:  {ic:'🧱', nm:'석공',     desc:'수리 +2'},
-  fire:   {ic:'🔥', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
+  shield: {g:'shld',  cat:'def', nm:'방패술',   desc:'받는 피해 −1'},
+  might:  {g:'up2',   cat:'atk', nm:'힘',       desc:'공격 +2'},
+  hawk:   {g:'eye',   cat:'ctl', nm:'매의 눈',  desc:'사거리 +1', rng:1},
+  rapid:  {g:'bolt',  cat:'atk', nm:'속사',     desc:'한 틱에 두 번 공격'},
+  venom:  {g:'fang',  cat:'atk', nm:'독니',     desc:'맞은 적 중독(3턴, 턴마다 1)'},
+  mason:  {g:'brick', cat:'ctl', nm:'석공',     desc:'수리 +2'},
+  fire:   {g:'fire',  cat:'atk', nm:'화염',     desc:'맞은 적 화상(2턴, 턴마다 2)'},
 };
 const TRAITS={...TEMPER, ...CRAFT};
 /* 우성은 한 칸만 있어도 드러나고, 열성은 두 칸이 같아야 드러난다.
@@ -403,22 +448,22 @@ function teach(a,b,hs){
     bonus:{hp:st>=3?-3:0, atk:0}, scars:[], from:[a.name,b.name]};
 }
 const FOES={
-  wolf:   {ic:'🐺', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1, desc:'한 틱에 두 칸. 근접 — 성벽 위는 못 때린다'},
-  orc:    {ic:'⚔️', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2, desc:'근접. 성문을 두드린다'},
-  ladder: {ic:'🪜', nm:'사다리병', hp:9,  atk:2, spd:1,  cost:3, climb:true, desc:'성벽을 오른다(2틱). 올라오면 성벽 위 아군을 때린다'},
-  bomber: {ic:'🧨', nm:'폭약병',   hp:7,  atk:0, spd:1,  cost:3, bomb:true, desc:'성벽에 닿으면 폭발 — 그 칸 3 피해, 성벽이 무너진다. 먼저 잡아라'},
-  shaman: {ic:'🏹', nm:'궁수 오크', hp:6, atk:1, spd:1,  cost:2, rng:2, desc:'사거리 2 — 성벽 위도 맞힌다'},
-  troll:  {ic:'🧌', nm:'트롤',     hp:26, atk:4, spd:.5, cost:7, boss:true, desc:'느리지만 성문을 4씩 부순다'},
+  wolf:   {g:'dn2', nm:'늑대',     hp:4,  atk:1, spd:2,  cost:1, desc:'한 틱에 두 칸. 근접 — 성벽 위는 못 때린다'},
+  orc:    {g:'sword', nm:'오크',     hp:9,  atk:2, spd:1,  cost:2, desc:'근접. 성문을 두드린다'},
+  ladder: {g:'tally', nm:'사다리병', hp:9,  atk:2, spd:1,  cost:3, climb:true, desc:'성벽을 오른다(2틱). 올라오면 성벽 위 아군을 때린다'},
+  bomber: {g:'bomb', nm:'폭약병',   hp:7,  atk:0, spd:1,  cost:3, bomb:true, desc:'성벽에 닿으면 폭발 — 그 칸 3 피해, 성벽이 무너진다. 먼저 잡아라'},
+  shaman: {g:'arrow', nm:'궁수 오크', hp:6, atk:1, spd:1,  cost:2, rng:2, desc:'사거리 2 — 성벽 위도 맞힌다'},
+  troll:  {g:'rock', nm:'트롤',     hp:26, atk:4, spd:.5, cost:7, boss:true, desc:'느리지만 성문을 4씩 부순다'},
 };
 const SUPPLY={
-  gatewood:{ic:'🚪', nm:'참나무 성문', desc:'성문 최대 체력 +10, 지금 수리'},
-  arrows:  {ic:'🏹', nm:'화살 더미',   desc:'궁수·엘프 공격 +1'},
-  oil:     {ic:'🛢️', nm:'끓는 기름',   desc:'성벽 위 아군이 앞 칸 적에게 +1'},
-  torches: {ic:'🔥', nm:'횃불 줄',     desc:'밤 사거리 감소 없음'},
-  masons:  {ic:'🧱', nm:'석공 조합',   desc:'폭파된 성벽이 다음 웨이브에 복구'},
-  medic:   {ic:'🧪', nm:'약초 상자',   desc:'웨이브마다 아군 체력 +3'},
-  horn:    {ic:'📯', nm:'뿔나팔',      desc:'웨이브 첫 틱에 적 전원 한 틱 멈춤'},
-  gold:    {ic:'🪙', nm:'전리품 상자', desc:'웨이브 보상 +3'},
+  gatewood:{g:'door', nm:'참나무 성문', desc:'성문 최대 체력 +10, 지금 수리'},
+  arrows:  {g:'arrow', nm:'화살 더미',   desc:'궁수·엘프 공격 +1'},
+  oil:     {g:'pot', nm:'끓는 기름',   desc:'성벽 위 아군이 앞 칸 적에게 +1'},
+  torches: {g:'torch', nm:'횃불 줄',     desc:'밤 사거리 감소 없음'},
+  masons:  {g:'brick', nm:'석공 조합',   desc:'폭파된 성벽이 다음 웨이브에 복구'},
+  medic:   {g:'flask', nm:'약초 상자',   desc:'웨이브마다 아군 체력 +3'},
+  horn:    {g:'horn', nm:'뿔나팔',      desc:'웨이브 첫 틱에 적 전원 한 틱 멈춤'},
+  gold:    {g:'coin', nm:'전리품 상자', desc:'웨이브 보상 +3'},
 };
 const NAMES=['에오윈','하마','감린','테오','브레가','에르켄','아라','핀','로한','길다','토린','발린','레골','하르딘','이도','메리','피핀','두린','엘라','케른','오를','브란','시그','율'];
 
@@ -476,6 +521,67 @@ function sprite(key, atk){
   for(let r=0;r<12;r++) for(let c=0;c<12;c++){ const ch=g[r][c]; if(ch==='.') continue; ctx.fillStyle=PAL[ch]||'#f0f'; ctx.fillRect(c,r,1,1); }
   return SPR_CACHE[k]=cv.toDataURL();
 }
+/* ═══════════════════ 글립 — 이모지를 쓰지 않는다 ═══════════════════
+   이모지는 기기마다 다른 글꼴로 그려져 굵기·크기·색이 UI와 따로 논다.
+   캐릭터와 같은 방식으로 12×12 도트를 짜서 캔버스에 굽는다. 한 색이라
+   부르는 쪽이 색을 정한다. 외부 요청은 그대로 0. */
+const GLYPH={
+  'arrow':['............','.........##.','........###.','.......####.','......#####.','.##########.','.##########.','......#####.','.......####.','........###.','.........##.','............'],
+  'back' :['............','.##......##.','.##....####.','.##..######.','.##########.','.##########.','.##########.','.##..######.','.##....####.','.##......##.','............','............'],
+  'blood':['............','.....##.....','.....##.....','....####....','....####....','...######...','..########..','..########..','..########..','...######...','....####....','............'],
+  'board':['............','............','..##.##.##..','..##.##.##..','............','..##.##.##..','..##.##.##..','............','..##.##.##..','..##.##.##..','............','............'],
+  'bolt' :['............','.......####.','......####..','.....####...','....######..','...######...','......###...','.....###....','....###.....','...###......','............','............'],
+  'bomb' :['............','.........##.','........##..','.......##...','...#####....','..#######...','.#########..','.#########..','.#########..','..#######...','...#####....','............'],
+  'bone' :['............','............','.##......##.','####....####','####....####','.##########.','.##########.','####....####','####....####','.##......##.','............','............'],
+  'boom' :['............','.#...##...#.','..#.####.#..','...######...','.##########.','.##########.','...######...','..#.####.#..','.#...##...#.','............','............','............'],
+  'brick':['............','.####.#####.','.####.#####.','............','.##.######..','.##.######..','............','.#####.####.','.#####.####.','............','............','............'],
+  'cane' :['............','.....#####..','....##...##.','....##...##.','....##...##.','.........##.','.........##.','.........##.','.........##.','........####','............','............'],
+  'coin' :['............','............','...######...','..########..','.####..####.','.###.##.###.','.###.##.###.','.####..####.','..########..','...######...','............','............'],
+  'crack':['............','..###..###..','.####.#####.','.#####.####.','.####.#####.','.#####.####.','..####.###..','...##.###...','....####....','.....##.....','............','............'],
+  'crown':['............','.#...##...#.','.##..##..##.','.##.####.##.','.##########.','.##########.','.##########.','.##########.','.##########.','............','............','............'],
+  'dn2'  :['............','.##......##.','..###..###..','...######...','....####....','.....##.....','.##......##.','..###..###..','...######...','....####....','.....##.....','............'],
+  'door' :['............','..########..','.##########.','.##......##.','.##......##.','.##...#..##.','.##...#..##.','.##......##.','.##......##.','.##......##.','.##########.','............'],
+  'ear'  :['............','....####....','...##..##...','..##....##..','..##.####...','..##.##.....','..##.##.....','..##..##....','...##.##....','....####....','............','............'],
+  'eye'  :['............','............','....####....','..##....##..','.##..##..##.','.#..####..#.','.##..##..##.','..##....##..','....####....','............','............','............'],
+  'fang' :['............','.##########.','.##########.','.####..####.','.####..####.','.###....###.','.###....###.','..##....##..','..#......#..','............','............','............'],
+  'fire' :['............','.....##.....','....####....','....####....','...######...','..###.###...','.###...####.','.##.....###.','.###...####.','..#########.','...######...','............'],
+  'flask':['............','...######...','...##..##...','...##..##...','..##....##..','..##....##..','.##......##.','.##.####.##.','.##########.','..########..','............','............'],
+  'hammer':['............','...#######..','..#########.','..#########.','...###.###..','.....##.....','.....##.....','.....##.....','.....##.....','.....##.....','............','............'],
+  'hand' :['............','...#.#.#....','..###.###...','..#######...','..#######...','.########...','.########...','.########...','..######....','...####.....','............','............'],
+  'heart':['............','..###..###..','.##########.','.##########.','.##########.','.##########.','..########..','...######...','....####....','.....##.....','............','............'],
+  'horn' :['............','.........##.','........###.','.......####.','..#########.','.##########.','.##########.','..#########.','.......####.','........###.','.........##.','............'],
+  'house':['............','.....##.....','....####....','...######...','..########..','.##########.','.##########.','.##..##..##.','.##..##..##.','.##..##..##.','.##########.','............'],
+  'keep' :['............','.##.##.##.#.','.##########.','.##########.','.##########.','.###.##.###.','.###.##.###.','.###.##.###.','.##########.','.##########.','............','............'],
+  'moon' :['............','....####....','..###..###..','.###....##..','.###........','.##.........','.##.........','.###........','.###....##..','..###..###..','....####....','............'],
+  'mug'  :['............','..######....','.########...','.##....##.##','.##....##.#.','.##....##.##','.##....##...','.##....##...','.##....##...','.########...','..######....','............'],
+  'pause':['............','..##....##..','..##....##..','..##....##..','..##....##..','..##....##..','..##....##..','..##....##..','..##....##..','..##....##..','............','............'],
+  'play' :['............','..##........','..####......','..######....','..########..','..##########','..########..','..######....','..####......','..##........','............','............'],
+  'pot'  :['............','..#..#..#...','.##########.','.##########.','.##########.','.##########.','..########..','...######...','............','............','............','............'],
+  'rock' :['............','............','....#####...','..###.####..','.##########.','.####.#####.','.##########.','.#########..','..#######...','...####.....','............','............'],
+  'shaky':['............','............','.#..##..##..','.##..##..##.','..##..##..#.','............','.#..##..##..','.##..##..##.','..##..##..#.','............','............','............'],
+  'shld' :['............','.##########.','.##########.','.###....###.','.##.####.##.','.##.####.##.','.###....###.','..########..','...######...','....####....','.....##.....','............'],
+  'shut' :['............','............','....####....','..##....##..','.##......##.','.#.######.#.','.##......##.','..##....##..','....####....','............','............','............'],
+  'step' :['............','.##......##.','.####....##.','.######..##.','.##########.','.##########.','.##########.','.######..##.','.####....##.','.##......##.','............','............'],
+  'sun'  :['............','............','.....##.....','...######...','..########..','.##########.','.##########.','.##########.','............','.##########.','............','............'],
+  'sword' :['............','.....##.....','....####....','....####....','....####....','....####....','....####....','.##########.','.....##.....','.....##.....','...######...','............'],
+  'tally':['............','............','.##..##..##.','.##..##..##.','.##..##..##.','.##..##..##.','.##..##..##.','.##..##..##.','.##..##..##.','.##..##..##.','............','............'],
+  'torch':['............','.....##.....','....####....','...######...','...######...','....####....','.....##.....','.....##.....','.....##.....','.....##.....','....####....','............'],
+  'up2'  :['............','.....##.....','....####....','...######...','..###..###..','.##......##.','.....##.....','....####....','...######...','..###..###..','.##......##.','............'],
+  'x'    :['............','.##......##.','.###....###.','..###..###..','...######...','....####....','...######...','..###..###..','.###....###.','.##......##.','............','............'],
+};
+const GC={};
+function glyph(name, color){
+  const k=name+'|'+color; if(GC[k]) return GC[k];
+  const g=GLYPH[name]; if(!g) return '';
+  const cv=document.createElement('canvas'); cv.width=cv.height=12; const x=cv.getContext('2d');
+  x.fillStyle=color;
+  for(let r=0;r<12;r++) for(let c=0;c<12;c++) if(g[r][c]==='#') x.fillRect(c,r,1,1);
+  return GC[k]=cv.toDataURL();
+}
+/* 배지 계열 — 색이 곧 뜻이다. 붉음 더 때린다 / 파랑 더 버틴다 / 초록 판을 바꾼다 / 어두움 약점 */
+const CAT_INK={atk:'#B03B31', def:'#33589B', ctl:'#3D7E52', bad:'#D8D2C2', scar:'#A85D1C'};
+const gi=(name, color, cls)=>`<img class="gl ${cls||''}" src="${glyph(name, color||'#2A2620')}" alt="">`;
+const sprIcon=(u,cls)=>`<img class="gl ${cls||''}" src="${sprite(u.kind==='h'?(u.race||'human')+':'+u.cls:u.key,false)}" alt="">`;
 const unitImg=(u,extra='')=>`<img class="u${u.boss?' big':''} ${extra}" src="${sprite(u.kind==='h'?u.cls:u.key,false)}" data-k="${u.kind==='h'?u.cls:u.key}" alt="">`;
 
 /* ═══════════════════ 길드 — 영웅·전승 ═══════════════════ */
@@ -483,7 +589,7 @@ const $=id=>document.getElementById(id);
 const rnd=n=>Math.floor(Math.random()*n), pick=a=>a[rnd(a.length)];
 const store={ get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v); }catch(e){ return d; } }, set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} } };
 let uid=1;
-const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+'Ⅱ'; };
+const newName=hs=>{ const used=new Set(hs.map(h=>h.name)); const free=NAMES.filter(n=>!used.has(n)); return free.length?pick(free):pick(NAMES)+' 2세'; };
 function randomHero(hs){   // 밖에서 데려온 사람 — 계보가 없어 굳음을 씻는다
   return {id:uid++, name:newName(hs), race:pick(Object.keys(RACES)), role:pick(Object.keys(ROLES)),
     genes:randomGenes(), lv:1, xp:0, gen:0, taught:0, wounded:false, bonus:{hp:0,atk:0}, scars:[]}; }
@@ -529,18 +635,68 @@ const RECRUIT_COST=4, MAX_HEROES=8;
    즉 오래 버틴 자가 아니라 '어떻게 썼느냐'가 길드를 바꾼다. */
 const SCAR_OUT=3;                                  // 상처 셋이면 퇴역
 const SCARS={
-  hand:  {ic:'🤚', nm:'굳은 손',   desc:'공격 −1'},
-  eye:   {ic:'👁️', nm:'한쪽 눈',   desc:'사거리 −1'},
-  rib:   {ic:'🦴', nm:'갈라진 갈비', desc:'체력 −3'},
-  limp:  {ic:'🦯', nm:'절뚝임',    desc:'성벽에 못 오른다 — 안뜰에만 선다'},
-  ring:  {ic:'👂', nm:'귀울림',    desc:'밤에 사거리 −1 더'},
-  shake: {ic:'🫨', nm:'떨리는 손',  desc:'속사가 듣지 않는다'},
-  grim:  {ic:'🩸', nm:'독한 상처',  desc:'겁을 잃었다 — 겁쟁이 무효, 받는 피해 −1'},
-  tough: {ic:'🪢', nm:'살아남은 자', desc:'체력 +2'},
+  hand:  {g:'hand',  nm:'굳은 손',   desc:'공격 −1'},
+  eye:   {g:'shut',  nm:'한쪽 눈',   desc:'사거리 −1', rng:-1},
+  rib:   {g:'bone',  nm:'갈라진 갈비', desc:'체력 −3'},
+  limp:  {g:'cane',  nm:'절뚝임',    desc:'성벽에 못 오른다 — 안뜰에만 선다'},
+  ring:  {g:'ear',   nm:'귀울림',    desc:'밤에 사거리 −1 더'},
+  shake: {g:'shaky', nm:'떨리는 손',  desc:'속사가 듣지 않는다'},
+  grim:  {g:'blood', nm:'독한 상처',  desc:'겁을 잃었다 — 겁쟁이 무효, 받는 피해 −1'},
+  tough: {g:'tally', nm:'살아남은 자', desc:'체력 +2'},
 };
 const scarsOf=h=>h.scars||[];
 const hasScar=(h,k)=>scarsOf(h).includes(k);
 
+/* ═══════════════════ 길드원 카드 ═══════════════════
+   글자를 걷어내고 모양·색·눈금으로 옮긴다.
+   - 왼쪽 띠 = 역할, 초상 바탕 = 종족, 초상 위 금 간 자국 = 상처
+   - 체력·공격은 눈금으로 대소를, 숫자로 정확한 값을
+   - 사거리는 숫자가 아니라 '닿는 칸'을 판 모양 그대로 칠한다 */
+const HP_SCALE=24, AT_SCALE=10;
+function pipsHTML(v,max){ let o=''; for(let i=0;i<max;i++) o+=`<i class="${i<v?'on':''}"></i>`; return `<span class="pips">${o}</span>`; }
+/* 7×5 판 조각. me=자기 칸, on=닿는 칸, up=성벽 위 한 겹 더, pv=이 기질이 바꾸는 범위 */
+function reachHTML(rng, bonus, preview){
+  let o='';
+  for(let r=0;r<5;r++) for(let c=0;c<7;c++){
+    const d=Math.abs(r-2)+Math.abs(c-3);
+    const cl = d===0 ? 'me' : d<=rng ? 'on'
+             : (preview && d<=preview) ? 'pv'
+             : (bonus && d===rng+1) ? 'up' : '';
+    o+=`<i class="${cl}"></i>`;
+  }
+  return o;
+}
+const reachTile=(rng,bonus,preview,id)=>
+  `<div class="reach"><div class="rgrid"${id!=null?` data-rid="${id}"`:''}>${reachHTML(rng,bonus,preview)}</div><span class="rlab">닿는 칸</span></div>`;
+function badgeHTML(k, isScar){
+  const t=isScar?SCARS[k]:TRAITS[k]; if(!t) return '';
+  const cat=isScar?'scar':t.cat;
+  return `<button class="bg ${cat}" data-k="${k}" data-s="${isScar?1:0}" aria-label="${t.nm}" title="${t.nm} — ${t.desc}">`
+    +gi(t.g, CAT_INK[cat])+((!isScar&&RECESSIVE.has(k))?'<span class="rec"></span>':'')+'</button>';
+}
+const genesHTML=h=>{
+  const n={}; for(const g of h.genes||[]) n[g]=(n[g]||0)+1;
+  const slots=[]; for(const k in n){ slots.push(n[k]>=2?'pair':'on'); if(n[k]>=2) slots.push('pair'); }
+  while(slots.length<GENE_SLOTS) slots.push('');
+  return `<span class="genes" title="유전자 ${GENE_SLOTS}칸 — 보라는 둘이 같아 드러난 열성">`
+    +slots.slice(0,GENE_SLOTS).map(c=>`<i class="${c}"></i>`).join('')+'</span>';
+};
+function heroCardHTML(h, s, nSc, isM){
+  const cracks=nSc?`<span class="cracks">${'<i></i>'.repeat(Math.min(3,nSc))}</span>`:'';
+  return `<i class="role ${h.role}"></i>
+    <div class="face ${h.race||'human'}"><img src="${sprite(sprKey(h),false)}" alt="${fullName(h)}">${cracks}${h.wounded?'<span class="rest">휴식</span>':''}</div>
+    <div class="h2body">
+      <div class="h2id"><b class="nm">${h.name}</b><span class="cls">${raceOf(h).nm} ${roleOf(h).nm}</span>
+        <span class="lv">${isM?'스승 · ':''}Lv${h.lv}${h.gen?` · ${h.gen}대`:''}</span></div>
+      <div class="meters">
+        <span class="mt hp">${gi('heart','#B5443C')}<span class="v">${s.hp}</span>${pipsHTML(Math.max(1,Math.round(s.hp/HP_SCALE*10)),10)}</span>
+        <span class="mt at">${gi('sword','#9A6B1F')}<span class="v">${s.atk}</span>${pipsHTML(s.atk,AT_SCALE)}</span>
+      </div>
+      <div class="badges">${heroTraits(h).map(t=>badgeHTML(t,0)).join('')}${scarsOf(h).map(k=>badgeHTML(k,1)).join('')}${genesHTML(h)}</div>
+    </div>
+    ${reachTile(s.rng, h.role==='archer', null, h.id)}
+    <button class="x" title="내보내기">${gi('x','#B5ACA0')}</button>`;
+}
 function renderHall(){
   if(G.heroes.length<2){ const h=randomHero(G.heroes); G.heroes.push(h); flash(`떠돌이 ${fullName(h)} ${h.name}이(가) 문을 두드렸다.`); save(); }
   $('hGold').textContent=G.gold; $('hTier').textContent=G.tier; $('hFame').textContent=G.fame; $('hCount').textContent=G.heroes.length;
@@ -553,30 +709,12 @@ function renderHall(){
   const r=$('roster'); r.innerHTML='';
   for(const h of G.heroes){ const s=stats(h,G.sup), isM=G.mentors.includes(h.id);
     const nSc=scarsOf(h).length;
-    const d=document.createElement('article'); d.className='hero'+(h.wounded?' rest':''); d.dataset.scar=nSc;
-    d.innerHTML=`<i class="stripe"></i>
-      <div class="port"><img src="${sprite(sprKey(h),false)}" alt="${fullName(h)}"></div>
-      <div class="body">
-        <div class="idline"><b class="nm">${h.name}</b><span class="cls"><b>${raceOf(h).nm}</b> ${roleOf(h).nm}</span>
-          ${h.wounded?'<span class="rest">부상 · 이번 공성 휴식</span>':''}<span class="lv">Lv${h.lv}</span></div>
-        <div class="sttiles">
-          <div class="hp"><i>체력</i><b>${s.hp}</b></div>
-          <div class="at"><i>공격</i><b>${s.atk}</b></div>
-          <div class="rg"><i>사거리</i><b>${s.rng}</b></div>
-        </div>
-        <div class="kit">
-          ${heroTraits(h).map(t=>`<span class="${CRAFT[t]?'gr':'tp'}" title="${TRAITS[t].desc}">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')}
-          ${h.from?`<span class="none" title="${h.from.join(' × ')} 가 가르침">📜 ${h.gen}대</span>`:''}
-          ${h.taught?`<span class="none" title="스승을 선 횟수 — 많을수록 솜씨가 굳는다">👐 ${h.taught}</span>`:''}
-        </div>
-        ${nSc?`<div class="scars"><span class="dots">${'●'.repeat(nSc)}${'○'.repeat(SCAR_OUT-nSc)}</span>
-          ${scarsOf(h).map(k=>`<span title="${SCARS[k].desc}">${SCARS[k].ic} ${SCARS[k].nm}</span>`).join(' · ')}</div>`:''}
-      </div>
-      <div class="acts"><button class="drop" title="내보내기">✕</button></div>`;
+    const d=document.createElement('article'); d.className='hero'+(h.wounded?' rest':'');
+    d.innerHTML=heroCardHTML(h, s, nSc, isM);
     const bx=d.querySelector('button');
     bx.onclick=()=>{ if(G.heroes.length<=2) return flash('둘은 남겨야 해요.'); if(confirm(`${h.name}을(를) 내보낼까요?`)){ G.heroes=G.heroes.filter(x=>x!==h); save(); renderHall(); } };
     r.appendChild(d); }
-  $('grave').innerHTML = G.grave.length ? '🪦 '+G.grave.slice(-8).map(g=>`${g.name}(${g.cls}, ${g.tier}차 ${g.wave}웨이브)`).join(' · ') : '';
+  $('grave').innerHTML = G.grave.length ? '묘비 — '+G.grave.slice(-8).map(g=>`${g.name}(${g.cls}, ${g.tier}차 ${g.wave}웨이브)`).join(' · ') : '';
 }
 function flash(t){ $('hallHint').textContent=t; }
 /* 전승 — 스승 둘이 제자를 기른다 */
@@ -596,7 +734,7 @@ function renderTeach(){
     return `<button class="relic" data-h="${h.id}" style="${on?'box-shadow:0 0 0 2px var(--torch) inset;':''}width:100%">
       <span class="ic"><img src="${sprite(sprKey(h),false)}" style="width:28px;height:28px;image-rendering:pixelated" alt=""></span>
       <span><b>${h.name}</b> <small>${raceOf(h).nm} ${roleOf(h).nm}${h.gen?` · ${h.gen}대`:''}</small>
-      <small>${heroTraits(h).map(t=>TRAITS[t].ic+' '+TRAITS[t].nm).join(' · ')||'드러난 것 없음'}</small>
+      <small>${heroTraits(h).map(t=>gi(TRAITS[t].g, CAT_INK[TRAITS[t].cat], 'inl')+TRAITS[t].nm).join(' · ')||'드러난 것 없음'}</small>
       <small style="color:var(--mute)">가르친 횟수 <b>${h.taught||0}</b>${(h.taught||0)>=2?' — 굳어간다':''}</small></span></button>`; }).join('');
   $('teachBox').querySelectorAll('button[data-h]').forEach(b=>b.onclick=()=>{
     const id=+b.dataset.h;
@@ -617,8 +755,8 @@ $('btnTeachGo').onclick=()=>{
   teachPick=[]; renderTeach(); renderHall();
   $('teachSub').innerHTML=`<b>${a.name}</b> × <b>${b.name}</b> → <b style="color:var(--torch)">${kid.name}</b>`
     +`<br><small>${raceOf(kid).nm} ${roleOf(kid).nm} · ${kid.gen}대</small>`
-    +`<br>${shown.map(t=>`<b>${TRAITS[t].ic} ${TRAITS[t].nm}</b>`).join(' · ')||'<span style="color:var(--mute)">드러난 것이 없습니다 — 숨은 것은 다음 대에서 나옵니다</span>'}`
-    +(fresh.length?`<br><span style="color:var(--good)">✨ 스승에게 없던 것: ${fresh.map(t=>TRAITS[t].nm).join(', ')}</span>`:'');
+    +`<br>${shown.map(t=>`<b>${gi(TRAITS[t].g, CAT_INK[TRAITS[t].cat], 'inl')}${TRAITS[t].nm}</b>`).join(' · ')||'<span style="color:var(--mute)">드러난 것이 없습니다 — 숨은 것은 다음 대에서 나옵니다</span>'}`
+    +(fresh.length?`<br><span style="color:var(--good)">스승에게 없던 것: ${fresh.map(t=>TRAITS[t].nm).join(', ')}</span>`:'');
 };
 $('btnRecruit').onclick=()=>{ G.gold-=RECRUIT_COST; const h=randomHero(G.heroes); G.heroes.push(h); save(); flash(`${fullName(h)} ${h.name} 합류.`); renderHall(); };
 /* ═══════════════════ 공성 ═══════════════════ */
@@ -637,7 +775,7 @@ const isNight=()=>B.wave>=4&&B.wave<=9;
 $('btnSiege').onclick=()=>{
   B={tier:G.tier, wave:0, gold:0, sup:G.sup.slice(), gateMax:20+(G.sup.includes('gatewood')?10:0), wall:{}, burn:[], dead:[], phase:'build', sel:null, units:[]};
   B.gate=B.gateMax;
-  for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, ic:ROLES[h.role].ic, cls:h.role, race:h.race, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:heroTraits(h), scars:scarsOf(h), r:-1, c:-1, st:{}}); }
+  for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, g:ROLES[h.role].g, cls:h.role, race:h.race, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:heroTraits(h), scars:scarsOf(h), r:-1, c:-1, st:{}}); }
   B.speed=1; B.paused=false;
   $('scHall').hidden=true; $('scSiege').hidden=false; document.body.classList.add('siege'); buildFort(); nextWave();
 };
@@ -653,11 +791,11 @@ function nextWave(){
   if(w===5||w===10){ list.push('troll'); budget-=7; }
   let guard=0; while(budget>0&&guard++<40){ const k=pick(keys); if(FOES[k].cost<=budget){ list.push(k); budget-=FOES[k].cost; } else { list.push('wolf'); budget-=1; } }
   const hpUp=Math.floor((w-1)/2)+(t-1)*2;
-  list.forEach((k,i)=>{ const f=FOES[k]; B.units.push({kind:'e', key:k, ic:f.ic, name:f.nm, hp:f.hp+hpUp, maxhp:f.hp+hpUp, atk:f.atk+Math.floor((t-1)/2), spd:f.spd, rng:f.rng||1, climb:!!f.climb, bomb:!!f.bomb, boss:!!f.boss,
+  list.forEach((k,i)=>{ const f=FOES[k]; B.units.push({kind:'e', key:k, g:f.g, name:f.nm, hp:f.hp+hpUp, maxhp:f.hp+hpUp, atk:f.atk+Math.floor((t-1)/2), spd:f.spd, rng:f.rng||1, climb:!!f.climb, bomb:!!f.bomb, boss:!!f.boss,
     r:0, c:SPAWNS[rnd(3)], delay:i, slow:0, hold:has('horn')?1:0, st:{}, onWall:false}); });
-  B.snapPos=B.units.filter(u=>u.kind==='h'&&u.hp>0).map(u=>[u,u.r,u.c]);   // ↺ 가 되돌릴 자리
+  B.snapPos=B.units.filter(u=>u.kind==='h'&&u.hp>0).map(u=>[u,u.r,u.c]);   // 되돌림 버튼이 되돌릴 자리
   render(); if(w===1) tipMsg('칩을 <b>끌어서</b> 칸에 놓으세요. 눌렀다 놓기도 됩니다. 길게 누르면 카드가 열립니다.', 5200);
-  if(w===4) log('🌙 밤이 됐다 — 궁수 사거리 −1'); else if(w===10) log('마지막 밤. 버티면 동이 튼다.'); else log('');
+  if(w===4) log(gi('moon','#9AB4D9','inl')+'밤이 됐다 — 궁수 사거리 −1'); else if(w===10) log('마지막 밤. 버티면 동이 튼다.'); else log('');
 }
 /* 적 한 걸음의 판단 — 실제 틱과 예고가 같은 함수를 부른다.
    갈라지면 예고가 거짓말이 되므로, 판단은 여기 한 곳에만 둔다.
@@ -771,7 +909,7 @@ function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null;
 const TICK_A=280, TICK_E=320;              // 아군 차례 → 적 차례 → 다음 틱
 function tickLoop(){
   if(!B||B.phase!=='run') return;
-  if(B.paused&&!B.step){ B.waiting=true; renderCtl(); return; }   // ⏭ 나 ▶ 가 다시 부른다
+  if(B.paused&&!B.step){ B.waiting=true; renderCtl(); return; }   // 한 틱 이나 이어서 가 다시 부른다
   B.waiting=false; B.step=false; B.tick++;
   const en=alive('e'), hs=alive('h').filter(u=>u.r>=0);
   const hurt=(t,n,src)=>{ const raw=Math.max(0,n); n=raw;
@@ -783,7 +921,7 @@ function tickLoop(){
   const hit=(u,t)=>{ let n=effAtk(u); if(has('oil')&&elev(u.r,u.c)&&t.c===u.c+1&&t.r===u.r) n+=1;
     FX_FROM={r:u.r,c:u.c};
     if(reach(u,t)<=1){ qfx({type:'lunge', r:u.r, c:u.c, tr:t.r, tc:t.c}); FX_DELAY=160; } else { qfx({type:'shot', r:u.r, c:u.c, tr:t.r, tc:t.c, side:'h'}); FX_DELAY=(elev(u.r,u.c)||elev(t.r,t.c))?300:200; }
-    hurt(t,n,u); FX_DELAY=0; FX_FROM=null; ev(`${u.ic} ${u.name} → ${t.ic} ${t.name} <b>${n}</b>${t.hp<=0?' 처치':''}`,'h');
+    hurt(t,n,u); FX_DELAY=0; FX_FROM=null; ev(`${sprIcon(u,'inl')}${u.name} → ${sprIcon(t,'inl')}${t.name} <b>${n}</b>${t.hp<=0?' 처치':''}`,'h');
     if(u.traits.includes('venom')) t.st.venom=3; if(u.traits.includes('fire')) t.st.fire=2; if(u.area) t.slow=1; };
   // 1) 아군
   for(const u of hs){
@@ -791,7 +929,7 @@ function tickLoop(){
     const rng=heroRange(u);
     const times=(u.traits.includes('rapid')&&!uScar(u,'shake'))?2:1;
     for(let k=0;k<times;k++){
-      if(u.area){ const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ qfx({type:'cast', r:u.r, c:u.c, rng}); FX_FROM={r:u.r,c:u.c}; FX_DELAY=180; for(const e of ts){ hurt(e,effAtk(u),u); e.slow=1; } FX_DELAY=0; FX_FROM=null; ev(`${u.ic} ${u.name} 냉기 — ${ts.length}명 <b>${effAtk(u)}</b>`,'h'); } }
+      if(u.area){ const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ qfx({type:'cast', r:u.r, c:u.c, rng}); FX_FROM={r:u.r,c:u.c}; FX_DELAY=180; for(const e of ts){ hurt(e,effAtk(u),u); e.slow=1; } FX_DELAY=0; FX_FROM=null; ev(`${sprIcon(u,'inl')}${u.name} 냉기 — ${ts.length}명 <b>${effAtk(u)}</b>`,'h'); } }
       else { const ts=en.filter(e=>e.hp>0&&reach(u,e)<=rng); if(ts.length){ ts.sort((a,b)=>(b.bomb?1:0)-(a.bomb?1:0)||reach(u,a)-reach(u,b)||a.hp-b.hp); hit(u,ts[0]); } }
     }
     if(u.repair){ if(dist(u,GATE)===1&&B.gate<B.gateMax&&B.gate>0){ const before=B.gate; B.gate=Math.min(B.gateMax,B.gate+u.repair); qfx({type:'dmg', r:GATE.r, c:GATE.c, txt:'+'+(B.gate-before), cls:'heal'}); } for(const [dr,dc] of DIR4){ const rr=u.r+dr,cc=u.c+dc; if(inb(rr,cc)&&isWall(rr,cc)&&B.wall[cc]==='rubble'&&Math.random()<.5){ delete B.wall[cc]; log(`${u.name}이(가) 성벽을 메웠다`); } } }
@@ -811,16 +949,16 @@ function tickLoop(){
       if(a.type==='hit'){ const t=a.t; FX_FROM={r:e.r,c:e.c};
         if(dist(e,t)<=1){ qfx({type:'lunge', r:e.r, c:e.c, tr:t.r, tc:t.c}); FX_DELAY=160; }
         else { qfx({type:'shot', r:e.r, c:e.c, tr:t.r, tc:t.c, side:'e'}); FX_DELAY=(elev(e.r,e.c)||elev(t.r,t.c))?300:200; }
-        hurt(t,a.n,e); FX_DELAY=0; FX_FROM=null; ev(`${e.ic} ${e.name} → ${t.ic} ${t.name} <b>${a.n}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
-      if(a.type==='boom'){ B.wall[a.c]='rubble'; e.hp=0; boom(a.r,a.c); haptic([18,30,40]); const hh=at(a.r,a.c,'h'); if(hh) hurt(hh,3); log('💥 성벽이 무너졌다!'); break; }
-      if(a.type==='gate'){ B.gate-=a.n; qfx({type:'lunge', r:e.r, c:e.c, tr:GATE.r, tc:GATE.c}); gateFx(a.n); ev(`${e.ic} ${e.name} → 🚪 성문 <b>${a.n}</b>`,'e'); if(B.gate<=0){ B.gate=0; haptic([22,35,22]); log('🚪 성문이 부서졌다!'); } break; }
+        hurt(t,a.n,e); FX_DELAY=0; FX_FROM=null; ev(`${sprIcon(e,'inl')}${e.name} → ${sprIcon(t,'inl')}${t.name} <b>${a.n}</b>${t.hp<=0?' 전사':''}`,'e'); break; }
+      if(a.type==='boom'){ B.wall[a.c]='rubble'; e.hp=0; boom(a.r,a.c); haptic([18,30,40]); const hh=at(a.r,a.c,'h'); if(hh) hurt(hh,3); log(gi('boom','#D95B4E','inl')+'성벽이 무너졌다!'); break; }
+      if(a.type==='gate'){ B.gate-=a.n; qfx({type:'lunge', r:e.r, c:e.c, tr:GATE.r, tc:GATE.c}); gateFx(a.n); ev(`${sprIcon(e,'inl')}${e.name} → ${gi('door','#E39A3B','inl')}성문 <b>${a.n}</b>`,'e'); if(B.gate<=0){ B.gate=0; haptic([22,35,22]); log(gi('boom','#D95B4E','inl')+'성문이 부서졌다!'); } break; }
       const wasWall=isWall(e.r,e.c); e.r=a.r; e.c=a.c;
       if(a.raw) continue;
       if(isWall(a.r,a.c)&&!wasWall&&B.wall[a.c]!=='rubble'){ e.hold=2; break; }   // 사다리를 오르는 동안 성벽 위 아군이 때린다
       if(wasWall&&isKeep(a.r,a.c)){ e.hold=1; break; }                           // 뛰어내리는 데 한 틱
       if(isVillage(e.r,e.c)){ e.hp=0; const bc=burnCol(e.c);                     // 닿은 집이 탄다. 이미 탄 집이면 옆집이 탄다
         if(!B.burn.includes(bc)) B.burn.push(bc);
-        boom(VILLAGE_R,bc); haptic([28,45,60]); log(`🔥 집이 탔다 — ${B.burn.length}/${BURN_MAX}`); break; }
+        boom(VILLAGE_R,bc); haptic([28,45,60]); log(gi('fire','#D95B4E','inl')+`집이 탔다 — ${B.burn.length}/${BURN_MAX}`); break; }
     }
   }
   B.fTick=B.tick+1; render(); flushFX();
@@ -846,8 +984,8 @@ function supplyPick(gain){
   const pool=Object.keys(SUPPLY).filter(k=>!B.sup.includes(k)); const three=[]; while(three.length<3&&pool.length) three.push(pool.splice(rnd(pool.length),1)[0]);
   if(!three.length) return nextWave();
   B.phase='supply';                                   // 고르는 동안은 틱이 돌지 않는다
-  $('supTitle').textContent=`웨이브 ${B.wave} 방어`; $('supSub').textContent=`🪙${gain} 획득. 보급 하나를 고르세요.`;
-  $('supList').innerHTML=''; for(const k of three){ const b=document.createElement('button'); b.className='relic'; b.innerHTML=`<span class="ic">${SUPPLY[k].ic}</span><span><b>${SUPPLY[k].nm}</b><small>${SUPPLY[k].desc}</small></span>`;
+  $('supTitle').textContent=`웨이브 ${B.wave} 방어`; $('supSub').textContent=`금화 ${gain} 획득. 보급 하나를 고르세요.`;
+  $('supList').innerHTML=''; for(const k of three){ const b=document.createElement('button'); b.className='relic'; b.innerHTML=`<span class="ic">${gi(SUPPLY[k].g,'#2A2620')}</span><span><b>${SUPPLY[k].nm}</b><small>${SUPPLY[k].desc}</small></span>`;
     b.onclick=()=>{ B.sup.push(k); if(k==='gatewood'){ B.gateMax+=10; B.gate=B.gateMax; } if(k==='arrows') for(const u of alive('h')) if(u.cls==='archer') u.atk+=1; $('ovSupply').hidden=true; nextWave(); }; $('supList').appendChild(b); }
   $('ovSupply').hidden=false;
 }
@@ -869,12 +1007,12 @@ function endSiege(win){
     tier:B.tier, traits:heroTraits(h)}); }
   G.heroes=G.heroes.filter(h=>scarsOf(h).length<SCAR_OUT);
   save();
-  $('endTitle').textContent = win ? '🌅 동이 텄다 — 기병이 온다!' : '🏴 북쪽 문이 뚫렸다';
-  $('endBody').innerHTML = (win ? `열 번의 밤을 버텼습니다. 명성 +${(B.tier)*10}, 다음 공성은 ${G.tier}차.` : `${B.wave}웨이브에서 마을이 불탔습니다. 얻은 🪙${B.gold}은 남습니다.`)
+  $('endTitle').textContent = win ? '동이 텄다 — 기병이 온다!' : '북쪽 문이 뚫렸다';
+  $('endBody').innerHTML = (win ? `열 번의 밤을 버텼습니다. 명성 +${(B.tier)*10}, 다음 공성은 ${G.tier}차.` : `${B.wave}웨이브에서 마을이 불탔습니다. 얻은 금화 ${B.gold}은 남습니다.`)
     + (B.dead.length?`<br><span class="dead">전사: ${B.dead.map(h=>h.name).join(', ')}</span>`:'') + (survivors.some(u=>u.ref.wounded)?`<br>부상: ${survivors.filter(u=>u.ref.wounded).map(u=>u.name).join(', ')} — 다음 공성은 쉽니다`:'')
-    + (scarred.length?`<br>🩹 상처: ${scarred.map(x=>`${x.h.name} — ${SCARS[x.k].ic} ${SCARS[x.k].nm}`).join(', ')}`:'')
-    + (retiring.length?`<br>🕯️ 성벽을 떠남: ${retiring.map(h=>`${h.name}(상처 ${scarsOf(h).length})`).join(', ')}`:'')
-    + (B.burn.length?`<br><span class="dead">🔥 불탄 집 ${B.burn.length}채</span>`:'');
+    + (scarred.length?`<br>상처: ${scarred.map(x=>`${x.h.name} — ${gi(SCARS[x.k].g, CAT_INK.scar, 'inl')}${SCARS[x.k].nm}`).join(', ')}`:'')
+    + (retiring.length?`<br>성벽을 떠남: ${retiring.map(h=>`${h.name}(상처 ${scarsOf(h).length})`).join(', ')}`:'')
+    + (B.burn.length?`<br><span class="dead">${gi('fire','#D95B4E','inl')}불탄 집 ${B.burn.length}채</span>`:'');
   $('ovEnd').hidden=false;
 }
 $('btnHome').onclick=()=>{ $('ovEnd').hidden=true; B=null; document.body.classList.remove('siege'); $('scSiege').hidden=true; $('scHall').hidden=false; renderHall(); };
@@ -887,7 +1025,7 @@ $('btnUndo').onclick=()=>{ if(!B||B.phase!=='build'||!B.snapPos) return;
 $('btnPause').onclick=()=>{ if(!B||B.phase!=='run') return;
   B.paused=!B.paused; renderCtl();
   if(!B.paused&&B.waiting) tickLoop();
-  else if(B.paused) tipMsg('멈췄습니다 — <b>⏭ 한 틱</b>으로 한 걸음씩 넘기세요.'); };
+  else if(B.paused) tipMsg('멈췄습니다 — <b>'+gi('step','#F5D06B','inl')+'한 틱</b>으로 한 걸음씩 넘기세요.'); };
 $('btnStep').onclick=()=>{ if(!B||B.phase!=='run'||!B.paused) return; B.step=true; tickLoop(); };
 $('btnSpeed').onclick=()=>{ if(!B) return; B.speed=({1:2,2:4,4:1})[spd()]; renderCtl(); };
 $('wavebar').onclick=()=>$('wavebar').classList.toggle('open');
@@ -944,25 +1082,33 @@ addEventListener('pointercancel', ()=>{ clearTimeout(LP); PD=null;
 /* 유닛 카드 — 길게 누르면 열린다. 칩 한 줄에 다 못 쓰는 것을 여기서 말한다. */
 function showUnitCard(u){
   if(!u) return;
-  const key = u.kind==='h' ? (u.race||'human')+':'+u.cls : u.key;
   const head = u.kind==='h'
-    ? `<b style="font-size:19px">${u.name}</b><div style="color:var(--mute); font-size:12px">${fullName(u.ref)} · Lv${u.ref.lv}</div>`
-    : `<b style="font-size:19px">${u.ic} ${u.name}</b>`;
-  const tiles = `<div class="sttiles"><div class="hp"><i>체력</i><b>${u.hp}/${u.maxhp}</b></div><div class="at"><i>공격</i><b>${u.atk}</b></div><div class="rg"><i>사거리</i><b>${u.kind==='h'?heroRange(u):u.rng}</b></div></div>`;
+    ? `<b style="font-size:19px">${u.name}</b><div style="color:var(--mute); font-size:12px">${fullName(u.ref)} · Lv${u.ref.lv}${u.ref.gen?` · ${u.ref.gen}대`:''}</div>`
+    : `<b style="font-size:19px">${u.name}</b><div style="color:var(--mute); font-size:12px">${u.boss?'우두머리':'적'}</div>`;
+  const rng = u.kind==='h' ? heroRange(u) : u.rng;
+  const meters = `<div class="meters">
+      <span class="mt hp">${gi('heart','#B5443C')}<span class="v">${u.hp}</span>${pipsHTML(Math.max(1,Math.round(u.hp/u.maxhp*10)),10)}</span>
+      <span class="mt at">${gi('sword','#9A6B1F')}<span class="v">${u.atk}</span>${pipsHTML(u.atk,AT_SCALE)}</span>
+    </div>`;
   let rest='';
   if(u.kind==='h'){
-    const tr=(u.traits||[]).map(t=>`<span class="tp">${TRAITS[t].ic} ${TRAITS[t].nm}</span>`).join('')||'<span class="none">기질 없음</span>';
-    const sc=(u.scars||[]).map(k=>`<span class="tp">${SCARS[k].ic} ${SCARS[k].nm}</span>`).join('')||'<span class="none">상처 없음</span>';
-    rest=`<div class="kit">${tr}</div><div class="kit">${sc}</div>`
-      +(elev(u.r,u.c)?'<p style="font-size:12px; color:var(--mute)">성벽 위 — 앞 대각선도 닿고, 지상 근접은 못 때립니다.</p>':'');
+    const tr=(u.traits||[]).map(t=>badgeHTML(t,0)).join('');
+    const sc=(u.scars||[]).map(k=>badgeHTML(k,1)).join('');
+    rest=(tr||sc)?`<div class="badges">${tr}${sc}</div>`:'<p style="color:var(--mute); font-size:12px">기질도 상처도 없습니다.</p>';
+    if(elev(u.r,u.c)) rest+='<p style="font-size:12px; color:var(--mute)">성벽 위 — 앞 대각선도 닿고, 지상 근접은 못 때립니다.</p>';
   } else {
     rest=`<p style="font-size:13px">${FOES[u.key].desc}</p>`
       +`<p style="font-size:12px; color:var(--mute)">걸음 ${u.spd>=2?'한 틱에 두 칸':(u.spd<1?'두 틱에 한 칸':'한 틱에 한 칸')}${u.climb?' · 성벽을 기어오름':''}${u.bomb?' · 성벽을 터뜨림':''}</p>`;
   }
-  $('unitCard').innerHTML=`<div style="display:flex; gap:12px; align-items:center"><img src="${sprite(key,false)}" style="width:58px;height:58px;image-rendering:pixelated" alt=""><div>${head}</div></div>${tiles}${rest}<button id="btnCardClose">닫기</button>`;
+  $('unitCard').innerHTML=`<div class="ucard">
+      <div class="face ${u.kind==='h'?(u.race||'human'):'foe'}"><img src="${sprite(u.kind==='h'?(u.race||'human')+':'+u.cls:u.key,false)}" alt=""></div>
+      <div style="min-width:0">${head}${meters}</div>
+      ${reachTile(rng, u.kind==='h'&&u.cls==='archer')}
+    </div>${rest}<button id="btnCardClose">닫기</button>`;
   $('ovUnit').hidden=false;
   $('btnCardClose').onclick=()=>$('ovUnit').hidden=true;
 }
+
 const cellEl=(r,c)=>$('fort').children[r*C+c];
 function fx(u,txt,heal){ if(u.r<0) return; const n=parseInt(txt.replace(/[^0-9]/g,''))||0; qfx({type:'dmg', r:u.r, c:u.c, txt, cls:(heal?'heal':(u.kind==='h'?'onh':'one'))+(n>=4?' crit':'')}); if(!heal){ qfx({type:'hit', r:u.r, c:u.c, side:u.kind, n}); if(u.hp<=0) qfx({type:'die', r:u.r, c:u.c, key:u.kind==='h'?u.cls:u.key, side:u.kind}); } }
 function boom(r,c){ qfx({type:'boom', r, c}); }
@@ -1027,40 +1173,41 @@ function applyFX(o,fort){ {
       if(e.querySelector('.u')) return;   // 아직 살아 있는 그림이 있으면(같은 칸에 다른 유닛) 생략
       e.appendChild(g); setTimeout(()=>g.remove(),600); if(o.side==='h'){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } }
     else if(o.type==='dmg'){ const e=cellEl(o.r,o.c); const sp=document.createElement('span'); sp.className='dmg '+(o.cls||''); sp.textContent=o.txt; e.appendChild(sp); setTimeout(()=>sp.remove(),800); }
-    else if(o.type==='gate'){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); if(o.n>=4){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } const sp=document.createElement('span'); sp.className='gatecrack'; sp.textContent='💢'; e.appendChild(sp); setTimeout(()=>sp.remove(),500); const d=document.createElement('span'); d.className='dmg onh'; d.textContent='-'+o.n; e.appendChild(d); setTimeout(()=>d.remove(),800); }
+    else if(o.type==='gate'){ const e=cellEl(GATE.r,GATE.c); e.classList.remove('hitfx'); void e.offsetWidth; e.classList.add('hitfx'); if(o.n>=4){ fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); } const sp=document.createElement('span'); sp.className='gatecrack'; sp.innerHTML=gi('boom','#FFD27A'); e.appendChild(sp); setTimeout(()=>sp.remove(),500); const d=document.createElement('span'); d.className='dmg onh'; d.textContent='-'+o.n; e.appendChild(d); setTimeout(()=>d.remove(),800); }
     else if(o.type==='boom'){ const e=cellEl(o.r,o.c); e.classList.remove('boom'); void e.offsetWidth; e.classList.add('boom'); fort.classList.remove('quake'); void fort.offsetWidth; fort.classList.add('quake'); }
   }
 }
 function waveBarHTML(){
   const g={}; for(const u of B.units){ if(u.kind!=='e'||u.hp<=0) continue; const k=u.c+'|'+u.key; g[k]=g[k]||{u,n:0}; g[k].n++; }
   const colName=c=>c<=1?'왼쪽':c>=C-2?'오른쪽':'가운데';
-  return Object.values(g).sort((a,b)=>a.u.c-b.u.c).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated" alt="${u.name}">${n>1?'×'+n:''}<i>${colName(u.c)}</i></span>`).join('')+`<span class="night">${isNight()?'🌙 밤':B.wave===10?'🌅 마지막 밤':'🌤️ 저녁'}</span>`;
+  return Object.values(g).sort((a,b)=>a.u.c-b.u.c).map(({u,n})=>`<span class="grp"><img src="${sprite(u.key,false)}" style="width:20px;height:20px;image-rendering:pixelated" alt="${u.name}">${n>1?'×'+n:''}<i>${colName(u.c)}</i></span>`).join('')+`<span class="night">${isNight()?gi('moon','#4D6B96','inl')+'밤':B.wave===10?gi('sun','#C98A3C','inl')+'마지막 밤':gi('sun','#9A927E','inl')+'저녁'}</span>`;
 }
 function render(){
-  $('vilTxt').innerHTML=B.burn.length?`<b style="color:var(--bad)">🔥${B.burn.length}/${BURN_MAX}</b>`:'🏠무사';
+  $('vilTxt').innerHTML=B.burn.length?`${gi('fire','#D95B4E','inl')}<b style="color:var(--bad)">${B.burn.length}/${BURN_MAX}</b>`:gi('house','#8E8878','inl')+'무사';
   $('bTier').textContent=B.tier; $('bWave').textContent=B.wave; $('bGold').textContent=B.gold; $('wavebar').innerHTML=waveBarHTML();
-  $('bNight').textContent=isNight()?' 🌙':(B.wave===10?' 🌅':'');
-  $('gateTxt').innerHTML=B.gate>0?`🚪${B.gate}/${B.gateMax}`:'<b style="color:var(--bad)">🚪부서짐</b>';
+  $('bNight').innerHTML=isNight()?gi('moon','#4D6B96','inl'):(B.wave===10?gi('sun','#C98A3C','inl'):'');
+  $('gateTxt').innerHTML=B.gate>0?gi('door','#8E7350','inl')+`${B.gate}/${B.gateMax}`
+    :gi('boom','#D95B4E','inl')+'<b style="color:var(--bad)">부서짐</b>';
   $('fort').classList.toggle('night', isNight());
   const pathCells=new Set();
   if(B.phase==='build'){ for(const c of [...new Set(B.units.filter(u=>u.kind==='e').map(u=>u.c))]){ let best=null; for(let cc=0;cc<C;cc++){ const q=path({r:0,c},{r:R-1,c:cc},null); if(q&&(!best||q.length<best.length)) best=q; } if(best) for(const [a,b] of best) pathCells.add(a*C+b); } }
   for(let r=0;r<R;r++) for(let c=0;c<C;c++){
     const e=cellEl(r,c); e.className='c'; e.innerHTML='';
-    if(isVillage(r,c)){ const b=B.burn.includes(c); e.classList.add('vil'); if(b) e.classList.add('burn'); e.innerHTML=b?'🔥':'🏠'; }
-    else if(isKeep(r,c)) e.classList.add('k'); else if(isWall(r,c)){ e.classList.add(B.wall[c]==='rubble'?'rubble':'w'); if(B.wall[c]==='rubble') e.innerHTML='🪨'; } else if(isGate(r,c)){ e.classList.add('gate'); if(B.gate<=0) e.classList.add('broken');
-      e.innerHTML=(B.gate>0?'🚪':'💥')+(B.gate>0?`<div class="gbar"><i style="width:${B.gate/B.gateMax*100}%"></i></div>`:''); } else { e.classList.add('f'); if(r===0) e.classList.add('spawn'); }
+    if(isVillage(r,c)){ const b=B.burn.includes(c); e.classList.add('vil'); if(b) e.classList.add('burn'); e.innerHTML=gi(b?'fire':'house', b?'#E8734F':'#F0DCC0'); }
+    else if(isKeep(r,c)) e.classList.add('k'); else if(isWall(r,c)){ e.classList.add(B.wall[c]==='rubble'?'rubble':'w'); if(B.wall[c]==='rubble') e.innerHTML=gi('rock','#8E8375'); } else if(isGate(r,c)){ e.classList.add('gate'); if(B.gate<=0) e.classList.add('broken');
+      e.innerHTML=gi(B.gate>0?'door':'boom', B.gate>0?'#F0D9A8':'#6E5B45')+(B.gate>0?`<div class="gbar"><i style="width:${B.gate/B.gateMax*100}%"></i></div>`:''); } else { e.classList.add('f'); if(r===0) e.classList.add('spawn'); }
     if(pathCells.has(r*C+c)&&!isGate(r,c)) e.classList.add('path');
     const u=at(r,c);
-    if(u){ e.classList.add(u.kind); if(u.kind==='e'&&u.hold>0&&isWall(r,c)) e.classList.add('climb'); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st">🟢</span>':u.st.fire?'<span class="st">🔥</span>':u.slow?'<span class="st">💫</span>':''); if(u===B.sel) e.classList.add('ok'); }
+    if(u){ e.classList.add(u.kind); if(u.kind==='e'&&u.hold>0&&isWall(r,c)) e.classList.add('climb'); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st ven"></span>':u.st.fire?'<span class="st bur"></span>':u.slow?'<span class="st slw"></span>':''); if(u===B.sel) e.classList.add('ok'); }
     else if(B.phase==='build'&&B.sel){ if(r===0||isVillage(r,c)||isGate(r,c)) e.classList.add('no'); else e.classList.add('ok'); }
   }
   /* 예고 — 적이 이번 틱에 할 일을 판 위에 그린다.
      붉은 빗금 = 맞는 칸, 노란 화살표 = 적이 갈 칸. 흐린 화살표는 두 칸 가는 놈의 둘째 걸음. */
   if(B.phase==='build'||B.phase==='run'){
     const dirRot=(dr,dc)=> dr<0?0 : dr>0?180 : dc<0?-90 : 90;
-    const mark=(r,c,txt)=>{ const el=cellEl(r,c); if(!el) return;
+    const mark=(r,c,g)=>{ const el=cellEl(r,c); if(!el) return;
       el.classList.add('aim');
-      const b=document.createElement('span'); b.className='bang'; b.textContent=txt; el.appendChild(b); };
+      const b=document.createElement('span'); b.className='bang'; b.innerHTML=gi(g,'#FFE9DA'); el.appendChild(b); };
     for(const f of foretell()){
       if(f.path&&f.path.length){                       // 걸어간 뒤에 치는 놈 — 발자국도 그린다
         let pr=f.e.r, pc=f.e.c;
@@ -1069,10 +1216,10 @@ function render(){
           i2.style.setProperty('--rot', dirRot(r-pr,c-pc)+'deg'); el.appendChild(i2);
           pr=r; pc=c; });
       }
-      if(f.type==='hit') mark(f.r,f.c,'⚔️');
-      else if(f.type==='gate') mark(f.r,f.c,'🔨');
-      else if(f.type==='bomb') mark(f.r,f.c,'🧨');
-      else if(f.type==='burn') mark(f.r,f.c,'🔥');
+      if(f.type==='hit') mark(f.r,f.c,'sword');
+      else if(f.type==='gate') mark(f.r,f.c,'hammer');
+      else if(f.type==='bomb') mark(f.r,f.c,'bomb');
+      else if(f.type==='burn') mark(f.r,f.c,'fire');
     }
   }
 
@@ -1086,14 +1233,22 @@ function render(){
   }
   if(focus&&focus.r>=0){ cellEl(focus.r,focus.c).classList.add('inspect'); }
   if(focus){ tipMsg(focus.kind==='h'
-      ? `${focus.ic} <b>${focus.name}</b> 사거리 ${heroRange(focus)}${isNight()&&focus.cls!=='warrior'&&focus.race!=='elf'&&!focus.traits.includes('night')&&!has('torches')?' <small>(밤 −1)</small>':''}${elev(focus.r,focus.c)?' · 성벽 위: 앞 대각선도 닿고 지상 근접은 못 때림':''}`
-      : `${focus.ic} <b>${focus.name}</b> ❤${focus.hp}/${focus.maxhp} ⚔${focus.atk} — ${FOES[focus.key].desc}`, 0); }
+      ? `${sprIcon(focus,'inl')}<b>${focus.name}</b> 사거리 ${heroRange(focus)}${isNight()&&focus.cls!=='warrior'&&focus.race!=='elf'&&!focus.traits.includes('night')&&!has('torches')?' <small>(밤 −1)</small>':''}${elev(focus.r,focus.c)?' · 성벽 위: 앞 대각선도 닿고 지상 근접은 못 때림':''}`
+      : `${sprIcon(focus,'inl')}<b>${focus.name}</b> ${gi('heart','#FF8B7B','inl')}${focus.hp}/${focus.maxhp} ${gi('sword','#F5D06B','inl')}${focus.atk} — ${FOES[focus.key].desc}`, 0); }
   else if(mode==='all') tipMsg('<span style="color:#F7C46B">금색</span> = 아군이 때릴 칸 · <span style="color:#FF8B7B">빗금</span> = 적이 때릴 칸', 0);
   else if(TIP_UNTIL===Infinity||Date.now()>=TIP_UNTIL) tipMsg('');   // 고른 걸 놓으면 붙잡힌 설명도 걷는다
   // 대기 중인 길드원 칩
   const bench=$('bench'); bench.innerHTML='';
   for(const u of alive('h')){ const d=document.createElement('div'); d.className='chip'+(u===B.sel?' sel':'')+(u.r>=0?' placed':'');
-    d.innerHTML=`<img src="${sprite((u.race||'human')+':'+u.cls,false)}" alt="">${u.name} <small>❤${u.hp}</small>`;
+    const p=Math.max(0,u.hp/u.maxhp), C=2*Math.PI*17;
+    const col=p>.6?'#5FA872':p>.3?'#E39A3B':'#D95B4E';
+    const mini=(u.traits||[]).slice(0,3).map(t=>`<i class="${TRAITS[t].cat}">${gi(TRAITS[t].g, CAT_INK[TRAITS[t].cat])}</i>`).join('');
+    d.innerHTML=`<span class="hpr"><svg viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="17" fill="none" stroke="#E0D6BC" stroke-width="4"></circle>
+        <circle cx="20" cy="20" r="17" fill="none" stroke="${col}" stroke-width="4" stroke-linecap="round"
+          stroke-dasharray="${(C*p).toFixed(1)} ${C.toFixed(1)}"></circle></svg>
+        <img src="${sprite((u.race||'human')+':'+u.cls,false)}" alt=""></span>
+      <span class="nm">${u.name}</span><span class="mini">${mini}</span>`;
     d.onclick=()=>{ if(eaten()) return;
       if(B.phase!=='build'){ B.inspect=B.inspect===u?null:u; render(); return; }
       B.sel=B.sel===u?null:u; B.inspect=null; render(); };
@@ -1107,24 +1262,31 @@ function renderCtl(){
   const build=!!B&&B.phase==='build', run=!!B&&B.phase==='run';
   $('btnStart').hidden=!build; $('btnUndo').hidden=!build;
   $('btnPause').hidden=!run; $('btnStep').hidden=!run; $('btnSpeed').hidden=!run;
+  $('btnUndo').innerHTML=gi('back','#2A2620')+'<small>되돌림</small>';
+  $('btnStep').innerHTML=gi('step','#2A2620')+'<small>한 틱</small>';
   if(build){ $('btnStart').textContent=`웨이브 ${B.wave} 시작`;
     $('btnUndo').disabled=!B.snapPos||B.snapPos.every(([u,r,c])=>u.r===r&&u.c===c); }
-  if(run){ $('btnPause').innerHTML=B.paused?'▶ 이어서':'⏸ 멈춤';
+  if(run){ $('btnPause').innerHTML=gi(B.paused?'play':'pause','#1F1810','big')+(B.paused?' 이어서':' 멈춤');
     $('btnStep').disabled=!B.paused;
-    $('btnSpeed').innerHTML=spd()+'×<small>속도</small>'; }
-  $('btnRange').innerHTML='🎯<small>'+({sel:"선택",all:"전체",off:"끔"})[(B&&B.rangeMode)||"sel"]+'</small>';
+    $('btnSpeed').innerHTML='<b style="font-size:16px">'+spd()+'×</b><small>속도</small>'; }
+  $('btnRange').innerHTML=gi('board','#2A2620')+'<small>'+({sel:"선택",all:"전체",off:"끔"})[(B&&B.rangeMode)||"sel"]+'</small>';
 }
 
 /* ═══════════════════ 연결 ═══════════════════ */
 const classHTML=()=>
   Object.entries(RACES).map(([k,r])=>`<span><img src="${sprite(k+':warrior',false)}" style="width:26px;height:26px;image-rendering:pixelated" alt=""></span><span><b>${r.nm}</b> ${r.desc}</span>`).join('')
-  +Object.entries(ROLES).map(([k,c])=>`<span style="font-size:20px">${c.ic}</span><span><b>${c.nm}</b> ❤${c.hp} ⚔${c.atk} 🎯${c.rng} · ${c.desc}</span>`).join('');
+  +Object.entries(ROLES).map(([k,c])=>`<span>${gi(c.g,'#2A2620')}</span><span><b>${c.nm}</b> ${gi('heart','#B5443C','inl')}${c.hp} ${gi('sword','#9A6B1F','inl')}${c.atk} ${gi('board','#3C6E96','inl')}${c.rng} · ${c.desc}</span>`).join('');
 $('classList').innerHTML=$('classList2').innerHTML=classHTML();
-$('scarList').innerHTML=Object.values(SCARS).map(x=>`<span>${x.ic}</span><span><b>${x.nm}</b> ${x.desc}</span>`).join('');
-$('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${t.ic}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
+$('scarList').innerHTML=Object.values(SCARS).map(x=>`<span>${gi(x.g, CAT_INK.scar)}</span><span><b>${x.nm}</b> ${x.desc}</span>`).join('');
+$('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${gi(t.g, CAT_INK[t.cat])}</span><span><b>${t.nm}</b> ${t.desc}</span>`).join('');
 $('meta').textContent = G.fame?`명성 ${G.fame} · 묘비 ${G.grave.length}`:'';
 $('btnGo').onclick=()=>{ $('ovStart').hidden=true; renderHall(); };
-$('btnHelp').onclick=()=>$('ovHelp').hidden=false; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+$('btnHelp').onclick=()=>{
+  for(const [cls,g] of [['rg-back','back'],['rg-pause','pause'],['rg-step','step']])
+    for(const el of document.querySelectorAll('.'+cls)) el.innerHTML=gi(g,'#2A2620','inl');
+  $('ovHelp').hidden=false; }; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
+$('sgHall').innerHTML=gi('coin','#E3B24A','inl');
+$('sgKeep').innerHTML=gi('keep','#6E6655','inl'); $('sgGold').innerHTML=gi('coin','#E3B24A','inl');
 renderHall();
 </script>
 </body>
