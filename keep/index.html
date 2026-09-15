@@ -281,6 +281,7 @@
   .actions .pri{flex:1 1 auto; font-size:15px}
   .actions .ic{min-width:50px; font-size:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px}
   .actions .ic small{font-size:9px; font-weight:700; color:var(--mute); letter-spacing:-.2px}
+  .actions .pri .left{font-size:11px; font-weight:800; color:#7A5520; letter-spacing:-.3px}
   .actions button[hidden]{display:none}
 
   /* 가로로 눕히면 판 왼쪽, 조작 오른쪽 */
@@ -350,9 +351,9 @@
   <div class="bench" id="bench"></div>
   <div class="actions">
     <button class="pri" id="btnStart">웨이브 시작</button>
-    <button class="pri" id="btnPause" hidden></button>
+    <button class="pri" id="btnTurn" hidden></button>
     <button class="ic" id="btnUndo"></button>
-    <button class="ic" id="btnStep" hidden></button>
+    <button class="ic" id="btnAuto" hidden></button>
     <button class="ic" id="btnSpeed" hidden></button>
     <button class="ic" id="btnRange"></button>
   </div>
@@ -388,8 +389,10 @@
     <b>차례</b><span>매 틱 <b>아군이 먼저</b> 때리고, 그다음 적이 움직입니다.</span>
     <b>예고</b><span><b style="color:#F5D06B">노란 화살표</b>는 적이 갈 칸, <b style="color:var(--bad)">붉은 빗금</b>은 일이 벌어질 칸.
       빗금 안 그림이 무슨 일인지 말합니다 — 검·망치·폭약·불. <b>추측할 것이 없습니다.</b></span>
-    <b>조작</b><span>칩이나 길드원을 <b>끌어서</b> 칸에 놓습니다. <b>길게 누르면</b> 카드가 열립니다.
-      진행 중엔 <i class="rg-pause"></i> 멈춤 · <i class="rg-step"></i> 한 틱 · 속도.</span>
+    <b>턴</b><span>웨이브는 <b>한 턴씩</b> 갑니다. <i class="rg-step"></i> <b>다음 턴</b>으로 넘기고,
+      턴마다 <b>한 명을 한 칸</b> 끌어 옮길 수 있습니다 — 예고를 보고 물리는 것이 이 게임의 수입니다.
+      손대지 않고 보려면 <i class="rg-play"></i> <b>자동</b>을 켜세요(1×→2×→4×).</span>
+    <b>조작</b><span>칩이나 길드원을 <b>끌어서</b> 칸에 놓습니다. <b>길게 누르면</b> 카드가 열립니다.</span>
     <b>높이</b><span>성벽 위는 지상 근접이 못 때립니다. 궁수 오크·사다리병·폭약병만 위협입니다.</span>
     <b>밤</b><span>4~9웨이브. 궁수 사거리 −1(야간 시야 제외).</span>
     <b>레벨</b><span>버틴 웨이브마다 경험 하나. <b>셋이면 레벨이 오르고</b> 체력 +2 또는 공격 +1.</span>
@@ -867,12 +870,12 @@ $('btnSiege').onclick=()=>{
   B={tier:G.tier, wave:0, gold:0, sup:G.sup.slice(), gateMax:20+(G.sup.includes('gatewood')?10:0), wall:{}, burn:[], dead:[], phase:'build', sel:null, units:[]};
   B.gate=B.gateMax;
   for(const h of G.heroes){ if(h.wounded) continue; const s=stats(h,B.sup); B.units.push({kind:'h', ref:h, name:h.name, g:ROLES[h.role].g, cls:h.role, race:h.race, hp:s.hp, maxhp:s.hp, atk:s.atk, rng:s.rng, repair:s.repair, area:s.area, traits:heroTraits(h), scars:scarsOf(h), r:-1, c:-1, st:{}}); }
-  B.speed=1; B.paused=false;
+  B.speed=1; B.auto=false;   // 기본은 한 턴씩 — 자동은 눌러서 켠다
   $('scHall').hidden=true; $('scSiege').hidden=false; document.body.classList.add('siege'); buildFort(); nextWave();
 };
 function nextWave(){
   B.fTick=1;                                  // 배치 화면은 다음 판의 첫 틱을 예고한다
-  B.wave++; B.phase='build'; B.sel=null; B.paused=false; B.step=false;
+  B.wave++; B.phase='build'; B.sel=null; B.step=false; B.moved=null;
   if(has('masons')) for(const k in B.wall) delete B.wall[k];
   for(const u of B.units) if(u.kind==='h'&&has('medic')) u.hp=Math.min(u.maxhp,u.hp+3);
   B.units=B.units.filter(u=>u.kind==='h');
@@ -885,7 +888,8 @@ function nextWave(){
   list.forEach((k,i)=>{ const f=FOES[k]; B.units.push({kind:'e', key:k, g:f.g, name:f.nm, hp:f.hp+hpUp, maxhp:f.hp+hpUp, atk:f.atk+Math.floor((t-1)/2), spd:f.spd, rng:f.rng||1, climb:!!f.climb, bomb:!!f.bomb, boss:!!f.boss,
     r:0, c:SPAWNS[rnd(3)], delay:i, slow:0, hold:has('horn')?1:0, st:{}, onWall:false}); });
   B.snapPos=B.units.filter(u=>u.kind==='h'&&u.hp>0).map(u=>[u,u.r,u.c]);   // 되돌림 버튼이 되돌릴 자리
-  render(); if(w===1) tipMsg('칩을 <b>끌어서</b> 칸에 놓으세요. 눌렀다 놓기도 됩니다. 길게 누르면 카드가 열립니다.', 5200);
+  render(); if(w===1) tipMsg('칩을 <b>끌어서</b> 칸에 놓으세요. 길게 누르면 카드가 열립니다.', 5200);
+  else if(w===2) tipMsg('턴마다 <b>한 명을 한 칸</b> 끌어 옮길 수 있습니다 — 예고를 보고 물리세요.', 5200);
   if(w===4) log(gi('moon','#9AB4D9','inl')+'밤이 됐다 — 궁수 사거리 −1'); else if(w===10) log('마지막 밤. 버티면 동이 튼다.'); else log('');
 }
 /* 적 한 걸음의 판단 — 실제 틱과 예고가 같은 함수를 부른다.
@@ -984,14 +988,29 @@ function enemyCells(e){ if(e.delay>0||e.atk<=0) return []; const out=[]; for(let
 const reach=(u,e)=>elev(u.r,u.c)&&Math.abs(u.r-e.r)<=1&&Math.abs(u.c-e.c)<=1&&e.r<u.r ? 1 : dist(u,e);
 
 /* 배치 */
+/* 설 수 있는 칸인가 — 배치 단계와 턴 중 한 걸음이 같은 자를 쓴다 */
+function canStand(u,r,c){
+  if(r===0||isVillage(r,c)||isGate(r,c)||at(r,c)) return '';
+  if(isWall(r,c)&&(u.scars||[]).includes('limp')) return `${u.name}은(는) <b>절뚝여서</b> 성벽에 못 오릅니다 — 안뜰에 서세요.`;
+  return true;
+}
+/* 턴 중에는 한 명이 한 칸만 — 예고를 보고 한 걸음 물리는 것이 이 게임의 수다 */
+function stepMove(u,r,c){
+  if(B.moved) { tipMsg('이번 턴 <b>한 걸음</b>은 이미 썼습니다.'); return false; }
+  if(dist(u,{r,c})!==1){ tipMsg('턴 중에는 <b>한 칸</b>만 움직입니다.'); return false; }
+  const ok=canStand(u,r,c); if(ok!==true){ if(ok) tipMsg(ok); return false; }
+  u.r=r; u.c=c; B.moved=u; B.sel=null; B.inspect=null; haptic(7);
+  tipMsg(`${u.name}이(가) 한 걸음 옮겼습니다.`); render(); renderCtl(); return true;
+}
 function onCell(r,c){
   const anyU=at(r,c);
-  if(B.phase!=='build'){ B.inspect = (anyU&&B.inspect!==anyU) ? anyU : null; render(); return; }   // 진행 중엔 눌러서 사거리만 본다
+  if(B.phase!=='build'){                                  // 진행 중엔 눌러서 사거리를 본다 — 옮길 땐 끈다
+    B.inspect = (anyU&&B.inspect!==anyU) ? anyU : null; render(); return; }
   const h=at(r,c,'h');
   if(anyU&&anyU.kind==='e'){ B.inspect = B.inspect===anyU?null:anyU; render(); return; }
   if(B.sel==null){ if(h){ B.sel=h; render(); } return; }
-  if(r===0||isVillage(r,c)||isGate(r,c)||at(r,c)) { if(h===B.sel){ B.sel=null; render(); } return; }
-  if(isWall(r,c)&&(B.sel.scars||[]).includes('limp')){ tipMsg(`${B.sel.name}은(는) <b>절뚝여서</b> 성벽에 못 오릅니다 — 안뜰에 세우세요.`); return; }
+  const ok=canStand(B.sel,r,c);
+  if(ok!==true){ if(ok) tipMsg(ok); else if(h===B.sel){ B.sel=null; render(); } return; }
   B.sel.r=r; B.sel.c=c; B.sel=null; B.inspect=null; haptic(5); tipMsg(''); render();
 }
 function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null; if(!alive('h').some(u=>u.r>=0)) { tipMsg('아무도 안 세웠어요.'); return; } B.phase='run'; B.sel=null; B.tick=0; B.fTick=1; render(); tickLoop(); }
@@ -1000,8 +1019,8 @@ function startWave(){ if(B.phase!=='build') return; B.events=[]; B.inspect=null;
 const TICK_A=280, TICK_E=320;              // 아군 차례 → 적 차례 → 다음 틱
 function tickLoop(){
   if(!B||B.phase!=='run') return;
-  if(B.paused&&!B.step){ B.waiting=true; renderCtl(); return; }   // 한 틱 이나 이어서 가 다시 부른다
-  B.waiting=false; B.step=false; B.tick++;
+  if(!B.auto&&!B.step){ B.waiting=true; renderCtl(); return; }   // 「다음 턴」을 기다린다
+  B.waiting=false; B.step=false; B.moved=null; B.tick++;         // 새 턴 — 한 걸음이 다시 찬다
   const en=alive('e'), hs=alive('h').filter(u=>u.r>=0);
   const hurt=(t,n,src)=>{ const raw=Math.max(0,n); n=raw;
     if(t.kind==='h'&&t.traits.includes('shield')) n-=1;
@@ -1113,11 +1132,11 @@ $('btnRange').onclick=()=>{ const order=['sel','all','off']; B.rangeMode=order[(
 $('btnUndo').onclick=()=>{ if(!B||B.phase!=='build'||!B.snapPos) return;
   for(const [u,r,c] of B.snapPos){ u.r=r; u.c=c; }
   B.sel=null; B.inspect=null; haptic(8); tipMsg('배치를 웨이브 시작 때로 되돌렸습니다.'); render(); };
-$('btnPause').onclick=()=>{ if(!B||B.phase!=='run') return;
-  B.paused=!B.paused; renderCtl();
-  if(!B.paused&&B.waiting) tickLoop();
-  else if(B.paused) tipMsg('멈췄습니다 — <b>'+gi('step','#F5D06B','inl')+'한 틱</b>으로 한 걸음씩 넘기세요.'); };
-$('btnStep').onclick=()=>{ if(!B||B.phase!=='run'||!B.paused) return; B.step=true; tickLoop(); };
+$('btnTurn').onclick=()=>{ if(!B||B.phase!=='run'||B.auto) return; B.step=true; tickLoop(); };
+$('btnAuto').onclick=()=>{ if(!B||B.phase!=='run') return;
+  B.auto=!B.auto; renderCtl();
+  if(B.auto&&B.waiting) tickLoop();
+  else if(!B.auto) tipMsg('한 턴씩으로 돌아왔습니다.'); };
 $('btnSpeed').onclick=()=>{ if(!B) return; B.speed=({1:2,2:4,4:1})[spd()]; renderCtl(); };
 $('wavebar').onclick=()=>$('wavebar').classList.toggle('open');
 $('ovUnit').onclick=e=>{ if(e.target===$('ovUnit')) $('ovUnit').hidden=true; };
@@ -1141,7 +1160,9 @@ const fortCell=el=>{ const c=el&&el.closest?el.closest('.c'):null; return (c&&c.
 function pdStart(u, e){ if(!u) return; PD={u, x:e.clientX, y:e.clientY};
   clearTimeout(LP); LP=setTimeout(()=>{ if(PD&&!DRAG){ haptic(14); showUnitCard(PD.u); SUPPRESS=true; PD=null; } }, 460); }
 function startDrag(u,x,y){
-  if(!B||B.phase!=='build'||!u||u.kind!=='h') return false;
+  if(!B||!u||u.kind!=='h') return false;
+  if(B.phase==='run'){ if(B.auto||B.moved||u.r<0||!B.waiting) return false; }   // 턴이 멈춰 선 순간에만, 한 걸음
+  else if(B.phase!=='build') return false;
   DRAG={u, el:document.createElement('img'), over:null};
   DRAG.el.className='ghost'; DRAG.el.src=sprite((u.race||'human')+':'+u.cls,false);
   document.body.appendChild(DRAG.el);
@@ -1157,7 +1178,10 @@ function moveDrag(x,y){
 function endDrag(x,y){
   const d=DRAG; DRAG=null; if(!d) return;
   d.el.remove(); if(d.over) d.over.classList.remove('drop');
-  if(d.over){ const i=[...$('fort').children].indexOf(d.over); if(i>=0){ onCell((i/C)|0, i%C); return; } }
+  if(d.over){ const i=[...$('fort').children].indexOf(d.over); if(i>=0){
+    const r=(i/C)|0, c=i%C;
+    if(B&&B.phase==='run'){ stepMove(d.u,r,c); B.sel=null; render(); return; }
+    onCell(r,c); return; } }
   render();
 }
 addEventListener('pointermove', e=>{
@@ -1291,6 +1315,7 @@ function render(){
     const u=at(r,c);
     if(u){ e.classList.add(u.kind); if(u.kind==='e'&&u.hold>0&&isWall(r,c)) e.classList.add('climb'); e.innerHTML=unitImg(u, B.phase==='run'?'bob':'')+`<div class="hp"><i style="width:${u.hp/u.maxhp*100}%"></i></div>`+(u.st.venom?'<span class="st ven"></span>':u.st.fire?'<span class="st bur"></span>':u.slow?'<span class="st slw"></span>':''); if(u===B.sel) e.classList.add('ok'); }
     else if(B.phase==='build'&&B.sel){ if(r===0||isVillage(r,c)||isGate(r,c)) e.classList.add('no'); else e.classList.add('ok'); }
+    else if(B.phase==='run'&&B.sel&&!B.moved&&dist(B.sel,{r,c})===1&&canStand(B.sel,r,c)===true) e.classList.add('ok');
   }
   /* 예고 — 적이 이번 틱에 할 일을 판 위에 그린다.
      붉은 빗금 = 맞는 칸, 노란 화살표 = 적이 갈 칸. 흐린 화살표는 두 칸 가는 놈의 둘째 걸음. */
@@ -1352,13 +1377,15 @@ function render(){
 function renderCtl(){
   const build=!!B&&B.phase==='build', run=!!B&&B.phase==='run';
   $('btnStart').hidden=!build; $('btnUndo').hidden=!build;
-  $('btnPause').hidden=!run; $('btnStep').hidden=!run; $('btnSpeed').hidden=!run;
+  $('btnTurn').hidden=!run; $('btnAuto').hidden=!run; $('btnSpeed').hidden=!(run&&B.auto);
   $('btnUndo').innerHTML=gi('back','#2A2620')+'<small>되돌림</small>';
-  $('btnStep').innerHTML=gi('step','#2A2620')+'<small>한 틱</small>';
+
   if(build){ $('btnStart').textContent=`웨이브 ${B.wave} 시작`;
     $('btnUndo').disabled=!B.snapPos||B.snapPos.every(([u,r,c])=>u.r===r&&u.c===c); }
-  if(run){ $('btnPause').innerHTML=gi(B.paused?'play':'pause','#1F1810','big')+(B.paused?' 이어서':' 멈춤');
-    $('btnStep').disabled=!B.paused;
+  if(run){
+    $('btnTurn').innerHTML=gi('step','#1F1810','big')+' 다음 턴'+(B.moved?'':' <b class="left">·한 걸음</b>');
+    $('btnTurn').disabled=B.auto;
+    $('btnAuto').innerHTML=gi(B.auto?'pause':'play','#2A2620')+'<small>'+(B.auto?'멈춤':'자동')+'</small>';
     $('btnSpeed').innerHTML='<b style="font-size:16px">'+spd()+'×</b><small>속도</small>'; }
   $('btnRange').innerHTML=gi('board','#2A2620')+'<small>'+({sel:"선택",all:"전체",off:"끔"})[(B&&B.rangeMode)||"sel"]+'</small>';
 }
@@ -1373,7 +1400,7 @@ $('traitList').innerHTML=Object.values(TRAITS).map(t=>`<span>${gi(t.g, CAT_INK[t
 $('meta').textContent = G.fame?`명성 ${G.fame} · 묘비 ${G.grave.length}`:'';
 $('btnGo').onclick=()=>{ $('ovStart').hidden=true; renderHall(); };
 $('btnHelp').onclick=()=>{
-  for(const [cls,g] of [['rg-back','back'],['rg-pause','pause'],['rg-step','step']])
+  for(const [cls,g] of [['rg-back','back'],['rg-pause','pause'],['rg-step','step'],['rg-play','play']])
     for(const el of document.querySelectorAll('.'+cls)) el.innerHTML=gi(g,'#2A2620','inl');
   $('ovHelp').hidden=false; }; $('btnHelpClose').onclick=()=>$('ovHelp').hidden=true;
 $('sgHall').innerHTML=gi('coin','#E3B24A','inl');
