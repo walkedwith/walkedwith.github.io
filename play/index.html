@@ -3533,6 +3533,18 @@ body.inmenu #dock { display:none !important; }         /* dpad 모드의 #dock g
      위에 있던 크림 세 줄(.yhead — 동네 줄·이름·되살아남)은 걷어냈다. 동네를 고르는 건
      들르기 첫 화면의 농장 지도가 하고, 되살아남은 아래 줄과 잔디의 풀·새·나비가 말한다.
      #yardsel 이 pointer-events:none 이라 누를 것만 되살린다. */
+  /* 마당 한 장의 할 일 줄 — 오늘 몫 합계 한 줄 + 물건마다 푯말 하나(띠 시절 .ygsign 그대로, 자리만 발치로) */
+  #yardsel .yfoot .ysum { align-self:center; background:rgba(255,249,240,.94); border-radius:12px; padding:5px 12px;
+    font-family:var(--f-hand); font-size:var(--s9); color:#4A3524; pointer-events:auto; }
+  #yardsel .yfoot .ysum em { font-style:normal; color:#A08A70; margin-left:6px; }
+  /* 한 줄로 옆으로 민다 — 열 개를 줄바꿈하면 발치가 세 줄(136px)이 되어 마당을 눌렀다(실측). */
+  #yardsel .yfoot .ysigns { display:flex; flex-wrap:nowrap; gap:6px 10px; overflow-x:auto; padding:2px 4px 6px; pointer-events:auto;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+  #yardsel .yfoot .ysigns::-webkit-scrollbar { display:none; }
+  #yardsel .yfoot .ysg { display:flex; flex-direction:column; align-items:center; gap:2px; flex:none; }
+  #yardsel .yfoot .ysg .ygnm { font-family:var(--f-hand); font-size:var(--s10); color:#FFF9F0; text-shadow:0 1px 2px rgba(0,0,0,.4); white-space:nowrap; }
+  #yardsel .yfoot .ysg .ygsign { position:static; }
+  #yardsel .yfoot .ysigns:empty { display:none; }
   #yardsel .yfoot { position:absolute; left:14px; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:8;
     display:flex; flex-direction:column; gap:7px; pointer-events:none; }
   /* 자리 고르기 — 사연 카드와 같은 틀 */
@@ -3669,28 +3681,7 @@ body.inmenu #dock { display:none !important; }         /* dpad 모드의 #dock g
   display:grid; place-items:center; font-style:normal; font-size:var(--s7); line-height:1; }
 #yBuild .ybbuy { height:36px; margin-top:6px; font-size:var(--s8); }
 #yBuild .ybwhy:empty { display:none; }
-/* 모자란 재료 선택창 — 밥그릇 시트(#mealCard)와 같은 상자 */
-#matCard { position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px); z-index:96; width:300px; max-width:88%;
-  background:rgba(255,249,240,.99); border-radius:20px; padding:15px 16px 13px; text-align:center; box-shadow:0 8px 26px rgba(43,32,54,.28);
-  opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-#matCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
-#matCard .mct { margin:2px 0 10px; display:flex; align-items:center; justify-content:center; gap:7px; }
-#matCard .mct svg { width:24px; height:24px; }
-#matCard .mct b { font-size:var(--s6); color:#4A3524; font-weight:var(--w-bold); }
-#matCard .mcrows { display:flex; flex-direction:column; gap:7px; }
-#matCard .mcrow { padding:9px 11px; width:100%; }
-#matCard .msi { width:34px; height:34px; border-radius:10px; background:#F3EDE2; display:grid; place-items:center; flex:none; }
-#matCard .msi svg { width:24px; height:24px; }
-#matCard .dchip { display:inline-flex; align-items:center; gap:3px; background:#E7A72C; color:#fff; border-radius:10px; padding:4px 10px;
-  font-size:var(--s8); box-shadow:0 2px 0 #B97F17; white-space:nowrap; }
-#matCard .dchip svg { width:14px; height:14px; }
-#matCard .dchip.poor { background:#E4B7AD; box-shadow:0 2px 0 #C0563C; }
-#matCard .dchip.go { background:#7FB35A; box-shadow:0 2px 0 #5F8F2E; }
-/* 아직 못 가는 길 — 자물쇠 한 개. 값 칩과 같은 자리라 누를 곳이 어디인지가 흔들리지 않는다. */
-#matCard .dchip.lk { background:#E3D8C6; box-shadow:0 2px 0 #C6B69C; padding:4px 9px; }
-#matCard .dchip.lk svg { width:16px; height:16px; }
-#matCard .mcrow:has(.dchip.lk) { opacity:.72; }
-#matCard .mcx { position:absolute; right:9px; top:7px; background:none; border:none; font-size:var(--s7); color:#A08A70; cursor:pointer; }
+/* 모자란 재료 선택창(#matCard)은 걷었다 — 종류가 하나가 되면서 고를 것이 없어졌다. */
 
 /* 오늘 몫 상자 — 열면 받은 것이 솟는다(꾸러미와 같은 말투) */
 .gfrev { position:absolute; z-index:60; width:0; height:0; pointer-events:none; }
@@ -4414,7 +4405,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
            absolute 여도 칸과 같이 흘러내려 칸 위에 앉았다(실측). -->
       <div class="ygband" aria-hidden="true"></div>
       <!-- 가진 재료 — 짓기는 전부 마당에서 하므로 들르기에서 늘 보인다. 그림은 matSVG 그대로. -->
-      <div class="ymats" id="yMats" aria-label="가진 재료"></div>
+      <div class="ymats" id="yMats" aria-label="가진 도토리"></div>
       <div class="farmmapsum" id="farmMapSum" role="button" tabindex="0" data-i18n="hood.mapHint">동네를 눌러 둘러보세요</div>
       <!-- 목욕 안내 줄 — 지금 뭘 하면 되는지 한 줄. 거품 막대는 승리 카드의 도토리 막대와
            같은 부품(.pbar)이라 새로 배울 그림이 아니다. -->
@@ -4666,7 +4657,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "hood.slotTagPlaced": "놓임",
     "hood.slotTagOwn": "놓기",
     "hood.slotTagBp": "노트",
-    "hood.slotTagReady": "재료 다 있음",
+    "hood.slotTagReady": "도토리 다 있음",
     "hood.slotTagWalk": "{n}판 더",
     "hood.slotTagLater": "그다음",
     "hood.slotPut": "여기 놓기",
@@ -4683,7 +4674,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "hood.slotHave": "{n}개",
     "hood.slotStanding": "여기 서 있어요",
     "hood.slotReady": "놓을 수 있어요",
-    "hood.slotNeedMat": "자재를 넣는 중",
+    "hood.slotNeedMat": "도토리를 넣는 중",
     "shop.deco": "장식",
     "shop.haveN": "{n}개 있음",
     "yard.indexTodo": "오늘 할 일 {n}",
@@ -4858,9 +4849,9 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "tutorial.yardOpen": "<b>마당</b>이 열렸어요!",
     "tutorial.noteOpen": "<b>수첩</b>이 열렸어요!",
     "tutorial.goNote": "수첩 보기",
-    "tutorial.noteBp": "재료가 모이면 눌러서 지어요",
-    "tutorial.noteBuildFirst": "재료가 다 모였어요<br><b>망치</b>를 눌러 마당을 지어요",
-    "tutorial.noteBuild": "재료가 다 모였어요<br><b>망치</b>를 눌러 지어요",
+    "tutorial.noteBp": "도토리가 모이면 눌러서 지어요",
+    "tutorial.noteBuildFirst": "도토리가 다 모였어요<br><b>망치</b>를 눌러 마당을 지어요",
+    "tutorial.noteBuild": "도토리가 다 모였어요<br><b>망치</b>를 눌러 지어요",
     "tutorial.errandOpen": "<b>아침 심부름</b>이 열렸어요!",
     "tutorial.goErrand": "심부름 보기",
     "tutorial.activate": "여기를 눌러 <b>켜고</b><br>산책을 나가 보세요",
@@ -5083,11 +5074,6 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "growth.goal.first": "첫 꾸러미까지",
     "growth.goal.next": "다음 꾸러미까지",
     "growth.goal.deluxe": "최고급까지",
-    "mat.wood": "나뭇가지",
-    "mat.stone": "돌",
-    "mat.iron": "철",
-    "mat.rubber": "고무",
-    "mat.cloth": "천",
     "victory.giftRecipe": "할아버지의 <b>{name}</b> 노트",
     "victory.giftBundle": "{mat} {n}개 · 도토리 {paw}개",
     "victory.giftAcorn": "도토리 {paw}개",
@@ -5106,7 +5092,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "mission.dare": "도전",
     "mission.openHead": "도전이 열렸어요!",
     "mission.openNm": "걸음을 줄여 다시 걷기",
-    "mission.openDesc": "재료를 다 캔 판은 <b>도전</b>이 돼요<br>정해진 걸음 안에 끝내면 도토리를 더 받아요",
+    "mission.openDesc": "도토리를 다 캔 판은 <b>도전</b>이 돼요<br>정해진 걸음 안에 끝내면 도토리를 더 받아요",
     "mission.openCoach": "이 <b>!</b> 는 도전이 열린 판이에요<br>눌러서 다시 걸어 보세요",
     "mission.slack": "여유 {n}",
     "mission.over": "{n}걸음 넘었어요",
@@ -5169,11 +5155,11 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "hint.sniff.short": "수풀",
     "hint.dest.short": "울타리",
     "hint.order.short": "공",
-    "hint.sniff.description": "다람쥐가 재료 숨은 <b>수풀</b>에 앉아요",
-    "hint.dest.description": "까치가 재료 숨은 <b>울타리</b>에 앉아요",
+    "hint.sniff.description": "다람쥐가 도토리 숨은 <b>수풀</b>에 앉아요",
+    "hint.dest.description": "까치가 도토리 숨은 <b>울타리</b>에 앉아요",
     "hint.order.description": "나비가 먼저 밀 <b>공</b>에 앉아요",
-    "hint.sniff.how": "밀면 재료가 나와요",
-    "hint.dest.how": "밀면 재료가 나와요",
+    "hint.sniff.how": "밀면 도토리가 나와요",
+    "hint.dest.how": "밀면 도토리가 나와요",
     "hint.order.how": "밀면 다음 공으로 날아가요",
     "hint.sniff.coach": "다람쥐가 앉은 수풀을 밀어요",
     "hint.dest.coach": "까치가 앉은 울타리를 밀어요",
@@ -5187,7 +5173,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "story.intro2.alt": "할아버지와 공놀이하는 맥스",
     "callout.cartH.name": "가로 대차",
     "callout.cartH.text": "좌우로만 밀 수 있어요",
-    "map.leftMat": "두고 온 재료 {n}판",
+    "map.leftMat": "두고 온 도토리 {n}판",
     "map.leftMis": "남은 도전 {n}판",
     "map.leftGo": "가기",
     "map.districtLocked": "다 걸으면 다음 동네가 열려요",
@@ -5622,7 +5608,6 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "chore.rwToday": "{mat} 나와요",
     "chore.rwLater": "{mat} {n}일 뒤",
     "chore.rwDropped": "{mat} 떨어져 있어요",
-    "chore.rwScarce": "모자란 재료",
     "chore.rwMeal": "밥 {n}끼",
     "chore.rwCrop": "{name} {n}개",
     "chore.rwCare": "들른 날 +1",
@@ -5649,16 +5634,16 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "note.chalGo": "챌린지 하러",
     "note.bigYardLater": "노트 완성 · 마당이 열리면 지어요",
     "growth.hammerHint": "망치를 누르면 지어요",
-    "note.choresOpened": "<b>일과표</b>가 열렸어요<br>매일 마당을 돌보면 모자란 재료가 와요",
+    "note.choresOpened": "<b>일과표</b>가 열렸어요<br>매일 마당을 돌보면 도토리가 와요",
     "note.planNeed": "{mats} 더 모으면 지을 수 있어요",
-    "note.planYardReady": "재료가 다 모였어요",
+    "note.planYardReady": "도토리가 다 모였어요",
     "note.yardGo": "지을 곳 보기",
     "victory.planNote": "노트가 수첩에 들어갔어요",
-    "victory.planNoteSub": "재료를 모으면 마당에 지어요",
+    "victory.planNoteSub": "도토리를 모으면 마당에 지어요",
     "victory.noteGo": "수첩 보기",
-    "tutorial.matFirst": "노트에 쓸 <b>재료</b>예요",
-    "tutorial.matGather": "여기 있는 게 <b>재료</b>예요<br>모아서 노트를 지어요",
-    "tutorial.matWall": "수풀·울타리에도 <b>재료</b>가 숨어 있어요<br>바스락거리는 칸을 <b>밀어</b> 보세요",
+    "tutorial.matFirst": "노트에 쓸 <b>도토리</b>예요",
+    "tutorial.matGather": "여기 <b>도토리</b>가 묻혀 있어요<br>모아서 노트를 지어요",
+    "tutorial.matWall": "수풀·울타리에도 <b>도토리</b>가 숨어 있어요<br>바스락거리는 칸을 <b>밀어</b> 보세요",
     "tutorial.matWallHit": "찾았어요! 밀어도 걸음 수는 줄지 않아요",
     "tutorial.stepLimit": "남은 걸음 안에 공을 방석에 넣어요",
     "tutorial.acornFirst": "길에 도토리가 떨어져 있어요<br>밟으면 주머니에 들어가요",
@@ -5685,16 +5670,8 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "note.lockYard": "맥스 하우스가 완성되면 열려요",
     "note.smallAt": "판 {n} / {t} · {goal}판째에 노트",
     "growth.shortFrom": "{mat}{particle} {n}개 모자라요 · {places} 판에서 나와요",
-    "growth.shortFree": "마당일이 3일마다 모자란 재료를 하나씩 줘요",
+    "growth.shortFree": "마당일이 3일마다 도토리를 셋씩 줘요",
     "growth.needMore": "{mat} {n}개 더",
-    "growth.needTitle": "{mat}{particle} {n}개 더 필요해요",
-    "growth.buyN": "{mat} {n}개",
-    "growth.buyNow": "바로 받아요",
-    "growth.pickWalk": "판에서 줍기",
-    "growth.pickYard": "마당일로 받기",
-    "growth.pickYardSub": "사흘에 하나",
-    "growth.lockWalk": "아직 갈 수 없는 동네예요",
-    "growth.lockYard": "가구를 지어야 마당일이 생겨요",
     "growth.goBtn": "가기",
     "growth.buyMat": "{mat} {n}개 사기",
     "note.bpNone": "아직 모으는 노트가 없어요",
@@ -5884,7 +5861,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "hood.slotHave": "×{n}",
     "hood.slotStanding": "Standing here",
     "hood.slotReady": "Ready to place",
-    "hood.slotNeedMat": "Adding materials",
+    "hood.slotNeedMat": "Adding acorns",
     "shop.deco": "Decor",
     "shop.haveN": "{n} owned",
     "yard.indexTodo": "{n} to do today",
@@ -6059,7 +6036,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "tutorial.yardOpen": "The <b>yard</b> is open!",
     "tutorial.noteOpen": "Your <b>notebook</b> is open!",
     "tutorial.goNote": "Open notebook",
-    "tutorial.noteBp": "Tap to build once you have the materials",
+    "tutorial.noteBp": "Tap to build once you have the acorns",
     "tutorial.noteBuildFirst": "You have everything<br>Tap the <b>hammer</b> to build the yard",
     "tutorial.noteBuild": "You have everything<br>Tap the <b>hammer</b> to build",
     "tutorial.errandOpen": "<b>Morning errands</b> are here!",
@@ -6071,8 +6048,8 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "tutorial.practice2": "It’s Max’s favorite ball!<br>Push it onto the cushion.",
     "tutorial.practice3": "Max can push.<br>He can’t pull.",
     "tutorial.practiceDone": "Ready for your first real walk?",
-    "tutorial.hintSniff": "Push the bush where the squirrel sits to get the material.",
-    "tutorial.hintDest": "Push the fence where the magpie sits to get the material.",
+    "tutorial.hintSniff": "Push the bush where the squirrel sits to get the acorn.",
+    "tutorial.hintDest": "Push the fence where the magpie sits to get the acorn.",
     "tutorial.hintOrder": "Push the ball the butterfly sits on.",
     "tutorial.giftStood": "{item} now stands in your yard!",
     "tutorial.gift": "You can place {item} in your yard!",
@@ -6284,11 +6261,6 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "growth.goal.first": "First parcel:",
     "growth.goal.next": "Next parcel:",
     "growth.goal.deluxe": "Final upgrade:",
-    "mat.wood": "Twigs",
-    "mat.stone": "Stones",
-    "mat.iron": "Iron",
-    "mat.rubber": "Rubber",
-    "mat.cloth": "Cloth",
     "victory.giftRecipe": "Grandpa’s <b>{name}</b> note",
     "victory.giftBundle": "{mat} ×{n} · {paw} acorns",
     "victory.giftAcorn": "{paw} acorns",
@@ -6370,11 +6342,11 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "hint.sniff.short": "Bush",
     "hint.dest.short": "Fence",
     "hint.order.short": "Ball",
-    "hint.sniff.description": "A squirrel sits on the <b>bush</b> hiding a material",
-    "hint.dest.description": "A magpie sits on the <b>fence</b> hiding a material",
+    "hint.sniff.description": "A squirrel sits on the <b>bush</b> hiding an acorn",
+    "hint.dest.description": "A magpie sits on the <b>fence</b> hiding an acorn",
     "hint.order.description": "A butterfly sits on the <b>ball</b> to push first",
-    "hint.sniff.how": "Push it and the material pops out",
-    "hint.dest.how": "Push it and the material pops out",
+    "hint.sniff.how": "Push it and the acorn pops out",
+    "hint.dest.how": "Push it and the acorn pops out",
     "hint.order.how": "Push it and the butterfly flies to the next ball",
     "hint.sniff.coach": "Push the bush the squirrel sits on",
     "hint.dest.coach": "Push the fence the magpie sits on",
@@ -6388,7 +6360,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "story.intro2.alt": "Max playing ball with Grandpa",
     "callout.cartH.name": "Horizontal Cart",
     "callout.cartH.text": "Push left or right only",
-    "map.leftMat": "{n} walks with materials left",
+    "map.leftMat": "{n} walks with acorns left",
     "map.leftMis": "{n} challenges left",
     "map.leftGo": "Go",
     "map.districtLocked": "Finish this neighborhood to open the next",
@@ -6823,7 +6795,6 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "chore.rwToday": "{mat} today",
     "chore.rwLater": "{mat} in {n}d",
     "chore.rwDropped": "{mat} waiting",
-    "chore.rwScarce": "scarcest material",
     "chore.rwMeal": "{n} meal(s)",
     "chore.rwCrop": "{n} {name}",
     "chore.rwCare": "Visit +1",
@@ -6852,14 +6823,14 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "growth.hammerHint": "Tap the hammer to build",
     "note.choresOpened": "<b>Routine</b> is open<br>Care for the yard daily to get what you are short on",
     "note.planNeed": "Collect {mats} more to build",
-    "note.planYardReady": "Materials ready",
+    "note.planYardReady": "Acorns ready",
     "note.yardGo": "See the spot",
     "victory.planNote": "Note added to your notebook",
-    "victory.planNoteSub": "Collect materials to build it in the yard",
+    "victory.planNoteSub": "Collect acorns to build it in the yard",
     "victory.noteGo": "Notebook",
-    "tutorial.matFirst": "<b>Materials</b> for your sketches",
-    "tutorial.matGather": "These are <b>materials</b><br>Gather them to build the note",
-    "tutorial.matWall": "<b>Materials</b> hide in bushes and fences too<br><b>Push</b> the rustling tile",
+    "tutorial.matFirst": "<b>Acorns</b> for your sketches",
+    "tutorial.matGather": "<b>Acorns</b> are buried here<br>Gather them to build the note",
+    "tutorial.matWall": "<b>Acorns</b> hide in bushes and fences too<br><b>Push</b> the rustling tile",
     "tutorial.matWallHit": "Found it! Pushing costs no moves",
     "tutorial.stepLimit": "Reach the cushion before you run out of steps.",
     "tutorial.acornFirst": "Acorns lie along the path.<br>Step on one to pocket it.",
@@ -6886,16 +6857,8 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
     "note.lockYard": "Opens when Max's house is finished",
     "note.smallAt": "{n} / {t} levels · note at {goal}",
     "growth.shortFrom": "{n} more {mat} needed · from {places} levels",
-    "growth.shortFree": "Yard chores give one scarce material every 3 days",
+    "growth.shortFree": "Yard chores give three acorns every 3 days",
     "growth.needMore": "{n} more {mat}",
-    "growth.needTitle": "You need {n} more {mat}",
-    "growth.buyN": "{n} {mat}",
-    "growth.buyNow": "Get them now",
-    "growth.pickWalk": "Find on walks",
-    "growth.pickYard": "From yard chores",
-    "growth.pickYardSub": "One every three days",
-    "growth.lockWalk": "That area is still locked",
-    "growth.lockYard": "Build the furniture to get chores",
     "growth.goBtn": "Go",
     "growth.buyMat": "Buy {n} {mat}",
     "note.bpNone": "No notes in progress yet",
@@ -7798,10 +7761,19 @@ let effectEpoch=0;
 function audio(){ if(document.hidden||bgmSuspended) return null; if(!bgmStarted) bgmSync();
   if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==="suspended") actx.resume(); return actx; }
 // 저장소 접근은 전부 이 래퍼로 — 사파리 프라이빗/쿠키 차단은 localStorage 접근 자체가 예외를 던진다
+const GOAL_FEEL_QA=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:') && new URLSearchParams(location.search).get('goalfeel')==='1';
+const goalFeelSave=new Map(); // A/B preview never writes the player's progress.
+let goalFeelOn=true;
+function goalFeelEnabled(){ return GOAL_FEEL_QA && goalFeelOn && level===1 && !menuMode && !yardMode && !tutMode; }
+function goalFeelSettle(seconds){
+  const u=Math.max(0,Math.min(1,seconds/.62));
+  return {scale:1, offset:u===1?0:Math.sin(u*Math.PI*2)*.035*(1-u),
+    press:u===1?0:Math.sin(u*Math.PI)*Math.exp(-u*2.5)};
+}
 const LS={
-  get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} },
-  del(k){ try{ localStorage.removeItem(k); }catch(e){} },
+  get(k){ if(GOAL_FEEL_QA)return goalFeelSave.get(k)??null; try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ if(GOAL_FEEL_QA){goalFeelSave.set(k,String(v));return;} try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ if(GOAL_FEEL_QA){goalFeelSave.delete(k);return;} try{ localStorage.removeItem(k); }catch(e){} },
 };
 const progressRecovery=MaxProgressRecovery.createProgressRecovery({
   getItem:k=>LS.get(k), setItem:(k,v)=>LS.set(k,v), removeItem:k=>LS.del(k)
@@ -10231,8 +10203,10 @@ let hardGift=null;                        // 이번 승리에 받은 꾸러미(�
 // 안에 든 건 도토리와 **성장 조각**이다. 힌트 표를 넣어 봤다 뺐다 — 표는 다음 판을
 // 쉽게 만드는 소모품이라 받고 나면 그만인데, 조각은 마당의 물건 하나를 실제로
 // 자라게 하므로 받은 것이 화면에 남는다. 험한 판을 걷는 이유가 그쪽이어야 한다.
-const HARD_GIFT_PAW = 10;                 // 도토리 — 12 → 10 (꾸러미를 맵에서 미리 보이게 하며 조정, 사용자 결정)
-const HARD_GIFT_MAT = 5;                  // 그 동네 재료 묶음
+// 꾸러미 한 상자 = 도토리 15. 재료를 폐지하며 옛 구성(도토리 10 + 재료 5)을 **금액 그대로**
+// 도토리로 합쳤다 — 받는 양은 안 바뀌고 통만 하나가 된다.
+const HARD_GIFT_PAW = 15;
+const HARD_GIFT_MAT = 0;                  // 남겨 둔다 — 옛 저장·테스트가 이 이름을 읽는다
 const ACORNS_ON = true;
 // 한 판에 새 것 하나. 1~5판 바닥 칸은 **도토리**(이미 아는 것 — "밟으면 줍는다"만 배운다), 5판 꾸러미가
 // 첫 도면(쓸 곳)을 주고, 6판에 같은 자리에 **재료**가 나온다. 수풀 속은 7판, 울타리 속은 11판부터 —
@@ -10245,49 +10219,19 @@ function matFull(lv){ lv=lv|0;
   return lv<MAT_FROM_LV? 3 : 3+(lv>=MAT_BUSH_FROM_LV?1:0)+(lv>=MAT_EDGE_FROM_LV?1:0); }
 function matIsAcornLv(lv){ return (lv|0)<MAT_FROM_LV; }
 
-// ══ 재료 — 판에 묻힌 세 칸이 주는 것 ═══════════════════════════════════════
-// 예전엔 묻힌 게 도토리였고 도토리는 화폐였다. 그러면 꾸미기가 사료·무르기·재시작·
-// 걸음·표 다섯과 같은 지갑을 놓고 다퉈 늘 밀렸다(마당 총액 1940 대 수입 900).
-// 묻힌 칸은 **짓기 전용 재료**가 되고, 도토리는 클리어 자동 보상으로 돌아 소모품만 산다.
-// 재료는 다섯 종 — 여섯째부터는 재고 줄이 300px 에 안 잡힌다(시안 실측).
-// 동네마다 나오는 것이 다르다. 뒤 칸 설계도에 옆·먼 동네 재료가 섞이므로
-// 앞 동네 물건을 완성하려면 뒤까지 걸어야 하고, 뒤에서 얻은 것으로 앞으로 돌아온다 —
-// 결정론 퍼즐에 없던 재플레이 동선이 여기서 생긴다.
-const MATS=['wood','stone','iron','rubber','cloth'];
-// 동네마다 [주재료, 부재료]. 한 동네에서 한 종만 나오면 30판 내내 같은 그림이 묻혀
-// 모으는 재미가 없다(보고). 판마다 세 칸을 **주 2 · 부 1** 로 섞되, 열 판 주기로 흔들어
-// 3:0 도 1:2 도 나오게 한다 — 판을 열 때마다 무엇이 묻혔는지가 조금씩 다르다.
-//
-// 부재료는 **다음 동네의 주재료**다. 다음 동네에 닿기 전에 미리 조금씩 손에 들어와서,
-// 여섯째 칸이 부르는 먼 동네 재료가 벽이 되지 않는다.
-// 종류는 그 동네 이야기에서 고른다 — 뒷마당은 목욕이라 천, 냇가는 조약돌,
-// 공터는 트램플린이라 고무, 창고와 들판은 쇠, 골목은 벽돌담이라 돌.
-// 철을 2동네로 앞당겼다 — 뽀득 뒷마당의 낡은 대야는 **양철**이고, 집 현관등에도 철이
-// 든다. 철이 6동네에서야 나오면 앞 다섯 동네가 나무·천·돌만 먹어 물건마다 재료가
-// 뜻 없이 붙는다(집엔 못 하나 안 들어가는데 텃밭엔 연장이 들어갔다).
-const DIST_POOL={
-  1:['wood','cloth'],   2:['iron','cloth'],   3:['stone','wood'],   4:['wood','stone'],
-  5:['rubber','wood'],  6:['wood','iron'],    7:['iron','cloth'],   8:['cloth','stone'],
-  9:['stone','iron'],  10:['iron','rubber'], 11:['cloth','wood'],  12:['wood','stone'],
- 13:['iron','rubber'], 14:['stone','iron'],  15:['rubber','stone'],
-};
-// 부재료가 몇 칸인가 — 열 판 주기, 평균 1 이라 주 2 : 부 1 이 된다.
-const MAT_MIX=[1,1,0,1,2,0,1,2,1,1];
-function matOfDistrict(n){ return (DIST_POOL[n]||['wood'])[0]; }   // 주재료 — 꾸러미·설계도의 기준
-function matOfLv(lv){ return matOfDistrict(districtOfLv(lv)); }
-// 그 판에 묻힌 세 칸의 종류. 칸 순서는 고정이라 되풀이해도 같은 자리에 같은 것이 나온다.
-// 앞 세 칸은 바닥에 보이는 것, 뒤 두 칸은 안쪽 수풀과 판 테두리(울타리)에 숨은 것이다.
-// 숨은 둘은 **주재료 하나 + 부재료 하나** — 둘 다 주재료로 주면 천이 300판에 걸쳐
-// 45 모자란다(사다리가 천을 131 먹는데 부재료로만 들어오기 때문). 실측으로 고른 배합이다.
-function matsOfLv(lv){
-  if(matIsAcornLv(lv)) return ['acorn','acorn','acorn','acorn','acorn'];   // 1~5판 — 재료 전에 도토리
-  const P=DIST_POOL[districtOfLv(lv)]||['wood','stone'];
-  const nB=MAT_MIX[lv%10];
-  const out=[0,1,2].map(i=>i<nB? P[1] : P[0]);
-  out.push(P[0], P[1]||P[0]);
-  return out;
-}
-let matBag={wood:0,stone:0,iron:0,rubber:0,cloth:0};      // 가진 재료 (SK.mt)
+// ══ 판에 묻힌 칸이 주는 것 ═══════════════════════════════════════════════
+// 2026-09-16 — **재료 폐지.** 판이 주는 것도, 짓기가 먹는 것도 도토리 하나다.
+// 다섯 종을 둔 근거는 "동네마다 다른 것이 나와야 뒤까지 걷는다" 였는데, 동네 축을 접으면서
+// 그 근거가 사라졌다. 남던 재고도 실측으로 703개(29%)였다 — 죽은 재고를 지갑 하나로 합친다.
+// 옛 모습은 docs/MATERIALS_SNAPSHOT_2026-09-16.md 에 통째로 남겼다.
+const MATS=['acorn'];
+function matOfDistrict(n){ return 'acorn'; }
+function matOfLv(lv){ return 'acorn'; }
+function matsOfLv(lv){ return ['acorn','acorn','acorn','acorn','acorn']; }
+// 주머니는 **도토리 지갑 하나**다. 옛 코드가 `matBag[k]` 로 읽고 쓰던 자리를 그대로 두고
+// 그 뒤에서 pawBal 을 본다 — 종류가 하나뿐이라 k 를 볼 일이 없다. 통을 둘로 두면 같은 알을
+// 두 군데서 세게 되고, 화면에 도토리 숫자가 두 개 뜬다(재료 시절의 실제 모습이었다).
+const matBag={ get acorn(){ return pawBal|0; }, set acorn(v){ pawBal=Math.max(0, v|0); } };
 // ── 설계도 조각 — 판 테두리(울타리) 칸에서 나온다. **동네별로** 센다: 한 동네가 30판이라
 // 조각 30개이고 열 개에 한 장이니, 그 동네를 다 걸으면 수집품 셋의 설계도가 정확히 열린다.
 // 동네·설계도·수집품·마당 자리가 전부 3 이라 한 동네가 저 혼자 완결된다.
@@ -10428,26 +10372,6 @@ function drawMat(k, x, y, s, t){
 //
 // 그 동네에 닿을 때까지 **주머니에 들어와 있는 재료만** 쓴다(고무는 4동네부터, 철은
 // 6동네부터 나온다). 앞으로 올 재료를 걸면 그 칸을 영영 못 짓는다.
-const GROWTH_TRIO={
-  // 넷째 자리가 있으면 **마지막 칸의 마무리**만 그 재료를 먹는다 — 집은 현관등과
-  // 경첩이 철이라, 그 한 칸은 다음 동네(양철 대야가 나오는 뽀득 뒷마당)를 조금 걸어야
-  // 닫힌다. 꾸미기가 다른 동네를 부르는 유일한 자리다.
-  1:['wood','wood','cloth','iron'],  // 집 — 집터·기둥은 나무, 방석은 천, 현관등은 철
-  2:['iron','cloth','wood'],     // 대야 — 양철 몸통 · 닦는 수건 · 나무 테
-  3:['stone','wood','iron'],     // 개울 — 돌무더기 · 다리 널 · 난간 걸쇠
-  4:['wood','stone','cloth'],    // 참나무 — 지지대 · 둘레돌 · 묶는 끈
-  5:['rubber','wood','cloth'],   // 트램플린 — 고무줄 · 나무 틀 · 점프 천
-  6:['wood','iron','stone'],     // 텃밭 — 나무 틀 · 연장 · 둘레돌
-  7:['wood','iron','rubber'],    // 상자와 손수레 — 나무 상자 · 철 손잡이 · 고무 바퀴
-  8:['wood','cloth','iron'],     // 작업대 — 상판 · 천 · 경첩
-  9:['stone','iron','cloth'],    // 밥그릇 한 벌 — 도기 · 그릇 · 방석
- 10:['iron','cloth','stone'],    // 바람개비 — 축과 기둥 · 날개 천 · 주춧돌
-};
-// 어느 자리에 무엇을 놓느냐가 곧 수급이다 — PART_MIX 를 세어 보면 첫째 재료가 여덟 번,
-// 둘째가 일곱 번, 셋째가 세 번 불린다. 그래서 **그 동네에서 나오는 재료를 앞에**,
-// 지나오며 모아 둔 재료를 셋째에 놓는다(DIST_POOL: 판당 주재료 2 · 부재료 1).
-function matTrio(n){ return GROWTH_TRIO[n] || [matOfDistrict(n),'wood','stone']; }
-
 // 칸별 무게와 동네 배율. 예전엔 열 동네가 3·6·8·6·7·7 로 **완전히 같았다** — 이름만
 // 다르고 숫자가 열 번 같으니 곡선이 없고, 재료가 동네마다 53개(59%)씩 남았다(실측).
 // 이제 앞 동네는 싸고 뒤 동네는 무겁다. 마지막 칸이 제일 비싸서 완공이 사건이 된다.
@@ -10461,34 +10385,17 @@ const REC_W=[8,6,8,9,11,56];                      // 합 98 = 1동네 — 첫 �
 // 짓는다'를 배운다. 8이면 꾸러미 5 + 6·7판에서 캔 몫(각 2)으로 **7판에** 선다 —
 // 노트(5) → 캐기(6·7) → 짓기·마당(7~8) 으로 세 박자가 갈린다.
 const GROWTH_SCALE=[1,1.06,1.12,1.18,1.24,1.3,1.35,1.4,1.42,1.45];   // 10동네 합 ≈75
-// 부품 셋이 **각자 다른 재료**를 먹는다 — GROWTH_TRIO 의 [바탕, 몸통, 마무리] 를
-// 칸마다 다르게 섞는다. 예전엔 셋이 같은 재료라 나눈 티가 안 났다.
-// 첫 칸은 전부 주 재료다 — 처음 배우는 자리에서 종류를 셋이나 요구하지 않는다.
-const PART_MIX=[[0,0,0],[0,0,1],[0,1,1],[0,1,2],[1,1,2],[0,1,2]];
+// 한 칸은 부품 셋으로 나뉜다 — 바탕 · 몸통 · 마무리. 버튼 하나로 끝나면 짓는 게
+// 아니라 결제라, 한 칸을 세 번에 나눠 **부분이 하나씩 늘어나게** 한다. 재료를 폐지하면서
+// "부품마다 다른 종류" 는 사라지고 **수량만 셋으로 갈린다** — 나누는 이유가 종류가 아니라
+// 횟수에 있었기 때문이다(한 번에 다 내면 공사가 아니라 결제로 읽힌다).
 const PART_KEYS=['part.base','part.body','part.top'];
 function growthRungCost(n,i){
   return Math.max(3, Math.round((REC_W[i]||4)*(GROWTH_SCALE[n-1]||1)));
 }
-// 한 칸은 부품 셋으로 나뉜다 — 바탕 · 몸통 · 마무리. 버튼 하나로 끝나면 짓는 게
-// 아니라 결제라, 한 칸을 세 번에 나눠 **부분이 하나씩 늘어나게** 한다.
 function growthParts(n,i){
-  const tri=matTrio(n), tot=growthRungCost(n,i);
-  let mix=PART_MIX[i]||[0,1,2];
-  // 넷째 재료가 있으면 **마지막 칸의 마무리**가 그걸 먹는다(집의 현관등).
-  if(i===PART_MIX.length-1 && tri[3]) mix=[mix[0],mix[1],3];
-  const base=Math.floor(tot/3), extra=tot-base*3;
-  // **마무리 부품은 종류로 모자라게**(재료 C) — 수량은 그대로, 종류만: 1~3단계는 그 동네 둘째 재료,
-  // 4~6단계는 다음 동네 첫째 재료(열째는 첫째로 돈다). 판만 걸어서는 "조금 모자란" 순간이 생기고,
-  // 그 종류가 어디서 나오는지가 곧 다음에 갈 곳이다.
-  const P=DIST_POOL[n]||[], Pn=DIST_POOL[(n%DISTRICTS.length)+1]||[];
-  // 동네 **첫 칸**은 그 동네 주재료만 먹는다. 첫 노트를 받는 5판까지 바닥은 도토리뿐이라
-  // 주머니가 비어 있는데, 마무리에 다른 재료가 섞이면 받자마자 못 짓는다(1동네 첫 칸이 천을 먹었다).
-  const finish = i===0? (tri[0]||P[0]) : (i<3? (P[1]||P[0]) : (Pn[0]||P[0]));
-  return [0,1,2].map(p=>{
-    const k=(p===2 && finish)? finish : (tri[mix[p]]||tri[0]), o={};
-    o[k]=base+(p<extra?1:0);
-    return o;
-  });
+  const tot=growthRungCost(n,i), base=Math.floor(tot/3), extra=tot-base*3;
+  return [0,1,2].map(p=>({acorn: base+(p<extra?1:0)}));
 }
 // 설계도 한 칸의 값 = 부품 셋의 합. 표를 둘로 두면 언젠가 어긋난다.
 function growthRec(n,i){
@@ -10497,11 +10404,8 @@ function growthRec(n,i){
   return out;
 }
 function partsIn(n){ return Math.max(0, Math.min(2, partMap[n]|0)); }
-// 재료가 나오는 동네 — 앞에서부터 둘만 말한다. 열다섯을 다 늘어놓으면 길이 아니라 목록이다.
-function matSourceText(k){
-  const out=[]; for(let n=1;n<=DISTRICTS.length && out.length<2;n++) if(matOfDistrict(n)===k) out.push(districtName(DISTRICTS[n-1]));
-  return out.join(' · ');
-}
+// 도토리는 어느 판에서나 나온다 — 출처를 동네로 좁히던 줄은 재료와 함께 없앴다.
+function matSourceText(k){ return ''; }
 // 설계도 칩 한 줄 — 가진/필요. 모자란 칩은 붉다(재고 0 이 아니라 필요분 미달).
 function recHTML(rec){
   let h='';
@@ -12247,7 +12151,13 @@ function decoFreeFlowerUndo(){
 function decoSave(){ try{ LS.set('roll_deco', JSON.stringify({bag:decoBag, at:hoodDeco})); }catch(e){} }
 function decoHave(k){ return decoBag[k]|0; }
 function decoGain(k, n){ decoBag[k]=(decoBag[k]|0)+(n||1); decoSave(); }
-function hoodDecoAt(n){ return hoodDeco[n]||[]; }
+// 놓인 장식도 마당 한 장의 목록이다 — 옛 저장은 동네별로 나뉘어 있으므로 순서대로 합쳐
+// 여섯까지 쓴다(자리가 여섯이다).
+function hoodDecoAt(n){
+  const out=[];
+  for(let h=1; h<=HOOD_N; h++) for(const k of (hoodDeco[h]||[])) if(k && out.indexOf(k)<0) out.push(k);
+  return out.slice(0, HOOD_SLOT_MAX);
+}
 // 가진 수 = 곳간 + 어느 마당에든 놓인 것
 function decoCount(k){ let c=decoHave(k); for(const n in hoodDeco) for(const x of hoodDeco[n]) if(x===k) c++; return c; }
 // 놓을 자리 수 — **걸어서 셋 + 들러서 셋**.
@@ -12264,7 +12174,11 @@ const YARD_BIG_SCALE_OF={house:1.6, colTub:1.5, colBrook:1, colOak:1.5, colTramp
 // 도면 딱지를 붙일 그림 윗끝(키운 뒤, 발밑 축에서 위로 몇 유닛) — 그림이 낮은 것은 허공에 뜨지 않게 따로 잰다.
 const YARD_BIG_TOP_OF={house:6.2, colTub:4.2, colBrook:4.2, colOak:6.2, colTramp:3.6, colDig:2.4, colBox:5.2, colPaint:5.6, colCatBed:2.2, colPin:7.4};
 function yardBigScale(k){ return YARD_BIG_SCALE_OF[k]!=null? YARD_BIG_SCALE_OF[k] : YARD_BIG_SCALE; }
-function hoodSlots(n){ return Math.min(HOOD_SLOT_MAX, hoodStage(n) + hoodCareStage(n)); }
+// 열린 자리 수도 마당 전체 하나다 — 열 곳의 걸음·돌봄을 합쳐 여섯까지 연다.
+function hoodSlots(n){
+  let s2=0; for(const h of hoodOpen()) s2 += hoodStage(h) + hoodCareStage(h);
+  return Math.min(HOOD_SLOT_MAX, s2);
+}
 // ── 돌봄 — 풍경은 걸어서가 아니라 **들러서** 자란다 ──────────────────────
 // 예전엔 자리도 풍경도 hoodStage 하나가 정했다. 그런데 마당은 그 동네 30판을 **다 깨야**
 // 열리고(districtCleared), HOOD_STEP 의 마지막 칸도 30이다 — 문이 열리는 그 순간 풍경이
@@ -12306,51 +12220,48 @@ function hoodCareBump(n){
 // 손으로 서른 좌표를 적는 대신 계산한다: 발자국이 바뀌어도 자리가 저절로 따라온다.
 const _hss={};
 function hoodSlotSpots(n){
-  if(_hss[n]) return _hss[n];                              // 상수만 읽으므로 한 번 재면 끝이다(매 프레임 부른다)
-  const k=hoodItem(n), it=YCAT.find(y=>y.k===k);
-  const ft=it? (it.ft||[it.w||1, it.h||1]) : [2,2];
-  const sp=YARD_SPOT[k]||[2,2];
+  // 마당이 한 장이 되면서 자리도 **마당 전체에 여섯**이다(동네마다 여섯이면 예순이라
+  // 장식이 턱없이 모자란다). 규칙은 띠 시절 그대로 — 물건 발자국과 그 둘레, 개울 줄을
+  // 피한 2×2 중에서 서로 먼 것부터 고른다. n 은 안 본다.
+  if(_hss.all) return _hss.all;
   const occ={};
-  for(let a=0;a<ft[0];a++) for(let b=0;b<ft[1];b++) occ[(sp[0]+a)+','+(sp[1]+b)]=1;
-  // 큰 가구는 그림이 발자국보다 크게 서므로(YARD_BIG_SCALE) 양옆 한 줄씩을 비워 둔다 — 안 비우면 바로 옆 두 자리의
-  // 물건이 집 벽·밥그릇에 붙었다(실측). 개울은 가로 지형이라 옆이 없다.
-  if(k!=='colBrook' && yardBigScale(k)>1.3)
-    for(let b=0;b<ft[1];b++){ occ[(sp[0]-1)+','+(sp[1]+b)]=1; occ[(sp[0]+ft[0])+','+(sp[1]+b)]=1; }
-  // 개울은 발자국(3×1)보다 넓다 — 마당을 가로지르는 지형이라 그 줄 전체가 물이다.
-  // 발자국만 막으면 자리가 물 위에 앉는다.
-  if(k==='colBrook') for(let tx=0;tx<YW_COLS;tx++) occ[tx+','+sp[1]]=1;
-  // 디딤돌(hoodPath)이 물건 앞에서 울타리까지 한 줄로 내려간다(물건 가운데서 왼쪽으로 4.2유닛,
-  // 좌우로 흔들려 2~6.6유닛). 그 줄에 자리가 앉으면 돌이 점선 밑으로 지나간다(실측) — 비워 둔다.
-  { const cxu=(sp[0]+ft[0]/2)*YW_TS, t0=Math.floor((cxu-6.6)/YW_TS), t1=Math.floor((cxu-1.9)/YW_TS);
-    for(let ty=sp[1]+ft[1]; ty<YW_ROWS; ty++) for(let tx=t0; tx<=t1; tx++) occ[tx+','+ty]=1; }
-  const cx=sp[0]+ft[0]/2, cy=sp[1]+ft[1]/2, cand=[];
-  // 맨 앞줄은 뺀다 — 앞 울타리가 HU-5 에 서서 6·7번째 줄을 가른다(실측: 앞줄 자리의 나무가
-  // 울타리에 꽂혔다). 2×2 가 5번째 줄에서 끝나야 울타리 안쪽이다.
+  for(let h=1; h<=HOOD_N; h++){
+    const k=hoodItem(h), it=YCAT.find(y=>y.k===k); if(!it) continue;
+    const ft=it.ft||[it.w||1, it.h||1], sp=YARD_SPOT[k]||[2,2];
+    for(let a2=0;a2<ft[0];a2++) for(let b2=0;b2<ft[1];b2++) occ[(sp[0]+a2)+','+(sp[1]+b2)]=1;
+    if(k!=='colBrook' && yardBigScale(k)>1.3)
+      for(let b2=0;b2<ft[1];b2++){ occ[(sp[0]-1)+','+(sp[1]+b2)]=1; occ[(sp[0]+ft[0])+','+(sp[1]+b2)]=1; }
+    if(k==='colBrook') for(let tx=0;tx<YW_COLS;tx++) occ[tx+','+sp[1]]=1;
+  }
+  const cand=[];
+  // 맨 앞 두 줄은 뺀다 — 앞 울타리가 거기 선다.
   for(let ty=0; ty<=YW_ROWS-3; ty++) for(let tx=0; tx<=YW_COLS-2; tx++){
     let ok=true;
-    for(let a=0;a<2&&ok;a++) for(let b=0;b<2&&ok;b++) if(occ[(tx+a)+','+(ty+b)]) ok=false;
-    if(!ok) continue;
-    const dx=(tx+1-cx), dy=(ty+1-cy);
-    cand.push([tx, ty, dx*dx+dy*dy]);
+    for(let a2=0;a2<2&&ok;a2++) for(let b2=0;b2<2;b2++) if(occ[(tx+a2)+','+(ty+b2)]){ ok=false; break; }
+    if(ok) cand.push([tx,ty]);
   }
-  // 자리는 물건 **둘레로** 모은다 — 가까운 순으로 집으면 셋이 물건을 감싸 한 앞마당이 된다.
-  // 예전엔 "서로 먼 곳부터" 라 동네 1 의 자리가 (5,0)·(0,4)·(5,4) — 오른쪽 위 구석, 왼쪽 끝,
-  // 오른쪽 끝이었다(실측). 셋을 다 채워도 장면이 안 되고 물건 셋이 따로 섰다.
-  // 겹침은 아래 한 줄(<2)이 이미 막으므로 점수식이 따로 필요 없다.
-  // 같은 거리면 먼저 정렬된 쪽(위·왼쪽) — 열 때마다 같은 자리여야 한다.
-  cand.sort((a,b)=> (a[2]-b[2]) || (a[1]-b[1]) || (a[0]-b[0]));
-  // 가까운 순으로만 집으면 앞줄이 울타리에 막혀 여섯이 물건 **뒤 윗줄**로 몰렸다(8개 동네 실측).
-  // 물건 가운데 줄보다 위(뒤)와 아래·옆(앞)을 번갈아 집어 앞뒤로 고르게 편다. 한쪽이 바닥나면 남은 쪽에서.
-  const back=cand.filter(c=>c[1]+1<cy-0.5), front=cand.filter(c=>c[1]+1>=cy-0.5);
-  const out=[], fits=c=>!out.some(o=>Math.abs(o[0]-c[0])<2 && Math.abs(o[1]-c[1])<2);   // 자리끼리 안 겹치게
-  const take=list=>{ for(const c of list) if(fits(c)){ out.push([c[0], c[1]]); return true; } return false; };
-  let turn=front.length && (!back.length || front[0][2]<=back[0][2]) ? 0 : 1;
-  while(out.length<HOOD_SLOT_MAX){
-    const ok = turn===0? (take(front)||take(back)) : (take(back)||take(front));
-    if(!ok) break; turn^=1;
+  const itemPts=[];
+  for(let h=1; h<=HOOD_N; h++){
+    const k=hoodItem(h), it=YCAT.find(y=>y.k===k); if(!it) continue;
+    const ft=it.ft||[it.w||1, it.h||1], sp=YARD_SPOT[k]||[2,2];
+    itemPts.push([sp[0]+ft[0]/2, sp[1]+ft[1]/2]);
   }
-  _hss[n]=out;
-  return out;
+  const far=(p2, pts)=>{ let m=1e9; for(const q of pts) m=Math.min(m, Math.hypot(p2[0]+1-q[0], p2[1]+1-q[1])); return m; };
+  const out=[];
+  // 물건에서 먼 곳부터 하나, 그다음은 **이미 고른 자리에서 가장 먼 곳** — 먼 순서로만
+  // 고르면 여섯이 한쪽 줄에 나란히 선다(띠 시절 실측).
+  while(out.length<HOOD_SLOT_MAX && cand.length){
+    let best=0, bd=-1;
+    for(let i=0;i<cand.length;i++){
+      const d = out.length? far(cand[i], out.map(o=>[o[0]+1,o[1]+1])) : far(cand[i], itemPts);
+      if(d>bd){ bd=d; best=i; }
+    }
+    const pick=cand.splice(best,1)[0];
+    out.push(pick);
+    for(let i=cand.length-1;i>=0;i--)
+      if(Math.abs(cand[i][0]-pick[0])<3 && Math.abs(cand[i][1]-pick[1])<3) cand.splice(i,1);
+  }
+  _hss.all=out; return out;
 }
 // 그린 자리는 yardPos 가 진다 — 기존 그리기·탭 판정이 전부 그 표를 읽으므로
 // 동네를 옮길 때마다 다시 깔면 아래 코드를 하나도 안 건드려도 된다.
@@ -12381,10 +12292,10 @@ function decoPut(n, slot, k){
   decoBag[k]=decoHave(k)-1; if(!decoBag[k]) delete decoBag[k];
   decoSave(); hoodSyncDeco(); return true;
 }
-// 지금 서 있는 마당에 서는가 — 동네 물건은 제 동네에만, 장식은 놓은 마당에만.
+// 마당에 서는가 — 가진 큰 가구는 전부, 장식은 자리에 놓은 것만.
 function yardInWorld(k){
   const n=hoodOf(k);
-  if(n) return n===hoodCur && yardOwned.includes(k);
+  if(n) return yardOwned.includes(k);            // 마당이 한 장 — 가진 큰 가구는 모두 선다
   // 장식은 구역(z)을 안 본다 — 나무2·우체통·연못·그네가 z:1/2 라 옛 구역 검사에 걸려
   // 영영 안 그려졌다(실측). 구역은 사라졌고 자리는 동네가 정한다.
   return hoodDecoAt(hoodCur).indexOf(k)>=0;
@@ -12432,37 +12343,26 @@ function choresToday(){
 }
 function choresWeek(){ return []; }                 // 주간 칸은 마당 상태가 대신한다
 function choreDone(k){ const q=questSt(); return !!q.dc[k]; }
-// ── 마당이 낳는 재료 ─────────────────────────────────────────────────────
-// 산책의 울타리 칸을 조각으로 돌리면서 재료 공급이 300 줄었다(실측 적자 88). 그 몫을
-// 마당이 갚는다 — 빼앗은 만큼이 곧 마당이 필요해지는 양이라, 마당 없이는 못 짓는다.
-//
-// 곳마다 **제 동네 재료**를 맡는다(DIST_POOL 의 주재료와 같다). 냇가에서 돌, 참나무에서
-// 나무, 폴짝 공터에서 고무, 색칠 작업대에서 천, 바람개비에서 철. 겹치는 데가 없고,
-// "왜 여기서 이게 나오지" 가 안 생긴다.
-//
-// 밥·목욕·텃밭·택배는 뺐다. 앞 둘은 산책 체력을 만드는 유일한 줄이고, 뒤 둘은 수확물을
-// 주고받는 사슬이라 재료를 얹으면 그 사슬이 흐려진다.
-const CHORE_MAT={ colBrook:'stone', colOak:'wood', colTramp:'rubber', colPaint:'cloth', colPin:'iron', colCatBed:'*',
-  // 재료 C — 밥·목욕·텃밭·택배 마당도 3일마다 **그때 가장 모자란 재료** 하나를 같이 준다(무료로 메우는 느린 길).
-  house:'*', colTub:'*', colDig:'*', colBox:'*' };
+// ── 마당이 낳는 도토리 ───────────────────────────────────────────────────
+// 산책의 울타리 칸을 조각으로 돌리면서 공급이 줄었고, 그 몫을 마당이 갚는다 — 빼앗은
+// 만큼이 곧 마당이 필요해지는 양이라, 마당 없이는 못 짓는다.
+// 재료를 폐지하면서 **무엇이 나오나**는 사라졌다(전부 도토리). 어느 마당이 낳느냐만 남는다.
+// 밥·목욕·텃밭·택배도 낳는다 — 예전엔 "가장 모자란 재료" 를 주던 자리다.
+const CHORE_MAT={ colBrook:'acorn', colOak:'acorn', colTramp:'acorn', colPaint:'acorn', colPin:'acorn',
+  colCatBed:'acorn', house:'acorn', colTub:'acorn', colDig:'acorn', colBox:'acorn' };
 // 사흘에 하나. 텃밭·참나무가 이미 "심고 사흘"(CROP_MAX·OAK_MAX)이라 박자가 같고,
 // 마당일이 날마다 여섯 번 누르는 출석부가 되는 것도 같이 막는다.
-// 하루에 하나씩 주면 여섯 곳이 180일에 판 공급의 83% 를 낳는다 — 판이 무의미해진다.
 const MAT_EVERY_DAYS=3;
-// 고양이가 물어오는 것 — 잔액이 가장 적은 재료 하나. 무엇이 모자란지는 사람이 세는 것보다
-// 게임이 아는 편이 낫다(수요는 레시피에 다 적혀 있다). 같으면 MATS 순서가 정한다.
-function matScarcest(){
-  let best=MATS[0], low=Infinity;
-  for(const m of MATS){ const v=matBag[m]|0; if(v<low){ low=v; best=m; } }
-  return best;
-}
+// 한 번에 낳는 양 — 판 한 판 첫 클리어 몫과 같게 잡는다(도토리 3).
+const CHORE_MAT_N=3;
+function matScarcest(){ return 'acorn'; }
 // 그 마당일이 오늘 재료를 낳는가 — 마지막으로 받은 날에서 사흘이 지났으면.
 function choreMatDue(k){
   if(!CHORE_MAT[k] || !yardOwned.includes(k)) return false;
   const q=questSt(), last=q.mat && q.mat[k];
   return (typeof last!=='number') || (localDays()-last) >= MAT_EVERY_DAYS;
 }
-function choreMatOf(k){ const m=CHORE_MAT[k]; return m==='*'? matScarcest() : m; }
+function choreMatOf(k){ return 'acorn'; }
 // 그 마당에 떨어져 줍기를 기다리는 재료 — 없으면 ''.
 function matDropOf(k){ const q=questSt(); return (q.drop && q.drop[k]) || ''; }
 // 떨어진 자리 — 물건 **바로 앞** 잔디, 오른쪽으로 비켜서. 물건 위에 겹치면 무엇이 떨어졌는지
@@ -12477,7 +12377,7 @@ function matPick(k){
   const q=questSt(), m=q.drop && q.drop[k];
   if(!m) return false;
   delete q.drop[k]; questSave(q);
-  matBag[m]=(matBag[m]|0)+1; persist();
+  matBag[m]=(matBag[m]|0)+CHORE_MAT_N; persist();      // 마당일 한 번 = 도토리 셋(판 첫 클리어 몫과 같다)
   if(yardMode && typeof yw!=='undefined' && yw.dog && hoodItem(hoodCur)===k){
     const p=matDropPos(k);
     matFx={m, x:p.x, y:p.y, t:0, phase:'fetch', fromY:p.y, pick:1};
@@ -12678,9 +12578,20 @@ function loadSave(){
     careLoad();                                      // starMap 이 실린 뒤라야 이월값이 맞는다
     { const mi=JSON.parse(LS.get(SK.mi)||'null'); missionMap=(mi && typeof mi==='object')? mi : {}; }
     chipLoad();                                   // 챌린지 기록(missionMap) 뒤에 — 옛 세이브 조각 소급이 그걸 읽는다
-    { const mt=JSON.parse(LS.get(SK.mt)||'null');
-      matBag={wood:0,stone:0,iron:0,rubber:0,cloth:0};
-      if(mt && typeof mt==='object') for(const k of MATS) matBag[k]=Math.max(0, mt[k]|0); }
+    // 옛 세이브의 재료를 **도토리로 옮긴다**(다섯 종 합계를 1:1 로). 부어 둔 몫(colPot)도
+    // 종류를 접어 도토리로 합친다 — 짓다 만 칸은 그대로 이어 짓는다.
+    // 도장을 찍어 한 번만 한다: 꾸러미 보정에서 배운 규칙대로 **부팅 때 한 번, 그 자리에서 굳힌다.**
+    if(!LS.get('roll_matfix')){
+      let carry=0;
+      { const mt=JSON.parse(LS.get(SK.mt)||'null');
+        if(mt && typeof mt==='object') for(const k in mt) carry+=Math.max(0, mt[k]|0); }
+      for(const ck in colPot){ const pot=colPot[ck]; if(!pot || typeof pot!=='object') continue;
+        let t=0; for(const m in pot) t+=Math.max(0, pot[m]|0);
+        colPot[ck]= t? {acorn:t} : {}; }
+      // 잔액만 올린다 — 부팅의 economyReconcile('startup_migration') 이 레저와 맞춰 준다.
+      if(carry>0) pawBal += carry;
+      LS.del(SK.mt); LS.set('roll_matfix','1');
+    }
     // 지은 단계. 키가 없던 시절 사람들은 험한 판을 깨는 즉시 자랐으므로, 그만큼을
     // 이미 지은 것으로 옮긴다 — 안 그러면 다 지어 둔 마당이 통째로 되감긴다.
     { const gb=JSON.parse(LS.get(SK.gb)||'null');
@@ -12751,7 +12662,6 @@ function persist(){
     LS.set(SK.kb, JSON.stringify({n:kibble}));
     LS.set(SK.bo, JSON.stringify(boost));
     LS.set(SK.gb, JSON.stringify(builtMap));
-    LS.set(SK.mt, JSON.stringify(matBag));
     LS.set(SK.pt, JSON.stringify(partMap));
     LS.set(SK.gp, JSON.stringify(potMap));
     LS.set(SK.cp, JSON.stringify(colPot));
@@ -14552,11 +14462,10 @@ function lsNextHardLv(){ for(const lv of HARD_LV) if(!(starMap[lv]|0)) return lv
 function giftPopOpen(lv, anchor){
   const pop=el('lsGiftPop'); if(!pop || !anchor) return;
   const n=districtOfLv(lv), xs=DISTRICT_GROWTH[n]||[], gi=xs.findIndex(x=>x.level===lv), got=(starMap[lv]|0)>0;
-  const mat=matOfDistrict(n), it=gi>=0? xs[gi] : null;
+  const it=gi>=0? xs[gi] : null;
   pop.innerHTML='<h4>'+escAttr(I18N.t('map.giftTitle',{lv:lvLabel(lv)}))+'<i class="'+(got?'got':'')+'">'+escAttr(I18N.t(got?'map.giftGot':'map.hardWalk'))+'</i></h4>'
     +'<div class="gpits'+(got?' got':'')+'">'
     +'<span class="gpit"><span class="gpic">'+'<svg viewBox="0 0 48 48">'+PAW_SVG+'</svg>'+'</span><b>'+HARD_GIFT_PAW+'</b></span>'
-    +'<span class="gpit"><span class="gpic">'+matSVG(mat)+'</span><b>'+HARD_GIFT_MAT+'</b></span>'
     +(it? '<span class="gpit"><span class="gpic bp"><canvas width="96" height="96"></canvas></span><b>'+escAttr(it.label)+'</b></span>' : '')
     +'</div>';
   const cv=pop.querySelector('canvas');
@@ -15618,6 +15527,27 @@ function drawAcorns(){
   // 보드 왼쪽 위 '0 / 3' 칩은 뺐다 — 판에 묻힌 도토리가 눈에 보이고, 주우면 그 자리에서
   // 튀고 소리가 난다. 승리 카드가 몇 개 캤는지 다시 말한다. 세 번 말할 필요가 없다.
 }
+// Two drawing passes: the front rim occludes only the bottom of a settled ball.
+// Both passes share their deformation; the ball itself keeps its original radius.
+function drawGoalFeelCushion(x,y,color,press,front){
+  const p=cell*.36;
+  ctx.save();ctx.translate(x,y+press*cell*.025);ctx.scale(1+press*.08,1-press*.18);
+  if(!front){
+    ctx.fillStyle='rgba(65,48,30,.14)';ctx.beginPath();ctx.ellipse(0,p*.24,p*1.05,p*.77,0,0,7);ctx.fill();
+    ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,p*.13,p,p*.83,0,0,7);ctx.fill();
+    ctx.fillStyle='rgba(255,249,240,.30)';ctx.beginPath();ctx.ellipse(0,-p*.03,p*.86,p*.67,0,0,7);ctx.fill();
+    ctx.fillStyle=color;ctx.beginPath();ctx.ellipse(0,p*.02,p*.61,p*.43,0,0,7);ctx.fill();
+    ctx.fillStyle='rgba(77,33,27,.13)';ctx.beginPath();ctx.ellipse(0,p*.08,p*.56,p*.36,0,0,7);ctx.fill();
+  }else{
+    ctx.fillStyle=color;ctx.beginPath();
+    ctx.moveTo(-p*.88,p*.35);
+    ctx.bezierCurveTo(-p*.56,p*.69,p*.56,p*.69,p*.88,p*.35);
+    ctx.bezierCurveTo(p*.85,p*1.06,-p*.85,p*1.06,-p*.88,p*.35);ctx.fill();
+    ctx.strokeStyle='rgba(255,249,240,.55)';ctx.lineWidth=cell*.025;ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(-p*.73,p*.49);ctx.bezierCurveTo(-p*.35,p*.69,p*.35,p*.69,p*.73,p*.49);ctx.stroke();
+  }
+  ctx.restore();
+}
 function drawCushion(x,y,col,active,pop){
   // 보드 렌더와 같은 입체 원형 방석 — 데모만 둥근 사각이라 모양이 달라 보였다.
   const p=cell*0.36*(1+(pop||0)*0.18), C=active? COL[col] : "#8E8C88";
@@ -16519,6 +16449,9 @@ const COLLECT={
   colCatBell: {col:9,  lv:255, rec:{iron:6},   set:'fetch'},
   colSeed:    {col:10, lv:284, rec:{rubber:6}, set:'fetch'},
 };
+// 재료 폐지 — 수집품 레시피도 **도토리 합계 하나**로 접는다. 값(총액)은 그대로다:
+// 종류가 둘이던 것은 더해서 한 줄이 된다(돌 8 + 천 4 → 도토리 12).
+for(const k in COLLECT){ const r=COLLECT[k].rec||{}; let t=0; for(const m in r) t+=r[m]|0; COLLECT[k].rec={acorn:t}; }
 const COL_SETS={fetch:{nameKey:'set.fetch', frameKey:'set.fetchFrame'}};
 function setItems(sk){ return Object.keys(COLLECT).filter(k=>COLLECT[k].set===sk).sort((a,b)=>(COLLECT[a].col-COLLECT[b].col) || (COLLECT[a].lv-COLLECT[b].lv)); }
 function setDone(sk){ const ks=setItems(sk); return ks.length>0 && ks.every(k=>yardOwned.includes(k)); }
@@ -17411,7 +17344,8 @@ function openYard(){
   // 마당엔 승리 카드가 없다. 완주 카드에서 곧장 들어오는 길이 생기면서 그 위에 남았다 —
   // 나가는 경로마다 지우게 두면 경로가 늘 때마다 같은 사고가 난다. 들어오는 데서 한 번 판다.
   el("win").classList.remove("show");
-  yardMode=true; menuMode=true; farmMapMode=true; document.body.classList.add("inyard","farmmap-on"); el('yardsel').classList.add('farmmap-on');
+  // 격자 첫 화면(농장 지도)은 걷혔다 — 들르기는 마당 한 장이다.
+  yardMode=true; menuMode=true; farmMapMode=false; document.body.classList.add("inyard"); document.body.classList.remove("farmmap-on"); el('yardsel').classList.remove('farmmap-on');
   applyScene(fromBaked(YARD_SCENE));                  // L 을 읽는 코드 안전용 (렌더는 디오라마)
   fit();                                              // 캔버스 크기 재계산 (숨겨져 있던 동안 0×0 이었다)
   treatK=null; treatEaten=true; tut=0; menuSol=[]; menuI=0;
@@ -17423,6 +17357,7 @@ function openYard(){
   yardZone=0; yardZoneSync(); yardDigSpot(); bathSpot(); hmealLoad(); brookLoad(); decoLoad();
   // 마당은 곧 한 동네다 — 그 자리에서 고른다(늦게 고르면 첫 프레임에 빈 마당이 비친다).
   hoodWorldN=0; hoodRender();
+  yardSignsRender();                                  // 마당 한 장의 할 일 줄
   oakLoad(); oakTick();                               // 참나무 — 오늘 몫 한 단계
   playLoad();                                         // 놀이 공터 — 누적 일수·오늘 보상
   digLoad(); seedLoad();                              // 흙 파는 자리 — 오늘 팠나 · 조각
@@ -17523,7 +17458,10 @@ const YW_TS=6;                           // 타일 한 변(유닛)
 // 다 쓰는 **가로 띠**다. 정사각 7×7 을 띠에 넣으면 위아래가 잘리거나(가로 띠) 옆이 비었다.
 // 세로 6 은 개집(4칸) + 앞 울타리 한 줄. 가로 12 면 물건 둘레에 2×2 자리 여섯이 들어간다
 // (hoodSlotSpots 규칙으로 잰 값: 개집 8·참나무 9·택배 9·밭두렁 12 곳이 나온다).
-const YW_COLS=12, YW_ROWS=6;
+// ── 2026-09-16 — **마당은 다시 한 장이다(12×15).** 동네마다 띠 하나로 쪼갰던 것을 되돌린다.
+// 쪼갠 이유가 "동네마다 제 물건이 서야 한다" 였는데 동네 축을 접으면서 근거가 사라졌다.
+// 12×15=180칸에 물건 열이 다 서면 발자국 합 55칸 — 옛 마당이 돌던 밀도 그대로다.
+const YW_COLS=12, YW_ROWS=15;
 // 칸을 촘촘하게 하면 유닛당 픽셀(ywSX)이 줄어 집·맥스·장식까지 같이 작아진다.
 // 배치 눈금만 촘촘해지고 그림 크기는 그대로여야 하므로, 물건은 이 배율로 되돌린다.
 // 12열 시절 픽셀 크기가 기준. 덤불처럼 **칸에 맞아야 하는 것**만 ywSX 를 직접 쓴다.
@@ -17635,7 +17573,7 @@ let ywW=0, ywH=0;                        // 캔버스 CSS 크기 (fit 이 채움
 // ywH 는 그 패딩을 제외한 콘텐츠 박스라 여기서 또 빼면 두 번 깎인다.
 // 지평선 위(원경)가 먹는 캔버스 세로 비율. fit 이 이만큼을 위 여백으로 떼어 월드를 아래로 민다.
 // **fit 보다 위에 선언해야 한다** — const 는 TDZ 가 있어서 부트 중 fit 이 먼저 불리면 터진다.
-const HOOD_HZ=0.20;
+const HOOD_HZ=0.14;   // 지평선 위 원경 몫 — 마당이 12×15 한 장이 되며 0.20 → 0.14(세로가 모자랐다, 실측 타일 23px)
 let ywPadTop=44;                          // 위에서 가리는 픽셀 — HUD·동네 머리 (fit 이 갱신)
 let ywPadBot=0;                           // 아래에서 가리는 픽셀 — 오늘 일 줄 (fit 이 갱신)
 function ywSX(){ return Math.min(ywW/YW_WU, Math.max(1, ywH-ywPadTop-ywPadBot)/YW_HU); }
@@ -17703,10 +17641,13 @@ for(const k in COLLECT) if(!Object.getOwnPropertyDescriptor(YSTORY,k)) Object.de
 // 발자국: 집 2×4 · 통 1×2 · 개울 3×1 · 참나무 2×2 · 트램플린 2×2 · 밭 4×1 ·
 //         상자 5×2 · 작업대 5×2 · 방석 2×2 · 바람개비 2×3
 const YARD_SPOT={
-  // 12×6 — 물건은 가운데, 자리 여섯이 양옆을 둘러싼다. 앞 울타리(HU-5)가 6번째 줄에 서므로
-  // 물건은 5번째 줄(ty 4)에서 끝나야 한다 — 개집(4칸)은 ty 1 부터.
-  house:[5,1], colTub:[5,2], colBrook:[4,2], colOak:[5,2], colTramp:[5,2],
-  colDig:[4,3], colBox:[3,2], colPaint:[3,2], colCatBed:[5,2], colPin:[5,1],
+  // 12×15 한 장. 뒤(ty 작은 쪽)가 담, 앞 세 줄은 맥스가 걷는 땅이라 비워 둔다.
+  // 발자국: 집 2×4 · 통 1×2 · 개울 3×1 · 참나무 2×2 · 트램플린 2×2 · 밭 4×1 ·
+  //         상자 5×2 · 작업대 5×2 · 방석 2×2 · 바람개비 2×3 (겹치는 칸 없음)
+  house:[1,0],     colPin:[9,0],    colPaint:[4,1],
+  colBox:[1,5],    colOak:[9,4],
+  colTramp:[2,8],  colCatBed:[6,8], colTub:[10,8],
+  colBrook:[1,11], colDig:[6,11],
 };
 // 소품의 땅 — 개울(13번 줄)이 앞줄을 가르고 그 아래(14번)는 울타리 뒤라, 실제로 쓰는 건
 // 11~12 두 줄이다. 24칸이고 소품이 먹는 건 14칸 — 1.7배 여유.
@@ -19550,7 +19491,7 @@ function ygSignState(n){
 // 그 일이 **지금 주는 것** — 버튼에 미리 붙인다(돌 1 · 밥 1끼 · 도토리 1). 없으면 빈칸.
 function ygReward(k){
   if(!k || choreDone(k)) return '';
-  if(CHORE_MAT[k] && choreMatDue(k) && !matDropOf(k)) return matSVG(choreMatOf(k))+'1';
+  if(CHORE_MAT[k] && choreMatDue(k) && !matDropOf(k)) return matSVG(choreMatOf(k))+CHORE_MAT_N;
   if(k==='house' && mealOn()) return ICON_BOWL+'1';
   if(k==='colTub') return ICON_BOWL+BATH_MEALS;
   if(k==='colPin') return ygAcornSVG()+'1';
@@ -19622,14 +19563,40 @@ function yardGridRender(){
 }
 // 푯말을 눌렀다 — 맥스가 그 마당으로 옮겨 가서 일을 하거나 재료를 줍는다.
 // 못 하는 때(기다림·오늘 끝)는 왜 못 하는지를 한 줄로 말한다(souvState 의 pill).
+// ── 마당 한 장의 할 일 줄 ──
+// 띠 시절엔 흙길 푯말이 유일한 입구였고 그 푯말은 격자 칸 안에 살았다. 마당이 한 장이 되면서
+// 푯말 열을 발치(#yFoot)에 **한 줄로** 늘어놓는다 — 물건마다 하나, 오늘 할 수 있는 것은 금빛,
+// 기다리는 것은 시계, 끝낸 것은 줄에서 빠진다. 머리엔 오늘 몫 합계와 다음 갈 곳.
+function yardSignsRender(){
+  const f=el('yFoot'); if(!f || farmMapMode) return;
+  const open=hoodOpen();
+  let todoN=0; for(const n of open) if(hoodTodo(n)) todoN++;
+  const nx=ygNextTodo(), d=nx? DISTRICTS[nx-1] : null;
+  let h='';
+  if(todoN) h+='<div class="ysum">'+I18N.t('hood.mapTodo',{n:todoN})+(d? '<em>'+I18N.t('hood.mapNext',{name:districtName(d)})+'</em>' : '')+'</div>';
+  h+='<div class="ysigns">';
+  for(const n of open){ const sh=ygSignHTML(n); if(sh) h+='<span class="ysg" data-yn="'+n+'"><i class="ygnm">'+I18N.t('yard.item.'+hoodItem(n))+'</i>'+sh+'</span>'; }
+  h+='</div>';
+  if(f.__h!==h){ f.innerHTML=h; f.__h=h;
+    // 줄 높이가 바뀌면 마당이 그만큼 자리를 내줘야 한다 — fit 이 발치 높이를 재서 ywPadBot 을 잡는다.
+    const hh=f.getBoundingClientRect? Math.round(f.getBoundingClientRect().height) : 0;
+    if(hh!==f.__hh){ f.__hh=hh; if(yardMode && typeof fit==='function') fit(); } }
+  if(!f.__w){ f.__w=1;
+    f.onpointerdown=e=>{ const t=e.target, c=t && t.closest && t.closest('.ygsign'); ygDown=c? {c, x:e.clientX, y:e.clientY} : null; };
+    f.onpointerup=e=>{ const dd=ygDown; ygDown=null; if(!dd) return;
+      if(Math.hypot(e.clientX-dd.x, e.clientY-dd.y)>10) return;
+      const t=e.target, c=t && t.closest && t.closest('.ygsign'); if(c!==dd.c) return;
+      if(c.dataset.sign) ygSignPress(+c.dataset.sign); }; }
+}
 function ygSignPress(n){
   const k=hoodItem(n); if(!k) return;
   const g=ygSignState(n);
-  if(g.act==='info'){ const b=el('yGrid') && el('yGrid').querySelector('[data-sign="'+n+'"]');
+  if(g.act==='info'){ const b=(el('yFoot') && el('yFoot').querySelector('[data-sign="'+n+'"]')) || (el('yGrid') && el('yGrid').querySelector('[data-sign="'+n+'"]'));
     const d=g.pill || I18N.t('hood.signWait');
     if(b) tipBubbleShow(b, {key:'sign'+n, title:I18N.t('yard.item.'+k), desc:d, extra:I18N.t('chore.verb.'+k)}); else showToast(d.replace(/<[^>]+>/g,' '), 2400); return; }
   if(ygBusy()){ if(typeof sfxBlocked==='function') sfxBlocked(); return; }
-  if(n!==ygLiveN){ const prev=ygLiveN; if(!ygMount(n)) return; if(prev) ygBlit(prev, true); }
+  if(farmMapMode){ if(n!==ygLiveN){ const prev=ygLiveN; if(!ygMount(n)) return; if(prev) ygBlit(prev, true); } }
+  else hoodCur=n;                                        // 마당 한 장 — 캔버스는 그대로, 초점만 옮긴다
   tone(660,0.05,'triangle',0.03,880); buzz(5);
   if(g.act==='pick') matPick(k);
   else if(!yardAct(k)){ if(typeof sfxBlocked==='function') sfxBlocked(); }
@@ -19680,14 +19647,17 @@ function ygSync(){
     c.classList.toggle('go', !!hoodTodo(n));
   }
   ygSumRender();
+  yardSignsRender();
 }
 // 할 일 줄 — HUD 아래 한 줄. 누르면 다음 할 일 칸으로 스크롤해 반짝인다.
 // 예전엔 화면 아래에 떠 있어서 스크롤한 칸 위에 앉았다(실측: 덜컹 창고·알록 울타리길을 덮었다).
 function ygNextTodo(){ for(const n of hoodOpen()) if(hoodTodo(n)) return n; return 0; }
-const yMatsLag={};                                 // 날아오는 중인 재료 수 — 줄의 숫자는 도착해야 오른다
+// 마당의 도토리 줄 — 칸이 다섯에서 **하나**가 됐다(재료 폐지). 없애지 않는 이유는 마당에서
+// HUD 를 숨기기 때문이다(body.inyard #hud). 여기가 마당에서 지갑을 보는 유일한 자리다.
+const yMatsLag={};                                 // 날아오는 중인 몫 — 줄의 숫자는 도착해야 오른다
 function yMatsRender(){
   const b=el('yMats'); if(!b) return;
-  const h=MATS.map(m=>'<span data-m="'+m+'">'+matSVG(m)+'<b>'+Math.max(0,(matBag[m]|0)-(yMatsLag[m]|0))+'</b></span>').join('');
+  const h='<span data-m="acorn">'+matSVG('acorn')+'<b>'+Math.max(0,(matBag.acorn|0)-(yMatsLag.acorn|0))+'</b></span>';
   if(b.__h!==h){ b.innerHTML=h; b.__h=h; }
 }
 function yMatsBump(m){
@@ -19850,9 +19820,9 @@ function yardBuildRender(){
       +'<span>'+(done? '✓' : matName(kk))+'</span><i>'+(done? '' : '×'+nd)+'</i></div>';
   }).join('');
   const go=el('ybGo'), mat=matName(k), short=put<need;
-  // 글을 걷었다 — 모자란 까닭 두 줄과 사기 버튼 대신, 모자라면 **"철 3개 더 +"** 하나. 누르면 선택창(matSheetOpen).
-  // 하나도 없으면 큰 버튼 자리가 그 버튼이 되고, 조금 있으면 "가진 만큼 넣기" 아래에 작게 붙는다.
-  ybBuyK=short? k : null;
+  // 모자라면 **"도토리 3개 더"** 하나. 누르면 얼마가 모자란지 토스트로 말한다(선택창은 걷었다 —
+  // 종류가 하나가 되면서 "어디서 구하나" 가 사라졌고, 도토리는 판을 걸으면 들어온다).
+  ybShortN=short? Math.max(0, need-have) : 0;
   go.classList.toggle('need', have<=0);
   if(have<=0) go.innerHTML = matSVG(k)+'<span>'+I18N.t('growth.needMore',{mat, n:need-have})+'</span><i class="plus">+</i>';
   else go.textContent = put>=need? I18N.t('growth.putN',{mat, n:need}) : I18N.t('growth.putSome',{n:put});
@@ -19862,57 +19832,17 @@ function yardBuildRender(){
       if(short && have>0) b.innerHTML=matSVG(k)+'<span>'+I18N.t('growth.needMore',{mat, n:need-have})+'</span><i class="plus">+</i>'; } }
   { const pe2=el('ybParts'); if(pe2) for(const c of pe2.querySelectorAll('.ybp.cur.no')) c.setAttribute('data-need','1'); }
 }
-// ── 모자란 재료 선택창 — 도토리 충전 시트와 같은 모양. 사기 한 줄 · 공짜로 모으는 길 두 줄 ──
-function matSheetOpen(k, lackIn){
-  if(!k) return;
-  let c=el('matCard');
-  if(!c){ c=document.createElement('div'); c.id='matCard'; (el('yardsel')||document.body).appendChild(c); }
-  const mat=matName(k), n=yBuildN, parts=n? growthParts(n, builtIn(n)) : null, rec=parts? parts[partsIn(n)] : null;
-  const lack=lackIn!=null? Math.max(0, lackIn-(matBag[k]|0)) : (rec? Math.max(0, (rec[k]|0)-potIn(n)-(matBag[k]|0)) : 0);
-  const poor=pawBal<MAT_BUY_COST, src=matSourceText(k)||'-';
-  // 갈 수 있는 길인가 — 그 재료를 주는 동네에 아직 못 갔거나 마당이 아직 없으면 자물쇠다.
-  // "가기" 를 눌렀는데 갈 데가 없는 것보다, 잠겨 있다고 먼저 말하는 편이 정직하다.
-  let walkLv=0; for(let d=1; d<=DISTRICTS.length; d++) if(matOfDistrict(d)===k && DISTRICTS[d-1].from<=maxLevel){ walkLv=DISTRICTS[d-1].from; break; }
-  // 마당일은 **지어진** 마당에만 붙는다. 열린 마당이 하나라도 있으면 열어 주던 것을 좁혔다 —
-  // 서 있는 마당이 다른 재료만 준다면 "가기" 를 눌러도 이 재료는 영영 안 온다(판에서 줍기와 같은 규칙).
-  const yardSrc = hoodOpen().some(n=>{ const m=CHORE_MAT[hoodItem(n)]; return m==='*' || m===k; });
-  const walkLock=!walkLv, yardLock=!yardUnlocked() || !yardSrc;
-  const goChip=(lock)=> lock? '<b class="dchip lk">'+MIS_LOCK_SVG+'</b>' : '<b class="dchip go">'+I18N.t('growth.goBtn')+'</b>';
-  c.innerHTML='<button class="mcx" data-ms="x" aria-label="close">✕</button>'
-    +'<p class="mct">'+matSVG(k)+'<b>'+I18N.t('growth.needTitle',{mat, particle:josa(mat,'이','가'), n:lack})+'</b></p>'
-    +'<div class="mcrows">'
-    +'<button class="fsrow mcrow" data-ms="buy"><span class="fsi msi">'+matSVG(k)+'</span><span class="fsl"><span>'+I18N.t('growth.buyN',{mat, n:MAT_BUY_N})+'</span><i>'+I18N.t('growth.buyNow')+'</i></span><b class="dchip'+(poor?' poor':'')+'">'+'<svg class="pawi" viewBox="0 0 48 48" aria-hidden="true">'+PAW_SVG+'</svg> '+MAT_BUY_COST+'</b></button>'
-    +'<button class="fsrow mcrow" data-ms="walk"><span class="fsi msi">'+LS_WALK_ICO+'</span><span class="fsl"><span>'+I18N.t('growth.pickWalk')+'</span><i>'+escAttr(walkLock? I18N.t('growth.lockWalk') : src)+'</i></span>'+goChip(walkLock)+'</button>'
-    +'<button class="fsrow mcrow" data-ms="yard"><span class="fsi msi">'+YARD_HOUSE_ICO+'</span><span class="fsl"><span>'+I18N.t('growth.pickYard')+'</span><i>'+I18N.t(yardLock? 'growth.lockYard' : 'growth.pickYardSub')+'</i></span>'+goChip(yardLock)+'</button>'
-    +'</div>';
-  c._k=k; c._walk=walkLock?0:1; c._yard=yardLock?0:1; c.classList.add('show');
-  if(!c._w){ c._w=1; c.addEventListener('click', e=>{ const b=e.target.closest && e.target.closest('[data-ms]'); if(!b) return; matSheetAct(b.dataset.ms); }); }
-  tone(620,0.05,'triangle',0.03,860); buzz(5);
+// 모자란 재료 선택창은 걷었다(2026-09-16). 종류가 하나가 되면서 "무엇을 어디서 구하나" 가
+// 사라졌다 — 도토리는 판을 걸으면 들어온다. 모자랄 땐 토스트 한 줄로 얼마가 모자란지만 말한다.
+function matShort(n){
+  sfxBlocked();
+  showToast(I18N.t('notice.short',{count:Math.max(1, n|0)}), 1800);
 }
-function matSheetClose(){ const c=el('matCard'); if(c) c.classList.remove('show'); }
-function matSheetAct(a){
-  const c=el('matCard'), k=c && c._k; if(!k) return;
-  if(a==='x'){ matSheetClose(); return; }
-  if(a==='buy'){ ybBuyK=k; if(pawBal<MAT_BUY_COST){ yardBuyMat(); return; } yardBuyMat(); matSheetClose();
-    if(el('ySlot') && el('ySlot').classList.contains('on') && hoodSlotI>=0) hoodSlotOpen(hoodSlotI); return; }
-  if(a==='walk' && !c._walk){ sfxBlocked(); showToast(I18N.t('growth.lockWalk'), 1800); return; }
-  if(a==='yard' && !c._yard){ sfxBlocked(); showToast(I18N.t('growth.lockYard'), 1800); return; }
-  if(a==='walk'){ matSheetClose(); yardBuildClose(); hoodSlotClose();
-    let dn=0; for(let d=1; d<=DISTRICTS.length; d++) if(matOfDistrict(d)===k && DISTRICTS[d-1].from<=maxLevel){ dn=d; break; }
-    closeYard(); openLvlSel(); if(dn) setTimeout(()=>lsJumpTo(DISTRICTS[dn-1].from), 60); return; }
-  if(a==='yard'){ matSheetClose(); yardBuildClose(); hoodSlotClose(); if(typeof ygGoNext==='function') ygGoNext(); return; }
-}
-const MAT_BUY_N=5, MAT_BUY_COST=20;             // 모자란 재료 다섯 = 도토리 20(판 여섯쯤 첫 클리어 몫) — 자리표시 값
-let ybBuyK=null;
+function matSheetClose(){}
+let ybShortN=0;                                 // 지금 짓는 칸에 모자란 도토리 수 — 버튼이 읽는다
 const YARD_HOUSE_ICO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12 12 4l9 8" fill="#5B86C9"/><rect x="6" y="11" width="12" height="9" fill="#FFF6E4" stroke="#C9B59A"/><path d="M10.5 20v-4h3v4" fill="#8A5A34"/><path d="M2 21h20" stroke="#7FB35A" stroke-width="2"/></svg>';
 const LS_WALK_ICO='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20c2-6 6-9 14-14" fill="none" stroke="#C99E62" stroke-width="3" stroke-dasharray="2 3" stroke-linecap="round"/><circle cx="19" cy="6" r="3.2" fill="#D9644F"/><circle cx="5" cy="20" r="2.4" fill="#8CC152"/></svg>';
-function yardBuyMat(){
-  const k=ybBuyK; if(!k) return;
-  if(pawBal<MAT_BUY_COST){ sfxBlocked(); showToast(I18N.t('notice.short',{count:MAT_BUY_COST-pawBal}), 1800); return; }
-  pawBal-=MAT_BUY_COST; matBag[k]=(matBag[k]|0)+MAT_BUY_N;
-  persist(); syncHud(); spendFx("paw",MAT_BUY_COST); tone(680,0.05,"triangle",0.03,880); buzz(6);
-  yardBuildRender(); if(typeof yMatsRender==='function') yMatsRender();
-}
+// 재료를 사던 함수(yardBuyMat)는 걷었다 — 도토리로 도토리를 사는 줄이 됐다.
 function yardBuildGo(){
   const n=yBuildN; if(!n || buildFx) return;
   const built0=builtIn(n), p0=partsIn(n), rec0=growthParts(n, built0)[p0], k=recKey(rec0), tot0=rec0[k]|0;
@@ -20141,7 +20071,7 @@ function ysBomRender(n, slot){
   // 재료가 모자라면 짓기 판과 같은 붉은 점선 "나무 3개 더 +" — 누르면 같은 선택창(matSheetOpen).
   if(m && have<=0){
     btn.classList.add('need'); btn.innerHTML=matSVG(m)+'<b>'+I18N.t('growth.needMore',{mat:matName(m), n:need})+'</b><i class="plus">+</i>';
-    onTapOnce(btn, ()=>matSheetOpen(m, need));
+    onTapOnce(btn, ()=>matShort(need-(matBag.acorn|0)));
     return;
   }
   btn.classList.remove('need');
@@ -20305,9 +20235,10 @@ function ywTap(px,py){
   // 물건을 누르면 짓기(그 동네 대표 물건) 아니면 살짝 흔들린다. 쓰다듬기·자리 고르기는 그대로.
   // 맥스를 누르면 쓰다듬기. 물건보다 먼저 본다 — 개가 물건 위에 서 있을 수 있다.
   // 떨어진 재료 — 재료 자체가 버튼이다. 맥스보다 먼저 본다(맥스가 그 곁에 서 있기 쉽다).
-  { const dk=hoodItem(hoodCur), dm=dk && yardOwned.includes(dk)? matDropOf(dk) : '';
-    if(dm && !matFx){ const dp=matDropPos(dk);
-      if(Math.hypot(wx-dp.x, wy-(dp.y-2))<8){ tone(660,0.05,'triangle',0.03,880); buzz(5); matPick(dk); ygFocus(hoodCur); ygSync(); return; } } }
+  // 마당이 한 장이라 **어느 물건 것이든** 떨어진 도토리는 그 자리에서 줍는다.
+  if(!matFx) for(const dn of hoodOpen()){ const dk=hoodItem(dn), dm=matDropOf(dk); if(!dm) continue;
+    const dp=matDropPos(dk);
+    if(Math.hypot(wx-dp.x, wy-(dp.y-2))<8){ hoodCur=dn; tone(660,0.05,'triangle',0.03,880); buzz(5); matPick(dk); ygFocus(dn); ygSync(); return; } }
   if(Math.hypot(wx-D.x, wy-D.y)<9*YW_PET_K){ yardPet(); return; }
   // 오늘의 발굴 자리(킁킁)
   if(yardDig){ const dp=ywItemPos({z:yardDig.z,r:yardDig.r,c:yardDig.c});
@@ -25951,7 +25882,7 @@ function scheduleWinReveal(st){
     if(quickWinEligible()) quickWinTapTO=setTimeout(()=>{
       if(state==="win" && el("win").classList.contains("show") && quickWinEligible()) quickWinTapReady=true;
     }, QUICK_WIN_TAP_DELAY);
-  }, WIN_BEAT.card);
+  }, goalFeelEnabled()?1150:WIN_BEAT.card);
   // 1-2 에서 도토리를 두고 깼으면 한 번 — 다시 하기 버튼을 짚어 "다시 걸으면 주울 수 있다" 를 말한다.
   // 목록 알의 숫자 뱃지가 무슨 뜻인지도 여기서 같이 풀린다. 버튼이 선 뒤에 재야 구멍이 앉는다.
   if(!tutMode && !moonMode && level===2 && !tipSeen['acornAgain']){
@@ -26033,13 +25964,14 @@ function win(){
     if(newBest) bestMap[level]=moves;
   }
   const bedK = lastLandK!=null? lastLandK : [...holes.keys()][0];
-  winFx={k:bedK, t:0};                                            // C: 히트스톱 + 줌 버스트
-  hitstop=Math.max(hitstop,0.1); shake=Math.min(1.4,shake+0.5);
+  winFx=goalFeelEnabled()?null:{k:bedK, t:0};                       // preview: leave the board grounded
+  if(!goalFeelEnabled()){ hitstop=Math.max(hitstop,0.1); shake=Math.min(1.4,shake+0.5); }
+  else { joyN=0; joyT=0; } // existing sprite already contains a hop; don't add a second jump transform
   // 별 비행은 없앴다 — 도토리는 판 안에서 밟는 순간 이미 튀어오르며 사라졌다.
   // 같은 것을 승리 때 한 번 더 날리면 두 번 받는 그림이 된다. 배열은 남긴다(렌더가 순회한다).
   starPend=0; starFly=[];
   dog.enterT=0; dog.entered=false; dog.houseK=null;               // A: 개집으로 퇴근
-  if(L._house!=null && L._house>=0){ const hr2=(L._house/GN)|0, hc2=L._house%GN;
+  if(!goalFeelEnabled() && L._house!=null && L._house>=0){ const hr2=(L._house/GN)|0, hc2=L._house%GN;
     for(const [dr2,dc2] of DIRS){ const nr2=hr2+dr2, nc2=hc2+dc2;
       if(nr2>0&&nc2>0&&nr2<GN-1&&nc2<GN-1 && L.T[nr2][nc2]!==WALL && L.T[nr2][nc2]!==PIT
          && !boxes.some(x2=>x2.sink===0&&x2.r===nr2&&x2.c===nc2)){
@@ -26064,9 +25996,9 @@ function win(){
       let taken=matCellsTaken(level); pawMap[level]=want;
       for(const a of acornSt){ if(!a.got || (taken>>a.i & 1)) continue;
         taken|=1<<a.i;
-        // 다섯째(울타리) 칸도 이제 재료다 — 작은 가구 조각은 챌린지가, 큰 가구 조각은 판 깨기가 준다.
-        if(a.k==='acorn') acornPick++;                             // 1~5판 — 주운 도토리는 클리어 몫에 얹는다
-        else matBag[a.k]=(matBag[a.k]|0)+1; }
+        // 묻힌 칸은 전부 도토리다(재료 폐지). 클리어 몫에 얹어 승리 카드에서 함께 날아간다 —
+        // 주머니로 조용히 들어가던 재료와 달리, 받는 그림이 하나로 모인다.
+        acornPick++; }
       matCellMap[level]=taken; }
     if(firstClear){ pawGain=ECON.clearFirst; pawWhy='victory.clearAuto'; }
     pawGain += acornPick;
@@ -26378,9 +26310,13 @@ function firePend(b){
     if(p.recolor<0){ spark(b.r,b.c,"#9FD4EE",14,2.8); tone(880*m,0.14,"sine",0.04,300*m); tone(430*m,0.1,"triangle",0.03,180*m); }  // 물에 씻김
     else { spark(b.r,b.c,COL[p.recolor],10+chainN*2,2.5); tone(600*m,0.08,"triangle",0.05,1000*m); } }
   if(p.land!=null){ lastLandK=p.land; const m=chainStep(); b.landT=1; holePulse[p.land]=1;
-    dog.maxEvent='arrive'; dog.maxEventT=0;
-    heartBurst(dog.r, dog.c, 3);                 // 방석에 골인 = 맥스가 좋아서 하트
-    feedbackPulse('goal'); spark(b.r,b.c,"#FFF9F0",18+chainN*4,3.5);
+    b.goalFeelAt=animT;
+    if(!goalFeelEnabled()){
+      dog.maxEvent='arrive'; dog.maxEventT=0;
+      heartBurst(dog.r, dog.c, 3);
+      spark(b.r,b.c,"#FFF9F0",18+chainN*4,3.5);
+    }
+    feedbackPulse('goal');
     sfxGoal(completedGoals(),holes.size); dog.wagBoost=1; }
   else if(p.slid>1){ shake=Math.min(1,shake+0.25); }
   if(last) chainDone();
@@ -26659,8 +26595,8 @@ onTap(el("ysTake"), ()=>{ if(decoTake(hoodCur, hoodSlotI)){ tone(420,0.06,'trian
 // 상점 장식 탭이 휴면이라 이 길은 막혀 있다(버튼도 hidden). 되살릴 땐 둘을 같이 연다.
 onTap(el("ysShop"), ()=>{ hoodSlotClose(); openShop(); shopTab='bag'; shopRender(); });
 onTap(el("ybClose"), ()=>{ yardBuildClose(); });
-onTap(el("ybGo"), ()=>{ if(el("ybGo").classList.contains('need')) matSheetOpen(ybBuyK); else yardBuildGo(); });
-onTap(el("ybBuy"), ()=>{ matSheetOpen(ybBuyK); });
+onTap(el("ybGo"), ()=>{ if(el("ybGo").classList.contains('need')) matShort(ybShortN); else yardBuildGo(); });
+onTap(el("ybBuy"), ()=>{ matShort(ybShortN); });
 // 바깥을 눌러도 닫힌다 — 자리 시트와 같은 문법.
 onTap(el("yBuild"), e=>{ if(e && e.target && e.target.id==='yBuild' && !el('yBuild').classList.contains('inl')) yardBuildClose(); });
 onTap(el("yClose"), ()=>{ closeYard(); });
@@ -26868,7 +26804,7 @@ function choreActIcon(k){
 function choreRewards(k){
   const out=[], m=CHORE_MAT[k];
   if(m){
-    const drop=matDropOf(k), mk=drop || choreMatOf(k), nm=(m==='*' && !drop)? I18N.t('chore.rwScarce') : matName(mk);
+    const drop=matDropOf(k), mk=drop || choreMatOf(k), nm=matName(mk);
     if(drop) out.push({svg:matSVG(drop), t:I18N.t('chore.rwDropped',{mat:matName(drop)})});
     else { const left=choreMatLeft(k);
       out.push({svg:matSVG(mk), t: left? I18N.t('chore.rwLater',{mat:nm, n:left}) : I18N.t('chore.rwToday',{mat:nm}), soft:left>0}); }
@@ -33985,8 +33921,8 @@ function renderYard(){
   if(buildFx && buildFx.phase==='carry' && !ygSnap && yw.dog){ const D=yw.dog;
     sprites.push({y:D.y+0.01, draw:()=>drawMat(buildFx.m, ywPX(D.x)+su*3.1*ywScale(D.y)*(D.face||1), ywPY(D.y)-su*0.55*ywScale(D.y), su*4.4*ywScale(D.y)*0.7, 0)}); }
   // 줍기를 기다리는 재료 — 떨어지는 중(matFx)이 아니면 잔디 위에 가만히 놓여 있다. 멈춘 띠에도 보인다.
-  { const dk=hoodItem(hoodCur), dm=dk && yardOwned.includes(dk)? matDropOf(dk) : '';
-    if(dm && !(matFx && !ygSnap)){ const dp=matDropPos(dk);
+  for(const dn of hoodOpen()){ const dk=hoodItem(dn), dm=matDropOf(dk); if(!dm) continue;   // 마당 한 장 — 물건마다 제 자리에
+    if(dm && !(matFx && matFx.m && hoodItem(hoodCur)===dk && !ygSnap)){ const dp=matDropPos(dk);
       sprites.push({y:dp.y, draw:()=>{ const bob=ygSnap? 0 : Math.sin(animT*3)*su*0.5;
         ctx.save(); ctx.fillStyle='rgba(60,50,30,.18)';
         ctx.beginPath(); ctx.ellipse(ywPX(dp.x), ywPY(dp.y)+su*1.6, su*2.0, su*0.7, 0, 0, 7); ctx.fill(); ctx.restore();
@@ -34340,6 +34276,11 @@ function render(){
         if(Math.abs(b2.rr-r)+Math.abs(b2.cc-c) < 1.35){ near=1; break; }
       }
     }
+    if(goalFeelEnabled()){
+      const landed=boxes.find(b=>!b.sink&&!b.path&&b.r===r&&b.c===c&&b.goalFeelAt!=null);
+      const press=landed?goalFeelSettle(animT-landed.goalFeelAt).press:0;
+      drawGoalFeelCushion(x,y,C,press,false); continue;
+    }
     const beat = near ? (0.5+0.5*Math.sin(animT*6.5))*0.09 : 0;
     const p=cell*0.36*(1+pu*0.14+beat);
     if(near){ ctx.globalAlpha=0.10+0.10*Math.sin(animT*6.5); ctx.strokeStyle=C; ctx.lineWidth=cell*0.045;
@@ -34620,7 +34561,8 @@ function render(){
     let sx=1,sy=1; const spd=Math.hypot(dccf,drrf);
     if(spd>0.004){ const s2=Math.min(0.34,spd*4.5); if(Math.abs(dccf)>=Math.abs(drrf)){ sx*=1+s2; sy*=1-s2*0.55; } else { sy*=1+s2; sx*=1-s2*0.55; } }
     if(b.sqT>0.02){ const q=b.sqT*0.34; if(b.sdc!==0){ sx*=1+q; sy*=1-q*0.8; } else { sy*=1+q; sx*=1-q*0.8; } }
-    if(b.landT>0.02){ const l=Math.sin(b.landT*Math.PI); sx*=1+l*0.28; sy*=1-l*0.22; }
+    if(b.landT>0.02 && !goalFeelEnabled()){ const l=Math.sin(b.landT*Math.PI); sx*=1+l*0.28; sy*=1-l*0.22; }
+    if(goalFeelEnabled()&&b.kind==='ball'){ sx=1;sy=1; } // no ballooning at arrival
     let sink=b.sink>0? (1-b.sink) : 1; sx*=sink; sy*=sink;
     let bx=cx(b.cc), by=cy(b.rr);
     // 빈 고양이 상자 위를 굴러 넘는다 — 규칙상 공은 그냥 지나가는데(빈 상자는 벽이 아니다),
@@ -34696,6 +34638,12 @@ function render(){
     else if(b.kind==='cartV'||b.kind==='cartH') drawCart(bx,by,cell,b.kind==='cartV',sx,sy,b.tilt||0);
     else if(b.kind==='bone') drawBone(bx,by,cell*0.72,sx,sy);
     else if(b.kind==='crop'){ if(!b.buried) drawCrop(bx,by,cell*0.86,b.color); }   // 묻힌 작물은 흙이 됐다 — 안 그린다
+    else if(goalFeelEnabled() && !b.path && b.goalFeelAt!=null && holes.has(kk(b.r,b.c))){
+      const settle=goalFeelSettle(animT-b.goalFeelAt), C=COL[holes.get(kk(b.r,b.c))];
+      drawBall(bx+settle.offset*cell*(b.sdc||0),by+settle.offset*cell*(b.sdr||0)+settle.press*cell*.035,
+        cell*bsc,b.color,b.roll+settle.offset*3,1,1);
+      drawGoalFeelCushion(cx(b.c),cy(b.r),C,settle.press,true);
+    }
     else drawBall(bx,by,cell*bsc,b.color,b.roll,sx,sy);
   }
   drawUnderBridgeDecks();                                     // 물살의 공만 상판 아래, 맥스는 이후에 위로
@@ -35355,6 +35303,28 @@ if(MAX_EVENT_PREVIEW==='backstep' && MAX_CHAPTER_PROTO_ENABLED){
   setTimeout(()=>{ dog.lungeR=0; dog.lungeC=-1; dog.face=-1; },700);
 }
 if(TEST_YARD && new URLSearchParams(location.search).get('farmmap')==='1') setTimeout(openYard,700);
+// Local comparison only. All moves go through the real puzzle input, not a movie.
+if(GOAL_FEEL_QA){
+  const panel=document.createElement('div');
+  panel.id='goalFeelQA';
+  panel.style.cssText='position:fixed;z-index:99999;top:8px;left:50%;transform:translateX(-50%);width:min(94vw,420px);box-sizing:border-box;padding:10px 12px;background:#fff9f0;border:1px solid #d8c4a3;border-radius:16px;box-shadow:0 3px 16px #382b2320;text-align:center;font:14px '+CFONT;
+  panel.innerHTML='<strong>공·방석 접촉감 비교 · 1-1</strong><div style="margin:6px 0" id="goalFeelStatus">수정 연출 · 한 수씩 눌러보세요</div><div style="display:flex;gap:6px;justify-content:center"><button id="goalFeelStep">한 수 진행</button><button id="goalFeelReset">처음부터</button><button id="goalFeelToggle">기존 연출 보기</button><button id="goalFeelSkip">결과 보기</button></div>';
+  document.body.appendChild(panel);
+  let step=0;
+  const reset=()=>{step=0;loadLevel(1);coachClearForWin();if(el('gintro'))el('gintro').classList.remove('show');gintroOn=false;};
+  const status=()=>{el('goalFeelStatus').textContent=(goalFeelOn?'수정':'기존')+' 연출 · '+step+'/5수 · 저장 안 함';};
+  const button=(id,fn)=>{const b=el(id);if(b){b.style.cssText='font:inherit;font-size:12px;padding:8px 9px;border:1px solid #ccb991;border-radius:9px;background:#fffdf7;color:#4b5037';b.addEventListener('click',fn);}};
+  button('goalFeelStep',()=>{
+    if(state!=='play'||isAnimating()||step>=5)return;
+    if(coachSteps||unlockCB){coachClearForWin();}
+    const before=moves,d=DIRS['LUUUU'[step]==='L'?2:0];tryMove(d[0],d[1]);
+    if(moves>before)step++;status();
+  });
+  button('goalFeelReset',()=>{reset();status();});
+  button('goalFeelToggle',()=>{goalFeelOn=!goalFeelOn;el('goalFeelToggle').textContent=goalFeelOn?'기존 연출 보기':'수정 연출 보기';reset();status();});
+  button('goalFeelSkip',()=>{if(state==='win'){clearTimeout(winCardTO);el('win').classList.add('show');}});
+  reset();status();
+}
 let sitSleepQaPlaying=false, sitSleepQaTimer=0;
 if(MAX_EVENT_PREVIEW==='sitSleep'){
   const panel=document.createElement('div');
