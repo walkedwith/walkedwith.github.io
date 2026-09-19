@@ -669,17 +669,19 @@
   /* 장면 — 고정이다. 스크롤하면 길만 흐른다. 4:3 원화 한 장이 cover 로 세로 화면을 덮고,
      크림 베일 한 겹이 알의 대비를 지킨다(아래로 갈수록 진해진다 — 길이 아래에 있다). */
   .lsbg { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
-  .lsbg i { position:absolute; inset:-12px; display:block; background-size:cover; background-position:center 22%;
-    background-repeat:no-repeat; transition:opacity .3s var(--ease);
-    filter:saturate(.72) brightness(1.06) blur(1.4px); }
+  .lsbg i { position:absolute; inset:-12px; display:block; background-size:cover; background-position:center center;
+    background-repeat:no-repeat; transition:opacity .3s var(--ease); }
+  .lsbg.flat { background:#ABD17E; }
+  .lsbg.flat::before { content:''; position:absolute; inset:0;
+    background:radial-gradient(ellipse at 12% 22%,rgba(126,174,98,.34) 0 18%,transparent 18.5%),radial-gradient(ellipse at 86% 42%,rgba(126,174,98,.25) 0 22%,transparent 22.5%),radial-gradient(ellipse at 18% 82%,rgba(126,174,98,.28) 0 20%,transparent 20.5%),linear-gradient(180deg,#B6D88A 0%,#A6CD79 100%); }
   .lsbg::after { content:''; position:absolute; inset:0;
-    background:linear-gradient(rgba(255,249,240,.42) 0%,rgba(255,249,240,.5) 46%,rgba(255,249,240,.62) 100%); }
+    background:linear-gradient(rgba(255,249,240,.10) 0%,rgba(255,249,240,.14) 46%,rgba(255,249,240,.20) 100%); }
   /* 동네 줄 — 가로 스크롤. 열린 동네 전부 + 다음 하나(자물쇠). */
   /* 스크롤 중엔 위로 비킨다 — 길을 훑을 땐 길만 보인다. 멈추면 0.42초 뒤 돌아온다. */
   #lvlsel.scrolling .lsdist { opacity:0; transform:translateY(-14px); pointer-events:none; }
   #lvlsel.scrolling .lsprog { opacity:0; transform:translateY(-10px); pointer-events:none; }
   .lsdist, .lsprog { transition:opacity .22s var(--ease), transform .22s var(--ease); }
-  .lsdist { position:absolute; left:0; right:0; top:calc(62px + env(safe-area-inset-top)); z-index:7;
+  .lsdist { display:none; position:absolute; left:0; right:0; top:calc(62px + env(safe-area-inset-top)); z-index:7;
     /* 좌우 14px — 아래 진행 바·두고 온 줄과 같은 선에 선다(둘 다 left/right:14px). */
     display:flex; gap:6px; padding:0 14px 2px; overflow-x:auto; scrollbar-width:none; }
   .lsdist::-webkit-scrollbar { display:none; }
@@ -698,7 +700,7 @@
   .lsdt.on em { background:#E7A72C; color:#FFF9F0; }
   .lsdt:active { transform:scale(.94); }
   /* 진행 바 — 험한 판 여섯이 눈금, 끝은 동네 완주 선물. 길 위에 떠 있던 셋이 여기로 모인다. */
-  .lsprog { position:absolute; left:14px; right:14px; top:calc(128px + env(safe-area-inset-top)); z-index:7;
+  .lsprog { position:absolute; left:14px; right:14px; top:calc(62px + env(safe-area-inset-top)); z-index:7;
     height:36px; border-radius:14px; background:rgba(255,249,240,.94); box-shadow:0 2px 6px rgba(43,32,54,.16);
     display:flex; align-items:center; gap:8px; padding:0 9px; }
   .lsprog .lspb { flex:1; height:7px; border-radius:4px; background:#E6DCC8; position:relative; }
@@ -712,7 +714,7 @@
   .lsprog .lspg svg { width:100%; height:100%; display:block; }
   .lsprog .lspg.on { opacity:1; }
   /* 두고 온 것 — 진행 바 아래. 알의 링이 "어느 판"을, 이 줄이 "몇 개 · 어디로"를 말한다. */
-  .lsleft { position:absolute; left:14px; right:14px; top:calc(170px + env(safe-area-inset-top)); z-index:7;
+  .lsleft { position:absolute; left:14px; right:14px; top:calc(104px + env(safe-area-inset-top)); z-index:7;
     height:24px; border-radius:12px; border:none; cursor:pointer; display:none; align-items:center; gap:7px;
     padding:0 6px 0 11px; background:rgba(255,249,240,.94); box-shadow:0 2px 6px rgba(43,32,54,.16);
     font-family:var(--f-hand); font-size:var(--s9); color:#8A7458; -webkit-tap-highlight-color:transparent; }
@@ -867,7 +869,7 @@
   }
   .lsset:active { transform:scale(.92); }
   .lsscroll { position:absolute; left:0; right:0; bottom:0;
-    top:calc(200px + env(safe-area-inset-top)); overflow-y:auto; overflow-x:hidden;   /* 진행 바가 12px 높아진 만큼 같이 내린다 */
+    top:calc(142px + env(safe-area-inset-top)); overflow-y:auto; overflow-x:hidden;
     -webkit-overflow-scrolling:touch; z-index:1;
     /* 머리글 밑으로 들어가는 알은 잘리기 전에 흐려진다 — 딱 잘리면 종이가 접힌 것처럼 보인다. */
     -webkit-mask-image:linear-gradient(to bottom, transparent 0, #000 16px);

@@ -7694,7 +7694,7 @@ function syncHintAct(){
 //
 // 자리는 판 번호로만 정한다(난수 없음) — 다시 그릴 때마다 길이 흔들리면 안 된다.
 // x 는 %, y 는 px 이라 목록 폭이 달라져도 굽이가 유지된다.
-const TR_STEP=64;                    // 칸 사이 세로 간격 — 알이 34px 이 되며 74 에서 줄였다
+const TR_STEP=82;                    // 칸 사이 세로 간격 — 길을 더 길게 읽히도록 확장
                                      // (뷰포트 873px 에서 머리글 44 · 탭바 86 을 빼면 743, ÷10 = 74)
 const TR_PAD=34;                     // 위아래 여백
 function trailX(lv){                 // 33~67% 사이를 두 사인으로 굽이친다(되풀이로 안 읽히게)
@@ -8002,13 +8002,11 @@ function trailHTML(from, to){
 // 4:3 원화 한 장으로 세로 화면을 덮을 수 있는 유일한 방법이기도 하다(cover).
 function lsSceneSet(n){
   const bg=el('lsBg'); if(!bg) return;
-  const d=DISTRICTS[n-1], s=CHAPTER_STORIES.find(x=>x.from===(d&&d.from));
   const inner=bg.querySelector('i'); if(!inner) return;
-  if(!s){ inner.style.backgroundImage=''; return; }
-  chapterStoryLoadArt(s.art,'high').then(url=>{
-    if(lsSceneN!==n) return;                       // 그 사이 동네가 바뀌었다
-    inner.style.backgroundImage='url("'+url+'")';
-  }).catch(()=>{});
+  const LEVEL_SELECT_BG_ART='art/chapter-concepts/optimized/stage-select-meadow-base-v2.webp';
+  let flat=true; try{ flat=new URLSearchParams(location.search).get('flatmap')!=='0'; }catch(_){ }
+  bg.classList.toggle('flat',flat);
+  inner.style.backgroundImage=flat?'':'url("'+LEVEL_SELECT_BG_ART+'")';
 }
 let lsSceneN=0;
 function lsDistHTML(openN){
