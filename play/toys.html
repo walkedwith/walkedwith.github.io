@@ -7781,6 +7781,10 @@ function goalFeelToyKind(){
 }
 function goalFeelEnabled(){ return !menuMode && !yardMode && level>=1 && (!GOAL_FEEL_QA || (goalFeelOn && level===1 && !tutMode)); }
 function goalFeelPreviewEnabled(){return GOAL_FEEL_QA && goalFeelEnabled();}
+function goalPuppyPalette(color='#DE6259'){
+  const match=color||'#FFF9F0';
+  return {collar:match,piping:match};
+}
 // Matching mechanics retain their original colors, including washed neutral balls.
 function drawToyColorMark(x,y,s,color){
   if(GOAL_FEEL_QA)return;
@@ -15797,8 +15801,8 @@ function drawAcorns(){
 // Both passes share their deformation; the ball itself keeps its original radius.
 function drawGoalFeelCushion(x,y,color,press,front,mergeSeconds=0){
   if(goalFeelToyKind()){
-    drawGoalFeelBed(x,y,press,front,goalFeelToyKind(),mergeSeconds);
-    drawToyColorMark(x,y+cell*.34,cell,color);return;
+    drawGoalFeelBed(x,y,press,front,goalFeelToyKind(),mergeSeconds,color);
+    if(goalFeelToyKind()!=='puppy')drawToyColorMark(x,y+cell*.34,cell,color);return;
   }
   const p=cell*.36;
   ctx.save();ctx.translate(x,y+press*cell*.025);ctx.scale(1+press*.08,1-press*.18);
@@ -15879,7 +15883,7 @@ function drawGoalPuppyFoldedEars(r,set,rotationY){
     ctx.strokeStyle='rgba(255,255,245,.48)';ctx.lineWidth=r*.055;ctx.beginPath();ctx.moveTo(r*.09,-r*.20);ctx.quadraticCurveTo(r*.23,-r*.13,r*.33,-r*.04);ctx.stroke();ctx.restore();
   }
 }
-function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0){
+function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
   const kind=goalFeelToyKind(),set=GOAL_FEEL_SETS[kind],r=s*.30,m=goalFeelMergeState(kind,arrival),depth=goalFeelDepthState(kind,arrival),view=goalToyViewState(kind,rotation.y);
   const oval=(ox,oy,rx,ry,c,a=1)=>{ctx.save();ctx.globalAlpha=a;ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(ox,oy,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.restore();};
   const tri=(x1,y1,x2,y2,x3,y3,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineTo(x3,y3);ctx.closePath();ctx.fill();};
@@ -16000,6 +16004,13 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0){
   }
   ctx.save();ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);ctx.clip();
   ctx.translate((surface.x||0)*r,surface.y*r);ctx.scale(kind==='duck'&&arrival>0?surface.scale:1,kind==='duck'&&arrival>0?1:surface.scale);
+  if(kind==='puppy'){
+    // The matching band wraps with both the front and back of the toy.
+    const palette=goalPuppyPalette(matchColor);
+    oval(0,r*.59,r*.73,r*.19,'rgba(87,45,38,.16)');
+    oval(0,r*.55,r*.72,r*.16,palette.collar);
+    ctx.strokeStyle='#FFF1D9';ctx.lineWidth=r*.035;ctx.beginPath();ctx.ellipse(0,r*.54,r*.71,r*.15,0,0,Math.PI);ctx.stroke();
+  }
   if(surface.rear){
     oval(-r*.27,-r*.30,r*.22,r*.16,'rgba(255,249,240,.22)');
     if(kind==='pig'){oval(-r*.42,-r*.20,r*.28,r*.22,GOAL_MOUSE_PIG_VISUAL.pig.patch,GOAL_MOUSE_PIG_VISUAL.pig.patchAlpha);oval(r*.48,r*.34,r*.24,r*.20,GOAL_MOUSE_PIG_VISUAL.pig.patch,GOAL_MOUSE_PIG_VISUAL.pig.patchAlpha*.82);}
@@ -16035,7 +16046,7 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0){
   }else{
     oval(-r*.25,-r*.45,r*.53,r*.35,'rgba(255,249,240,.16)');
     if(kind==='puppy'){
-      oval(0,r*.30,r*.51,r*.30,'rgba(97,54,45,.22)');
+      oval(0,r*.30,r*.51,r*.30,'rgba(97,54,45,.12)');
       oval(-r*.17,r*.20,r*.31,r*.26,set.face);oval(r*.17,r*.20,r*.31,r*.26,set.face);
       oval(-r*.19,r*.10,r*.18,r*.055,'rgba(255,255,250,.48)');
       ctx.strokeStyle='rgba(151,112,79,.30)';ctx.lineWidth=r*.035;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(0,r*.16);ctx.lineTo(0,r*.30);ctx.stroke();
@@ -16063,22 +16074,22 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0){
     const eye=kind==='puppy'?set.eye:'#252927';
     for(const ex of [-r*.31,r*.31]){
       if(sleep){ctx.strokeStyle=eye;ctx.lineWidth=r*.065;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(ex-r*.08,-r*.09);ctx.quadraticCurveTo(ex,0,ex+r*.08,-r*.09);ctx.stroke();}
-      else oval(ex,-r*.16,r*.067,r*.105,eye);
+      else oval(ex,-r*.16,r*(kind==='puppy'?.085:.067),r*(kind==='puppy'?.12:.105),eye);
     }
     if(kind==='duck')oval(0,r*.08,r*GOAL_DUCK_VISUAL.billRX,r*GOAL_DUCK_VISUAL.billRY,'#E89A52');
     else if(kind==='peacock')tri(-r*.14,r*.01,r*.14,r*.01,0,r*.17,'#D77A48');
     else if(kind==='chicken'){tri(-r*.15,-r*.01,r*.15,-r*.01,0,r*.16,'#E6A23C');oval(0,r*.25,r*.10,r*.14,'#C84F49');}
     else if(kind==='pig'){oval(0,r*.12,r*.31,r*.21,set.snout);oval(-r*.10,r*.12,r*.04,r*.065,'#834B4D');oval(r*.10,r*.12,r*.04,r*.065,'#834B4D');}
-    else oval(0,kind==='sheep'?r*.17:r*.08,r*.10,r*.07,kind==='mole'?'#D17F86':kind==='sheep'?'#503E32':'#343733');
+    else oval(0,kind==='sheep'?r*.17:r*.08,r*(kind==='puppy'?.13:.10),r*(kind==='puppy'?.095:.07),kind==='mole'?'#D17F86':kind==='sheep'?'#503E32':'#343733');
     if(kind!=='duck'&&kind!=='chicken'&&kind!=='peacock'){oval(-r*.51,r*.08,r*.105,r*.047,'#EAA69A');oval(r*.51,r*.08,r*.105,r*.047,'#EAA69A');}
   }
   ctx.restore();
   if(kind==='bunny'&&m.dock){ctx.strokeStyle=set.accent;ctx.lineWidth=r*.11;ctx.beginPath();ctx.arc(0,r*.48,r*.35,.2,Math.PI-.2);ctx.stroke();}
   ctx.restore();
 }
-function drawGoalFeelToy(x,y,s,rotation,sleep,motion=0,arrival=0){
+function drawGoalFeelToy(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
   const kind=goalFeelToyKind();
-  if(GOAL_FEEL_V2_KINDS.has(kind))return drawGoalFeelToyV2(x,y,s,rotation,sleep,motion,arrival);
+  if(GOAL_FEEL_V2_KINDS.has(kind))return drawGoalFeelToyV2(x,y,s,rotation,sleep,motion,arrival,matchColor);
   const r=s*.30;
   const merge=goalFeelMergeState(kind,arrival);
   const oval=(x,y,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fill();};
@@ -16286,7 +16297,7 @@ const GOAL_FEEL_BED_PROFILES=Object.freeze({
   sheep:{depth:.23,inset:.10,shadow:1.13,side:'#6F9F58'}
 });
 function goalFeelBedProfile(kind){return GOAL_FEEL_BED_PROFILES[kind]||{depth:.24,inset:.10,shadow:1.10,side:'#786B58'};}
-function drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds=0){
+function drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds=0,matchColor){
   const p=cell*(kind==='duck'?.39:.37),set=GOAL_FEEL_SETS[kind],m=goalFeelMergeState(kind,mergeSeconds),profile=goalFeelBedProfile(kind),depth=goalFeelDepthState(kind,mergeSeconds);
   const oval=(ox,oy,rx,ry,c,a=1)=>{ctx.save();ctx.globalAlpha=a;ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(ox,oy,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.restore();};
   const limb=(ox,oy,rx,ry,c,ang=0)=>{ctx.save();ctx.translate(ox,oy);ctx.rotate(ang);oval(0,0,rx,ry,c);ctx.restore();};
@@ -16304,16 +16315,21 @@ function drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds=0){
     ctx.beginPath();ctx.ellipse(0,-p*.01,p*.88,p*.53,0,Math.PI*1.08,Math.PI*1.92);ctx.stroke();
   }
   if(kind==='puppy'){
+    const palette=goalPuppyPalette(matchColor);
     if(!front){
       oval(0,p*.45,p*1.16,p*.47,'rgba(48,55,34,.18)');
       oval(0,p*.12,p*1.02,p*.72,profile.side);
       oval(0,-p*.01,p*.86,p*.55,'#FFF1D9');
       oval(0,p*.02,p*.67,p*.40,'#C94D49');
+      oval(0,p*.07,p*.57,p*.29,'#DF8573');
+      ctx.strokeStyle='rgba(110,53,44,.18)';ctx.lineWidth=p*.045;ctx.beginPath();ctx.ellipse(0,p*.06,p*.59,p*.31,0,0,Math.PI*2);ctx.stroke();
       oval(0,p*(.07+depth.sink*.16),p*(.55-depth.contactShadow*.08),p*(.25-depth.contactShadow*.04),'rgba(63,35,29,'+(.18+depth.contactShadow*.18)+')');
       ctx.strokeStyle='rgba(255,241,217,.60)';ctx.lineWidth=p*.075;ctx.lineCap='round';ctx.beginPath();ctx.ellipse(0,-p*.01,p*.84,p*.48,0,Math.PI*1.05,Math.PI*1.95);ctx.stroke();
     }else{
       ctx.fillStyle=profile.side;ctx.beginPath();ctx.moveTo(-p*.96,p*.22);ctx.bezierCurveTo(-p*.52,p*.60,p*.52,p*.60,p*.96,p*.22);ctx.lineTo(p*.84,p*.60);ctx.bezierCurveTo(p*.42,p*.84,-p*.42,p*.84,-p*.84,p*.60);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#FFF1D9';ctx.lineWidth=p*.12;ctx.lineCap='round';ctx.beginPath();ctx.ellipse(0,p*.02,p*.91,p*.49,0,.12,Math.PI-.12);ctx.stroke();
+      ctx.strokeStyle='rgba(80,39,34,.28)';ctx.lineWidth=p*.16;ctx.lineCap='round';ctx.beginPath();ctx.ellipse(0,p*.005,p*.87,p*.46,0,.12,Math.PI-.12);ctx.stroke();
+      ctx.strokeStyle='#FFF1D9';ctx.lineWidth=p*.20;ctx.beginPath();ctx.ellipse(0,p*.065,p*.91,p*.49,0,.12,Math.PI-.12);ctx.stroke();
+      ctx.strokeStyle=palette.piping;ctx.lineWidth=p*.11;ctx.beginPath();ctx.ellipse(0,p*.065,p*.91,p*.49,0,.12,Math.PI-.12);ctx.stroke();
       if(m.paws>0)for(const side of [-1,1]){
         oval(side*p*.37,p*.45,p*.17*m.paws,p*.12*m.paws,'rgba(91,49,41,.22)');
         oval(side*p*.37,p*.39,p*.16*m.paws,p*.13*m.paws,set.face);
@@ -16422,8 +16438,8 @@ function drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds=0){
   }
   ctx.restore();
 }
-function drawGoalFeelBed(x,y,press,front,kind,mergeSeconds=0){
-  if(GOAL_FEEL_V2_KINDS.has(kind))return drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds);
+function drawGoalFeelBed(x,y,press,front,kind,mergeSeconds=0,matchColor){
+  if(GOAL_FEEL_V2_KINDS.has(kind))return drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds,matchColor);
   const p=cell*.39,oval=(ox,oy,rx,ry,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(ox,oy,rx,ry,0,0,Math.PI*2);ctx.fill();};
   const box=(l,t,w,h,r,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(l+r,t);ctx.lineTo(l+w-r,t);ctx.quadraticCurveTo(l+w,t,l+w,t+r);ctx.lineTo(l+w,t+h-r);ctx.quadraticCurveTo(l+w,t+h,l+w-r,t+h);ctx.lineTo(l+r,t+h);ctx.quadraticCurveTo(l,t+h,l,t+h-r);ctx.lineTo(l,t+r);ctx.quadraticCurveTo(l,t,l+r,t);ctx.fill();};
   const frontLip=(c,h=.76)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(-p*.96,p*.24);ctx.bezierCurveTo(-p*.55,p*.57,p*.55,p*.57,p*.96,p*.24);ctx.bezierCurveTo(p*.82,p*h,-p*.82,p*h,-p*.96,p*.24);ctx.fill();};
@@ -35633,7 +35649,9 @@ function render(){
       const landed=boxes.find(b=>!b.sink&&!b.path&&b.r===r&&b.c===c&&b.goalFeelAt!=null);
       const mergeSeconds=landed?animT-landed.goalFeelAt:0;
       const press=landed?goalFeelSettle(mergeSeconds).press:0;
-      drawGoalFeelCushion(x,y,C,press,false,mergeSeconds); continue;
+      drawGoalFeelCushion(x,y,C,press,false,mergeSeconds);
+      if(!landed&&goalFeelToyKind()==='puppy')drawGoalFeelCushion(x,y,C,press,true,mergeSeconds);
+      continue;
     }
     const beat = near ? (0.5+0.5*Math.sin(animT*6.5))*0.09 : 0;
     const p=cell*0.36*(1+pu*0.14+beat);
@@ -35995,14 +36013,14 @@ function render(){
     else if(b.kind==='crop'){ if(!b.buried) drawCrop(bx,by,cell*0.86,b.color); }   // 묻힌 작물은 흙이 됐다 — 안 그린다
     else if(goalFeelEnabled() && !b.path && b.goalFeelAt!=null && holes.has(kk(b.r,b.c))){
       const settle=goalFeelSettle(animT-b.goalFeelAt), C=COL[holes.get(kk(b.r,b.c))];
-      if(goalFeelToyKind())drawGoalFeelToy(bx,by+settle.press*cell*.035,cell*bsc,goalToyRotation(b.toyDX||0,b.toyDY||0,animT-b.goalFeelAt),animT-b.goalFeelAt>.45,0,animT-b.goalFeelAt);
+      if(goalFeelToyKind())drawGoalFeelToy(bx,by+settle.press*cell*.035,cell*bsc,goalToyRotation(b.toyDX||0,b.toyDY||0,animT-b.goalFeelAt),animT-b.goalFeelAt>.45,0,animT-b.goalFeelAt,COL[b.color]||null);
       else drawBall(bx+settle.offset*cell*(b.sdc||0),by+settle.offset*cell*(b.sdr||0)+settle.press*cell*.035,
         cell*bsc,b.color,b.roll+settle.offset*3,1,1);
       drawGoalFeelCushion(cx(b.c),cy(b.r),C,settle.press,true,animT-b.goalFeelAt);
     }
-    else if(goalFeelToyKind())drawGoalFeelToy(bx,by,cell*bsc,goalToyRotation(b.toyDX||0,b.toyDY||0),false,Math.min(1,spd*35),0);
+    else if(goalFeelToyKind())drawGoalFeelToy(bx,by,cell*bsc,goalToyRotation(b.toyDX||0,b.toyDY||0),false,Math.min(1,spd*35),0,COL[b.color]||null);
     else drawBall(bx,by,cell*bsc,b.color,b.roll,sx,sy);
-    if(goalFeelToyKind()&&b.kind==='ball')drawToyColorMark(bx,by+cell*bsc*.17,cell*bsc,COL[b.color]);
+    if(goalFeelToyKind()&&goalFeelToyKind()!=='puppy'&&b.kind==='ball')drawToyColorMark(bx,by+cell*bsc*.17,cell*bsc,COL[b.color]);
   }
   drawUnderBridgeDecks();                                     // 물살의 공만 상판 아래, 맥스는 이후에 위로
   // 공 위를 지나는 고양이 — 공보다 나중에 그려야 뛰어넘는 게 보인다.
