@@ -1,0 +1,331 @@
+{
+  "generatedAt": "2026-09-22T17:53:32.312Z",
+  "totalBytes": 14029093,
+  "files": [
+    {
+      "path": "index.html",
+      "source": "dig.html",
+      "bytes": 2283597
+    },
+    {
+      "path": "css/game.css",
+      "source": "css/game.css",
+      "bytes": 581263
+    },
+    {
+      "path": "localization/ko.js",
+      "source": "localization/ko.js",
+      "bytes": 63835
+    },
+    {
+      "path": "localization/en.js",
+      "source": "localization/en.js",
+      "bytes": 57720
+    },
+    {
+      "path": "localization/i18n.js",
+      "source": "localization/i18n.js",
+      "bytes": 2862
+    },
+    {
+      "path": "billing/roll-economy.js",
+      "source": "billing/roll-economy.js",
+      "bytes": 8855
+    },
+    {
+      "path": "billing/cdv-purchase-adapter.js",
+      "source": "billing/cdv-purchase-adapter.js",
+      "bytes": 9301
+    },
+    {
+      "path": "mechanics/tap-gesture.js",
+      "source": "mechanics/tap-gesture.js",
+      "bytes": 2234
+    },
+    {
+      "path": "mechanics/feedback-profile.js",
+      "source": "mechanics/feedback-profile.js",
+      "bytes": 752
+    },
+    {
+      "path": "mechanics/app-lifecycle.js",
+      "source": "mechanics/app-lifecycle.js",
+      "bytes": 2006
+    },
+    {
+      "path": "mechanics/progress-recovery.js",
+      "source": "mechanics/progress-recovery.js",
+      "bytes": 1615
+    },
+    {
+      "path": "mechanics/telemetry.js",
+      "source": "mechanics/telemetry.js",
+      "bytes": 2013
+    },
+    {
+      "path": "sound/bgm-hub-lite.mp3",
+      "source": "sound/bgm-hub-lite.mp3",
+      "bytes": 1709393
+    },
+    {
+      "path": "sound/bgm-game-lite.mp3",
+      "source": "sound/bgm-game-lite.mp3",
+      "bytes": 1693406
+    },
+    {
+      "path": "sound/bgm-game-9am.mp3",
+      "source": "sound/bgm-game-9am.mp3",
+      "bytes": 1642938
+    },
+    {
+      "path": "sound/bgm-yard-7am.mp3",
+      "source": "sound/bgm-yard-7am.mp3",
+      "bytes": 2449494
+    },
+    {
+      "path": "sound/CREDITS.txt",
+      "source": "sound/CREDITS.txt",
+      "bytes": 3055
+    },
+    {
+      "path": "sound/ball-roll-short.mp3",
+      "source": "sound/ball-roll-short.mp3",
+      "bytes": 24813
+    },
+    {
+      "path": "sound/wall-block-short.mp3",
+      "source": "sound/wall-block-short.mp3",
+      "bytes": 4365
+    },
+    {
+      "path": "sound/goal-catch1.mp3",
+      "source": "sound/goal-catch1.mp3",
+      "bytes": 5059
+    },
+    {
+      "path": "sound/grass-light-step1.mp3",
+      "source": "sound/grass-light-step1.mp3",
+      "bytes": 5059
+    },
+    {
+      "path": "sound/box-push3.mp3",
+      "source": "sound/box-push3.mp3",
+      "bytes": 31391
+    },
+    {
+      "path": "sound/box-open4.mp3",
+      "source": "sound/box-open4.mp3",
+      "bytes": 21777
+    },
+    {
+      "path": "sound/bath-splash9.mp3",
+      "source": "sound/bath-splash9.mp3",
+      "bytes": 18852
+    },
+    {
+      "path": "sound/water-pour4.mp3",
+      "source": "sound/water-pour4.mp3",
+      "bytes": 37242
+    },
+    {
+      "path": "sound/dirt-land3.mp3",
+      "source": "sound/dirt-land3.mp3",
+      "bytes": 10493
+    },
+    {
+      "path": "sound/guide-paper7.mp3",
+      "source": "sound/guide-paper7.mp3",
+      "bytes": 20106
+    },
+    {
+      "path": "sound/pit-whistle12.mp3",
+      "source": "sound/pit-whistle12.mp3",
+      "bytes": 10075
+    },
+    {
+      "path": "sound/stream-splash9.mp3",
+      "source": "sound/stream-splash9.mp3",
+      "bytes": 20106
+    },
+    {
+      "path": "art/toy-world/title-toys-v1.webp",
+      "source": "art/toy-world/title-toys-v1.webp",
+      "bytes": 96148
+    },
+    {
+      "path": "art/daily-gift-grandpa-v1-960.webp",
+      "source": "art/daily-gift-grandpa-v1-960.webp",
+      "bytes": 36718
+    },
+    {
+      "path": "art/toy-world/onboarding-toys-v1-step1.webp",
+      "source": "art/toy-world/onboarding-toys-v1-step1.webp",
+      "bytes": 57750
+    },
+    {
+      "path": "art/toy-world/onboarding-toys-v1-step2.webp",
+      "source": "art/toy-world/onboarding-toys-v1-step2.webp",
+      "bytes": 62750
+    },
+    {
+      "path": "art/chapter-concepts/optimized/farm-map-v1-1080.webp",
+      "source": "art/chapter-concepts/optimized/farm-map-v1-1080.webp",
+      "bytes": 247128
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-01-frontyard-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-01-frontyard-toys-v1-720.webp",
+      "bytes": 43680
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-02-backyard-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-02-backyard-toys-v1-720.webp",
+      "bytes": 60416
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-03-stream-toys-approved-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-03-stream-toys-approved-v1-720.webp",
+      "bytes": 100252
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-04-acorn-hill-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-04-acorn-hill-toys-v1-720.webp",
+      "bytes": 43152
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-05-play-lot-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-05-play-lot-toys-v1-720.webp",
+      "bytes": 56608
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-06-vegetable-field-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-06-vegetable-field-toys-v1-720.webp",
+      "bytes": 62186
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-07-warehouse-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-07-warehouse-toys-v1-720.webp",
+      "bytes": 74374
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-08-fence-lane-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-08-fence-lane-toys-v1-720.webp",
+      "bytes": 68590
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-09-cat-alley-toys-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-09-cat-alley-toys-v1-720.webp",
+      "bytes": 61734
+    },
+    {
+      "path": "art/chapter-concepts/optimized/chapter-10-pinwheel-field-story-v1-720.webp",
+      "source": "art/chapter-concepts/optimized/chapter-10-pinwheel-field-story-v1-720.webp",
+      "bytes": 40868
+    },
+    {
+      "path": "art/max-master/max-master-v4-cheek-narrow-4dir.png",
+      "source": "art/max-master/max-master-v4-cheek-narrow-4dir.png",
+      "bytes": 130919
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-v4-face-clean.avif",
+      "source": "art/max-master/motions/canonical/max-walk-v4-face-clean.avif",
+      "bytes": 136517
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-left-8f.avif",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-left-8f.avif",
+      "bytes": 70622
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.avif",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.avif",
+      "bytes": 48547
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.avif",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.avif",
+      "bytes": 57345
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-run-master-v1-left-8f.png",
+      "source": "art/max-master/motions/canonical/max-run-master-v1-left-8f.png",
+      "bytes": 244664
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.avif",
+      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.avif",
+      "bytes": 65217
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
+      "source": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
+      "bytes": 51346
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.avif",
+      "source": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.avif",
+      "bytes": 61953
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.avif",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.avif",
+      "bytes": 64000
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.avif",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.avif",
+      "bytes": 49807
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.avif",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.avif",
+      "bytes": 56281
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
+      "bytes": 61487
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.avif",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.avif",
+      "bytes": 50033
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.avif",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.avif",
+      "bytes": 60112
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.avif",
+      "source": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.avif",
+      "bytes": 70357
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.avif",
+      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.avif",
+      "bytes": 61135
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png",
+      "bytes": 140534
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png",
+      "bytes": 179915
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png",
+      "bytes": 183982
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png",
+      "source": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png",
+      "bytes": 348289
+    }
+  ]
+}

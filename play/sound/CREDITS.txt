@@ -1,0 +1,54 @@
+Walk with Max — Audio credits
+
+"Main Theme", "7am", "8am", "9am" from "Towball's Crossing"
+Music by Towball (Timothy Willis)
+Source: https://towball.itch.io/towballs-crossing
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Changes: loudness normalization and MP3 compression for in-game playback.
+Main Theme: first 4.35 seconds removed; 30ms fade-in added at the new start.
+No endorsement by the composer is implied.
+
+Runtime mapping:
+bgm-hub-lite.mp3 = Main Theme (title / menu / stage selection / shop)
+bgm-game-lite.mp3 = 8am (puzzle, first track)
+bgm-game-9am.mp3 = 9am (puzzle, second track)
+bgm-yard-7am.mp3 = 7am (yard)
+
+Selected recordings from "FilmCow Recorded SFX" (project-owner supplied archive)
+Changes: onset/tail trimming, short fades, gain adjustment and MP3 compression.
+Original pitch retained. Bushes 2 shortened to a 0.23-second step.
+goal-catch1.mp3 = catch ball 1 (cushion)
+box-push3.mp3 = cardboard box handled 3 (box push)
+box-open4.mp3 = cardboard box open 4 (yard reward parcel)
+bath-splash9.mp3 = water splashing small 9 (bath)
+water-pour4.mp3 = liquid pouring 4 (watering)
+dirt-land3.mp3 = land in dirt 3 (soil landing)
+guide-paper7.mp3 = paper handled 7 (retained asset, guide sound disabled)
+grass-light-step1.mp3 = footstep grass light step 1 (grass footsteps; preview B, trimmed/filtered)
+pit-whistle12.mp3 = slide whistle 12 (ball/crop into pit)
+stream-splash9.mp3 = splash 9 (ball entering water)
+Source and license terms: https://filmcow.itch.io/filmcow-sfx
+Official collection page checked 4 September 2026: royalty-free use in personal
+and commercial projects; attribution is not required. This is NOT CC BY or CC0.
+The publisher excludes national-government and law-enforcement projects, and
+projects by hate groups identified by the SPLC or Canadian Anti-Hate Network.
+Consult the publisher's current terms and license.pdf for the full license.
+
+Release audit note: this credits file does not establish provenance for every
+other sound in the repository. Verify the original source/license of the selected
+two owner-supplied short roll/block clips before release.
+
+ui-click-modern8.mp3 = Modern 8 from Universal UI Soundpack (local audition only; not packaged or used in-game)
+Created and distributed by Nathan Gibson (https://nathangibson.myportfolio.com).
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+Source: project-owner supplied audio/UI Soundpack (readme.txt, 27 September 2021).
+Changes: trimmed to 0.70 seconds, +16 dB gain, 3ms fade-in / 100ms fade-out,
+mono MP3 encoding. User declined this candidate; no runtime playback. No endorsement implied.
+
+max-step-bell-b.wav = original procedurally synthesized collar bell B (local audition only; not packaged).
+Created with tools/preview-max-bells.cjs; no third-party samples.
+Source: sound/previews/max-collar-bells/B-soft-double-single.wav.
+Tail trimmed to 0.42 seconds, final 20ms faded. No normalization or pitch change.
