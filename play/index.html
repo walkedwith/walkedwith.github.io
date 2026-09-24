@@ -438,7 +438,8 @@
         <div class="dcribbon" id="dcName">우리집골목</div>
         <div class="dcstamp" id="dcStamp" aria-hidden="true"></div>
       </div>
-      <div class="dctitle" id="dcTitle">서른 판을 다 걸었어요</div>
+      <div class="dctitle" id="dcTitle">마당 완료!</div>
+      <div class="dcsub" id="dcSub">챕터 아트 획득</div>
       <div class="dcpaws" id="dcPaws"></div>
       <div class="dcstats" id="dcStats"></div>
       <div class="dcgift" id="dcGift"></div>
@@ -751,8 +752,6 @@ let effectEpoch=0;
 function audio(){ if(document.hidden||bgmSuspended) return null; if(!bgmStarted) bgmSync();
   if(!actx){ try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(actx&&actx.state==="suspended") actx.resume(); return actx; }
 // 저장소 접근은 전부 이 래퍼로 — 사파리 프라이빗/쿠키 차단은 localStorage 접근 자체가 예외를 던진다
-// `goalfeel=1`은 장난감 선택 패널만 여는 로컬 QA 스위치다. 장난감 자체는 출시 게임의
-// 기본 공이며, 이 분기를 QA 안에 두면 일반 판에서는 언제나 예전 공으로 되돌아간다.
 const GOAL_FEEL_QA=(location.hostname==='localhost'||location.hostname==='127.0.0.1'||location.protocol==='file:') && new URLSearchParams(location.search).get('goalfeel')==='1';
 // A focused three-toy review keeps the visual standard honest on the real 1-1 board.
 // It is local-only and changes neither the release roster nor saved progress.
@@ -1096,7 +1095,11 @@ function sfxBallPush(){
     const p=a.play(); return p&&p.catch?p.catch(()=>{}):p;
   }catch(e){} // 음원 로드/자동재생 실패가 게임 이동을 막지 않도록 한다.
 }
-function sfxCollision(step){ return sfxBallPush(); }
+function sfxCollision(step){
+  // 접촉음도 밀기·쿵과 같은 실제 공 음원을 쓴다. 그래야 음소거와 접촉 시점이
+  // 한 경로로 관리되고, 연속 충돌 때도 재생기가 겹쳐 커지지 않는다.
+  return sfxBallPush();
+}
 function completedGoals(){ let n=0; for(const [k] of holes) if(filled.has(k)) n++; return n; }
 function rippleAllGoals(){
   let i=0; for(const [k] of holes){ const d=i++*75; setTimeout(()=>{
@@ -2618,10 +2621,6 @@ function tipOnce(key, html, ms){
   tipSeen[key]=1; LS.set('roll_tips', JSON.stringify(tipSeen));
   showToast(html, ms);
 }
-function paidToolsNotice(lv){
-  const targetLv=lv==null?level:lv;
-  if(!firstDistrictToolsFree(targetLv)) tipOnce('toolsPaid', I18N.t('notice.toolsPaid'), 2200);
-}
 try{ giSeen=JSON.parse(LS.get('roll_gintro')||'{}'); }catch(e){ giSeen={}; }
 let giKey=null, giSteps=null;
 function giApplyStep(){
@@ -3271,25 +3270,25 @@ function reverseApply(T, holePos, dog, steps){
 // 크림 끈으로 갈랐다 — 붉은 상자 위의 크림이 붉은 끈보다 대비가 세서 작아져도 매듭이 남는다.
 // (금빛도 대 봤는데 길·잔디의 누런 톤에 묻혔다. 붉은색이 마당에서 유일한 색이라 멀리서 먼저 잡힌다.)
 const GIFT_SVG='<svg viewBox="0 0 44 40" aria-hidden="true">'
- +'<path d="M4.5 16h35v20a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3z" fill="#D9604F"/>'
- +'<path d="M4.5 33.5h35V36a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3z" fill="#B94A3D"/>'
- +'<rect x="2" y="8.5" width="40" height="9.5" rx="2.8" fill="#E8776A"/>'
- +'<path d="M4.6 10.2h34.8v2.3H4.6z" fill="#F4A296"/>'
- +'<path d="M18.5 8.5h7V39h-7z" fill="#FFF6E6"/>'
- +'<path d="M22 9.5C19 2.5 12 1.5 11.5 5.6c-.4 3.4 5 5 10.5 3.9z" fill="#FFF6E6"/>'
- +'<path d="M22 9.5c3-7 10-8 10.5-3.9.4 3.4-5 5-10.5 3.9z" fill="#FFF6E6"/>'
- +'<circle cx="22" cy="9.6" r="2.9" fill="#FFFDF6"/></svg>';
+ +'<path d="M4.5 16h35v20a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3z" fill="#B98A55"/>'
+ +'<path d="M4.5 33.5h35V36a3 3 0 0 1-3 3h-29a3 3 0 0 1-3-3z" fill="#96693C"/>'
+ +'<rect x="2" y="8.5" width="40" height="9.5" rx="2.8" fill="#D2A368"/>'
+ +'<path d="M4.6 10.2h34.8v2.3H4.6z" fill="#E6C393"/>'
+ +'<path d="M18.5 8.5h7V39h-7z" fill="#C0554A"/>'
+ +'<path d="M22 9.5C19 2.5 12 1.5 11.5 5.6c-.4 3.4 5 5 10.5 3.9z" fill="#C0554A"/>'
+ +'<path d="M22 9.5c3-7 10-8 10.5-3.9.4 3.4-5 5-10.5 3.9z" fill="#C0554A"/>'
+ +'<circle cx="22" cy="9.6" r="2.9" fill="#D4695C"/></svg>';
 // 받은 꾸러미 — **열린 빈 상자 + 초록 체크**. 흐린 상자 하나로 "받음"과 "아직 못 옴"을 둘 다 말하던 걸 갈랐다
 // (아직 못 온 판의 상자가 이미 받은 것처럼 보였다). 못 온 판은 제 색 그대로, 받은 판만 모양이 바뀐다.
 // 뚜껑은 짧게(30) · 얕게(-16°) · 한 칸 내려 눕힌다(2026-09-22). 옛 값은 36 짜리 뚜껑을
 // -24° 로 세워 오른 끝이 viewBox 밖으로 나갔다 — 그래서 **잘려 보였다**.
 // 여는 시늉은 각도가 아니라 어긋난 자리가 말한다.
 const GIFT_OPEN_SVG='<svg viewBox="0 0 44 40" aria-hidden="true">'
- +'<path d="M5 18h34v19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="#C9564A"/><path d="M5 18h34v4H5z" fill="#A8433A"/>'
- +'<path d="M19 18h6v21h-6z" fill="#F2E7D0"/>'
- +'<g transform="translate(0 1) rotate(-16 22 12)"><rect x="7" y="6.5" width="30" height="6.4" rx="2.4" fill="#E0857A"/>'
- +'<rect x="7" y="6.5" width="30" height="2.2" rx="1.1" fill="#EEA79C"/>'
- +'<path d="M19 6.5h6v6.4h-6z" fill="#FFF6E6"/></g>'
+ +'<path d="M5 18h34v19a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="#B98A55"/><path d="M5 18h34v4H5z" fill="#96693C"/>'
+ +'<path d="M19 18h6v21h-6z" fill="#C0554A"/>'
+ +'<g transform="translate(0 1) rotate(-16 22 12)"><rect x="7" y="6.5" width="30" height="6.4" rx="2.4" fill="#D2A368"/>'
+ +'<rect x="7" y="6.5" width="30" height="2.2" rx="1.1" fill="#E6C393"/>'
+ +'<path d="M19 6.5h6v6.4h-6z" fill="#C0554A"/></g>'
  +'<circle cx="34" cy="30" r="8" fill="#7FB35A" stroke="#FFF9F0" stroke-width="2"/><path d="M30.5 30l2.4 2.4 4.6-4.8" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const HARD_ON = true;
 // 5판 묶음마다 그 안에서 제일 험한 판 하나 — 동네당 여섯이다. 여섯은 성장 사다리
@@ -3795,8 +3794,8 @@ const WALL_FIX={8:[[4,3],null], 9:[[2,2],null], 10:[[3,4],null],
 // 어느 수풀이 길을 막고 있나(통행 사정)다. 지금은 8판에서 두 값이 같은 칸을 가리키지만,
 // 한 값에 두 뜻을 지우면 나중에 한쪽만 옮길 때 다른 쪽이 조용히 깨진다.
 //
-// 1~30판 도구는 무료·무차감이라(firstDistrictToolsFree) 여기 걸려도 하드락이 없다.
-// 그 밖 구간에 도구 필수 판을 두려면 재고가 0 일 때의 길을 먼저 정해야 한다.
+// 교습판은 도구를 막 받은 직후 지급 재고로 한 번 써 본다. 도구 필수 판을 더 늘릴 때는
+// 재고가 0일 때의 길을 먼저 정해야 한다.
 const TOOL_CUT={8:[4,3]};
 function toolCutKey(lv){ const t=TOOL_CUT[lv|0]; return t? cutKey(t[0],t[1]) : null; }
 function wallMatCells(lv, L){
@@ -7214,8 +7213,11 @@ function syncBuildFab(n){
   // 점 하나가 네 쪽의 할 일을 합쳐 말한다 — 지을 수 있거나, 받을 게 있거나, 새 설계도가 있거나.
   // '지을 수 있음'은 뺐다 — 짓기는 마당으로 갔고, 그건 마당 금점이 말한다.
   // 여기 남는 건 수첩이 실제로 쥔 것뿐이다: 받을 것과 새 설계도.
-  const can = (notePageOn('chores') && (questClaimable()>0 || giftClaimableNow())) || colBpFresh(CASE_ON? undefined : 'plan')
-    || !!yardOpenReady();                                // 도면 재료가 다 찼는데 마당을 아직 안 열었다
+  // yardOpenReady 는 뺐다 — 「재료가 다 찼는데 마당을 아직 안 열었다」를 풀 길이
+  // 설계도 쪽의 망치(data-yopen)였는데, 그 버튼이 **연필**이 되면서 마당으로 가는
+  // 길 자체가 없어졌다. 점은 남고 손쓸 데가 없으니 그려도 안 꺼진다(실측: 그리기
+  // 전후 모두 yardOpenReady()===1). 마당은 이제 동네를 완주하면 저절로 열린다.
+  const can = (notePageOn('chores') && (questClaimable()>0 || giftClaimableNow())) || colBpFresh(CASE_ON? undefined : 'plan');
   b.classList.toggle('can', !!can);
   if(lbShownN!==n){ lbShownN=n; b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop'); }
 }
@@ -7365,7 +7367,7 @@ if(typeof document!=='undefined' && document.documentElement)
 // 다 져야 했다. 물건 이름은 그 값을 안 치른다.
 const HINTS=[
   // 저장 키 sniff/dest/order 는 안 바꾼다 — 세이브·경제 상수·상점·광고 슬롯이 이 키를
-  // 그대로 쓴다. 갈린 건 이름과 하는 일뿐이다(sniff=가위, dest=삽, order=장갑).
+  // 그대로 쓴다. 갈린 건 이름과 하는 일뿐이다(sniff=밟아!, dest=점프!, order=갖고와!).
   // **lv 는 그 도구를 쓸 수 있는 첫 판**이다(2026-09-21). 게이트는 깬 판 수라 값이 한 칸
   // 앞선다(8판에 들어가려면 7판을 깬 상태) — 그 어긋남을 at 이 흡수하고, 화면엔 lv 를 쓴다.
   // 예전엔 at 에 9·13·16 을 직접 적어 두고 화면에도 그 숫자를 보여 줘서, 라벨이 가리키는
@@ -7442,35 +7444,26 @@ const FENCE_ART_SVG=
 // 납작한 UI 여섯 칸 중 셋만 질감이 달라 "딴 데서 가져온 것"으로 보인다. 그 그림의
 // 자리는 해금 카드·상점처럼 큰 자리다 — 마당 물건이 아이콘과 실물 그림을 따로 갖는 것과 같다.
 const HINT_ICO={
-  // 정원 가위 — 정면으로 벌린 날 둘(V), 아래 초록 고리 둘, 가운데 붉은 리벳.
-  sniff:'<svg viewBox="0 0 40 40">'
-    +'<path d="M19 20 12.4 6.6c-1 .2-1.6 1-1.4 2.2l3.6 12.6z" fill="#CBD2D7" stroke="#8B949A" stroke-width="1.6" stroke-linejoin="round"/>'
-    +'<path d="M21 20 27.6 6.6c1 .2 1.6 1 1.4 2.2l-3.6 12.6z" fill="#CBD2D7" stroke="#8B949A" stroke-width="1.6" stroke-linejoin="round"/>'
-    +'<ellipse cx="13.6" cy="30.4" rx="5.4" ry="4" transform="rotate(18 13.6 30.4)" fill="none" stroke="#8FBC6B" stroke-width="3.4" stroke-linecap="round"/>'
-    +'<ellipse cx="26.4" cy="30.4" rx="5.4" ry="4" transform="rotate(-18 26.4 30.4)" fill="none" stroke="#8FBC6B" stroke-width="3.4" stroke-linecap="round"/>'
-    +'<path d="M17.6 22.4 15.4 26.4M22.4 22.4l2.2 4" stroke="#8FBC6B" stroke-width="3.4" stroke-linecap="round"/>'
-    +'<circle cx="20" cy="21" r="2.8" fill="#F0705A"/></svg>',
-  // 땅굴 삽 — 세로로 선 대형삽. 나무 D 고리 · 회색 페룰 · 은색 날 · 가운데 능선.
-  // 세로로 세운 이유는 대칭이다 — 27px 에서는 대칭이 제일 안 흔들린다(실측).
+  // 밟아! — 앞발 하나와 눌린 자리. 27px 에서도 안 뭉개는 몇 안 되는 모양이 발바닥이다.
+  sniff:'<svg viewBox="0 0 40 40"><g fill="#8A5A34"><ellipse cx="20" cy="26" rx="8.4" ry="7"/>'
+    +'<ellipse cx="11.6" cy="15" rx="3.3" ry="4.1"/><ellipse cx="17.2" cy="11.4" rx="3.4" ry="4.4"/>'
+    +'<ellipse cx="23.4" cy="11.8" rx="3.4" ry="4.3"/><ellipse cx="28.8" cy="15.8" rx="3.2" ry="3.9"/></g>'
+    +'<path d="M12 34.4h16" stroke="#6E9E3A" stroke-width="3.2" stroke-linecap="round"/></svg>',
+  // 점프! — 공 하나를 넘어 **고리에 내려앉는다**. 고르는 건 공이 아니라 **내려앉을 땅**이라
+  // (2026-09-24 규칙 변경) 아이콘도 착지를 그린다. 그 고리는 판에서 조준할 때 발이 닿을
+  // 자리에 뜨는 것과 **같은 기호**다 — 아이콘과 판이 같은 말을 한다.
   dest:'<svg viewBox="0 0 40 40">'
-    +'<ellipse cx="20" cy="7.4" rx="5" ry="3.8" fill="none" stroke="#DE9447" stroke-width="3.4" stroke-linecap="round"/>'
-    +'<path d="M20 11.4V21" stroke="#DE9447" stroke-width="3.57" stroke-linecap="round"/>'
-    +'<path d="M20 20V23" stroke="#AEB6BC" stroke-width="4.76" stroke-linecap="round"/>'
-    +'<path d="M13.4 22.6h13.2c1.6 0 2.6 1.4 2.2 2.9l-2.4 8.2c-.5 1.7-2 2.9-3.8 2.9h-5.2c-1.8 0-3.3-1.2-3.8-2.9l-2.4-8.2c-.4-1.5.6-2.9 2.2-2.9z" fill="#CBD2D7" stroke="#8B949A" stroke-width="1.6" stroke-linejoin="round"/>'
-    +'<path d="M20 25v8.6" stroke="#EAEFF2" stroke-width="1.44" stroke-linecap="round"/></svg>',
-  // 작업 장갑 — 16도 기울인 다섯 손가락. 손가락 넷 + 엄지 · 겨자색 손목 · 솔기 점선.
-  // 겨자색 손목이 이 아이콘의 강조색이라 장갑 칩의 배경은 그보다 밝은 크림이어야 한다 —
-  // 같은 겨자 계열로 진해지면 손목이 배경과 한 덩어리가 되고 장갑은 크림 얼룩만 남는다(실측).
-  order:'<svg viewBox="0 0 40 40"><g transform="rotate(-16 20 21)">'
-    +'<rect x="8.6" y="8.8" width="3.9" height="14.2" rx="1.95" fill="#EFE6D0" stroke="#B29268" stroke-width="1.6"/>'
-    +'<rect x="12.9" y="6.4" width="3.9" height="16.6" rx="1.95" fill="#EFE6D0" stroke="#B29268" stroke-width="1.6"/>'
-    +'<rect x="17.2" y="7.4" width="3.9" height="15.6" rx="1.95" fill="#EFE6D0" stroke="#B29268" stroke-width="1.6"/>'
-    +'<rect x="21.5" y="10.6" width="3.9" height="12.6" rx="1.95" fill="#EFE6D0" stroke="#B29268" stroke-width="1.6"/>'
-    +'<rect x="24.8" y="15.2" width="4.1" height="10.6" rx="2.05" fill="#EFE6D0" stroke="#B29268" stroke-width="1.6" transform="rotate(28 26.85 20.5)"/>'
-    +'<rect x="8" y="19.4" width="18.4" height="10" rx="3.4" fill="#EFE6D0" stroke="#B29268" stroke-width="1.6"/>'
-    +'<path d="M12.8 20.3v7.2M17.1 20.3v7.2M21.4 20.3v7.2" stroke="#CBB083" stroke-width="1.152" stroke-linecap="round" stroke-dasharray="1.4 1.6"/>'
-    +'<rect x="7.4" y="27.8" width="19.6" height="7" rx="2.3" fill="#D7961F" stroke="#A96F12" stroke-width="1.6"/>'
-    +'<path d="M8.7 31.3h17" stroke="#F2D794" stroke-width="1.36" stroke-linecap="round"/></g></svg>',
+    +'<path d="M5 26q15 -22 30 0" fill="none" stroke="#B9782F" stroke-width="3.4" stroke-linecap="round" stroke-dasharray="5 4.4"/>'
+    +'<circle cx="20" cy="27" r="6.4" fill="#D9604F"/>'
+    +'<ellipse cx="33" cy="30.5" rx="5.6" ry="2.4" fill="none" stroke="#6E9E3A" stroke-width="3"/></svg>',
+  // 갖고와! — **빈 테**(공이 있던 자리) → **찬 공**(맥스 곁). 두 상태가 「옮겨졌다」를 말한다.
+  // 예전엔 화살표가 허공을 가리켜 어디로 가는지가 안 끝났다. 착지 고리를 안 쓰는 이유는
+  // 점프의 고리가 **맥스가 설 자리**를 뜻해서다 — 같은 기호를 두 뜻으로 쓰면 둘 다 흐려진다.
+  order:'<svg viewBox="0 0 40 40">'
+    +'<circle cx="31" cy="20" r="6" fill="none" stroke="#D9604F" stroke-width="2.6" stroke-dasharray="3.4 3"/>'
+    +'<circle cx="10" cy="20" r="7" fill="#D9604F"/>'
+    +'<path d="M22.6 20 H16.6" stroke="#8A5A34" stroke-width="3.4" stroke-linecap="round"/>'
+    +'<path d="M20.4 15.6 L15.6 20 L20.4 24.4" fill="none" stroke="#8A5A34" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
 };
 
 // 재고 배지 한 벌. n = 남은 수, buyable = 0 일 때 살 수 있나.
@@ -7497,7 +7490,9 @@ function numBadge(n, buyable){
   if(n<=0) return buyable? '<b class="'+c+' plus">＋</b>' : '<b class="'+c+' out">0</b>';
   return '<b class="'+c+(n===1? ' last':'')+'">×'+n+'</b>';
 }
-function firstDistrictToolsFree(lv){
+// 되돌리기·다시하기의 첫 동네 완충만 남긴다. 할아버지 도구 셋은 해금 카드가
+// 이미 세 번의 재고를 지급하므로, 첫 동네에서도 한 번 쓸 때마다 한 장씩 쓴다.
+function firstDistrictRetriesFree(lv){
   return !menuMode && !tutMode && !moonMode && !tsMode && !lunchMode && lv>=1 && lv<=30;
 }
 function freeToolBadge(){ return '<b class="numbadge free">'+I18N.t('common.free')+'</b>'; }
@@ -7670,7 +7665,7 @@ function lvCardBoost(){
     const n=boost[it.k]|0, plus = !need && n<=0;
     h+='<button class="lcb'+(need?' na':'')+'" data-lcb="'+it.k+'" title="'+escAttr(it.dPlain)+'">'
       +'<span class="lci">'+HINT_ICO[it.k]+'</span>'
-      +(firstDistrictToolsFree(lcLv)?freeToolBadge():numBadge(n, plus))+'</button>';
+      +numBadge(n, plus)+'</button>';
   }
   el("lcBoost").innerHTML = h;
   // 길게 누르기 = 설명, 짧게 누르기 = 켜기/끄기. onTap 은 pointerdown 에서 바로
@@ -7712,8 +7707,7 @@ function lcTapBoost(k, t){
   // 도구는 **판 안에서 쓰는 것**이라 여기서 켜 두지 않는다. 예전 정보형 표는 입장 전에
   // 켜 두면 판이 뜨는 순간 그려지는 물건이라 이 타일이 토글이었는데, 도구는 쓰는 순간이
   // 따로 있다. 그래서 이 타일은 이제 **재고 표시**이고, 다 썼을 때 채우는 창구만 남는다.
-  const free=firstDistrictToolsFree(lcLv);
-  if(!free && (boost[k]|0)<=0){ hintBuyShow(k); return; }
+  if((boost[k]|0)<=0){ hintBuyShow(k); return; }
   sfxHintToggle(true);
 }
 // ---- 힌트 충전 ----
@@ -7837,7 +7831,7 @@ function syncHintAct(){
     const n=boost[it.k]|0, plus = n<=0;
     return '<button data-hk="'+it.k+'" title="'+it.nm+'" aria-label="'+it.nm+'">'
       +HINT_ICO[it.k]+'<span class="hint-label">'+HINT_SHORT[it.k]+'</span>'
-      +(firstDistrictToolsFree(level)?freeToolBadge():numBadge(n, plus))+'</button>';
+      +numBadge(n, plus)+'</button>';
   }).join('');
   // 판 안에서도 켜고 끌 수 있다 — 확인 화면에서 안 켜고 들어왔다 필요해질 수 있다.
   // onTap 은 pointerdown 에서 바로 발동한다 — 칩 위에서 스와이프를 시작하면 미는 순간
@@ -8183,8 +8177,16 @@ function lsSceneSet(n){
   // 동네별 산책 배경. 길과 노드는 코드가 위에 그리므로 원화는 중앙을 비운 장면만 쓴다.
   // 아직 전용 원화가 없는 동네는 1동네 초원으로 돌아간다.
   const LEVEL_SELECT_BG_ART={
-    1:'art/chapter-concepts/optimized/stage-select-meadow-base-v2.webp',
-    2:'art/chapter-concepts/optimized/stage-select-backyard-base-v1.webp',
+    1:'art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp',
+    2:'art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp',
+    3:'art/chapter-concepts/optimized/stage-select-03-stream-v1.webp',
+    4:'art/chapter-concepts/optimized/stage-select-04-acorn-hill-v1.webp',
+    5:'art/chapter-concepts/optimized/stage-select-05-play-lot-v2.webp',
+    6:'art/chapter-concepts/optimized/stage-select-06-vegetable-field-v1.webp',
+    7:'art/chapter-concepts/optimized/stage-select-07-warehouse-v1.webp',
+    8:'art/chapter-concepts/optimized/stage-select-08-fence-lane-v1.webp',
+    9:'art/chapter-concepts/optimized/stage-select-09-cat-alley-v1.webp',
+    10:'art/chapter-concepts/optimized/stage-select-10-pinwheel-field-v1.webp',
   };
   lsSceneN=n;
   let flat=false;
@@ -9128,6 +9130,19 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
   }
   if(kind==='sheep')for(let i=0;i<12;i++){const a=i*Math.PI*2/12;oval(Math.cos(a)*r*.78,Math.sin(a)*r*.78,r*.26,r*.26,'#FFF0D4');}
 
+  // 볏은 **머리 위에 고정**한다. 구 표면을 따라가게 하면 어느 층에 두든 얼굴을 덮는다:
+  //   · 머리 장식 층 — 아래 반구까지 내려가 몸통 밑으로 빠졌다(ry 0.35 에서 위쪽 붉은 0개).
+  //   · 얼굴 층 — 세로로 눌리며 눈·부리 위로 내려앉았다(ry 0.9 에서 볏이 눈 자리).
+  // 한 칸에 40px 남짓인 장난감이라 3D 정합보다 **볏으로 읽히는 것**이 먼저다. 자리는
+  // 안 움직이고, 돌아선 만큼 옅어지다 뒤를 보이면 사라진다.
+  if(kind==='chicken'){
+    const facing=Math.cos(rotation.y);
+    if(facing>0.02){
+      ctx.save(); ctx.globalAlpha=Math.min(1, facing*1.35);
+      oval(-r*.21,-r*.90,r*.23,r*.27,'#C84F49');oval(0,-r*1.02,r*.25,r*.31,'#D95C54');oval(r*.22,-r*.90,r*.23,r*.27,'#C84F49');
+      ctx.restore();
+    }
+  }
   const attached=kind!=='puppy'&&kind!=='bunny';
   if(attached){const a=goalToyAttachmentPose(rotation.y);ctx.save();ctx.translate(0,a.y*r);ctx.scale(1,a.scale);}
   if(kind==='bear'){
@@ -9159,7 +9174,8 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
       ctx.rotate(side*(.30+.34*(m.wings||0)+(m.flap||0)*.20));
       limb(0,0,r*(.23+.06*(m.wings||0)),r*GOAL_CHICKEN_VISUAL.wingReach*spread,'#EADCC7');ctx.restore();
     }
-    oval(-r*.21,-r*.90,r*.23,r*.27,'#C84F49');oval(0,-r*1.02,r*.25,r*.31,'#D95C54');oval(r*.22,-r*.90,r*.23,r*.27,'#C84F49');
+    // 볏은 여기(머리 장식 층)에 있었다. 그 층은 구를 따라 **아래 반구까지** 내려가므로
+    // 조금만 굴러도 볏이 몸통 밑으로 빠졌다 — 얼굴 층으로 옮겼다(아래 chicken 분기).
   }else if(kind==='peacock'){
     for(let i=-1;i<=1;i++)oval(i*r*.13,-r*.92-Math.abs(i)*r*.04,r*.07,r*.18,'#55558F');
   }else if(kind==='pig'){
@@ -10085,11 +10101,11 @@ function applyScene(g){
   filled=new Set();
   par=g.par; moves=0; undoStack=[]; state="play"; undoFacing=null; undoFx=null;
   if(!tutMode) tutSlide=0;
-  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; deadT=0; deadPend=false; trail=[]; walkPulse=[];
+  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; deadT=0; deadPend=false; trail=[]; walkPulse=[]; rollPulse=[];
   joyT=0; joyN=0; glum=0;                                        // 판 안 맥스 반응도 판마다 처음부터
   maxChapterIdleT=0; maxChapterBlockedFx=null;                    // v12 대기·막힘 포즈도 판마다 처음부터
   gustFx=[]; gustT=0;                                            // 바람 연출도 처음부터
-  digFx=null; cutFx=null; tunFx=null; dog.digT=0;               // 흙더미 파헤치기·가위·땅굴 연출도
+  digFx=null; cutFx=null; tunFx=null; fetchFx=null; dog.digT=0;   // 흙더미 파헤치기·밟기·점프·물어오기 연출도
   moundTrail=new Set();                                         // 판을 새로 열면 자국도 없다
   fxQueue=[];                                                   // 늦게 도는 연출도 같이 버린다
   cbLid={};                                                     // 뚜껑도 처음 상태로
@@ -10892,8 +10908,11 @@ let noteWant=null;                                // 목록으로 돌아오면 �
 // 세트 "맥스가 물어 온 것" 열 점만 예전대로 판이 준다: 그건 마당에 안 서고
 // 진열장 세로줄로 남으므로 조각과 관계가 없다.
 function colOpenK(k){ const it=COLLECT[k]; if(!it) return false;
+  // 세트(물어 온 장난감)는 **마당 자리를 안 쓴다** — 판이 바로 준다. 그래서 자리 스위치보다
+  // 위에 있어야 한다. 아래에 있던 동안, 바로 위 주석이 약속한 「세트 열 점만은 예전대로
+  // 판이 준다」가 영영 안 돌았다 — 앨범이 늘 비어 있던 진짜 까닭이다.
+  if(it.set) return CASE_ON && (starMap[it.lv]|0)>0;
   if(!YARD_DECO_ON) return false;               // 자리가 잠들면 설계도도 열 데가 없다
-  if(it.set) return (starMap[it.lv]|0)>0;
   // 조각으로 이미 만든 도면(bpMade)은 그대로 살리고, 깬 판 수가 연 만큼 앞에서부터 열린다.
   return bpMade.indexOf(k)>=0 || colItems(it.col).indexOf(k) < smallPlansIn(it.col); }
 // 그 판에서 주운 설계도 — 이제 세트만 판이 준다.
@@ -11775,6 +11794,7 @@ function openYard(){
   treatK=null; treatEaten=true; tut=0; menuSol=[]; menuI=0;
   dog.face=1; yardWalkT=1.2; yardSit=0; yardPop2=null;
   yw.cam=0; yw.camMoved=false; yw.ball=null; yw.hearts.length=0;
+  ywZoomReset();                        // 들어올 때마다 한 화면 — 지난번 키워 둔 채로 시작하지 않는다
   // 시작 자리도 옛 좌표(y 52~72)라 지금은 잠긴 구획 안이다. 집 앞마당으로.
   { const R=plotRect(0);
     yw.dog.x=(R.tx+R.tw*0.55)*YW_TS; yw.dog.y=(R.ty+R.th*0.8)*YW_TS; yw.dog.tx=null; }
@@ -12048,6 +12068,7 @@ function giftLiftNext(delay){
 // 매일 마당에 들어올 이유를 만든다 — 잔치의 꽃도 여기서 자란다.
 // 좌표계: wx 0~YW_WU, wy 0~YW_HU. 카메라 없음 — 월드가 곧 화면이다.
 let yw={ cam:0, camMoved:false,          // cam 은 남겨 둔다(옛 호출부 호환), 항상 0
+         zoom:1, px:0, py:0,            // 손가락 둘로 키운 배율과 그때 끌어 둔 자리(캔버스 픽셀)
          dog:{x:36,y:9,tx:null,ty:null,face:1,walkT:0,stepT:0,moving:false},   // 구획 0 안 (마당 진입 때 덮어씀)
          ball:null, hearts:[], clouds:[{x:20,y:12,s:1,v:0.8},{x:150,y:7,s:0.7,v:0.5},{x:250,y:15,s:1.2,v:0.6}] };
 let ywW=0, ywH=0;                        // 캔버스 CSS 크기 (fit 이 채움)
@@ -12091,12 +12112,16 @@ function ywEditFrame(){
   // 놓을 수 있는 땅이 위로 채워진다. 가운데 두면 아래에 냇물·숲이 다시 보인다.
   return { k, ox:(ywW-bw*k)/2 - x0*k, oy:ywPadTop + Math.max(0, avail-bh*k) - y0*k };
 }
-function ywOX(){
+// 끌어 둔 자리는 **한 겹 위에서** 더한다 — 원점 계산은 손대지 않는다.
+// 투영(ywPX·ywPY)도 역변환(ywWorldAt)도 이 둘만 지나므로 그림과 손가락이 같이 움직인다.
+function ywOX(){ return ywOX0() + (yw.px||0); }
+function ywOY(){ return ywOY0() + (yw.py||0); }
+function ywOX0(){
   const f=ywEditFrame(); if(f) return f.ox;
   if(YW_ISO){ const k=ywK();               // 월드 (0,0) 이 놓이는 자리 — 마름모를 가운데
     return ywW/2 + (YW_HU-YW_WU)*k*0.25; }
   return (ywW - YW_WU*ywSX())/2; }
-function ywOY(){                          // HUD 아래부터 남는 세로를 균등 분배
+function ywOY0(){                         // HUD 아래부터 남는 세로를 균등 분배
   const f=ywEditFrame(); if(f) return f.oy;
   if(YW_ISO){ const k=ywK(), lh=(YW_WU+YW_HU)*k*0.25;
     return ywPadTop + Math.max(0, ((ywH-ywPadTop-ywPadBot) - lh)/2); }
@@ -12134,9 +12159,10 @@ const YW_ISO=true;
 const YW_TILE_MAX=34;                                   // 12열 시절 실측 32.2px 기준
 function ywK(){
   if(!YW_ISO) return ywSX();
-  const f=ywEditFrame(); if(f) return f.k;               // 꾸미기 — 놓을 수 있는 땅에 맞춘다
+  const z=yw.zoom||1;                                    // 손가락 둘로 키운 몫 (ywZoomAt 이 움직인다)
+  const f=ywEditFrame(); if(f) return f.k*z;              // 꾸미기 — 놓을 수 있는 땅에 맞춘다
   const fit=2*(ywW*0.98)/(YW_WU+YW_HU);
-  return Math.min(fit, YW_TILE_MAX/YW_TS);
+  return Math.min(fit, YW_TILE_MAX/YW_TS)*z;
 }
 function ywPX(wx,wy){ return YW_ISO ? ywOX() + (wx-(wy||0))*ywK()*0.5 : ywOX() + wx*ywSX(); }
 function ywPY(wy,wx){ return YW_ISO ? ywOY() + ((wx||0)+wy)*ywK()*0.25 : ywOY() + wy*ywSX(); }
@@ -16533,7 +16559,13 @@ function giftBarClose(){
   el("giftsel").classList.remove("show");
   if(gw) gw.classList.remove("on","shake","burst","open");
   hardGift=null;
-  if(selMode){ const pg=el('lsProg'); if(pg){ pg.innerHTML=lsProgHTML(lsOpenCh||districtOfLv(nextLv())); giftBarBind(); } lsLeftRender(lsOpenCh||districtOfLv(nextLv())); }
+  if(selMode){
+    // lsOpenCh 는 동네 번호가 아니라 그 동네의 첫 판(from)을 기억한다(2동네면 31).
+    // 진행 바와 두고 온 꾸러미는 동네 번호를 받으므로 닫을 때 반드시 변환한다.
+    const dn=districtOfLv(lsOpenCh!=null?lsOpenCh:nextLv());
+    const pg=el('lsProg'); if(pg){ pg.innerHTML=lsProgHTML(dn); giftBarBind(); }
+    lsLeftRender(dn);
+  }
   if(fly && selMode) noteFlyToBook(fly);
   // 상자를 닫은 다음이 수첩 해금을 말할 자리다 — 상자가 떠 있는 동안 뒤에서 뜨면 아무도 못 본다.
   setTimeout(()=>{ if(selMode) checkContentUnlocks(); }, 420);
@@ -16641,6 +16673,7 @@ function refreshDistrictDoneCopy(){
   const cnt=Math.min(d.to,BAKED.length)-d.from+1;
   el('dcName').textContent=districtName(d);
   el('dcTitle').textContent=I18N.t('victory.areaDone',{count:I18N.locale==='ko'&&cnt===30?'서른':cnt});
+  { const s=el('dcSub'); if(s) s.textContent=I18N.t('victory.chapterArt'); }
   el('dcStepsLabel').textContent=I18N.t('victory.steps');
   { const c=el('dcChipsLabel'); if(c) c.textContent=I18N.t('victory.chipLabel'); }
   el('dcAcornsLabel').textContent=I18N.t('victory.acornLabel');
@@ -17093,6 +17126,14 @@ function caseBoxRender(){
 let bpFocusN=0;
 // 길게 누르기 — 글을 뺀 자리의 설명. 힌트 타일과 같은 문법(0.35초, 떼면 켜기로 안 친다).
 function escAttr(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+// 설계도 쪽에서 쓰는 것은 **연필**이다 — 여기서 하는 일은 짓기가 아니라 그리기다.
+// 망치는 마당에서 세우는 일의 그림이라, 종이 위에 놓으면 무엇을 두드리는지가 없다.
+// 붓은 색칠이라 "선을 긋는다"와 어긋나고 22px 에서 붓털이 뭉갠다.
+const PENCIL_SVG='<svg viewBox="0 0 48 48" aria-hidden="true">'
+  +'<rect x="18.5" y="5" width="11" height="27" rx="2.2" fill="#8A5A34" transform="rotate(34 24 24)"/>'
+  +'<path d="M16.3 33.2 L21.7 41.2 L27.9 36.9 Z" fill="#F0DCC0" transform="rotate(34 24 24)"/>'
+  +'<path d="M19.6 38.1 L21.7 41.2 L24.1 39.5 Z" fill="#3A2E24" transform="rotate(34 24 24)"/>'
+  +'<rect x="18.2" y="29.6" width="11.6" height="3.4" fill="#C98A2A" transform="rotate(34 24 24)"/></svg>';
 const HAMMER_SVG='<svg viewBox="0 0 48 48" aria-hidden="true"><rect x="21" y="18" width="6" height="24" rx="2.4" fill="#8A5A34"/><rect x="10" y="8" width="28" height="12" rx="3.5" fill="#6B5438"/></svg>';
 // 길게 누르면 말풍선(탭이 다른 일을 하는 자리). 탭에 다른 일이 없는 것(data-tiptap)은 탭으로도 뜬다.
 function bpTipWire(box){
@@ -17138,6 +17179,103 @@ function bpInfoShow(t){
   const big=!!hoodOf(k), desc=(big? (YARD_COACH_ON? I18N.html('yardTip.'+k) : '') : I18N.t('yard.story.'+k))||'';
   tipBubbleShow(t, {key:k, title:I18N.t('yard.item.'+k), desc, extra:t.dataset.bps||''});
 }
+// 설계도 쪽의 큰 그림 한 장. 완성 모습을 파란 실루엣으로 깔고 그 위에 지금까지 그린 만큼을
+// 얹는다. 그리는 연출(bpDrawFx)이 돌고 있으면 **새로 붙는 부분만** 따로 떼어, 연필선이
+// 먼저 이어진 뒤 색이 드는 두 박자로 보여 준다.
+let bpDrawFx=null;                 // {n, t, dur, from, to} — from/to 는 단계 번호
+function bpHouseDraw(cv){
+  const [n,b]=cv.dataset.lhouse.split('|').map(Number), k=hoodItem(n), c2=cv.getContext('2d');
+  try{
+    const W=cv.width, H=cv.height, S=Math.max(W,H)*2;
+    const paint=(st)=>{ const o=document.createElement('canvas'); o.width=S; o.height=S; const oc=o.getContext('2d'), keep=ctx; ctx=oc;
+      try{ growthIcon(oc, k, st, S, S); } finally{ ctx=keep; } return o; };
+    const full=paint(5), d=full.getContext('2d').getImageData(0,0,S,S).data;
+    let x0=S,y0=S,x1=-1,y1=-1;
+    for(let y=0;y<S;y+=2) for(let x=0;x<S;x+=2){ if(d[(y*S+x)*4+3]<=60) continue; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+    if(x1<0){ x0=0;y0=0;x1=S;y1=S; }
+    // 물건 아래로 길게 깔리는 디딤돌·그림자는 자른다 — 넣으면 상자가 세로로 길어져 집이 콩알이 된다.
+    // 맥스 하우스는 차양·장작이 옆으로 넓혀 가로가 세로의 두 배에 가깝다 — 같은 1.25 로는 디딤돌이 다 들어온다.
+    y1=Math.min(y1, y0+Math.round((x1-x0)*(k==='house'? 0.62 : 1.25)));
+    const bw=x1-x0+1, bh=y1-y0+1, z=Math.min(W*0.9/bw, H*0.92/bh), dw=bw*z, dh=bh*z, dx=(W-dw)/2, dy=H-dh-H*0.03;
+    const ghost=document.createElement('canvas'); ghost.width=S; ghost.height=S; const gc=ghost.getContext('2d');
+    gc.drawImage(full,0,0); gc.globalCompositeOperation='source-in'; gc.fillStyle='rgba(63,110,156,.24)'; gc.fillRect(0,0,S,S);
+    c2.clearRect(0,0,W,H);
+    c2.drawImage(ghost, x0,y0,bw,bh, dx,dy,dw,dh);
+    const F=(bpDrawFx && bpDrawFx.n===n)? bpDrawFx : null;
+    const st = b>0? growthStageAt(n, b) : -1;                      // 한 칸도 안 지었으면 실루엣만
+    if(st>=0) c2.drawImage(paint(st), x0,y0,bw,bh, dx,dy,dw,dh);
+    if(!F) return;
+    // 새로 붙는 몫 — 새 단계에서 옛 단계를 지운 나머지. 앞 세 칸은 모습이 그대로라
+    // 나머지가 비는데(GROWTH_STAGE_NOW 가 2 아래로 안 내려간다), 그때는 물건 전체를 쓴다.
+    const nu=paint(F.to);
+    let part=document.createElement('canvas'); part.width=S; part.height=S;
+    const pc=part.getContext('2d');
+    pc.drawImage(nu,0,0);
+    if(F.from>=0){ pc.globalCompositeOperation='destination-out'; pc.drawImage(paint(F.from),0,0); pc.globalCompositeOperation='source-over'; }
+    if(!bpAnyInk(part,S)) { part=nu; }
+    const t=Math.min(1, F.t/F.dur);
+    // 0 ~ .58 선이 이어진다 · .58 ~ .74 선만 · .74 ~ 1 색이 든다(선은 물러난다)
+    const line=Math.min(1, t/0.58), ink=Math.max(0, (t-0.74)/0.26);
+    if(ink<1){
+      const ol=bpOutline(part,S);
+      c2.save();
+      // 선은 **왼쪽에서 오른쪽으로** 이어진다 — 손이 지나간 순서가 보여야 그린 것이 된다.
+      c2.beginPath(); c2.rect(dx, dy, dw*line, dh); c2.clip();
+      c2.globalAlpha=1-ink;
+      c2.drawImage(ol, x0,y0,bw,bh, dx,dy,dw,dh);
+      c2.restore();
+    }
+    if(ink>0){ c2.save(); c2.globalAlpha=ink; c2.drawImage(part, x0,y0,bw,bh, dx,dy,dw,dh); c2.restore(); }
+  }catch(e){}
+}
+// 그린 것이 있나 — 앞 세 칸처럼 모습이 안 바뀌는 단계를 가려낸다.
+function bpAnyInk(cv,S){
+  try{ const d=cv.getContext('2d').getImageData(0,0,S,S).data;
+    for(let i=3;i<d.length;i+=4*7) if(d[i]>60) return true;
+  }catch(e){ return true; }
+  return false;
+}
+// 연필선 — 채워진 모양을 한 픽셀씩 여덟 방향으로 부풀린 뒤 원래 모양을 도로 파낸다.
+// 획 경로를 따로 적어 둘 필요가 없다(그런 데이터가 이 게임엔 없다).
+function bpOutline(src,S){
+  const o=document.createElement('canvas'); o.width=S; o.height=S; const oc=o.getContext('2d');
+  const w=Math.max(2, Math.round(S*0.006));
+  for(let i=0;i<8;i++){ const a=i/8*Math.PI*2; oc.drawImage(src, Math.cos(a)*w, Math.sin(a)*w); }
+  oc.globalCompositeOperation='destination-out'; oc.drawImage(src,0,0);
+  oc.globalCompositeOperation='source-in'; oc.fillStyle='#6E5B45'; oc.fillRect(0,0,S,S);
+  return o;
+}
+// 한 칸 그리기 — 재료를 내고 칸을 올린 뒤, 이 종이 위에서 연출만 돌린다.
+// 화면을 안 갈아탄다: 눈금·재료·버튼은 연출이 끝나고 한꺼번에 새로 그린다(그래야
+// 눈금이 켜지는 순간이 그림이 끝나는 순간과 같다).
+const BP_DRAW_DUR=1.2;
+function bpDrawGo(n){
+  if(bpDrawFx) return;
+  const cv=document.getElementById('bpList') && document.getElementById('bpList').querySelector('[data-lhouse^="'+n+'|"]');
+  const from=builtIn(n)>0? growthStageAt(n, builtIn(n)) : -1;
+  if(!growthPour(n)){ sfxBlocked(); return; }
+  const to=growthStageAt(n, builtIn(n));
+  syncHud();
+  const reduce=typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!cv || reduce){ bpDrawEnd(); return; }
+  bpDrawFx={n, t:0, dur:BP_DRAW_DUR, from, to};
+  tone(520,0.05,'triangle',0.03,700); buzz(6);
+  let last=0;
+  const step=(ts)=>{
+    if(!bpDrawFx) return;
+    if(!last) last=ts;
+    bpDrawFx.t += Math.min(0.05, (ts-last)/1000); last=ts;
+    try{ bpHouseDraw(cv); }catch(e){}
+    if(bpDrawFx.t>=bpDrawFx.dur){ bpDrawEnd(); return; }
+    requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+function bpDrawEnd(){
+  bpDrawFx=null;
+  tone(660,0.06,'sine',0.045,980); buzz(8);
+  try{ bpRender(); }catch(e){}
+}
 function bpRender(){
   const box=el('bpList'); if(!box) return;
   const upto=Math.max(1, districtOfLv(Math.min(maxLevel, playableMax())));
@@ -17165,12 +17303,16 @@ function bpRender(){
       h+='</div>';
       if(!all && built<pl){                                          // 지금 칸 도면이 손에 있다
         const left=rungLeft(n), need=rungNeedText(n);
-        const hot = yard? yardBuildCan(n) : !need;
+        // 그리는 데 마당은 필요 없다 — 종이와 재료면 된다.
+        const hot = !need && growthReady(n)>0;
         h+='<div class="bpbm"><span class="bpbp"><canvas width="120" height="120" data-bp="'+n+'|'+built+'"></canvas></span><span class="bpmats">';
         for(const m of MATS){ if(!left[m]) continue; const have=matBag[m]|0;
           h+='<span class="bpm'+(have>=left[m]?' ok':' no')+'" data-tiptap data-tip="'+escAttr(I18N.t('note.tipMat',{mat:I18N.t('mat.'+m), from:matSourceText(m)}))+'">'+matSVG(m)+'<b>'+have+'</b><s>/'+left[m]+'</s></span>'; }
-        h+='</span><button class="bpham'+(hot?'':' off')+'" '+(hot? (yard? 'data-plan="'+n+'"' : 'data-yopen="'+n+'"') : 'data-need="'+escAttr(need)+'"')
-          +' aria-label="'+escAttr(I18N.t(yard?'note.planBuild':'note.yardGo'))+'">'+HAMMER_SVG+'</button></div>';
+        // 누르면 **이 종이 위에서** 한 칸이 그려진다. 예전엔 수첩을 닫고 마당·동네를 거쳐
+        // 짓기 시트를 열었다 — 설계도를 보던 사람이 화면을 세 번 갈아탔고, 돌아오면 수첩은
+        // 처음부터 다시 열렸다. 받은 자리와 그리는 자리를 하나로 붙인다.
+        h+='</span><button class="bpham'+(hot?'':' off')+'" '+(hot? 'data-draw="'+n+'"' : 'data-need="'+escAttr(need)+'"')
+          +' aria-label="'+escAttr(I18N.t('note.planDraw'))+'">'+PENCIL_SVG+'</button></div>';
       } else if(!all && nx && nx.hardLv){                              // 다음 도면을 기다린다 — 꾸러미 상자와 그 판 번호
         const go = nx.hardLv<=maxLevel && !(starMap[nx.hardLv]|0);
         h+='<div class="bpbm wait"><button class="bpnext'+(go?'':' off')+'" '+(go? 'data-golv="'+nx.hardLv+'"' : '')
@@ -17223,35 +17365,12 @@ function bpRender(){
   // 사다리 칸 — 칸 i 는 그림 i(1:1). 지금 칸만 파란 도면, 지은 칸은 제 색, 나머지는 흐린 실루엣(CSS).
   // 한 채 — 완성(5) 실루엣을 파랗게 깔고 그 위에 지금 모습. 둘을 **같은 틀**에 그려야 겹친다:
   // 큰 종이에 둘 다 그리고, 완성 모습이 앉은 상자로 둘 다 잘라 캔버스를 채운다(growthIcon 그대로면 집이 콩알이었다).
-  for(const cv of box.querySelectorAll('[data-lhouse]')){ const [n,b]=cv.dataset.lhouse.split('|').map(Number), k=hoodItem(n), c2=cv.getContext('2d');
-    try{
-      const W=cv.width, H=cv.height, S=Math.max(W,H)*2;
-      const paint=(st)=>{ const o=document.createElement('canvas'); o.width=S; o.height=S; const oc=o.getContext('2d'), keep=ctx; ctx=oc;
-        try{ growthIcon(oc, k, st, S, S); } finally{ ctx=keep; } return o; };
-      const full=paint(5), d=full.getContext('2d').getImageData(0,0,S,S).data;
-      let x0=S,y0=S,x1=-1,y1=-1;
-      for(let y=0;y<S;y+=2) for(let x=0;x<S;x+=2){ if(d[(y*S+x)*4+3]<=60) continue; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
-      if(x1<0){ x0=0;y0=0;x1=S;y1=S; }
-      // 물건 아래로 길게 깔리는 디딤돌·그림자는 자른다 — 넣으면 상자가 세로로 길어져 집이 콩알이 된다.
-      // 맥스 하우스는 차양·장작이 옆으로 넓혀 가로가 세로의 두 배에 가깝다 — 같은 1.25 로는 디딤돌이 다 들어온다.
-      y1=Math.min(y1, y0+Math.round((x1-x0)*(k==='house'? 0.62 : 1.25)));
-      const bw=x1-x0+1, bh=y1-y0+1, z=Math.min(W*0.9/bw, H*0.92/bh), dw=bw*z, dh=bh*z, dx=(W-dw)/2, dy=H-dh-H*0.03;
-      const ghost=document.createElement('canvas'); ghost.width=S; ghost.height=S; const gc=ghost.getContext('2d');
-      gc.drawImage(full,0,0); gc.globalCompositeOperation='source-in'; gc.fillStyle='rgba(63,110,156,.24)'; gc.fillRect(0,0,S,S);
-      c2.clearRect(0,0,W,H);
-      c2.drawImage(ghost, x0,y0,bw,bh, dx,dy,dw,dh);
-      const st = b>0? growthStageAt(n, b) : -1;                      // 한 칸도 안 지었으면 실루엣만
-      if(st>=0) c2.drawImage(paint(st), x0,y0,bw,bh, dx,dy,dw,dh);
-    }catch(e){} }
+  for(const cv of box.querySelectorAll('[data-lhouse]')) bpHouseDraw(cv);
   for(const cv of box.querySelectorAll('[data-bp]')){ const [n,i]=cv.dataset.bp.split('|');
     try{ growthBlueprint(cv.getContext('2d'), hoodItem(+n), +i, cv.width, cv.height, true, partsIn(+n), '', {rev:1}); }catch(e){} }
   for(const b of box.querySelectorAll('[data-need]')) onTap(b, ()=>{ sfxBlocked(); showToast(I18N.t('note.planNeed',{mats:b.dataset.need}), 2200); });
   bpTipWire(box);
-  for(const b of box.querySelectorAll('[data-plan]')) onTap(b, ()=>{
-    const n=+b.dataset.plan; tone(660,0.05,'triangle',0.03,880);
-    closeGrowthLadder(); openYard(); hoodEnter(n); setTimeout(()=>yardBuildOpen(n), 350);
-  });
-  for(const b of box.querySelectorAll('[data-yopen]')) onTap(b, ()=>yardFirstOpen(+b.dataset.yopen));
+  for(const b of box.querySelectorAll('[data-draw]')) onTap(b, ()=>bpDrawGo(+b.dataset.draw));
   for(const b of box.querySelectorAll('[data-golv]')) onTap(b, ()=>{
     const lv=+b.dataset.golv; tone(660,0.05,'triangle',0.03,880);
     closeGrowthLadder(); lvCardOpen(lv);
@@ -18361,7 +18480,7 @@ function chapterMaxPrototypeIsMoving(){
     dog.protoMoveT!=null && dog.protoMoveT<1) ||
     (MAX_EXPRESSIVE_PROTO_ENABLED && level===1 && maxChapterBlockedFx && maxChapterBlockedFx.t<maxChapterBlockedFx.dur));
 }
-function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!cutFx || !!tunFx || !!catJumpFx || boxes.some(b=>b.lift||b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
+function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
 function bufferMove(dr,dc){ moveBuffer={dr,dc,at:performance.now()}; }
@@ -18896,6 +19015,7 @@ function tryMove(dr,dc){
     const b=boxes.find(x=>x.sink===0 && x.r===nr && x.c===nc); // 밀린 라이브 공
     if(b){
       b.sdr=dr; b.sdc=dc; b.sqT=(b.kind==='log'||b.kind==='cartV'||b.kind==='cartH'?0.45:1);
+      ballKickFx(b,dr,dc);
       // 트램플린에 올랐는데 못 내려앉았다 — 굴러 도착한 **뒤에** 떴다 되돌아온다.
       // 미는 순간 걸면 굴러가는 몸짓과 겹쳐 공이 납작한 채로 떠오른다(실측).
       if(res.trampBlock) b.tramp={dr, dc};
@@ -18971,7 +19091,7 @@ function aimEnter(k){
   if(state!=="play" || menuMode || yardMode || tsMode || tutMode) return;
   if(!hintUnlocked(k)){ sfxBlocked(); return; }
   if(aimTool===k){ aimCancel(); return; }              // 같은 도구를 다시 누르면 취소
-  if(!firstDistrictToolsFree(level) && (boost[k]|0)<=0){ hintBuyShow(k); return; }
+  if((boost[k]|0)<=0){ hintBuyShow(k); return; }
   // 쓸 자리가 하나도 없으면 아예 안 들린다 — 들고 나서 "여긴 못 써요"는 늦다.
   const cells=toolTargets(k);
   if(!cells.length){ sfxBlocked(); showToast(I18N.t('tool.noTarget'),1600); return; }
@@ -18980,10 +19100,19 @@ function aimEnter(k){
 }
 function aimCancel(){ if(!aimTool) return; aimReset(); sfxHintToggle(false); }
 // 탭 좌표를 칸으로. 변환식은 tsTapMark 이 쓰는 것과 같다 — 둘이 어긋나면 안 된다.
+function boardScreenCell(){
+  // 보드의 논리 cell 은 fit()이 정하지만, 코치·탭은 **실제 화면에 놓인** 캔버스를 읽는다.
+  // 브라우저가 캔버스를 줄인 화면에서 논리 cell 을 바로 빼면 오른쪽·아래로 갈수록
+  // 짚는 칸이 밀렸다. 가로 폭은 타일 8칸만 담고(세로의 보드 두께 립은 빼야 하므로)
+  // 실제 한 칸은 항상 canvas 폭 / GN 이다.
+  const q=cv&&cv.getBoundingClientRect?cv.getBoundingClientRect():null;
+  const n=q&&q.width>0?q.width/GN:cell;
+  return {rect:q, step:n||0};
+}
 function aimCellAt(px,py){
-  if(!cell) return null;
-  const rect=cv.getBoundingClientRect();
-  const c=Math.floor((px-rect.left)/cell), r=Math.floor((py-rect.top)/cell);
+  const q=boardScreenCell(), rect=q.rect, step=q.step;
+  if(!rect || !step) return null;
+  const c=Math.floor((px-rect.left)/step), r=Math.floor((py-rect.top)/step);
   return (r<0||c<0||r>=GN||c>=GN)? null : {r,c};
 }
 // 도구가 짚을 수 있는 자리. 가위 분기가 먼저 들어간다 — 조준 모드를 시험하려면
@@ -19046,8 +19175,11 @@ function dogCanEnter(r,c){
 }
 function toolTargets(k){
   const out=[];
-  if(k==='sniff'){                                     // 정원 가위 — 자를 안쪽 수풀
-    for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++) if(isInnerWall(r,c)) out.push({r,c});
+  if(k==='sniff'){                                     // 밟아! — **붙어 있는** 안쪽 수풀
+    // 셋 다 같은 규칙이다: 맥스가 옆에 서 있어야 시킬 수 있다. 예전엔 밟기만 판 전체를
+    // 표적으로 삼아, 화면 반대편 수풀을 눌러도 맥스가 제자리에서 밟은 것이 됐다.
+    for(const [dr,dc] of DIRS){ const r=dog.r+dr, c=dog.c+dc;
+      if(r>0 && c>0 && r<GN-1 && c<GN-1 && isInnerWall(r,c)) out.push({r,c}); }
   }
   else if(k==='dest'){                                 // 땅굴 삽 — 맥스와 인접한 오브젝트
     // 목적지를 고르게 하지 않는다. 오브젝트 하나가 목적지를 정한다(정반대 칸) —
@@ -19070,7 +19202,10 @@ function toolTargets(k){
       let tr=br+dr, tc=bc+dc, n=1;
       while(n<12 && tr>=0 && tc>=0 && tr<GN && tc<GN && !dogCanEnter(tr,tc)){ tr+=dr; tc+=dc; n++; }
       if(!dogCanEnter(tr,tc)) continue;                // 줄 끝까지 막혀 있으면 나올 데가 없다
-      out.push({r:br, c:bc, to:{r:tr, c:tc}});
+      // 고르는 건 **내려앉을 땅**이다(2026-09-24). 공을 짚던 동안엔 「이 공을 어쩌겠다는
+      // 건지」가 안 보였다 — 공은 그대로 있고 움직이는 건 맥스뿐이라, 누르는 자리도
+      // 맥스가 갈 자리인 게 맞다. 넘어갈 공은 from 이 기억한다.
+      out.push({r:tr, c:tc, from:{r:br, c:bc}});
     }
   }
   else if(k==='order'){                                // 작업 장갑 — 옆에 붙은 공
@@ -19087,7 +19222,7 @@ function toolTargets(k){
 // 뒤에 쌓으면 이미 바뀐 판을 저장해서 되감아도 그대로다.
 function toolApply(k, a, b){
   undoStack.push(snapshot());
-  if(k==='sniff'){                                     // 정원 가위 — 수풀 한 칸이 길이 된다
+  if(k==='sniff'){                                     // 밟아! — 맥스가 수풀 한 칸을 밟아 길로 만든다
     filled.add(cutKey(a.r,a.c));
     // 그 수풀에 묻혀 있던 도토리는 같이 나온다. 가위 값이 도토리 한 개보다 비싸서
     // 펌프가 안 된다. matEatStart 는 안 돌린다 — 그 연출은 수풀이 남아 있는 그림인데
@@ -19095,42 +19230,47 @@ function toolApply(k, a, b){
     const m=acornSt.find(x=>!x.got && x.w==='bush' && x.r===a.r && x.c===a.c);
     if(m){ m.got=1; m.t=1; spark(a.r,a.c, MAT_SPARK[m.k]||"#C98A4B", 16, 2.8);
            audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); }
-    // 잘린 잎은 **날이 닫히는 순간**에 튄다(프레임 루프). 여기서 바로 튀기면
-    // 자르기 전에 잎이 먼저 날아가 순서가 뒤집힌다.
-    cutFx={r:a.r, c:a.c, t:0, sd:kk(a.r,a.c)*3.1+7, snapped:false};
+    // 잎은 **앞발이 닿는 순간**에 튄다(프레임 루프). 여기서 바로 튀기면 밟기 전에
+    // 잎이 먼저 날아가 순서가 뒤집힌다. 맥스는 판에선 제자리다 — 그리는 자리만 그
+    // 수풀로 뛰어갔다 밟고 돌아온다(cutPose). er/ec 가 돌아올 칸이다.
+    // **두 번 부딪히고 그 칸으로 들어선다.** 수풀이 눕고 길이 됐으니 거기 서는 게 맞고,
+    // 한 수를 쓴 값이 자리로도 남는다. 걸음 판정·무르기는 평소 밀기와 같은 길을 탄다
+    // (위에서 snapshot 을 이미 떴다). 보이는 자리만 cutPose 가 따로 준다.
+    cutFx={r:a.r, c:a.c, er:dog.r, ec:dog.c, t:0, sd:kk(a.r,a.c)*3.1+7, hit1:false, snapped:false};
+    maxFaceDir(a.r-dog.r, a.c-dog.c);
+    dog.r=a.r; dog.c=a.c;
+    dog.lungeT=0.7; dog.hop=0;                                    // 첫 부딪힘
     delete critterPeek[a.r+','+a.c];                   // 엿보던 짐승도 자리를 뜬다
     L._alive=null; L._aliveK=null;                     // 벽이 하나 없어졌다 — 죽은 칸 지도를 다시 만든다
   }
-  else if(k==='dest'){                                 // 땅굴 삽 — 맥스만 건너간다
+  else if(k==='dest'){                                 // 점프! — 맥스만 건너뛴다
     // 공도 수풀도 안 건드린다. 판의 배치가 그대로라 풀이불가가 될 수 없다.
-    const dog0r=dog.r, dog0c=dog.c;                    // 파고 내려간 칸 — 연출이 여기서 시작한다
-    const fdc=a.to.c-dog.c;
-    dog.r=a.to.r; dog.c=a.to.c;
-    // 그리는 좌표도 같이 옮긴다. 안 옮기면 맥스가 수풀 **위로 미끄러져** 지나가는
-    // 그림이 된다 — 땅 밑으로 갔다는 게 통째로 거짓이 된다. 뿅 나타나는 게 맞다.
-    dog.rr=a.to.r; dog.cc=a.to.c;
-    if(fdc) dog.face = fdc>0? 1 : -1;
-    // 땅굴이 눈에 보여야 한다 — 예전엔 양 끝에 흙알갱이만 튀어서 "맥스가 뿅 옮겨졌다"
-    // 로만 읽혔다. 들어간 자리에서 흙이 꺼지고, 그 사이를 **이랑이 지나가고**, 나온
-    // 자리에서 흙이 솟는 0.40초를 얹는다. 맥스는 이미 나온 칸에 있다 — 이랑이 도착해
-    // 흙이 터지는 순간에 맞춰 발밑에서 먼지가 인다.
-    tunFx={fr:a.r, fc:a.c, tr:a.to.r, tc:a.to.c, er:dog0r, ec:dog0c, t:0, out:false, sd:kk(a.r,a.c)*4.3+11};
-    spark(a.r, a.c, "#8B5A2E", 10, 2.0);               // 들어간 자리에 흙
+    const dog0r=dog.r, dog0c=dog.c;                    // 뛰어오른 칸 — 연출이 여기서 시작한다
+    const over=a.from||{r:a.r, c:a.c};                 // 넘어갈 공
+    maxFaceDir(Math.sign(a.r-dog.r), Math.sign(a.c-dog.c));
+    dog.r=a.r; dog.c=a.c;
+    // 그리는 좌표도 같이 옮긴다 — 걷기 보간이 끼어들면 공 **위로 미끄러져** 가는
+    // 그림이 된다. 뛰는 동안의 자리는 tunPose 가 따로 준다(웅크림 → 호 → 착지).
+    dog.rr=a.r; dog.cc=a.c;
+    tunFx={fr:over.r, fc:over.c, tr:a.r, tc:a.c, er:dog0r, ec:dog0c, t:0, took:false, out:false, sd:kk(over.r,over.c)*4.3+11};
+    maxWalkCycle(TUN_DUR);                           // 뛰는 동안 걷기 8프레임 한 바퀴
   }
-  else if(k==='order'){                                // 작업 장갑 — 공을 들어 한 칸 옮긴다
+  else if(k==='order'){                                // 갖고와! — 맥스가 공을 물어 온다
     const b2=boxes[a.bi];
     b2.r=b.r; b2.c=b.c;
-    // 그리는 좌표도 같이 옮긴다. 안 옮기면 공이 **굴러서** 가는 그림이 되는데,
-    // 이 도구의 정체는 굴리는 게 아니라 들어 옮기는 것이다.
+    // 그리는 좌표도 같이 옮긴다 — 안 옮기면 공이 **굴러서** 가는 그림이 된다.
+    // 판은 여기서 끝났다. 공이 눈에 보이는 자리는 fetchFx 가 따로 준다: 출발칸에
+    // 그대로 있다가, 맥스가 뛰어가 물면 입에 물린 채 따라오고, 맥스가 제 칸에 서면
+    // 옆 칸으로 내려놓는다. 「옮겨졌다」가 아니라 「물어 왔다」가 보여야 한다.
     b2.rr=b.r; b2.cc=b.c;
-    // 들어서 옮기는 그림 — 제자리에서 **뜬 채로** 호를 그려 옆 칸에 내려앉는다.
-    // 굴리는 게 아니라는 걸 높이가 말한다. 그림자가 같이 작아져야 떠 있는 것으로 읽힌다.
-    b2.lift={t:1, dr:a.r-b.r, dc:a.c-b.c};             // 목적지에서 **출발칸 쪽으로** 되돌린 만큼
-    spark(a.r, a.c, "#EFE6D0", 8, 1.8);                // 집어 든 자리에 천 먼지
+    fetchFx={bi:a.bi, br:a.r, bc:a.c, tr:b.r, tc:b.c, er:dog.r, ec:dog.c, t:0, got:false, sd:kk(a.r,a.c)*2.7+5};
+    maxWalkCycle(FETCH_GO*FETCH_DUR);                // 공까지 걸어가는 몫
+    b2.fetch=fetchFx;
+    maxFaceDir(Math.sign(a.r-dog.r), Math.sign(a.c-dog.c));      // 공 쪽으로 걸어간다
   }
   // 값이 나가는 자리가 바뀌었으니 안내도 따라간다. 예전엔 확인 화면에서 켤 때 냈고
   // 그 자리에서 "이제부터 남은 횟수를 써요"를 알렸는데, 지금은 **쓰는 순간** 나간다.
-  if(!firstDistrictToolsFree(level)){ paidToolsNotice(); boost[k]--; }
+  boost[k]--;
   // 도구를 쓴 기록. 예전엔 켜는 함수(hintToggleInGame)가 남겼는데 그 함수를 지웠다 —
   // 이제 "켠 순간"이 없고 "쓴 순간"만 있으므로 여기가 그 자리다. 키 이름(hint_use)은
   // 그대로 둔다: 바꾸면 지금까지 쌓인 것과 이어서 못 본다.
@@ -19975,12 +20115,25 @@ function toolCoachLv(lv){ const h=HINTS.find(x=>x.lv===(lv|0)); return h? h.k : 
 // 만에 끝나 버린다(13판이 그래서 통째로 안 떴다). 그래서 **판 전체에서 가장 가까운
 // 대상**을 직접 찾는다 — 어차피 "저기로 가서 쓰라"는 안내다.
 function toolCoachCell(k){
-  const near=(ok)=>{ let best=null, bd=1e9;
+  // 교습 코치는 단순히 화면에서 가까운 물건이 아니라, 맥스가 실제로 옆에 설 수 있는
+  // 물건을 짚는다. 벽 너머 물체를 짚으면 "여기"라고 말한 뒤 바로 쓸 수 없어
+  // 도구가 고장 난 것처럼 보였다.
+  const walkDist=(tr,tc)=>{
+    const start=dog.r+','+dog.c, q=[[dog.r,dog.c,0]], seen=new Set([start]);
+    while(q.length){ const [r,c,d]=q.shift(); if(r===tr&&c===tc) return d;
+      for(const [dr,dc] of DIRS){ const nr=r+dr,nc=c+dc, id=nr+','+nc;
+        if(!seen.has(id) && dogCanEnter(nr,nc)){ seen.add(id); q.push([nr,nc,d+1]); } }
+    }
+    return Infinity;
+  };
+  const near=(ok, approaches)=>{ let best=null, bd=Infinity;
     for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){
       if(!ok(r,c)) continue;
-      const d=Math.abs(r-dog.r)+Math.abs(c-dog.c);
-      if(d<bd){ bd=d; best={r,c}; } }
-    return best; };
+      const ds=(approaches?approaches(r,c):[[r,c]]).map(p=>walkDist(p[0],p[1]));
+      const d=Math.min(...ds); if(d<bd){ bd=d; best={r,c}; }
+    }
+    return best;
+  };
   // 가위 — **가장 가까운 수풀이 아니라 도토리가 박힌 수풀**을 짚는다(2026-09-21).
   // 가까운 것을 집으면 교습판 셋이 전부 값싼 쪽을 가리켰다(실측):
   //     8판 (4,1) 이득 2  ← 옳은 칸 (5,4) 이득 15
@@ -19992,32 +20145,62 @@ function toolCoachCell(k){
   if(k==='sniff'){
     const bush=(typeof acornSt!=='undefined' && acornSt)
       ? acornSt.find(a=>!a.got && a.w==='bush' && isInnerWall(a.r,a.c)) : null;
-    return bush? {r:bush.r, c:bush.c} : near((r,c)=>isInnerWall(r,c));
+    const around=(r,c)=>DIRS.map(([dr,dc])=>[r+dr,c+dc]).filter(([r2,c2])=>dogCanEnter(r2,c2));
+    if(bush && around(bush.r,bush.c).length) return {r:bush.r, c:bush.c};
+    return near((r,c)=>isInnerWall(r,c), around);
   }
-  if(k==='order') return near((r,c)=>{ const i=boxIdxAt(boxes,r,c,-1);
-    return i>=0 && !boxes[i].sink && !boxes[i].carried && !boxes[i].gone; });
+  if(k==='order'){
+    const approaches=(r,c)=>DIRS.map(([dr,dc])=>[r+dr,c+dc]).filter(([r2,c2])=>dogCanEnter(r2,c2));
+    return near((r,c)=>{ const i=boxIdxAt(boxes,r,c,-1), b=boxes[i];
+      return i>=0 && !b.sink && !b.carried && !b.gone && approaches(r,c).length; }, approaches);
+  }
   // 삽 — 지나갈 **공**이고, 그 반대편에 설 수 있어야 한다. 수풀을 같이 짚으면
   // 13판 교습이 삽이 안 먹는 칸을 가리킨다(표적에서 수풀을 뺐다, toolTargets).
   // 삽 — 맥스가 설 수 있는 쪽에서 파 들어가 **줄 끝 첫 빈 칸**으로 나오는 공을 짚는다.
   // 한 칸짜리로만 찾으면 공 둘이 줄지어 선 판에서 교습이 삽이 안 켜지는 칸을 가리킨다.
+  // 짚는 건 **내려앉을 땅**이다(toolTargets 와 같은 규칙). 맥스가 그 공 반대편에
+  // 설 수 있어야 하므로, 후보 칸은 그 자체가 곧 설 자리다.
+  const landings=(r,c)=>[[r,c]];
   return near((r,c)=>{
-    if(boxIdxAt(boxes,r,c,-1)<0) return false;
-    for(const [dr,dc] of DIRS){
-      if(!dogCanEnter(r-dr,c-dc)) continue;            // 맥스가 설 쪽
-      let tr=r+dr, tc=c+dc, n=1;
-      while(n<12 && tr>=0 && tc>=0 && tr<GN && tc<GN && !dogCanEnter(tr,tc)){ tr+=dr; tc+=dc; n++; }
-      if(dogCanEnter(tr,tc)) return true;
+    if(!dogCanEnter(r,c)) return false;
+    if(r===dog.r && c===dog.c) return false;           // 제자리는 내려앉을 땅이 아니다
+    for(const [dr,dc] of DIRS){                        // 그 칸으로 내려앉게 하는 공이 있나
+      let br=r-dr, bc=c-dc, n=0;
+      while(n<12 && br>=0 && bc>=0 && br<GN && bc<GN && !dogCanEnter(br,bc)){
+        if(boxIdxAt(boxes,br,bc,-1)>=0 && dogCanEnter(br-dr,bc-dc)) return true;
+        br-=dr; bc-=dc; n++;
+      }
     }
-    return false; });
+    return false; }, landings);
 }
 function toolCoachStart(k){
   if(!k || coachSteps || unlockCB || gintroOn || menuMode) return;
   if(tipSeen['tool_'+k]) return;
   if(!hintUnlocked(k)) return;                       // 아직 안 열린 도구는 도크에 없다
-  const bid='hd'+k[0].toUpperCase()+k.slice(1);      // 글자 그대로 쓴다 — el() 이 준 객체의 .id 는 비어 있을 수 있다
-  if(!el(bid)) return;
+  // 짚을 자리는 **판 안 도구 칩**(#hintAct)이다. 도크의 hdSniff/hdDest/hdOrder 를
+  // 짚고 있었는데 그 셋은 배선되지 않은 중복이라 `display:none` 이고(css/game.css 의
+  // `#dock .hintdock`), 숨은 것을 재면 사각형이 0 이라 구멍이 화면 왼쪽 위로 접혔다 —
+  // "눌러서 들어 보세요" 라고 말하면서 아무것도 아닌 자리를 짚고 있었다. 셋 다 그랬다.
+  const bid='hd'+k[0].toUpperCase()+k.slice(1);
+  const chip=()=>{ const box=el('hintAct');
+    const b=(box && box.querySelector)? box.querySelector('[data-hk="'+k+'"]') : null;
+    return b || el(bid); };                          // 칩이 아직 안 그려졌으면 옛 자리로
+  if(!chip()) return;
   coachKey='tool_'+k;
-  coachSteps=[{ id:bid, pad:8, txt:'tutorial.tool.'+k+'.1' }];
+  // 칩 줄은 syncHintAct 가 통째로 다시 그린다 — 요소를 붙잡아 두면 낡으므로 그때그때 잰다.
+  // 코치 층은 도구 버튼 위에도 올라간다. 강조 구멍을 누른 순간 실제 버튼까지
+  // 이벤트가 내려가지는 않으므로, 이 단계가 직접 조준을 켠다. 없으면 “눌러서
+  // 들어 보세요”라는 말만 있고 눌러도 아무 일도 일어나지 않았다.
+  coachSteps=[{ id:chip, pad:8, txt:'tutorial.tool.'+k+'.1', action:()=>{
+    // 표적이 **지금** 있을 때만 조준을 켠다. 점프·갖고와는 맥스가 공에 붙어 있어야
+    // 표적이 잡히는데(toolTargets), 판에 막 들어선 순간엔 아무것도 안 붙어 있다.
+    // 그때 aimEnter 가 돌아서면 이 걸음이 false 를 돌려 **코치가 영영 안 넘어갔다** —
+    // 코치 층이 화면을 덮으니 걸어가 붙을 수도 없어 판이 통째로 막힌다.
+    // 실측: 13판(점프)·18판(갖고와) 표적 0개 → 막힘, 8판(밟아)은 수풀 6개 → 정상.
+    // 바로 아래 toolCoachCell 이 2단계에서 이미 같은 문제를 겪고 고쳐 둔 자리다.
+    if(toolTargets(k).length) aimEnter(k);
+    return true;
+  } }];
   const cell=toolCoachCell(k);
   if(cell) coachSteps.push({ rect:()=>matCellRect(cell.r, cell.c, false), pad:6, txt:'tutorial.tool.'+k+'.2' });
   coachI=0; el("coach").classList.add("show"); coachApply();
@@ -20032,10 +20215,12 @@ function matCoachDone(){
 // withDog: 맥스 칸까지 한 상자로 — 어두워진 판에서 "여기"만 보이면 내가 어디 있는지를 잃는다.
 function matCellRect(r,c,withDog){
   const cv2=el("c"); if(!cv2) return null;
-  const R=cv2.getBoundingClientRect(), d=Math.max(36, cell*0.96);
-  let x0=cx(c)-d/2, y0=cy(r)-d/2, x1=x0+d, y1=y0+d;
-  if(withDog){ x0=Math.min(x0, cx(dog.c)-d/2); y0=Math.min(y0, cy(dog.r)-d/2); x1=Math.max(x1, cx(dog.c)+d/2); y1=Math.max(y1, cy(dog.r)+d/2); }
-  return { left:x0+R.left, top:y0+R.top, width:x1-x0, height:y1-y0 };
+  const R=cv2.getBoundingClientRect(), step=(R.width>0?R.width/GN:cell);
+  if(!step) return null;
+  const d=Math.max(36, step*0.96), center=(rr,cc)=>({x:R.left+(cc+.5)*step,y:R.top+(rr+.5)*step});
+  const at=center(r,c); let x0=at.x-d/2, y0=at.y-d/2, x1=x0+d, y1=y0+d;
+  if(withDog){ const p=center(dog.r,dog.c); x0=Math.min(x0,p.x-d/2); y0=Math.min(y0,p.y-d/2); x1=Math.max(x1,p.x+d/2); y1=Math.max(y1,p.y+d/2); }
+  return { left:x0, top:y0, width:x1-x0, height:y1-y0 };
 }
 const EAT_TOSS=0.35, EAT_BITE=0.4, EAT_GULP=0.3;
 let matEat=null;                               // {k, a, ph:'toss'|'bite'|'gulp', t, fr:{x,y}, to:{x,y}}
@@ -20144,6 +20329,7 @@ function blockedFeedback(r,c){
 }
 let catEar=0, catLeaveT=0, catWas=false, catDir=1, catAwake=0, catPos=null, catJumpFx=null, catJoltT=0;   // 고양이 연출/상태
 let walkPulse=[];                                     // 구덩이 메움 → "이제 걸을 수 있음" 초록 링
+let rollPulse=[];
 let kitty={i:0,d:1,rr:0,cc:0,face:1,walkT:0,turnT:0};  // 순찰 고양이 (i=경로 인덱스, rr/cc=보간 좌표)
 // 공 위를 지날 때만 채워진다 — 공을 다 그린 뒤 한 번 더 그리려고 좌표를 넘기는 자리
 let catOver=null;
@@ -20447,6 +20633,10 @@ function coachRect(el2){
   }
   return { x:r.left-w.left, y:r.top-w.top, w:r.width, h:r.height, wh:w.height };
 }
+function coachTarget(st){
+  const t=(typeof st.id==='function')? st.id() : st.id;
+  return (typeof t==='string')? el(t) : t;
+}
 function coachApply(){
   const st=coachSteps[coachI];
   // 대상은 셋 중 하나다 — 아이디(DOM) / 요소 / rect 함수(캔버스 위 좌표).
@@ -20455,7 +20645,9 @@ function coachApply(){
   if(st.rect){ const q=st.rect(); if(!q){ coachNext(); return; }
     const w=el("wrap").getBoundingClientRect();
     r={ x:q.left-w.left, y:q.top-w.top, w:q.width, h:q.height, wh:w.height }; }
-  else { const tgt=(typeof st.id==='string')? el(st.id) : st.id;
+  // 대상이 **함수**인 경우도 받는다 — 줄을 통째로 다시 그리는 자리(도구 칩 줄)는
+  // 요소를 붙잡아 두면 낡는다. 그릴 때마다 다시 찾는다.
+  else { const tgt=coachTarget(st);
     if(!tgt){ coachNext(); return; } r=coachRect(tgt); }
   const pad=st.pad||8;
   const x=r.x-pad, y=r.y-pad, w=r.w+pad*2, h=r.h+pad*2;
@@ -20470,7 +20662,7 @@ function coachApply(){
   // 탭 줄까지 통째로 덮어 "대시보드가 사라졌다"로 읽힌다(실측). 그런 걸음은 tipY 로
   // 말풍선을 멀찍이 띄운다.
   if(st.tipY!=null){ const tip=el("cTip"); tip.style.top=st.tipY; tip.style.bottom="auto"; }
-  else coachTipPlace(y, h, r.wh, (typeof st.id==='string')? el(st.id) : st.id);
+  else coachTipPlace(y, h, r.wh, coachTarget(st));
 }
 // 1판은 표지판 3장(움직이기·밀기·방석)을 이미 봤다. 코치마크는 거기서 못 배우는
 // 남은 건 ? 버튼 안내 하나뿐이다. 1판의 이동 바 코치(coachStart)는 뺐다 —
@@ -20804,18 +20996,10 @@ function checkContentUnlocks(){
     showUnlockSpotlight('lsQuest', 'tutorial.errandOpen', 'tutorial.goErrand', ()=>openNote());
     return;
   }
-  // 수첩에 새 쪽이 붙는 순간 — 설계도는 꾸러미 카드가 말하고, 진열장·일과표·달력은 여기서.
-  // 한 번에 하나만: 옛 세이브라 셋이 한꺼번에 열렸어도 목록에 올 때마다 하나씩.
-  // 첫 노트를 받은 순간 — 수첩이 새로 생겼다는 것부터 짚고, 열면 그 노트 줄을 한 번 더 짚는다.
-  // 꾸러미 카드의 "수첩 보기" 줄만으로는 안 누르고 지나간 사람이 수첩이 생긴 줄을 모른다.
-  if(notePageOn('bp') && !tipSeen['noteTab_bp']){
-    tipSeen['noteTab_bp']=1; LS.set('roll_tips', JSON.stringify(tipSeen));
-    showUnlockSpotlight('lsBuild', 'note.new.bp', 'tutorial.goNote', ()=>{
-      openNotebook('bp');
-      setTimeout(noteBpGuide, 620);                  // 쪽이 자리잡은 뒤에 재야 구멍이 앉는다
-    });
-    return;
-  }
+  // (설계도 쪽 해금 안내는 걷었다 — 꾸러미 카드가 도면을 건네며 이미 말한다. 이 안내는
+  //  `plansIn`(받은 수)만 보고 **상자를 연 적이 있는지는 안 봐서**, 꾸러미를 한 번도 안 연
+  //  사람에게 "설계도가 쌓여요" 라고 말했다. 게다가 앞선 꾸러미 코치가 목록 한 번을 통째로
+  //  쓰고 `return` 하므로 늘 한 판 늦게 떴다 — 3판에 든 도면을 4판 뒤에 알렸다.)
   for(const pg of ['case','album','chores']){
     if(!notePageOn(pg) || tipSeen['noteTab_'+pg]) continue;
     if(pg==='chores' && tipSeen['noteOpen']){ tipSeen['noteTab_chores']=1; continue; }   // 예전 키
@@ -20839,25 +21023,24 @@ function noteBpGuide(){
   // 같이 주므로 그 자리에서 첫 칸이 지어지고, 그게 곧 마당이 열리는 순간이다 —
   // 안 짚으면 활성화된 망치만 덩그러니 놓여 그 길을 모르고 지나간다.
   if(noteBuildGuide()) return;
-  const row=box.querySelector('[data-plan], .bprow, .bpit') || box.firstElementChild;
+  const row=box.querySelector('[data-draw], .bprow, .bpit') || box.firstElementChild;
   if(!row || !row.getBoundingClientRect().width) return;
   coachWhenStill(row, ()=>showUnlockSpotlight(row, 'tutorial.noteBp', 'common.ok', ()=>{}));
 }
-// 망치 코치 — 지을 수 있는 칸이 있으면 그 망치를 짚는다. 구멍을 눌러도 버튼을 눌러도
-// 같은 일이 난다(스포트라이트는 라벨이 비면 버튼을 감춘다 — 망치가 곧 버튼이다).
+// 연필 코치 — 그릴 수 있는 칸이 있으면 그 연필을 짚는다. 구멍을 눌러도 버튼을 눌러도
+// 같은 일이 난다(스포트라이트는 라벨이 비면 버튼을 감춘다 — 연필이 곧 버튼이다).
 function noteBuildGuide(){
   const box=el('bpList'); if(!box) return false;
-  const ham=box.querySelector('.bpham[data-yopen], .bpham[data-plan]');
+  const ham=box.querySelector('.bpham[data-draw]');
   if(!ham || !ham.getBoundingClientRect().width) return false;
-  const yopen=ham.dataset.yopen? +ham.dataset.yopen : 0, n=yopen || +ham.dataset.plan;
+  const n=+ham.dataset.draw;
   if(!n) return false;
-  const key = yopen? 'noteYardOpen' : 'noteBuild';
-  if(tipSeen[key]) return false;
-  tipSeen[key]=1; LS.set('roll_tips', JSON.stringify(tipSeen));
-  // 수첩 카드는 코치 층보다 위에 떠서 구멍 탭이 안 온다 — 망치는 **제 핸들러로** 눌리고,
-  // 코치는 그때 조용히 걷는다(안 걷으면 마당 위에 말풍선이 남는다, 실측).
+  if(tipSeen['noteBuild']) return false;
+  tipSeen['noteBuild']=1; LS.set('roll_tips', JSON.stringify(tipSeen));
+  // 수첩 카드는 코치 층보다 위에 떠서 구멍 탭이 안 온다 — 연필은 **제 핸들러로** 눌리고,
+  // 코치는 그때 조용히 걷는다(안 걷으면 말풍선이 남는다, 실측).
   coachWhenStill(ham, ()=>{
-    showUnlockSpotlight(ham, yopen? 'tutorial.noteBuildFirst' : 'tutorial.noteBuild', 'common.ok', ()=>{});
+    showUnlockSpotlight(ham, 'tutorial.noteBuild', 'common.ok', ()=>{});
     ham.addEventListener('pointerdown', coachDrop, {once:true});
   });
   return true;
@@ -21218,6 +21401,16 @@ function drawTutorHand(){
 }
 
 function spark(r,c,col,n,spd){ for(let i=0;i<n;i++){ const a=Math.random()*6.283,s=(spd||3)*(0.5+Math.random()); fx.push({r,c,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,t:1,col}); } }
+function ballKickFx(b,dr,dc){
+  if(!b || b.kind!=="ball") return;
+  b.launchT=1;
+  for(let i=0;i<4;i++){
+    const side=(i-1.5)*0.11;
+    fx.push({r:b.rr-dr*0.28+dc*side,c:b.cc-dc*0.28+dr*side,
+      vx:-dc*0.34+(Math.random()-.5)*.45,vy:-dr*.34-.38-Math.random()*.26,
+      t:.48+Math.random()*.12,col:"#C8B27B"});
+  }
+}
 // 골인 하트 — 공이 방석에 들어갈 때마다 위로 두둥실. 맥스가 좋아한다는 신호.
 let hearts=[];
 let flies=[];                    // 달빛 산책 반딧불 {x,y,ph,sp}
@@ -21287,6 +21480,7 @@ function firePend(b){
     else { spark(b.r,b.c,COL[p.recolor],10+chainN*2,2.5); tone(600*m,0.08,"triangle",0.05,1000*m); } }
   if(p.land!=null){ lastLandK=p.land; const m=chainStep(); b.landT=1; holePulse[p.land]=1;
     b.goalFeelAt=animT;
+    rollPulse.push({r:b.r,c:b.c,t:0,kind:'goal'});
     if(!goalFeelPreviewEnabled()){
       dog.maxEvent='arrive'; dog.maxEventT=0;
       heartBurst(dog.r, dog.c, 3);
@@ -21355,6 +21549,73 @@ window.addEventListener("mousemove",e=>{
   if(yardMode && yardLift){ ywHoverAt(e.clientX, e.clientY); return; }   // 마우스는 안 눌러도 따라온다
   ywPan(e); });
 window.addEventListener("mouseup",e=>{ ywHold=null; if(!downOn) return; downOn=false; const p=downPt(e); swipe(p.x-downX,p.y-downY); });
+// ── 동네에서 손가락 둘로 키우기 (2026-09-23) ──────────────────────────────
+// 브라우저 확대(user-scalable)로는 이걸 못 만든다 — 그건 **문서 하나에 값이 하나**라
+// 화면마다 켜고 끌 수가 없고, 켜면 HUD·탭바까지 같이 커져 화면 밖으로 밀린다.
+// 그래서 키우는 건 브라우저가 아니라 **마당 카메라**다 — 그림만 커지고 위아래 UI 는 제자리.
+//
+// 두 번 탭 확대는 계속 죽어 있다(canvas touch-action:none + touchstart preventDefault).
+// 키우는 건 사용자가 **일부러** 하는 동작이라 열어 두고, 손가락이 빗나가 **실수로** 걸리는
+// 것은 계속 막는다 — 그 둘을 가르는 게 이 기능의 요점이다.
+//
+// 이 블록은 기존 손가락 핸들러를 고치지 않는다. 뒤에 등록해 나중에 도는 듯 얹기만 하고,
+// 손가락이 둘이면 downOn 을 내려 팬·탭이 아예 안 깨어나게 한다.
+const YW_ZOOM_MAX=2.6;                    // 이보다 키우면 타일 하나가 화면을 먹는다
+let ywPinch=null;                         // {d0,z0,wx,wy} — 시작 거리·배율과 손가락 사이 월드 점
+let ywDrag=null;                          // {x,y} — 키워 둔 뒤 한 손가락으로 끄는 중
+function ywZoomReset(){ yw.zoom=1; yw.px=0; yw.py=0; ywPinch=null; ywDrag=null; }
+// 끌 수 있는 범위는 **커진 몫**까지다. 1배면 0 이라 저절로 제자리로 잠긴다.
+function ywClampPan(){
+  const z=yw.zoom||1, mx=ywW*(z-1)*0.5, my=(ywH||0)*(z-1)*0.5;
+  yw.px=Math.max(-mx, Math.min(mx, yw.px||0));
+  yw.py=Math.max(-my, Math.min(my, yw.py||0));
+}
+// 월드 한 점이 손가락 사이에 **그대로 머물게** 자리를 고친다 — 안 그러면 키울 때마다
+// 보던 곳이 화면 밖으로 달아난다. 새 배율로 다시 투영해 어긋난 만큼만 빼면 된다.
+function ywZoomAt(z, sx, sy, wx, wy){
+  yw.zoom=Math.max(1, Math.min(YW_ZOOM_MAX, z));
+  const rect=cv.getBoundingClientRect();
+  yw.px += (sx-rect.left) - ywPX(wx,wy);
+  yw.py += (sy-rect.top)  - ywPY(wy,wx);
+  ywClampPan();
+}
+function ywTouchMid(e){ const a=e.touches[0], b=e.touches[1];
+  return {x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2,
+          d:Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY)}; }
+function ywZoomOn(){ return yardMode && !farmMapMode; }
+window.addEventListener('touchstart', e=>{
+  if(!ywZoomOn() || e.touches.length<2) return;
+  const m=ywTouchMid(e), w=ywWorldAt(m.x,m.y);
+  ywPinch={d0:Math.max(1,m.d), z0:yw.zoom||1, wx:w.wx, wy:w.wy};
+  downOn=false; ywHold=null; ywDrag=null;      // 손가락이 둘이면 탭도 팬도 아니다
+}, {passive:false});
+window.addEventListener('touchmove', e=>{
+  if(!ywZoomOn()) return;
+  if(ywPinch && e.touches.length>=2){
+    const m=ywTouchMid(e);
+    ywZoomAt(ywPinch.z0*m.d/ywPinch.d0, m.x, m.y, ywPinch.wx, ywPinch.wy);
+    e.preventDefault(); return;
+  }
+  // 키워 둔 뒤에는 한 손가락이 카메라를 끈다. 물건을 들고 있거나 칠하는 중이면 그쪽이 먼저다.
+  if((yw.zoom||1)<=1 || e.touches.length!==1 || yardLift || (yardEdit&&yardBrush)) return;
+  const t=e.touches[0];
+  if(!ywDrag){ ywDrag={x:t.clientX, y:t.clientY}; return; }
+  yw.px += t.clientX-ywDrag.x; yw.py += t.clientY-ywDrag.y;
+  ywDrag={x:t.clientX, y:t.clientY};
+  ywClampPan(); yw.camMoved=true;              // 끌고 난 손가락은 탭으로 안 친다
+  e.preventDefault();
+}, {passive:false});
+window.addEventListener('touchend', e=>{
+  if(e.touches.length<2) ywPinch=null;
+  if(e.touches.length===0) ywDrag=null;
+}, {passive:true});
+// 휠 — 데스크톱에서 같은 것을 만져 볼 길. 손가락 둘과 같은 자리를 쓴다.
+window.addEventListener('wheel', e=>{
+  if(!ywZoomOn() || !e.deltaY) return;
+  const w=ywWorldAt(e.clientX, e.clientY);
+  ywZoomAt((yw.zoom||1)*(e.deltaY<0? 1.08 : 1/1.08), e.clientX, e.clientY, w.wx, w.wy);
+  e.preventDefault();
+}, {passive:false});
 function swipe(dx,dy){
   if(yardMode){                                                        // 마당: 드래그 = 카메라 팬(move 핸들러), 탭 = 놀아주기
     // 길게 누르면 옮기기. 하우스는 짧은 탭이 밥/드나들기를 맡으므로 옮길 길이 따로 필요하다.
@@ -21421,8 +21682,7 @@ function onTapOnce(node, fn){
 }
 onTap(el("undo"), ()=>{ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buzz(8); return; }  // 산책은 되돌릴 수 없다 (보상 악용 방지)
   if(state!=="play"||isAnimating()||!undoStack.length) return false;
-  const free=firstDistrictToolsFree(level);
-  if(!free) paidToolsNotice();
+  const free=firstDistrictRetriesFree(level);
   // "다 썼어요" 는 상태만 말하고 규칙을 안 말했다 — 왜 더 못 쓰는지, 언제 돌아오는지가
   // 없으니 표처럼 사러 갈 수 있는 줄 안다(무르기는 유일하게 못 사는 도구다).
   // 횟수는 ECON 에서 읽는다 — 문구에 3 을 박아 두면 값이 바뀔 때 화면만 옛말을 한다.
@@ -21441,6 +21701,7 @@ onTap(el("undo"), ()=>{ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buz
   // 상태를 복원하기 전에 현재 칸을 기억한다. 복원만 하면 맥스가 순간이동하므로,
   // v22 걷기 보간과 같은 경로로 직전 칸까지 되감는다.
   const beforeUndoR=dog.r, beforeUndoC=dog.c, undoSnap=undoStack.pop();
+  cutFx=null; tunFx=null; fetchFx=null;                    // 무르면 훈련 연출도 그 자리에서 끊는다 — 옛 칸을 향해 뛰면 거짓말이다
   restoreSnap(undoSnap);
   dog.rr=beforeUndoR; dog.cc=beforeUndoC;
   dog.protoFromR=beforeUndoR; dog.protoFromC=beforeUndoC;
@@ -21470,7 +21731,7 @@ function syncDockN(){
   const u=el("undoN"), r=el("restartN");
   if(!u||!r) return;
   if(tutMode || moonMode || tsMode){ u.textContent=''; r.textContent=''; return; }
-  const free=firstDistrictToolsFree(level);
+  const free=firstDistrictRetriesFree(level);
   u.classList.toggle('free',free); r.classList.toggle('free',free);
   if(free){ u.textContent=I18N.t('common.free'); r.textContent=I18N.t('common.free'); return; }
   const rl=Math.max(0, ECON.restartFree-restartN);
@@ -21500,8 +21761,7 @@ function doRestart(){ if(tsMode){ startTreasure(); return; }
   // 연습판은 그 연습판을 다시 깐다. level 은 본편 번호라 그냥 loadLevel 을 부르면
   // 연습 도중에 본편 1판으로 튄다(실제로 그랬다).
   if(tutMode){ playTut(tutIdx); return; }
-  const free=firstDistrictToolsFree(level);
-  if(!free) paidToolsNotice();
+  const free=firstDistrictRetriesFree(level);
   if(!free && !mealFull() && restartN>=ECON.restartFree){          // 배부른 동안은 공짜
     // 공짜분을 다 쓴 뒤로는 사서 쓴다. 사는 것도 판마다 상한이 있다 — 도토리로
     // 무한히 다시 깔 수 있으면 걸음 제한과 밥그릇을 둘 다 우회한다.
@@ -22143,7 +22403,7 @@ function failSync(){
   const free=I18N.t('common.free');
   const meal1=mealCharged()? '<i class="ccost bowl">'+ICON_BOWL+'</i>1' : free;   // 판을 여는 값 = 한 끼
   el("flMore").innerHTML = row(FL_ON, I18N.t('notice.walkOn'), meal1);
-  { const rt=el("flRetry"), fr=firstDistrictToolsFree(level);
+  { const rt=el("flRetry"), fr=firstDistrictRetriesFree(level);
     const left=Math.max(0, ECON.restartFree-restartN);
     const canBuy = mealFull() || restartN < ECON.restartFree + ECON.restartBuy;
     const noCost = fr || mealFull() || left>0;
@@ -22619,28 +22879,6 @@ function shapePath(x,y,r,idx){
 function groundShadow(x,y,w,a){
   ctx.save(); ctx.fillStyle='rgba(58,72,42,'+(a||0.18)+')';
   ctx.beginPath(); ctx.ellipse(x,y,w*0.31,w*0.31/3.2,0,0,7); ctx.fill(); ctx.restore();
-}
-// 작업 장갑을 낀 손 — 공을 집어 옮기는 동안만 보인다(2026-09-23).
-// 손가락 넷을 공 **앞으로** 감고 엄지를 반대쪽에 붙인다 — 공이 손에 잠기면 "들었다"가
-// 높이 말고도 읽힌다. 도구 아이콘과 같은 겨자색 손목이라 어느 도구인지도 같이 말한다.
-function drawGloveHand(x,y,s,grip){
-  const r=s*0.30;                                   // drawBall 과 같은 반지름 기준
-  ctx.save(); ctx.translate(x,y);
-  ctx.fillStyle="rgba(60,44,26,.16)";               // 손 밑 그늘 — 공 위에 떠 있는 것으로
-  ctx.beginPath(); ctx.ellipse(0,-r*0.10,r*0.92,r*0.46,0,0,7); ctx.fill();
-  const back="#F4E7CE", palm="#E7D4AF", cuff="#D9A441";
-  const dn=-grip*r*0.16;                             // 쥘수록 손이 공 쪽으로 내려온다
-  ctx.fillStyle=cuff;                                // 손목 — 위에서 내려온다
-  rr(-r*0.44, -r*1.86+dn, r*0.88, r*0.60, r*0.20); ctx.fill();
-  ctx.fillStyle=back;                                // 손등 — 공 **위**에 얹힌다
-  rr(-r*0.72, -r*1.42+dn, r*1.44, r*0.80, r*0.30); ctx.fill();
-  // 손가락 — 공을 좌우로 감싼다. 공 뒤에 그리므로 **공 폭 밖까지** 나와야 보인다.
-  ctx.fillStyle=palm;
-  for(const side of [-1,1]) for(let i=0;i<2;i++){
-    const fx=side*(r*0.62+i*r*0.34), fl=r*(0.62-i*0.12)*(0.55+grip*0.45);
-    rr(fx-r*0.15, -r*0.74+dn, r*0.30, fl, r*0.14); ctx.fill();
-  }
-  ctx.restore();
 }
 function drawBall(x,y,s,color,roll,sx,sy){   // 2톤 비치볼: 반구 색차로 회전이 읽힘
   const rad=s*0.30;
@@ -28343,113 +28581,138 @@ let gustFx=[], gustT=0, gustDir=null;
 let digFx=null;
 // ── 정원 가위 — 자르는 그림 (2026-09-21)
 // 예전엔 수풀이 그 자리에서 사라지고 녹색 알갱이만 튀었다. 도구를 처음 배우는
-// 8판에서 그 그림은 "없어졌다"까지만 말하고 **"내가 잘랐다"를 안 말한다.**
-// 날이 내려와 닫히고, 그 순간 수풀이 좌우로 갈라져 넘어지는 0.42초를 앞에 둔다.
-// 판정은 toolApply 에서 이미 끝났다 — 이건 순수하게 보는 것이라, 중간에 무엇이
-// 끊겨도 판 상태는 안 틀어진다.
-const CUT_DUR=0.42, CUT_SNAP=0.34;          // 0.34 에서 날이 닫힌다 — 갈라지는 시점
+// ── 밟아! — **두 번 부딪혀 무너뜨리고 들어선다** (2026-09-24)
+// 한 번 밀고 끝나면 수풀이 **저절로 비킨 것**처럼 보였다. 첫 번째는 버티고 두 번째에
+// 무너져야 「내가 밀어 없앴다」가 된다. 판정은 toolApply 에서 이미 끝났고 여기선
+// 맥스가 **보이는 자리**와 수풀만 움직인다 — 중간에 끊겨도 판은 안 틀어진다.
+const CUT_DUR=0.78, CUT_HIT1=0.14, CUT_SNAP=0.36;   // 첫 부딪힘 · 무너지는 참
 let cutFx=null;
-// ── 땅굴 삽 — 지나간 자국 (2026-09-21)
-// 맥스는 toolApply 에서 이미 나온 칸에 서 있다. 그를 숨기거나 되돌리지 않는다 —
-// 맥스 그리기는 마스터 시트 쪽이라 건드리면 다른 작업과 부딪힌다. 대신 **흙만**
-// 연출한다: 들어간 자리가 꺼지고, 이랑이 땅 밑을 지나고, 나온 자리가 솟는다.
-// 0.40 초이던 것을 0.62 로 늘렸다(2026-09-23) — 맥스가 가라앉는 국면이 0.1 초라
-// 눈에 안 걸렸다. 셋으로 나눈 동작(가라앉기 0.19 · 땅 밑 0.27 · 솟기 0.16)은 각 국면이
-// 0.15 초는 넘어야 읽힌다. 판정은 이미 끝난 뒤라 길어져도 입력이 밀리지 않는다.
-const TUN_DUR=0.62, TUN_OUT=0.74;           // 0.74 에 이랑이 도착해 흙이 터진다
-const TUN_DOWN=0.30;                        // 이만큼 동안 들어간 칸에서 가라앉는다
+function cutPose(){
+  if(!cutFx || cutFx.er==null) return null;
+  const t=cutFx.t, dr=cutFx.r-cutFx.er, dc=cutFx.c-cutFx.ec;
+  const at=(f,crouch)=>({r:cutFx.er+dr*f, c:cutFx.ec+dc*f, air:0, crouch});
+  // 부딪힘 둘 — 앞으로 나갔다 되튄다. 두 번째가 더 깊다(그래서 무너진다).
+  if(t<CUT_HIT1){ const u=t/CUT_HIT1; return at(Math.sin(u*Math.PI)*0.30, Math.sin(u*Math.PI)*0.5); }
+  if(t<CUT_SNAP){ const u=(t-CUT_HIT1)/(CUT_SNAP-CUT_HIT1); return at(Math.sin(u*Math.PI)*0.42, Math.sin(u*Math.PI)*0.7); }
+  // 무너진 자리로 걸어 들어선다 — **밀친 자리에서 이어 간다**. 0 에서 다시 시작하면
+  // 두 번째로 밀치자마자 처음 자리까지 물러났다 가는 그림이 되어 한 박자가 헛돈다(실측).
+  const u=ease((t-CUT_SNAP)/(1-CUT_SNAP));
+  return at(0.42+(1-0.42)*u, 0);
+}
+// ── 점프! — 막힌 줄을 뛰어넘는다 (2026-09-23)
+// 맥스는 toolApply 에서 이미 건너편 칸에 서 있다. 그리는 자리만 셋으로 나눈다:
+//   ① 뛰어오른 칸에서 **웅크리고**(0~TUN_TAKEOFF)
+//   ② 호를 그리며 **날고**(TUN_TAKEOFF~TUN_OUT) — 공 위를 지나므로 한 칸 높이는 떠야 한다
+//   ③ 건너편 칸에 **내려앉는다**(TUN_OUT~1) — 눌렸다 펴진다
+// 예전 땅굴은 맥스가 땅 밑으로 사라졌다(0.27초 동안 화면에 없었다). 점프는 내내 보인다.
+const TUN_DUR=0.62, TUN_TAKEOFF=0.18, TUN_OUT=0.74;
 let tunFx=null;
-// 땅굴 동안의 맥스(2026-09-23) — 예전엔 나온 칸에 **이미 서 있었다**. 흙만 연출하니
-// "맥스가 뿅 옮겨졌다"로 읽혔다(그 주석이 그렇게 적혀 있었다). 이제 셋으로 나눈다:
-//   ① 들어간 칸에서 **가라앉고**(칸 아래로 잘려 내려간다)
-//   ② 땅 밑을 지나는 동안 **안 보이고**(이랑이 그를 대신한다)
-//   ③ 나온 칸에서 **솟는다**(같은 잘림을 거꾸로)
-// 그리는 자리만 바꾼다 — 판 상태는 toolApply 에서 이미 끝났다. 끊겨도 안 틀어진다.
 function tunPose(){
   if(!tunFx || tunFx.er==null) return null;
   const t=tunFx.t;
-  if(t<TUN_DOWN){ const u=t/TUN_DOWN; return {r:tunFx.er, c:tunFx.ec, dive:u}; }
-  if(t<TUN_OUT)  return {hide:true};
+  if(t<TUN_TAKEOFF){ const u=t/TUN_TAKEOFF; return {r:tunFx.er, c:tunFx.ec, air:0, crouch:Math.sin(u*Math.PI)}; }
+  if(t<TUN_OUT){ const u=(t-TUN_TAKEOFF)/(TUN_OUT-TUN_TAKEOFF);
+    return {r:tunFx.er+(tunFx.tr-tunFx.er)*u, c:tunFx.ec+(tunFx.tc-tunFx.ec)*u, air:Math.sin(u*Math.PI), crouch:0}; }
   const u=Math.min(1,(t-TUN_OUT)/(1-TUN_OUT));
-  return {r:tunFx.tr, c:tunFx.tc, dive:1-u};
+  return {r:tunFx.tr, c:tunFx.tc, air:0, crouch:Math.sin(u*Math.PI)*0.75};
+}
+// ── 갖고와! — 맥스가 공까지 뛰어가 물고 돌아와 옆에 놓는다 (2026-09-23)
+// 판은 toolApply 에서 끝났다(공은 이미 옆 칸). 보이는 건 넷으로 나눈다:
+//   ① 맥스가 공 칸으로 뛰어간다(0~FETCH_GO) — 공은 출발칸에 그대로
+//   ② 문다(FETCH_GO~FETCH_HOLD) — 공이 입 앞으로 붙는다
+//   ③ 물고 제 칸으로 돌아온다(FETCH_HOLD~FETCH_HOME)
+//   ④ 옆 칸에 내려놓는다(FETCH_HOME~1) — 입에서 목적지로 짧게 떨어진다
+const FETCH_DUR=1.05, FETCH_GO=0.36, FETCH_HOLD=0.48, FETCH_HOME=0.84;
+let fetchFx=null;
+function fetchPose(){
+  if(!fetchFx) return null;
+  const F=fetchFx, t=F.t;
+  // **걸어서** 간다 — 뛰어 넘는 건 점프 하나면 된다. 걷는 몫은 높이가 아니라
+  // 잔걸음으로 말한다: 한 칸을 가는 동안 발이 세 번 뜬다.
+  const gait=u=>Math.abs(Math.sin(u*Math.PI*3))*0.09;
+  if(t<FETCH_GO){ const u=ease(t/FETCH_GO);
+    return {r:F.er+(F.br-F.er)*u, c:F.ec+(F.bc-F.ec)*u, air:gait(u), crouch:0}; }
+  if(t<FETCH_HOLD){ const u=(t-FETCH_GO)/(FETCH_HOLD-FETCH_GO);
+    return {r:F.br, c:F.bc, air:0, crouch:Math.sin(u*Math.PI)*0.6}; }            // 물려고 몸을 낮춘다
+  if(t<FETCH_HOME){ const u=ease((t-FETCH_HOLD)/(FETCH_HOME-FETCH_HOLD));
+    return {r:F.br+(F.er-F.br)*u, c:F.bc+(F.ec-F.bc)*u, air:gait(u), crouch:0}; }
+  // 놓는 참 — **놓을 칸 쪽으로** 반 칸 걸어가 내려놓고 제자리로 돌아온다.
+  const u=(t-FETCH_HOME)/(1-FETCH_HOME), lean=Math.sin(u*Math.PI)*0.34;
+  return {r:F.er+(F.tr-F.er)*lean, c:F.ec+(F.tc-F.ec)*lean, air:0, crouch:Math.sin(u*Math.PI)*0.30};
+}
+// 물린 공이 있는 자리 — 맥스 입 앞. 맥스가 보는 쪽으로 한 뼘, 살짝 아래.
+function fetchMouth(){
+  const P=fetchPose(); if(!P) return null;
+  const f=dog.face||1;
+  return {x:(P.c+0.5)*cell + f*cell*0.42, y:(P.r+0.58)*cell - cell*P.air*0.95 + cell*0.06};
+}
+// 셋 중 돌고 있는 것 — 한 번에 하나만 돈다(도구 하나가 한 수다).
+function dogFxPose(){ return tunPose() || cutPose() || fetchPose(); }
+// 훈련 동작 동안 **걷기 시트 8프레임을 한 번** 돌린다. 시트는 protoMoveT 가 0 에서 1 로
+// 가는 사이가 한 주기라(chapterMaxLivelyWalkPhase), 그 시계를 연출 길이에 맞춰 준다.
+// 자리는 dogFxPose 가 따로 주므로 여기서 도는 건 **프레임뿐**이다 — 안 돌리면 맥스가
+// 다리를 굳힌 채 미끄러진다.
+// 맥스가 **가는 쪽**을 보게 한다. 걷기 시트는 lungeR/lungeC 로 행(위·아래·옆)과
+// 좌우 반전을 고르는데(drawChapterMaxPrototype 의 poseDirR/poseDirC), 훈련 동작은
+// 그걸 안 건드려서 **직전에 보던 방향 그대로** 뛰거나 걸었다. lungeT 는 0 이다 —
+// 방향만 빌리고 밀기 특유의 뻗음은 안 쓴다.
+function maxFaceDir(dr,dc){
+  if(!dr && !dc) return;
+  dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=0;
+  if(dc) dog.face = dc>0? 1 : -1;
+}
+function maxWalkCycle(dur){
+  dog.protoFromR=dog.r; dog.protoFromC=dog.c;
+  dog.protoMoveT=0; dog.protoMoveDur=Math.max(0.08,dur); dog.moving=true; dog.protoPush=0;
 }
 function drawTunFx(){
   if(!tunFx || cell<=0) return;
+  const P=tunPose(); if(!P) return;
   const t=tunFx.t;
-  const px=c=>c*cell+cell*0.5, py=r=>r*cell+cell*0.58;
-  // 들어간 자리 — 흙이 안으로 꺼진다(고리가 좁아지며 옅어진다)
-  const sink=Math.min(1, t/0.30);
-  if(sink<1){
-    ctx.save(); ctx.globalAlpha=(1-sink)*0.85;
-    ctx.fillStyle="#8B5A2E";
-    ctx.beginPath(); ctx.ellipse(px(tunFx.fc), py(tunFx.fr), cell*0.30*(1-sink*0.7), cell*0.13*(1-sink*0.7), 0,0,7); ctx.fill();
-    ctx.restore();
-  }
-  // 땅 밑을 지나는 이랑 — 흙이 불룩 솟았다 지나간다. 지나온 자리는 잔 흙이 남는다.
-  const u=Math.max(0, Math.min(1, (t-0.14)/(TUN_OUT-0.14)));
-  if(t>0.10 && t<TUN_OUT+0.04){
-    const mx=px(tunFx.fc)+(px(tunFx.tc)-px(tunFx.fc))*u;
-    const my=py(tunFx.fr)+(py(tunFx.tr)-py(tunFx.fr))*u;
-    ctx.save();
-    ctx.fillStyle="#9A6A3C";
-    ctx.beginPath(); ctx.ellipse(mx, my, cell*0.26, cell*0.17, 0,0,7); ctx.fill();
-    ctx.fillStyle="rgba(212,176,126,.85)";
-    ctx.beginPath(); ctx.ellipse(mx-cell*0.05, my-cell*0.04, cell*0.14, cell*0.08, 0,0,7); ctx.fill();
-    ctx.restore();
-  }
-  // 나온 자리 — 흙이 솟아 퍼진다. 맥스가 이미 그 칸에 서 있고 그보다 **뒤에** 그려지므로,
-  // 고리를 그의 실루엣보다 넓게 퍼뜨려야 발밑에서 흙이 인 것으로 읽힌다(실측: 좁게
-  // 잡았더니 맥스에 통째로 가려 아무것도 안 보였다).
-  if(t>=TUN_OUT){
-    const o=(t-TUN_OUT)/(1-TUN_OUT);
-    ctx.save(); ctx.globalAlpha=(1-o)*0.95;
-    ctx.strokeStyle="#A87848"; ctx.lineWidth=Math.max(1.6,cell*0.09*(1-o*0.5));
-    ctx.beginPath(); ctx.ellipse(px(tunFx.tc), py(tunFx.tr), cell*(0.20+o*0.58), cell*(0.09+o*0.26), 0,0,7); ctx.stroke();
-    ctx.restore();
-  }
+  // 바닥 그림자 — 뜬 만큼 작아지고 옅어진다. 그림자가 같이 안 줄면 떠 있는 것으로 안 읽힌다.
+  ctx.save();
+  ctx.fillStyle="rgba(58,72,42,"+(0.22*(1-P.air*0.6))+")";
+  ctx.beginPath(); ctx.ellipse((P.c+0.5)*cell, (P.r+0.86)*cell, cell*0.30*(1-P.air*0.35), cell*0.11*(1-P.air*0.35), 0,0,7); ctx.fill();
+  ctx.restore();
+  // 뛰어오른 자리 — 먼지가 인다(0.30 까지). 착지 자리 — 고리가 퍼진다.
+  if(t>TUN_TAKEOFF && t<TUN_TAKEOFF+0.30){ const u=(t-TUN_TAKEOFF)/0.30;
+    ctx.save(); ctx.globalAlpha=(1-u)*0.7; ctx.strokeStyle="#C9B98A"; ctx.lineWidth=Math.max(1.4,cell*0.07);
+    ctx.beginPath(); ctx.ellipse((tunFx.ec+0.5)*cell, (tunFx.er+0.86)*cell, cell*(0.16+u*0.40), cell*(0.07+u*0.16), 0,0,7); ctx.stroke(); ctx.restore(); }
+  if(t>=TUN_OUT){ const o=(t-TUN_OUT)/(1-TUN_OUT);
+    ctx.save(); ctx.globalAlpha=(1-o)*0.9; ctx.strokeStyle="#C9B98A"; ctx.lineWidth=Math.max(1.6,cell*0.09*(1-o*0.5));
+    ctx.beginPath(); ctx.ellipse((tunFx.tc+0.5)*cell, (tunFx.tr+0.86)*cell, cell*(0.20+o*0.58), cell*(0.09+o*0.26), 0,0,7); ctx.stroke(); ctx.restore(); }
 }
 function drawCutFx(){
   if(!cutFx || cell<=0) return;
   const t=cutFx.t, x=cutFx.c*cell, y=cutFx.r*cell;
-  const snap=ease(Math.min(1, t/CUT_SNAP));                 // 날이 닫히는 진행
-  const fall=Math.max(0, (t-CUT_SNAP)/(1-CUT_SNAP));        // 넘어지는 진행
-  // 두 쪽으로 갈라진 수풀. 각자 제 쪽 반만 남기고 밑동을 축으로 반대로 넘어진다.
-  // 각·이동·축소를 한꺼번에 크게 줘야 한 칸(18px)에서도 "갈라졌다"가 읽힌다 —
-  // 처음엔 0.9rad 만 돌렸는데 화면에선 수풀이 **그냥 서 있는 것과 구별이 안 됐다**.
-  const f2=fall*fall;
-  for(const s of [-1,1]){
-    ctx.save();
-    ctx.globalAlpha=Math.max(0, 1-fall*1.15);
-    ctx.beginPath(); ctx.rect(x+(s<0? -cell*0.5 : cell*0.5), y-cell*0.6, cell, cell*1.8); ctx.clip();
-    ctx.translate(x+cell*0.5, y+cell*0.92);                 // 밑동에 축을 둔다
-    ctx.rotate(s*fall*1.45);
-    ctx.translate(s*fall*cell*0.55, f2*cell*0.30);
-    ctx.scale(1-fall*0.25, 1-fall*0.25);
+  const after=Math.max(0, (t-CUT_SNAP)/(1-CUT_SNAP));        // 무너진 뒤
+  // 첫 부딪힘 — 수풀이 좌우로 흔들리고 **버틴다**. 이게 있어야 두 번째가 사건이 된다.
+  const jolt=(t>=CUT_HIT1*0.55 && t<CUT_SNAP)
+    ? Math.sin((t-CUT_HIT1*0.55)/(CUT_SNAP-CUT_HIT1*0.55)*Math.PI*3)*Math.max(0,1-(t-CUT_HIT1*0.55)*2.2) : 0;
+  // 수풀 — 밟히기 전엔 그대로 서 있다(판은 이미 길이라 여기서 덮어 그린다). 밟히는
+  // 순간 옆으로 퍼지고 아래로 눌려 납작해진 채 걷힌다.
+  const sq=Math.min(1, after*3.2);
+  if(after<0.9){
+    ctx.save(); ctx.globalAlpha=Math.max(0, 1-after*1.15);
+    ctx.translate(x+cell*0.5+jolt*cell*0.085, y+cell*0.92);
+    ctx.scale(1+sq*0.42, 1-sq*0.84); ctx.rotate(jolt*0.10);
     ctx.translate(-(x+cell*0.5), -(y+cell*0.92));
     drawBushWall(x, y, cutFx.sd);
     ctx.restore();
   }
-  // 가위 — 칸보다 **크게** 그린다. 한 칸 안에 맞추면 날이 7px 짜리 막대가 되어
-  // 가위로 안 읽혔다(실측). 0.15초 동안 이웃 칸을 조금 덮는 건 감수한다.
-  const lift=Math.min(1, fall*3.2);                         // 자르자마자 빠르게 걷힌다
-  if(lift>=1){ return; }
-  const S=cell*1.5;
-  const gy=y+cell*0.46-S*0.34*(1-snap)-S*0.30*lift;
-  const open=(1-snap)*0.85+0.05;                            // 벌어진 각
+}
+// 물어오기 — 뛰어가고 돌아오는 동안의 바닥 그림자, 그리고 내려놓는 자리의 고리.
+function drawFetchFx(){
+  if(!fetchFx || cell<=0) return;
+  const P=fetchPose(); if(!P) return;
   ctx.save();
-  ctx.globalAlpha=1-lift;
-  ctx.translate(x+cell*0.5, gy);
-  ctx.lineCap="round"; ctx.lineJoin="round";
-  for(const s of [-1,1]){
-    ctx.save(); ctx.rotate(s*open);
-    ctx.strokeStyle="#3F4852"; ctx.lineWidth=Math.max(2.2,S*0.085);       // 날 — 굵게, 진하게
-    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,S*0.46); ctx.stroke();
-    ctx.strokeStyle="#D2703F"; ctx.lineWidth=Math.max(2,S*0.070);         // 손잡이 고리
-    ctx.beginPath(); ctx.arc(0,-S*0.19,S*0.125,0,7); ctx.stroke();
-    ctx.restore();
-  }
-  ctx.fillStyle="#2F3740"; ctx.beginPath(); ctx.arc(0,0,Math.max(1.6,S*0.055),0,7); ctx.fill();  // 사북
+  ctx.fillStyle="rgba(58,72,42,"+(0.22*(1-P.air*0.6))+")";
+  ctx.beginPath(); ctx.ellipse((P.c+0.5)*cell, (P.r+0.86)*cell, cell*0.30*(1-P.air*0.35), cell*0.11*(1-P.air*0.35), 0,0,7); ctx.fill();
   ctx.restore();
+  const t=fetchFx.t;
+  if(t>=FETCH_HOME){ const o=(t-FETCH_HOME)/(1-FETCH_HOME);
+    ctx.save(); ctx.globalAlpha=(1-o)*0.8; ctx.strokeStyle="#C9B98A"; ctx.lineWidth=Math.max(1.4,cell*0.07);
+    ctx.beginPath(); ctx.ellipse((fetchFx.tc+0.5)*cell, (fetchFx.tr+0.86)*cell, cell*(0.14+o*0.34), cell*(0.06+o*0.14), 0,0,7); ctx.stroke(); ctx.restore(); }
 }
 // 공이 닿은 **뒤에** 나야 하는 연출을 담는다(고양이가 상자·통에서 뛰는 것 등).
 // 예전엔 수를 적용하는 프레임에 바로 터져서, 공이 아직 굴러가는 중인데 고양이가
@@ -28512,6 +28775,7 @@ function fireBallContact(b,contact){
   }
   chainStep();sfxCollision();feedbackPulse('collision', 1+0.2*Math.min(chainN,3));
   const hr=(b.rr+contact.r)/2,hc=(b.cc+contact.c)/2;
+  rollPulse.push({r:hr,c:hc,t:0,kind:'hit'});
   for(let i=0;i<10;i++){
     const a=Math.random()*6.283,sp=1.6+Math.random()*1.8;
     fx.push({r:hr,c:hc,vx:Math.cos(a)*sp+contact.dc*.8,vy:Math.sin(a)*sp+contact.dr*.8-.6,t:.5,col:'#FFF6DC'});
@@ -30276,8 +30540,9 @@ function render(){
   }
   // 파헤친 흙가루 — 맥스 배 밑에서 **뒤(구덩이) 쪽으로** 낮게 날아간다. 개보다 뒤에
   // 그려야 배 밑을 지나는 것으로 읽힌다(앞에 그리면 얼굴 앞에서 튀는 것처럼 보인다).
-  drawCutFx();                       // 잘려 넘어지는 수풀 — 타일 위, 맥스·공보다 뒤
-  drawTunFx();                       // 땅굴 흙 — 같은 층
+  drawCutFx();                       // 밟히는 수풀·발자국 — 타일 위, 맥스·공보다 뒤
+  drawTunFx();                       // 점프 그림자·먼지 — 같은 층
+  drawFetchFx();                     // 물어오기 그림자·고리 — 같은 층
   // 밀려 가는 흙더미. 상자와 같은 감으로 미끄러지되, 흙이라 **발치에 조금 흘린다** —
   // 그 알갱이가 "이건 단단한 상자가 아니라 흙"이라고 말한다.
   if(digFx){
@@ -30315,6 +30580,21 @@ function render(){
     ctx.beginPath(); ctx.ellipse(x,y,rr2,rr2*0.82,0,0,7); ctx.stroke();
     ctx.globalAlpha=(1-u)*0.5; ctx.lineWidth=cell*0.03;
     ctx.beginPath(); ctx.ellipse(x,y,rr2*1.3,rr2*1.05,0,0,7); ctx.stroke();
+    ctx.restore();
+  }
+  for(const p of rollPulse){
+    const dur=p.kind==='goal'? .44 : .22, u=p.t/dur; if(u>=1) continue;
+    const x=cx(p.c), y=cy(p.r), goal=p.kind==='goal';
+    const R=cell*((goal?.18:.14)+u*(goal?.38:.24));
+    ctx.save();
+    ctx.globalAlpha=(1-u)*(goal?.78:.60);
+    ctx.strokeStyle=goal?'#FFF3C6':'#FFF8E7';
+    ctx.lineWidth=cell*(goal?.065:.052)*(1-u*.45);
+    ctx.beginPath(); ctx.ellipse(x,y+cell*.08,R,R*.72,0,0,7); ctx.stroke();
+    if(goal){
+      ctx.globalAlpha=(1-u)*.42; ctx.lineWidth=cell*.026;
+      ctx.beginPath(); ctx.ellipse(x,y+cell*.08,R*1.34,R*.98,0,0,7); ctx.stroke();
+    }
     ctx.restore();
   }
   // 뼈 묻은 자리 = 봉긋한 흙무덤 + 살짝 드러난 뼈. **작물은 제외한다** — 심긴 작물은
@@ -30465,25 +30745,23 @@ function render(){
       by += (b.tjump.dr||0)*cell*0.5*out - up*cell*0.42;
       if(p>0.9){ const q=(p-0.9)/0.1*0.3; sx*=1+q; sy*=1-q*0.85; }   // 내려앉는 순간 납작
     }
-    if(b.lift){
-      // 작업 장갑 — 들어 옮기는 0.34초. 공은 이미 목적지 좌표에 있으므로(rr/cc 를
-      // 같이 옮겨 뒀다) **출발칸 쪽으로 되돌린 뒤** 그 거리를 줄여 가며 띄운다.
-      // 굴리기(b.path)와 다른 점은 높이 하나다 — 그 높이가 "들었다"를 진다.
-      const p=1-Math.max(0,Math.min(1,b.lift.t));        // 0(집어 듦) → 1(내려놓음)
-      const up=Math.sin(p*Math.PI);                      // 떴다 내려앉는 높이
-      const back=1-ease(p);                              // 출발칸 쪽으로 남은 거리
-      ctx.fillStyle="rgba(0,0,0,"+(0.16*(1-up*0.75))+")";
-      ctx.beginPath(); ctx.ellipse(bx+(b.lift.dc||0)*cell*back, by+(b.lift.dr||0)*cell*back+cell*0.3,
-        cell*0.24*(1-up*0.45), cell*0.09*(1-up*0.45), 0,0,7); ctx.fill();
-      bx += (b.lift.dc||0)*cell*back;
-      by += (b.lift.dr||0)*cell*back - up*cell*0.52;
-      if(p>0.88){ const q=(p-0.88)/0.12*0.26; sx*=1+q; sy*=1-q*0.8; }   // 내려놓는 순간 납작
-      // 손은 공보다 **뒤에** 그린다 — 공 위에 얹으면 공을 덮어 무엇을 드는지가 가려진다.
-      // 쥐는 세기는 들었다 놓는 동안 1 이고 양 끝에서 풀린다: 내려와 잡고, 놓고 물러난다.
-      b.lift.hand={ x:bx, y:by, grip:Math.max(0, Math.min(1, Math.sin(p*Math.PI)*1.6)),
-                    a:Math.max(0, Math.min(1, Math.sin(p*Math.PI)*2.2)) };
-      if(b.lift.hand.a>0.02){ ctx.save(); ctx.globalAlpha=b.lift.hand.a;
-        drawGloveHand(bx, by - cell*0.20, cell*1.28, b.lift.hand.grip); ctx.restore(); }   // 공보다 한 뼘 크게 — 44px 칸에서 손이 콩알만 했다
+    if(b.fetch && b.fetch===fetchFx){
+      // 갖고와! — 판에선 공이 이미 옆 칸(rr/cc)이다. 보이는 자리는 넷으로 나눈다:
+      // 출발칸에 그대로 → 맥스 입 앞으로 붙어 따라옴 → 맥스가 제 칸에 서면 옆 칸으로 툭.
+      const F=b.fetch, t=F.t;
+      if(t<FETCH_GO){ bx=cx(F.bc); by=cy(F.br); }
+      else if(t<FETCH_HOME){
+        const m=fetchMouth(); if(m){ bx=m.x; by=m.y; }
+        if(t<FETCH_HOLD){ const q=Math.sin((t-FETCH_GO)/(FETCH_HOLD-FETCH_GO)*Math.PI)*0.18; sx*=1+q; sy*=1-q; }   // 물리는 순간 눌린다
+      } else {
+        const u=ease((t-FETCH_HOME)/(1-FETCH_HOME)), m=fetchMouth();
+        const x0=m? m.x : cx(F.tc), y0=m? m.y : cy(F.tr);
+        const up=Math.sin(u*Math.PI);
+        bx=x0+(cx(F.tc)-x0)*u; by=y0+(cy(F.tr)-y0)*u-up*cell*0.30;
+        if(u>0.86){ const q=(u-0.86)/0.14*0.26; sx*=1+q; sy*=1-q*0.8; }   // 내려앉는 순간 납작
+        ctx.fillStyle="rgba(0,0,0,"+(0.16*(1-up*0.6))+")";
+        ctx.beginPath(); ctx.ellipse(cx(F.tc), cy(F.tr)+cell*0.3, cell*0.24, cell*0.09, 0,0,7); ctx.fill();
+      }
     }
     if(b.reb){
       // 선형 진행 u 대신 f(u) 만큼 나가 있게 한다. f 는 0 → 1.72 → 1.0 (두 칸 앞까지
@@ -30607,20 +30885,19 @@ function render(){
       (dog.maxEventT||0)/chapterMaxEventDuration('backstep')))):0;
     const backX=dog.maxEvent==='backstep'?-dog.lungeC*cell*0.42*backQ:0;
     const backY=dog.maxEvent==='backstep'?-dog.lungeR*cell*0.42*backQ:0;
-    const tunP=tunPose();
+    // 훈련 셋(점프·밟아·갖고와)은 맥스의 **그리는 자리**만 빌린다 — 판 위치는 이미 확정됐다.
+    // air 는 칸 단위 높이, crouch 는 웅크림(뛰기 전·내려앉을 때·밟을 때).
+    const tunP=dogFxPose();
     let dogX=cx(dog.cc)+dog.lungeC*lg+shX+backX;
     let dogY=cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift+backY;
-    let tunClip=false;
     if(tunP){
-      if(tunP.hide) dogX=null;                      // 땅 밑 — 안 그린다
-      else { dogX=cx(tunP.c); dogY=cy(tunP.r)+cell*tunP.dive*0.78; tunClip=true; }   // 0.78 칸이면 clip 선(0.50) 아래로 완전히 잠긴다
+      dogX=cx(tunP.c); dogY=cy(tunP.r)-cell*tunP.air*0.95;
+      if(tunP.crouch){ sxD*=1+tunP.crouch*0.22; syD*=1-tunP.crouch*0.20; }
+      if(tunP.air>0.02){ syD*=1+tunP.air*0.12; sxD*=1-tunP.air*0.08; }
     }
-    if(dogX!==null){
-      if(tunClip){ ctx.save();                      // 칸 바닥 아래는 잘라 낸다 — 땅으로 들어가는 그림
-        ctx.beginPath(); ctx.rect(0, 0, GN*cell, cy(tunP.r)+cell*0.50); ctx.clip(); }
+    {
       if(!drawChapterMaxPrototype(dogX,dogY,cell*dogScale))
         drawDog(dogX,dogY,cell*dogScale,dogFaceV(),sxD,syD);
-      if(tunClip) ctx.restore();
       if(!menuMode && !tutMode && !tunP) drawMud(cx(dog.cc)+dog.lungeC*lg+shX, cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift, cell, mudLevel());
     }
   }
@@ -30737,14 +31014,58 @@ function render(){
     // 공을 반투명으로 미리 놓아 주면 누르기 전에 결과가 보인다. 칸 테두리는 남긴다:
     // 유령만 띄우면 잔디 위 옅은 공이라 누를 자리인지가 흐려진다.
     if(aimTool==='order' && aimPhase===1 && aimFrom && boxes[aimFrom.bi]){
-      const gb=boxes[aimFrom.bi];
       for(const t of aimCells){
         const x=cx(t.c)-cell/2+m, y=cy(t.r)-cell/2+m;
         ctx.globalAlpha=pul*0.22; ctx.fillStyle=TC; rr(x,y,w,w,rd); ctx.fill();
         ctx.globalAlpha=pul*0.40; ctx.strokeStyle="rgba(74,53,36,1)";
         ctx.lineWidth=Math.max(2,cell*0.055); rr(x,y,w,w,rd); ctx.stroke();
-        ctx.globalAlpha=0.30+0.10*Math.sin(animT*4.2);             // 숨 쉬는 유령
-        try{ drawBall(cx(t.c), cy(t.r), cell, gb.color, 0, 1, 1); }catch(e){}
+        // 갈 자리는 **공이 아니라 자리**로 말한다(2026-09-23). 전엔 그 공을 반투명으로
+        // 띄웠는데, 판에 공이 여럿이면 「저 흐린 것도 공인가」가 됐다 — 색이 방석 짝을
+        // 말하는 게임이라 같은 붉은색이 특히 걸린다. 게다가 어느 공인지는 방금 눌러서
+        // 이미 알고 있으니, 색을 다시 말해 봐야 **공이 둘로 보이는 값**만 치른다.
+        // 바닥 그림자와 **떠 있는 점선 고리** 둘로 바꾼다: 그림자는 공으로 안 읽히고,
+        // 둘 사이가 벌어져 있어 「들어서 내려놓는다」가 표시에서부터 시작된다.
+        const gx=cx(t.c), gy=cy(t.r), br=cell*0.30;
+        ctx.globalAlpha=0.40+0.12*Math.sin(animT*4.2);
+        ctx.fillStyle='rgba(58,72,42,.62)';
+        ctx.beginPath(); ctx.ellipse(gx, gy+cell*0.30, br*0.76, br*0.29, 0,0,7); ctx.fill();
+        ctx.strokeStyle='#FFF9F0'; ctx.lineWidth=Math.max(2, cell*0.05);
+        ctx.setLineDash([cell*0.11, cell*0.13]);
+        ctx.beginPath(); ctx.arc(gx, gy-cell*0.05, br*0.90, 0, 7); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      ctx.globalAlpha=1;
+    }
+    // 점프! — **내려앉을 땅**이 표적이다. 호는 「여기로 간다」를 말하고, 땅의 네모가
+    // 「여기를 눌러라」를 말한다. 둘 다 있어야 한다: 호만 있으면 뭘 눌러야 할지 모르고,
+    // 네모만 있으면 저 칸이 왜 빛나는지 모른다.
+    if(aimTool==='dest'){
+      for(const t of aimCells){
+        const x0=cx(dog.c), y0=cy(dog.r), x1=cx(t.c), y1=cy(t.r);
+        ctx.save();
+        // 호 — 어두운 밑선 위에 크림 본선. 잔디·흙·공 어디를 지나도 안 묻힌다.
+        const arc=()=>{ ctx.beginPath(); ctx.moveTo(x0, y0-cell*0.16);
+          ctx.quadraticCurveTo((x0+x1)/2, (y0+y1)/2-cell*1.34, x1, y1-cell*0.12); ctx.stroke(); };
+        ctx.lineCap="round"; ctx.setLineDash([cell*0.17, cell*0.15]);
+        ctx.globalAlpha=0.55; ctx.strokeStyle="rgba(74,53,36,1)";
+        ctx.lineWidth=Math.max(4, cell*0.115); arc();
+        ctx.globalAlpha=0.95; ctx.strokeStyle="#FFF3DC";
+        ctx.lineWidth=Math.max(2.4, cell*0.072); arc();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+      // 착지 칸 — 다른 도구와 **같은 네모**로 그린다. 누를 자리는 늘 같은 모양이어야 한다.
+      for(const t of aimCells){
+        const x=cx(t.c)-cell/2+m, y=cy(t.r)-cell/2+m;
+        ctx.globalAlpha=pul*0.34; ctx.fillStyle=TC; rr(x,y,w,w,rd); ctx.fill();
+        ctx.globalAlpha=pul*0.55; ctx.strokeStyle="rgba(74,53,36,1)";
+        ctx.lineWidth=Math.max(3,cell*0.085); rr(x,y,w,w,rd); ctx.stroke();
+        ctx.globalAlpha=pul;      ctx.strokeStyle="#FFF3DC";
+        ctx.lineWidth=Math.max(2,cell*0.055); rr(x,y,w,w,rd); ctx.stroke();
+        // 발이 닿을 자리 — 네모 안쪽 바닥에 고리 하나. 「여기 선다」를 네모가 아니라 이게 말한다.
+        ctx.globalAlpha=0.42+0.16*Math.sin(animT*4.2);
+        ctx.strokeStyle="#FFF9F0"; ctx.lineWidth=Math.max(2, cell*0.05);
+        ctx.beginPath(); ctx.ellipse(cx(t.c), cy(t.r)+cell*0.26, cell*0.23, cell*0.09, 0,0,7); ctx.stroke();
       }
       ctx.globalAlpha=1;
     }
@@ -30993,6 +31314,10 @@ function frameInner(ts){
     catJumpFx.t=Math.min(1,catJumpFx.t+dt/dur); if(catJumpFx.t>=1) catJumpFx=null;
   }
   if(walkPulse.length){ for(const p of walkPulse) p.t+=dt; walkPulse=walkPulse.filter(p=>p.t<1.25); }
+  if(rollPulse.length){
+    for(const p of rollPulse) p.t+=dt;
+    rollPulse=rollPulse.filter(p=>p.t<(p.kind==='goal'?.44:.22));
+  }
   // 순찰 중이면 목표 칸으로 부드럽게 따라감. L.walk(처음부터 깬 고양이)뿐 아니라
   // 깨어난 방석 고양이(catAwake)도 같은 보간을 타야 한다 — 안 그러면 i 는 바뀌는데
   // 그리는 좌표(rr/cc)가 안 움직여 "깼는데 제자리"로 보인다.
@@ -31063,8 +31388,17 @@ function frameInner(ts){
   } else { dog.tiltT=0; dog.doze=0; }
   // 트램플린 헛점프 — 공이 떴다 되돌아오고(tjump), 되돌아온 순간 천이 눌린다(trampFx)
   for(const b of boxes){ if(b.tjump){ b.tjump.t-=0.055*dtF; if(b.tjump.t<=0) b.tjump=null; } }
-  for(const b of boxes){ if(b.lift){ b.lift.t-=0.048*dtF;   // 장갑으로 들어 옮기기 — 0.35초
-    if(b.lift.t<=0){ b.lift=null; sfxLand(); } } }
+  if(fetchFx){                                            // 갖고와! — 1.05초
+    const was=fetchFx.t; fetchFx.t+=dt/FETCH_DUR;
+    if(was<FETCH_GO && fetchFx.t>=FETCH_GO){ sfxSelected('boxPush'); buzz(8); }            // 물었다
+    if(was<FETCH_HOLD && fetchFx.t>=FETCH_HOLD){                                          // 물었다 — 돌아선다
+      maxFaceDir(Math.sign(fetchFx.er-fetchFx.br), Math.sign(fetchFx.ec-fetchFx.bc));
+      maxWalkCycle((FETCH_HOME-FETCH_HOLD)*FETCH_DUR); }                                   // 물고 걸어 돌아오는 몫
+    if(was<FETCH_HOME && fetchFx.t>=FETCH_HOME)                                           // 놓을 쪽으로 몸을 튼다
+      maxFaceDir(Math.sign(fetchFx.tr-fetchFx.er), Math.sign(fetchFx.tc-fetchFx.ec));
+    if(fetchFx.t>=1){ const b=boxes[fetchFx.bi]; if(b && b.fetch===fetchFx) b.fetch=null;
+      spark(fetchFx.tr, fetchFx.tc, "#C9B98A", 8, 1.8); sfxLand(); buzz([10,18,12]); fetchFx=null; }
+  }
   if(fcFx){ fcFx.t-=0.045*dtF; if(fcFx.t<=0) fcFx=null; }
   if(trampFx){ if(trampFx.dly>0) trampFx.dly-=dt; else { trampFx.t+=0.09*dtF; if(trampFx.t>=1) trampFx=null; } }
   // 바람·고양이 상자 연출 틱 — 전엔 yardStep 안에 있어서 마당 밖에선 한 번도 안 줄었다(실측: 첫 바람
@@ -31092,22 +31426,31 @@ function frameInner(ts){
   for(const tr2 of trail) tr2.t-=dt/3.2;                          // 발자국 ~3초에 걸쳐 사라짐
   trail=trail.filter(tr2=>tr2.t>0);
   for(const p of fx){ p.vx*=Math.pow(0.9,dtF); p.vy+=0.25*dtF; p.t-=0.03*dtF; } fx=fx.filter(p=>p.t>0);
-  if(tunFx){                                              // 땅굴 삽 — 0.40초
+  if(tunFx){                                              // 점프! — 0.62초
     tunFx.t+=dt/TUN_DUR;
-    if(!tunFx.out && tunFx.t>=TUN_OUT){                   // 이랑이 도착했다 — 여기서 흙이 터진다
+    if(!tunFx.took && tunFx.t>=TUN_TAKEOFF){ tunFx.took=true; sfxBounce(); buzz(8); }   // 뛰어올랐다
+    if(!tunFx.out && tunFx.t>=TUN_OUT){                   // 내려앉았다 — 여기서 먼지가 인다
       tunFx.out=true;
-      spark(tunFx.tr, tunFx.tc, "#C98A4B", 14, 2.6);
-      sfxSelected('dirt'); buzz([12,24,16]);
+      spark(tunFx.tr, tunFx.tc, "#C9B98A", 12, 2.4);
+      sfxLand(); buzz([12,24,16]);
     }
     if(tunFx.t>=1) tunFx=null;
   }
-  if(cutFx){                                              // 정원 가위 — 0.42초
-    cutFx.t+=dt/CUT_DUR;
-    if(!cutFx.snapped && cutFx.t>=CUT_SNAP){              // 날이 닫혔다 — 여기서 잎이 튄다
-      cutFx.snapped=true;
-      spark(cutFx.r, cutFx.c, "#6B9A4E", 16, 2.6);
-      sfxSelected('dirt'); buzz([10,20,14]);
+  if(cutFx){                                              // 밟아! — 0.78초
+    const was=cutFx.t; cutFx.t+=dt/CUT_DUR;
+    if(!cutFx.hit1 && cutFx.t>=CUT_HIT1*0.55){            // 첫 번째 — 수풀이 흔들리고 버틴다
+      cutFx.hit1=true;
+      spark(cutFx.r, cutFx.c, "#6B9A4E", 6, 1.6);
+      sfxBlocked(); buzz([8,18,10]); shake=Math.min(1, shake+0.10);
+      dog.lungeT=0.7;
     }
+    if(!cutFx.snapped && cutFx.t>=CUT_SNAP*0.82){         // 두 번째 — 여기서 무너진다
+      cutFx.snapped=true;
+      spark(cutFx.r, cutFx.c, "#6B9A4E", 18, 2.8);
+      sfxSelected('dirt'); buzz([12,26,16]); shake=Math.min(1, shake+0.18);
+      dog.lungeT=1;
+    }
+    if(was<CUT_SNAP && cutFx.t>=CUT_SNAP) maxWalkCycle((1-CUT_SNAP)*CUT_DUR);   // 무너진 자리로 걸어 들어선다
     if(cutFx.t>=1) cutFx=null;
   }
   if(digFx){                                              // 흙더미 밀기 — 0.34초

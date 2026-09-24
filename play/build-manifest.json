@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-09-22T17:53:32.312Z",
-  "totalBytes": 14029093,
+  "generatedAt": "2026-09-24T00:38:39.662Z",
+  "totalBytes": 14442067,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2283597
+      "bytes": 2305012
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 581263
+      "bytes": 583401
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 63835
+      "bytes": 63781
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 57720
+      "bytes": 57754
     },
     {
       "path": "localization/i18n.js",
@@ -61,6 +61,21 @@
       "path": "mechanics/telemetry.js",
       "source": "mechanics/telemetry.js",
       "bytes": 2013
+    },
+    {
+      "path": "mechanics/core-joy-levels.js",
+      "source": "mechanics/core-joy-levels.js",
+      "bytes": 3948
+    },
+    {
+      "path": "mechanics/grandpa-tools.js",
+      "source": "mechanics/grandpa-tools.js",
+      "bytes": 5214
+    },
+    {
+      "path": "mechanics/core-joy-qa.js",
+      "source": "mechanics/core-joy-qa.js",
+      "bytes": 22455
     },
     {
       "path": "sound/bgm-hub-lite.mp3",
@@ -221,6 +236,56 @@
       "path": "art/chapter-concepts/optimized/chapter-10-pinwheel-field-story-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-10-pinwheel-field-story-v1-720.webp",
       "bytes": 40868
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp",
+      "bytes": 36574
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp",
+      "bytes": 41730
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-03-stream-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-03-stream-v1.webp",
+      "bytes": 22866
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-04-acorn-hill-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-04-acorn-hill-v1.webp",
+      "bytes": 41072
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-05-play-lot-v2.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-05-play-lot-v2.webp",
+      "bytes": 25222
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-06-vegetable-field-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-06-vegetable-field-v1.webp",
+      "bytes": 50570
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-07-warehouse-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-07-warehouse-v1.webp",
+      "bytes": 34454
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-08-fence-lane-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-08-fence-lane-v1.webp",
+      "bytes": 32704
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-09-cat-alley-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-09-cat-alley-v1.webp",
+      "bytes": 50198
+    },
+    {
+      "path": "art/chapter-concepts/optimized/stage-select-10-pinwheel-field-v1.webp",
+      "source": "art/chapter-concepts/optimized/stage-select-10-pinwheel-field-v1.webp",
+      "bytes": 22434
     },
     {
       "path": "art/max-master/max-master-v4-cheek-narrow-4dir.png",
