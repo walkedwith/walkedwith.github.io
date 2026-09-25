@@ -3943,3 +3943,35 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
 /* ── H안 상단 정리 — 판 안 상단은 기어·나가기 둘. 도움말은 설정 드롭의 ❓로 옮겼다
    (숨기지 않으면 상단이 세 버튼이라 캡슐·타이포 쌍이 만든 여백이 도로 죽는다). */
 body.hud-pilot #helpbtn { display:none; }
+
+/* ── 승리 잔치 (2026-09-26, 미도쿠 벤치마크) — 카드보다 먼저 보드 위에서 ────────── */
+#winFest { position:absolute; left:50%; top:34%; transform:translateX(-50%);
+  display:none; flex-direction:column; align-items:center; gap:10px; z-index:58; pointer-events:none; }
+#winFest.show { display:flex; }
+#winFest b#wfRib { background:#3AA57C; color:#FFFDF6; border-radius:16px; padding:8px 22px;
+  font-size:var(--s5, 24px); font-family:var(--f-hand); transform:rotate(-2deg);
+  box-shadow:0 4px 0 rgba(30,90,60,.32); animation:festin .34s cubic-bezier(.3,1.5,.5,1) both; }
+#winFest span#wfConv { display:none; align-items:center; gap:6px;
+  background:#FFFDF8; border:2px solid #E8A94C; border-radius:999px; padding:5px 14px;
+  color:#8A5A2E; font-family:var(--f-hand); font-size:var(--s7); }
+#winFest.conv span#wfConv { display:inline-flex; animation:festin .3s cubic-bezier(.3,1.5,.5,1) both; }
+#winFest span#wfConv svg { width:16px; height:16px; }
+#winFest span#wfConv s { text-decoration:none; color:#B08A5C; }
+#winFest span#wfConv .adot { font-size:14px; margin:0; }
+#winFest i#wfStreak { display:none; font-style:normal; background:#FFE9C0; border:2px solid #E8A94C;
+  border-radius:999px; padding:3px 12px; color:#8A6741; font-family:var(--f-hand); font-size:var(--s8); }
+#winFest.stk i#wfStreak:not(:empty) { display:inline-block; animation:festin .3s cubic-bezier(.3,1.5,.5,1) both; }
+@keyframes festin { from { transform:scale(.6) rotate(-2deg); opacity:0; } to { transform:scale(1) rotate(-2deg); opacity:1; } }
+#winFest span#wfConv, #winFest i#wfStreak { transform:none; }
+@keyframes festin2 { from { transform:scale(.6); opacity:0; } to { transform:scale(1); opacity:1; } }
+#winFest.conv span#wfConv, #winFest.stk i#wfStreak:not(:empty) { animation-name:festin2; }
+
+/* ── 판 전환 발자국 와이프 ── */
+#wipe { position:absolute; inset:0; z-index:120; pointer-events:none; display:none;
+  background:
+    radial-gradient(closest-side, rgba(74,53,36,.9) 62%, transparent 63%) 24% 46%/26px 26px no-repeat,
+    radial-gradient(closest-side, rgba(74,53,36,.9) 62%, transparent 63%) 46% 54%/26px 26px no-repeat,
+    radial-gradient(closest-side, rgba(74,53,36,.9) 62%, transparent 63%) 68% 46%/26px 26px no-repeat,
+    #F6EDDC; }
+#wipe.go { display:block; animation:wipego .62s cubic-bezier(.55,.1,.35,1) both; }
+@keyframes wipego { from { transform:translateX(-104%); } 45% { transform:translateX(0); } 55% { transform:translateX(0); } to { transform:translateX(104%); } }
