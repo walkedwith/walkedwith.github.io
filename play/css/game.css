@@ -358,7 +358,7 @@
      한 번 더 말하던 것이라 껐다 — 마크업은 남긴다(보물산책 tsSync 가 아직 만진다).
      숫자를 위, 곁말을 아래로 쌓아 39px 을 온전히 쓴다. 이 블록은 hud-pilot 규칙보다
      **뒤에 와야** 이긴다(특정도가 같다). */
-  #mvbar .mvsep, #mvbar .mvtrack, #mvbar .mvst { display:none; }
+  #mvbar .mvsep, #mvbar .mvtrack { display:none; }   /* .mvst 는 간식 줄로 부활(파일 끝) */
   .mvhead, body.hud-pilot .mvhead {
     flex-direction:column; align-items:center; row-gap:1px; gap:1px;
   }
@@ -3922,3 +3922,11 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
 #giftsel .gscard { width:min(86vw,320px); background:#FFF9F0; border-radius:22px; padding:16px 14px 18px;
   text-align:center; box-shadow:0 10px 26px rgba(20,40,60,.34); }
 #giftsel .wgift { display:block; }
+
+  /* 간식 다섯 — 남은 걸음 숫자 옆 성적 줄 (2026-09-25). 꺼진 칸은 흐리게 남아
+     "얼마나 갉혔나"가 늘 같은 자리에서 읽힌다. .bite 는 갉히는 순간 한 번 움푹. */
+  #mvbar .mvst { display:inline-flex; gap:3px; margin-left:8px; align-self:center; }
+  #mvbar .mvst .adot { font-size:var(--s6); margin:0; }
+  #mvbar .mvst .adot:not(.on) { opacity:.32; filter:saturate(.25); }
+  #mvbar .mvst .adot.bite { animation:snackbite .5s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes snackbite { 0%{transform:scale(1)} 35%{transform:scale(.55) rotate(-14deg)} 100%{transform:scale(1)} }
