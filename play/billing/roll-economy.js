@@ -12,17 +12,17 @@
   const LEGACY_KEY = 'roll_paw';
   const MAX_GENERAL_TRANSACTIONS = 500;
   const catalog = Object.freeze({
-    acorn_small: Object.freeze({
-      logicalProductId: 'acorn_small', amount: 120, legacyKey: 'paw1',
-      storeIds: Object.freeze({ google_play: 'acorn_small', app_store: 'acorn_small' })
+    treats_small: Object.freeze({
+      logicalProductId: 'treats_small', amount: 120, legacyKey: 'paw1',
+      storeIds: Object.freeze({ google_play: 'treats_small', app_store: 'treats_small' })
     }),
-    acorn_medium: Object.freeze({
-      logicalProductId: 'acorn_medium', amount: 500, legacyKey: 'paw2',
-      storeIds: Object.freeze({ google_play: 'acorn_medium', app_store: 'acorn_medium' })
+    treats_medium: Object.freeze({
+      logicalProductId: 'treats_medium', amount: 500, legacyKey: 'paw2',
+      storeIds: Object.freeze({ google_play: 'treats_medium', app_store: 'treats_medium' })
     }),
-    acorn_large: Object.freeze({
-      logicalProductId: 'acorn_large', amount: 1200, legacyKey: 'paw3',
-      storeIds: Object.freeze({ google_play: 'acorn_large', app_store: 'acorn_large' })
+    treats_large: Object.freeze({
+      logicalProductId: 'treats_large', amount: 1200, legacyKey: 'paw3',
+      storeIds: Object.freeze({ google_play: 'treats_large', app_store: 'treats_large' })
     })
   });
 

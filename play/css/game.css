@@ -3948,23 +3948,11 @@ body.hud-pilot #helpbtn { display:none; }
 #winFest { position:absolute; left:50%; top:34%; transform:translateX(-50%);
   display:none; flex-direction:column; align-items:center; gap:10px; z-index:58; pointer-events:none; }
 #winFest.show { display:flex; }
-#winFest b#wfRib { background:#3AA57C; color:#FFFDF6; border-radius:16px; padding:8px 22px;
-  font-size:var(--s5, 24px); font-family:var(--f-hand); transform:rotate(-2deg);
-  box-shadow:0 4px 0 rgba(30,90,60,.32); animation:festin .34s cubic-bezier(.3,1.5,.5,1) both; }
-#winFest span#wfConv { display:none; align-items:center; gap:6px;
-  background:#FFFDF8; border:2px solid #E8A94C; border-radius:999px; padding:5px 14px;
-  color:#8A5A2E; font-family:var(--f-hand); font-size:var(--s7); }
-#winFest.conv span#wfConv { display:inline-flex; animation:festin .3s cubic-bezier(.3,1.5,.5,1) both; }
-#winFest span#wfConv svg { width:16px; height:16px; }
-#winFest span#wfConv s { text-decoration:none; color:#B08A5C; }
-#winFest span#wfConv .adot { font-size:14px; margin:0; }
+/* 리본·변환 팝은 걷어냈다(2026-09-26) — 남은 건 스트릭 배지 하나. 배지가 홀로 서므로 한 단 키운다. */
 #winFest i#wfStreak { display:none; font-style:normal; background:#FFE9C0; border:2px solid #E8A94C;
-  border-radius:999px; padding:3px 12px; color:#8A6741; font-family:var(--f-hand); font-size:var(--s8); }
-#winFest.stk i#wfStreak:not(:empty) { display:inline-block; animation:festin .3s cubic-bezier(.3,1.5,.5,1) both; }
-@keyframes festin { from { transform:scale(.6) rotate(-2deg); opacity:0; } to { transform:scale(1) rotate(-2deg); opacity:1; } }
-#winFest span#wfConv, #winFest i#wfStreak { transform:none; }
+  border-radius:999px; padding:5px 16px; color:#8A6741; font-family:var(--f-hand); font-size:var(--s7); }
+#winFest.stk i#wfStreak:not(:empty) { display:inline-block; animation:festin2 .3s cubic-bezier(.3,1.5,.5,1) both; }
 @keyframes festin2 { from { transform:scale(.6); opacity:0; } to { transform:scale(1); opacity:1; } }
-#winFest.conv span#wfConv, #winFest.stk i#wfStreak:not(:empty) { animation-name:festin2; }
 
 /* ── 판 전환 발자국 와이프 ── */
 #wipe { position:absolute; inset:0; z-index:120; pointer-events:none; display:none;

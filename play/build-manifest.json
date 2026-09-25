@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-09-25T16:17:35.894Z",
-  "totalBytes": 14472846,
+  "generatedAt": "2026-09-25T17:14:18.129Z",
+  "totalBytes": 14471604,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2330995
+      "bytes": 2330803
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 587634
+      "bytes": 586723
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 64068
+      "bytes": 63947
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 58030
+      "bytes": 58000
     },
     {
       "path": "localization/i18n.js",
@@ -30,7 +30,7 @@
     {
       "path": "billing/roll-economy.js",
       "source": "billing/roll-economy.js",
-      "bytes": 8855
+      "bytes": 8867
     },
     {
       "path": "billing/cdv-purchase-adapter.js",
