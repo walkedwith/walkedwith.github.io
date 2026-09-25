@@ -337,16 +337,21 @@
   .undo-pilot, .dock-label, #exitbtn { display:none; }
   /* 1-1 UI 퀄업 파일럿 — 정보는 더 또렷하게, 퍼즐 면적은 그대로 둔다. */
   body.hud-pilot #hud { grid-template-columns:116px minmax(0,1fr) 116px; padding-top:10px; padding-left:0; padding-right:0; }   /* 가운데 최소폭을 0으로 열어 360px 화면에서도 우측 나가기 버튼이 잘리지 않게 한다 */
+  /* H안 — 판 번호는 칩이 아니라 타이포 쌍이다. 라벨(산책) 위·값 아래, 용기 없음.
+     미도쿠의 「레벨/1」 문법: 구분을 상자가 아니라 여백이 진다. */
   body.hud-pilot #hud > .hgrp {
-    min-width:58px; height:36px; padding:0 12px; box-sizing:border-box;
-    background:#FFF8E9; border:1.5px solid #E5BF69; border-radius:13px;
-    box-shadow:0 3px 0 rgba(173,126,55,.25), 0 6px 12px rgba(75,54,31,.08);
+    min-width:58px; padding:2px 6px 0; box-sizing:border-box;
+    flex-direction:column; gap:0; line-height:1.12; text-align:center; align-items:center;
   }
-  body.hud-pilot #hud > .hgrp .ic { color:#C98A2B; }
+  body.hud-pilot #hud > .hgrp .lvlbl {
+    font-size:var(--s8); font-weight:var(--w-reg); color:rgba(58,46,34,.55); letter-spacing:var(--tr-wide);
+  }
   body.hud-pilot #mvbar {
+    /* H안 — 정보 캡슐은 테두리 없는 흰 알약. 테두리·그림자는 행동(도크)의 것,
+       정보는 하늘 위 흰 덩어리 하나로 뜬다(미도쿠 흰 알약 문법). */
     box-sizing:border-box; width:188px; padding:6px 10px 8px;
-    background:rgba(255,248,233,.58); border:1.5px solid rgba(229,191,105,.58);
-    border-radius:16px; box-shadow:0 2px 0 rgba(173,126,55,.08), 0 5px 10px rgba(75,54,31,.04);
+    background:rgba(255,253,248,.92); border:0;
+    border-radius:16px; box-shadow:0 4px 10px rgba(75,54,31,.07);
     backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
   }
   body.hud-pilot .mvhead { flex-wrap:wrap; justify-content:center; row-gap:1px; }
@@ -761,6 +766,10 @@
      허브 네 화면에서만 보인다(.on). 게임판·타이틀에선 숨는다. */
   .hudcur { position:absolute; top:10px; left:calc(var(--hud-side) + 4px); z-index:59; display:none; align-items:center; gap:7px; }
   .hudcur.on { display:flex; }
+  /* 맨몸 HUD(A안) — 판을 걷는 동안엔 지갑·밥그릇을 숨긴다. 잔액은 목록·상점·카드가
+     보여 주고, 판 안 소비(유료 재시작 등)는 버튼 자신이 값을 단다. hudinplay 는
+     맨 플레이에서만 참이라 선택 화면(.on + hudinplay 거짓)에선 그대로 보인다. */
+  body.hudinplay .hudcur.on { display:none; }
   /* 판 안에서도 칩 자리는 목록 화면과 같다(top:10 left:68) — 화면이 바뀔 때 자원이
      옮겨 다니면 눈이 매번 다시 찾는다. 대신 걸음 막대를 칩 아래로 내리고, 칩은
      간략형으로 줄인다: 판 안에선 도토리를 못 쓰고(+ 불필요) 밥때 카운트다운도
@@ -3930,3 +3939,7 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
   #mvbar .mvst .adot:not(.on) { opacity:.32; filter:saturate(.25); }
   #mvbar .mvst .adot.bite { animation:snackbite .5s cubic-bezier(.3,1.5,.5,1); }
   @keyframes snackbite { 0%{transform:scale(1)} 35%{transform:scale(.55) rotate(-14deg)} 100%{transform:scale(1)} }
+
+/* ── H안 상단 정리 — 판 안 상단은 기어·나가기 둘. 도움말은 설정 드롭의 ❓로 옮겼다
+   (숨기지 않으면 상단이 세 버튼이라 캡슐·타이포 쌍이 만든 여백이 도로 죽는다). */
+body.hud-pilot #helpbtn { display:none; }
