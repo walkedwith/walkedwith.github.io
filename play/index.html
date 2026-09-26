@@ -18510,9 +18510,14 @@ function flushMoveBuffer(){
 const PACED_STEP_MS=300, PACED_STEP_FAST=180;
 let walkPaced=0;                     // 이번 경로에서 소화한 연쇄 걸음 수 — 가속 판정      // 한 칸마다 이만큼은 쉬고 간다 — 프레임마다 나가면 순간이동처럼 보였다
 let dragPath=null, dragStates=null, walkQueue=null, lastPacedStepAt=0;
+// 손짓 가르기 (2026-09-26) — 경로 그리기가 들어온 뒤로 18px 넘는 손짓은 전부 경로가 됐는데,
+// 경로는 미는 칸 앞에서 멈추므로 **스와이프로는 공을 밀 수 없었다**(방향 버튼만 됐다).
+//  · dragGrew  — 경로가 한 번이라도 늘었나. 안 늘었으면 그건 그리기가 아니라 스와이프다.
+//  · dragSwipe — 맥스 곁(자기 칸·둘레 한 칸)이 아닌 데서 시작한 손짓. 경로를 안 그리고 방향만 본다.
+let dragGrew=false, dragSwipe=false;
 let walkPlanLen=0;              // 이번에 확정한 경로의 칸 수 — 도착 연출을 켤지 가른다
 let walkDoneFx=null;            // {r,c,at,sp} — 계획한 경로를 끝까지 걸었을 때 깃발이 한 번 선다
-function dragReset(){ dragPath=null; dragStates=null; }
+function dragReset(){ dragPath=null; dragStates=null; dragGrew=false; dragSwipe=false; }
 function walkQueueClear(){ walkQueue=null; walkDoneFx=null; }
 function flushWalkQueue(){
   if(!walkQueue || !walkQueue.length){ walkQueue=null; return; }
@@ -18593,12 +18598,20 @@ function dragAllowed(){
 function dragPreviewUpdate(px,py){
   if(!downOn || !dragAllowed()){ dragReset(); return; }
   if(Math.abs(px-downX)<18 && Math.abs(py-downY)<18 && !dragPath) return;   // 아직 탭 범위
-  if(!dragPath){ dragPath=[{r:dog.r,c:dog.c}]; dragStates=[curState()]; walkQueueClear(); }   // 새로 끌면 남은 걸음은 버린다
+  if(dragSwipe) return;
+  if(!dragPath){
+    // 경로는 **맥스에게서** 끌어야 그린다. 보드 여백·먼 칸에서 시작한 손짓은 방향 스와이프다 —
+    // 안 가르면 오른쪽으로 쓸었는데 손가락이 있던 칸 쪽(아래)으로 걸어갔다(실측 18판).
+    const s0=aimCellAt(downX,downY);
+    if(!s0 || Math.max(Math.abs(s0.r-dog.r), Math.abs(s0.c-dog.c))>1){ dragSwipe=true; return; }
+    dragPath=[{r:dog.r,c:dog.c}]; dragStates=[curState()]; walkQueueClear();   // 새로 끌면 남은 걸음은 버린다
+  }
   const p=aimCellAt(px,py);
   if(!p) return;
   const bi=dragPath.findIndex(q=>q.r===p.r&&q.c===p.c);
   if(bi>=0){ if(bi+1<dragPath.length) dragBackSfx(); dragPath.length=bi+1; dragStates.length=bi+1; }
   else dragPathExtendTo(p.r,p.c);
+  if(dragPath.length>1) dragGrew=true;
 }
 // 손을 떼면 경로를 실제 걸음으로 — 첫 칸은 바로, 나머지는 한 칸씩 쉬어 가며.
 function commitDragPath(path){
@@ -21825,14 +21838,16 @@ function swipe(dx,dy){
   }
   // 끌어 둔 경로가 있으면 이동량과 상관없이 그걸 걷는다 — 한 바퀴 돌아 제자리 근처로
   // 손을 떼도 탭이 아니다. 경로가 제자리로 되감겼으면(길이 1) 아래 탭/스와이프로 간다.
-  const dp=dragPath; dragReset();
+  const dp=dragPath, grew=dragGrew; dragReset();
   if(toolNeedPend){ const k2=toolNeedPend; toolNeedPend=null; setTimeout(()=>toolNeedFire(k2), 380); }
   if(dp){
-    if(dp.length>1 && dragAllowed()) commitDragPath(dp);
-    // 경로를 그렸다가 맥스 자리까지 되감고 뗀 것(길이 1)은 **취소**다 — 아래 탭/스와이프로
+    if(dp.length>1 && dragAllowed()){ commitDragPath(dp); return; }
+    // 경로를 그렸다가 맥스 자리까지 되감고 뗀 것은 **취소**다 — 아래 탭/스와이프로
     // 흘리면 안 된다. 손가락이 눌렀던 점에서 18px 넘게 떨어진 채 제 칸에 돌아오는 일이
     // 흔해서, 흘리면 취소하려던 손짓이 한 칸 이동으로 둔갑한다.
-    return;
+    if(grew) return;
+    // 한 번도 안 늘었으면 그리기가 아니었다 — 첫 칸이 공(미는 칸)이라 막힌 것이다.
+    // 스와이프로 흘려 그 방향으로 민다.
   }
   if(Math.abs(dx)<18&&Math.abs(dy)<18){                                            // 제자리 탭
     // 도구를 들고 있으면 이 탭은 대상을 고르는 손짓이다. 빈 곳을 짚으면 내려놓는다.
