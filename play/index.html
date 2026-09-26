@@ -18486,11 +18486,16 @@ function chapterMaxPrototypeIsMoving(){
 function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
-function bufferMove(dr,dc){ moveBuffer={dr,dc,at:performance.now()}; }
+// 유효시간(at)은 **애니가 끝난 뒤부터** 잰다 — 프레임 루프가 애니 중엔 at 을 당겨 둔다.
+// 입력 시각부터 재면 밀기(≈264ms) 초반에 이어 쓴 스와이프가 끝나기도 전에 만료돼 버려졌다
+// (실측: 첫 밀기 뒤 40·80ms 에 쓴 두 번째 밀기가 사라짐). t0 는 너무 늦은 입력을 끊는 상한이다.
+const MOVE_BUFFER_CAP_MS=1500;
+function bufferMove(dr,dc){ const now=performance.now(); moveBuffer={dr,dc,at:now,t0:now}; }
 function moveBufferWindowMs(){ return (MAX_LIVELY_POLISH_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)?520:MOVE_BUFFER_MS; }
 function flushMoveBuffer(){
   const q=moveBuffer; moveBuffer=null;
-  if(!q || state!=="play" || performance.now()-q.at>moveBufferWindowMs()) return;
+  const now=performance.now();
+  if(!q || state!=="play" || now-q.at>moveBufferWindowMs() || now-(q.t0||q.at)>MOVE_BUFFER_CAP_MS) return;
   tryMove(q.dr,q.dc);
 }
 // ── 끌어서 걷기 (2026-09-25) ─────────────────────────────────────────────
@@ -18515,6 +18520,10 @@ let dragPath=null, dragStates=null, walkQueue=null, lastPacedStepAt=0;
 //  · dragGrew  — 경로가 한 번이라도 늘었나. 안 늘었으면 그건 그리기가 아니라 스와이프다.
 //  · dragSwipe — 맥스 곁(자기 칸·둘레 한 칸)이 아닌 데서 시작한 손짓. 경로를 안 그리고 방향만 본다.
 let dragGrew=false, dragSwipe=false;
+// 튕김 — 누르고 이만큼 안에 뗀 손짓은 경로가 그려졌어도 스와이프로 본다. 경로를 일부러
+// 그리는 손은 이보다 느리다. 폰에선 칸이 45px 남짓이라 가볍게 쓸어도 옆 칸에 닿고, 손가락이
+// 조금만 처지면 대각선 칸을 짚어 **쓴 방향이 아닌 쪽으로** 걸었다(실측: 오른쪽 스와이프가 아래·오른쪽).
+const FLICK_MS=240;
 let walkPlanLen=0;              // 이번에 확정한 경로의 칸 수 — 도착 연출을 켤지 가른다
 let walkDoneFx=null;            // {r,c,at,sp} — 계획한 경로를 끝까지 걸었을 때 깃발이 한 번 선다
 function dragReset(){ dragPath=null; dragStates=null; dragGrew=false; dragSwipe=false; }
@@ -21840,6 +21849,14 @@ function swipe(dx,dy){
   // 손을 떼도 탭이 아니다. 경로가 제자리로 되감겼으면(길이 1) 아래 탭/스와이프로 간다.
   const dp=dragPath, grew=dragGrew; dragReset();
   if(toolNeedPend){ const k2=toolNeedPend; toolNeedPend=null; setTimeout(()=>toolNeedFire(k2), 380); }
+  // 짧은 경로(두 걸음 이하)의 첫 걸음이 손짓의 큰 축 방향과 다르면 그리기가 아니라 처진 스와이프다.
+  const swDir = Math.abs(dx)>Math.abs(dy)? [0,dx>0?1:-1] : [dy>0?1:-1,0];
+  const flick = (Date.now()-downT) < FLICK_MS;
+  const offAxis = dp && dp.length>1 && dp.length<=3 &&
+    (dp[1].r-dp[0].r!==swDir[0] || dp[1].c-dp[0].c!==swDir[1]);
+  const drawLesson = tutMode && tutIdx===0 && tut===1;   // 연습 1판은 경로 그리기를 가르친다 — 거기선 그린 대로 걷는다
+  if(dp && dp.length>1 && !drawLesson && (flick || offAxis) && (Math.abs(dx)>=18 || Math.abs(dy)>=18)){
+    tryMove(swDir[0], swDir[1]); return; }
   if(dp){
     if(dp.length>1 && dragAllowed()){ commitDragPath(dp); return; }
     // 경로를 그렸다가 맥스 자리까지 되감고 뗀 것은 **취소**다 — 아래 탭/스와이프로
@@ -31801,6 +31818,7 @@ function frameInner(ts){
       if(sf.t>=1){ sf.done=true; starPend=Math.max(0,starPend-1); syncStars();
         tone(880+starPend*-60,0.1,"triangle",0.06,1300); } }
   }
+  if(moveBuffer && isAnimating()) moveBuffer.at=performance.now();   // 애니 중엔 만료 시계를 멈춘다
   if(state==="play" && !pendingWin && !isAnimating()) flushMoveBuffer();
   if(state==="play" && !pendingWin && !isAnimating() && !moveBuffer) flushWalkQueue();   // 끌어 둔 경로 — 반사 버퍼가 먼저
   if(pendingWin && state==="play" && !isAnimating()){ pendingWin=false; win(); }
