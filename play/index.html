@@ -73,6 +73,9 @@
         <span class="mvend" id="mvend"></span>
         <span class="mvmk" id="mvmk"></span>
       </div>
+      <!-- 판 규칙 칩 — 이 구간에서 가장 최근에 배운 기믹 하나. 누르면 그 소개 카드를 다시 본다.
+           1동네(밀기만)엔 없다. 규칙을 잊는 건 동네 초반이라 늘 떠 있어야 한다(미도쿠 규칙 카드 줄). -->
+      <button class="rulechip" id="ruleChip" hidden><i aria-hidden="true">?</i><span id="ruleChipT"></span></button>
     </div>
     <div id="btns">
       <button class="btn ic3" id="helpbtn" aria-label="도움말" data-i18n-aria="accessibility.help"><svg viewBox="0 0 48 48"><path d="M24 4a20 20 0 100 40 20 20 0 000-40zm0 6a14 14 0 110 28 14 14 0 010-28z" opacity=".25"/><path d="M17 19.5c0-4.2 3.1-7 7.2-7 4 0 6.9 2.6 6.9 6.2 0 2.6-1.3 4.2-3.3 5.7-1.8 1.3-2.4 2.1-2.4 3.8v.8h-4v-1.2c0-2.6 1-4 3-5.5 1.7-1.2 2.5-2.1 2.5-3.5 0-1.6-1.2-2.7-2.9-2.7-1.8 0-3 1.2-3 3.4zM24 38a2.7 2.7 0 110-5.4 2.7 2.7 0 010 5.4z"/></svg></button>
@@ -213,7 +216,10 @@
       </button>
     </div>
     <canvas id="c"></canvas>
+    <!-- 맥스 한마디 — 정해진 순간(처박힘 · 세 걸음 남음)에 한 판 한 번씩만. 조작은 안 막는다. -->
+    <div class="maxsay" id="maxSay" hidden aria-live="polite"><i aria-hidden="true"><svg viewBox="0 0 48 48"><ellipse cx="24" cy="31" rx="10" ry="8.5"/><circle cx="12" cy="19" r="4.6"/><circle cx="20" cy="12" r="4.6"/><circle cx="28" cy="12" r="4.6"/><circle cx="36" cy="19" r="4.6"/></svg></i><span id="maxSayT"></span></div>
     <div id="win"><div class="card">
+      <div class="wtitle" id="winTitle"></div>
       <div class="wmsg" id="winMsg"></div>
       <div id="winStars"></div>
       <div class="sub" id="winSub"></div>
@@ -6044,6 +6050,7 @@ function clearedCount(){ let n=0; for(const k in starMap) if(starMap[k]>0) n++; 
 function persist(){
   try{
     economyReconcile('game');
+    if(todayStat && todayStat.d) LS.set('roll_today', JSON.stringify(todayStat));
     LS.set(SK.lv, level);
     LS.set(SK.mx, maxLevel);
     LS.set(SK.st, JSON.stringify(starMap));
@@ -10102,7 +10109,7 @@ function applyScene(g){
   filled=new Set();
   par=g.par; moves=0; undoStack=[]; state="play"; undoFacing=null; undoFx=null;
   if(!tutMode) tutSlide=0;
-  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[];
+  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; seatCombo=0; seatLastMove=-99; maxSaid={}; if(typeof maxSayHide==='function') maxSayHide();
   matIntroT=(menuMode||moonMode||tutMode)? -1 : 0; winFest=null;
   { const wf=el('winFest'); if(wf) wf.classList.remove('show','stk'); } deadT=0; deadPend=false; trail=[]; walkPulse=[]; rollPulse=[];
   joyT=0; joyN=0; glum=0;                                        // 판 안 맥스 반응도 판마다 처음부터
@@ -10238,6 +10245,7 @@ function loadLevel(lv, moon, keepTries){
   if(bfTeach){ bfTeach=null; if(typeof bfTeachHide==='function') bfTeachHide(); }
   syncHintAct();                                       // 뭘 켜고 들어왔는지 상단에 남긴다
   if(!moonMode) showHint(lv);                            // 첫 두 판 + 기믹 첫 등장 판
+  syncRuleChip();
   if(!moonMode && hintKey && GI_TXT[hintKey] && !giSeen[hintKey] && !menuMode) showGintro(hintKey);
   else { gintroOn=false; el("gintro").classList.remove("show"); }
   const guideView=guidePresentationForLevel(lv);
@@ -19037,6 +19045,8 @@ function tryMove(dr,dc){
   // 착지 스쿼시는 hop 이 0 이 되는 프레임에서 반대 부호로 들어간다.
   dog.sq = res.dug? -0.17 : (res.pushed? -0.10 : -0.04);
   moves++; syncMoves(); lastMoveT=animT; dog.act=null; dog.actT=0;
+  todayBump('steps');
+  if(stepLimit()-moves===3 && !isGoal(L, curState())) maxSay('say.low');   // 걸음 제한이 코앞 — 한 판 한 번
   skipOffer();                                                  // par 두 배를 넘겼으면 조용히 출구를 권한다
   // 트램플린에 올랐는데 내릴 자리가 막혀 안 튄 경우 — 왜 안 튀었는지 보여준다.
   // 결정론 퍼즐은 "왜 안 됐나"를 안 알려주면 유저가 규칙을 배울 수가 없다.
@@ -20507,6 +20517,49 @@ let rollPulse=[];
 // 방석이 한 번 반짝여 목표를 짚는 타이머(-1=꺼짐). winStreak: 다시 걷기 0으로
 // 연속 클리어한 수(세션 한정 — 자기 기록 칭찬용이라 저장 안 한다).
 let praisePops=[], matIntroT=-1, winStreak=0, winFest=null;
+// 칭찬 등급 — 방석에 앉힌 간격이 짧을수록 한 단계씩 오른다: 옳지(좋아) → 딱이야 → 최고야.
+// 다섯 걸음 안에 다음 공을 앉히면 이어진 것으로 본다. 무르기로 걸음이 줄면 끊긴다.
+let seatCombo=0, seatLastMove=-99;
+const SEAT_COMBO_GAP=5;
+// 오늘 기록 — 걸은 걸음과 앉힌 공. 승리 카드 한 줄("오늘 214걸음 · 방석 31개")이 읽는다.
+// 날짜가 바뀌면 0 부터. 연습·달빛·메뉴 데모는 안 센다. 저장은 persist() 에 묻어 간다 — 걸음마다
+// 쓰면 한 수 두고 무를 때도 저장이 남는다(QA 무르기 계약). var 인 이유: persist 가 이 줄보다 먼저 불린다.
+var todayStat={d:'',steps:0,seats:0};
+function todayFresh(){ if(todayStat.d!==todayKey()) todayStat={d:todayKey(),steps:0,seats:0}; }
+try{ todayStat=JSON.parse(LS.get('roll_today')||'{}')||{}; }catch(e){ todayStat={}; }
+function todayBump(k){
+  if(tutMode||moonMode||menuMode||tsMode||lunchMode) return;
+  todayFresh(); todayStat[k]=(todayStat[k]|0)+1;
+}
+// 칭호 — 깬 판 수로 한 단씩. 승리 카드 머리에 붙고, 새 단에 오른 판에서만 "새 칭호" 로 빛난다.
+const WALK_TITLES=[0,10,30,60,120,200];
+function walkTitleIdx(n){ let i=0; for(let k=0;k<WALK_TITLES.length;k++) if(n>=WALK_TITLES[k]) i=k; return i; }
+// 맥스 한마디 — 한 판에 순간마다 한 번. 판이 바뀌면 다시 말할 수 있다.
+let maxSaid={}, maxSayTO=0;
+function maxSayHide(){ clearTimeout(maxSayTO); const b=el('maxSay'); if(b){ b.classList.remove('show'); b.hidden=true; } }
+function maxSay(key){
+  if(maxSaid[key] || tutMode || menuMode || moonMode || tsMode || state!=='play' || !cell) return;
+  maxSaid[key]=1;
+  const b=el('maxSay'), wrap=el('boardWrap'); if(!b || !wrap) return;
+  el('maxSayT').innerHTML=I18N.html(key);
+  const wr=wrap.getBoundingClientRect(), cr=cv.getBoundingClientRect();
+  const x=cr.left-wr.left+cx(dog.c), y=cr.top-wr.top+cy(dog.r)-cell*0.55;
+  b.hidden=false; b.classList.remove('show');
+  // 폭을 먼저 재고 판 안쪽에 맞춘다 — 가장자리에 붙여 두면 남은 폭만큼 접혀 세로로 길어졌다(실측 118px).
+  const half=(b.offsetWidth||200)/2+8;
+  b.style.left=Math.max(half, Math.min(wr.width-half, x))+'px'; b.style.top=Math.max(b.offsetHeight+8, y)+'px';
+  void b.offsetWidth; b.classList.add('show');
+  clearTimeout(maxSayTO); maxSayTO=setTimeout(maxSayHide, 2800);
+}
+// 판 규칙 칩 — 이 구간에서 가장 최근에 배운 기믹. 1동네('base')와 연습·달빛·메뉴엔 없다.
+let ruleChipKey=null;
+function syncRuleChip(){
+  const b=el('ruleChip'); if(!b) return;
+  const k=(tutMode||moonMode||menuMode||tsMode||lunchMode)? null : (guideKeysForLevel(level)[0]||null);
+  const g=(k && k!=='base')? guideCopy(k) : null;
+  ruleChipKey= g? k : null; b.hidden=!g;
+  if(g) el('ruleChipT').textContent=g.name;
+}
 let kitty={i:0,d:1,rr:0,cc:0,face:1,walkT:0,turnT:0};  // 순찰 고양이 (i=경로 인덱스, rr/cc=보간 좌표)
 // 공 위를 지날 때만 채워진다 — 공을 다 그린 뒤 한 번 더 그리려고 좌표를 넘기는 자리
 let catOver=null;
@@ -20533,7 +20586,7 @@ function checkDeadlock(){
   // deadT 를 0 으로 두는 게 핵심이다 — 소리만 막고 두면 무르기 버튼이 계속 맥동한다(실측).
   if(tutMode && tutIdx!==2){ deadT=0; return; }
   if(deadlockNow()){
-    if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]); tutStuck(); }
+    if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]); tutStuck(); maxSay('say.stuck'); }
     deadT=1;
   }
   else deadT=0;
@@ -21389,7 +21442,17 @@ function win(){
   // "다음에 뭘 향해 가는지"를 말한다 — 그 사이에 par 숫자가 끼면 읽는 순서가 끊겼다.
   // 도토리는 아래 게이지(winBar)가 이미 말한다: 이 판에 묻힌 총량 중 얼마를 캤나.
   // 숫자 줄을 하나 더 두면 같은 자원을 두 문법으로 두 번 말하는 셈이다.
-  el("winSub").innerHTML='';
+  // 오늘 기록 한 줄 + 칭호(2026-09-26). 칭호는 깬 판 수로 한 단씩, 새 단에 오른 판에서만 빛난다.
+  maxSayHide();
+  if(moonMode){ el("winSub").innerHTML=''; winCopyText('winTitle',''); el('winTitle').classList.remove('new'); }
+  else {
+    todayFresh();
+    winCopyText('winSub','victory.today',()=>({steps:todayStat.steps|0, seats:todayStat.seats|0}));
+    const cc=clearedCount(), ti=walkTitleIdx(cc), up=firstClear && cc>0 && ti>walkTitleIdx(cc-1);
+    winCopyText('winTitle', up? 'title.new' : 'title.'+ti, up? ()=>({name:I18N.t('title.'+ti)}) : undefined);
+    el('winTitle').classList.toggle('new', up);
+    if(up) buzz([10,30,10,30,24]);
+  }
   // 도전 줄은 걷어냈다 — 걸음을 줄여 다시 걷게 하는 장치를 통째로 뺐다(lvDone3 주석).
   // 자리는 남겨 둔다: 빈 문자열이면 줄이 안 보이고, 뒤에 다른 줄이 들어올 자리다.
   winCopyText('winThresh', '');
@@ -21698,11 +21761,14 @@ function firePend(b){
       dog.maxEvent='arrive'; dog.maxEventT=0;
       heartBurst(dog.r, dog.c, 3);
       spark(b.r,b.c,"#FFF9F0",18+chainN*4,3.5);
-      // 앉는 순간의 짧은 말 — 마지막 방석은 뺀다(산책 끝 리본이 그 자리를 맡는다).
+      // 앉는 순간의 짧은 말 — 연달아 앉힐수록 등급이 오른다(2026-09-26). 마지막 방석도 받는다:
+      // 리본을 걷어낸 뒤로 마지막 앉힘이 말 없이 지나갔다.
       // 소리는 새로 안 낸다: sfxGoal 이 이미 완성도 음계를 진다(프레임 오디오 계수 불변).
-      if(completedGoals() < holes.size)
-        praisePops.push({r:b.r, c:b.c, t:0, txt:I18N.t('fx.good'+(((level+moves)%3)+1))});
-      buzz(12);
+      { const gap=moves-seatLastMove; seatCombo=(gap>0 && gap<=SEAT_COMBO_GAP)? seatCombo+1 : 1; seatLastMove=moves;
+        const tier=Math.min(3, seatCombo);
+        const key= tier>=3? 'fx.good4' : tier===2? 'fx.good2' : ((level+moves)%2? 'fx.good1' : 'fx.good3');
+        praisePops.push({r:b.r, c:b.c, t:0, tier, txt:I18N.t(key)}); todayBump('seats');
+        buzz(tier>=3? [10,30,22] : tier===2? [10,24,10] : 12); }
     }
     feedbackPulse('goal');
     sfxGoal(completedGoals(),holes.size); dog.wagBoost=1; }
@@ -22631,6 +22697,7 @@ function requestQuit(){
   quitAsk();
 }
 onTap(el("homebtn"), ()=>{ if(giftBlocking()) return; requestQuit(); });
+onTap(el("ruleChip"), ()=>{ if(ruleChipKey && state==='play' && !gintroOn) showGintro(ruleChipKey); });
 onTap(el("exitbtn"), ()=>{ if(giftBlocking()) return; requestQuit(); });
 // 이어서 걷기가 없으므로 나가면 이 판의 진행이 사라진다. 밥그릇이 도는 구간이면
 // 다시 들어올 때 한 끼를 또 낸다 — 있는 손실을 감추지 않는다.
@@ -22638,7 +22705,7 @@ onTap(el("exitbtn"), ()=>{ if(giftBlocking()) return; requestQuit(); });
 // 다시 걸으려면 또 한 끼를 내야 하므로, 그게 곧 이 판을 다시 여는 값이 된다.
 let failOn=false;
 function failNow(){
-  failOn=true; state="fail";
+  failOn=true; state="fail"; maxSayHide();
   telemetry.track("level_fail", {level, chapter:Math.ceil(level/30), moves, reason:"move_limit"});
   skipHide();                                        // 건너뛰기 제안과 같은 자리에 뜬다 — 겹치면 둘 다 안 읽힌다
   sfxBlocked(); buzz([18,60,18]); shake=Math.min(1.4, shake+0.6);
@@ -30852,14 +30919,17 @@ function render(){
   }
   for(const p of praisePops){
     const u=p.t/0.9, a=u<0.15? u/0.15 : (u>0.7? (1-u)/0.3 : 1);
+    const top=(p.tier|0)>=3, mid=(p.tier|0)===2;
     const px=cx(p.c), py=cy(p.r)-cell*(0.62+u*0.35);
+    // 등급마다 한 단계씩 커지고, 최고야는 금색으로 한 번 튄다
+    const pop= top? 1+0.22*Math.max(0,1-u/0.2) : 1;
     ctx.save(); ctx.globalAlpha=a;
-    ctx.font='600 '+Math.round(cell*0.34)+"px 'Jua','Apple SD Gothic Neo',sans-serif";
-    const w=ctx.measureText(p.txt).width+cell*0.42, h=cell*0.5;
-    ctx.translate(px,py); ctx.rotate(-0.05);
-    ctx.fillStyle='#FFFDF6'; ctx.strokeStyle='#3AA57C'; ctx.lineWidth=2.4;
+    ctx.font='600 '+Math.round(cell*(top?0.44:mid?0.38:0.34))+"px 'Jua','Apple SD Gothic Neo',sans-serif";
+    const w=ctx.measureText(p.txt).width+cell*0.42, h=cell*(top?0.62:mid?0.55:0.5);
+    ctx.translate(px,py); ctx.rotate(top? -0.08 : -0.05); ctx.scale(pop,pop);
+    ctx.fillStyle= top? '#FFD86B' : '#FFFDF6'; ctx.strokeStyle= top? '#C98A12' : mid? '#2E9C6E' : '#3AA57C'; ctx.lineWidth= top? 3 : 2.4;
     ctx.beginPath(); ctx.roundRect(-w/2,-h/2,w,h,h/2); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#2C8763'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle= top? '#6B3F00' : '#2C8763'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(p.txt, 0, 1);
     ctx.restore();
   }
