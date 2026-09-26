@@ -21852,14 +21852,21 @@ function swipe(dx,dy){
   // 손을 떼도 탭이 아니다. 경로가 제자리로 되감겼으면(길이 1) 아래 탭/스와이프로 간다.
   const dp=dragPath, grew=dragGrew; dragReset();
   if(toolNeedPend){ const k2=toolNeedPend; toolNeedPend=null; setTimeout(()=>toolNeedFire(k2), 380); }
-  // 짧은 경로(두 걸음 이하)의 첫 걸음이 손짓의 큰 축 방향과 다르면 그리기가 아니라 처진 스와이프다.
+  // 그린 길을 스와이프로 바꿔 읽는 건 **손짓이 한 축으로 뚜렷할 때만**이다 — 큰 축이 작은 축의
+  // 두 배 이상. 칸 가장자리에서 오른쪽으로 쓸다 처진 손(→ 대각선 칸)과, 일부러 ㄱ자로 꺾어
+  // 그린 길(←↑ 처럼 두 축이 비슷)을 이것으로 가른다. 전엔 두 축이 같으면 세로로 읽어서,
+  // 공 옆으로 돌아가려고 ←↑ 로 그은 길이 ↑ 스와이프가 되어 공을 벽에 박고 제자리에 섰다(2판 제보 영상).
+  // 스와이프 쪽이 막혀 있으면(벽·못 미는 공) 그린 길을 그대로 걷는다 — 막힌 쪽으로 읽을 이유가 없다.
   const swDir = Math.abs(dx)>Math.abs(dy)? [0,dx>0?1:-1] : [dy>0?1:-1,0];
+  const oneAxis = Math.max(Math.abs(dx),Math.abs(dy)) >= 2*Math.min(Math.abs(dx),Math.abs(dy));
   const flick = (Date.now()-downT) < FLICK_MS;
   const offAxis = dp && dp.length>1 && dp.length<=3 &&
     (dp[1].r-dp[0].r!==swDir[0] || dp[1].c-dp[0].c!==swDir[1]);
   const drawLesson = tutMode && tutIdx===0 && tut===1;   // 연습 1판은 경로 그리기를 가르친다 — 거기선 그린 대로 걷는다
-  if(dp && dp.length>1 && !drawLesson && (flick || offAxis) && (Math.abs(dx)>=18 || Math.abs(dy)>=18)){
-    tryMove(swDir[0], swDir[1]); return; }
+  if(dp && dp.length>1 && !drawLesson && oneAxis && (flick || offAxis) && (Math.abs(dx)>=18 || Math.abs(dy)>=18)){
+    const sw=applyMove(L, curState(), swDir[0], swDir[1]);
+    const swMoves = sw && (sw.dog.r!==dog.r || sw.dog.c!==dog.c || sw.pushed);
+    if(swMoves || !dragAllowed()){ tryMove(swDir[0], swDir[1]); return; } }
   if(dp){
     if(dp.length>1 && dragAllowed()){ commitDragPath(dp); return; }
     // 경로를 그렸다가 맥스 자리까지 되감고 뗀 것은 **취소**다 — 아래 탭/스와이프로
