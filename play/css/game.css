@@ -154,6 +154,13 @@
   .mvmats { display:flex; justify-content:center; gap:2px; line-height:0; margin-top:2px; }
   .mvmats[hidden] { display:none; }
   .mvmats .adot { font-size:var(--s7); margin:0; }
+  /* 빈 칸이 진짜 간식이 되는 순간 — 금빛 테가 한 번 퍼진다(미도쿠의 고양이 실루엣 → 고양이). */
+  .mvmats .adot { position:relative; }
+  .mvmats .adot.shine::after { content:''; position:absolute; inset:-3px; border-radius:50%;
+    box-shadow:0 0 0 2.5px #FFE08A, 0 0 12px 3px rgba(255,210,90,.75); pointer-events:none;
+    animation:adotShine .6s ease-out forwards; }
+  @keyframes adotShine { from { opacity:1; transform:scale(.8); } to { opacity:0; transform:scale(1.6); } }
+  @media (prefers-reduced-motion: reduce) { .mvmats .adot.shine::after { animation:none; opacity:0; } }
   .mvfly { position:fixed; z-index:60; pointer-events:none; display:block; will-change:transform; }
   .mvfly svg { width:100%; height:100%; display:block; filter:drop-shadow(0 2px 2px rgba(43,32,54,.25)); }
   /* 꾸러미에서 나온 노트가 수첩 버튼으로 날아간다 — 줄 친 종이 한 장. */
@@ -3982,3 +3989,29 @@ body.hud-pilot #helpbtn { display:none; }
   font-family:var(--f-hand); font-size:var(--s8); line-height:1.3; color:#FFFDF6; background:#1E9E8C; }
 #mvbar.preview .mvprev { display:inline-block; }
 #mvbar.over .mvprev { background:#D8574A; }
+
+/* 확인 화면 간소화(2026-09-27) — 제목 · 간식 다섯 칸 · 산책 가기. "보상" 기둥과 라벨을 걷고
+   칸을 가운데에 크게 둔다. 판 안 걸음 카드 밑 칸과 같은 그림이라 들어가서도 같은 줄이 보인다. */
+#lvcard .lcgrp { padding-left:0; margin-top:14px; }
+#lvcard .lcgrp::before, #lvcard .lcgtag { display:none; }
+#lvcard .lcpar { justify-content:center; border-top:0; }
+#lvcard .lcpar .lcgs { flex:none; text-align:center; }
+#lvcard .lcpar .lcgs .adot { font-size:var(--s3); margin:0 2px; }
+
+/* 승리 카드 간소화(2026-09-27) — 받은 수(+N) · 다섯 칸 · 버튼 둘. 문구 줄이 비면 자리도 안 잡고,
+   "주웠어요 3/5" 라벨은 걷는다(칸이 이미 3/5 를 그림으로 말한다). 다시 걸어 새로 주운 칸만 붉은 테. */
+#win .wmsg:empty { display:none; }
+#win .wearn { margin-top:4px; gap:6px; }
+#win .wearn b { font-size:var(--s1); color:var(--gold, #C98A2B); line-height:1; }
+#win .wearn .wpw svg { width:40px; height:40px; }
+#win .wearn i { display:none; }
+#winStars { justify-content:center; }
+#winStars .wsdl { display:none; }
+#winStars .wsdots { flex:none; justify-content:center; gap:5px; }
+#winStars .wbloom { width:34px; height:34px; }
+#winStars .wbloom.nw { border-radius:50%; box-shadow:0 0 0 3px rgba(216,87,74,.35); background:#FBE0D2; }
+#win .wgoal { display:none !important; }
+
+/* 하얀 뼈다귀(2026-09-27)는 빈 칸 실루엣(연회색)과 명도가 가까워 "찼다/비었다" 가 약하다.
+   찬 칸에만 따뜻한 바탕 원을 깐다 — 판 안 칸 줄 · 확인 화면 칸이 같은 문법. */
+.mvmats .adot.on, #lvcard .lcgs .adot.on { background:#F6DFB6; border-radius:50%; box-shadow:inset 0 0 0 1.5px #E7C68E; }

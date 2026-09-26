@@ -218,10 +218,11 @@
     <canvas id="c"></canvas>
     <div id="win"><div class="card">
       <div class="wmsg" id="winMsg"></div>
+      <!-- 받은 수(+N)가 칸보다 먼저 — 카드가 뜨면 얼마 받았는지부터 읽힌다(2026-09-27 간소화). -->
+      <div class="wearn" id="winEarn"><span class="wpw"></span><b id="winEarnN">+0</b><i id="winEarnWhy"></i></div>
       <div id="winStars"></div>
       <div class="sub" id="winSub"></div>
       <div class="thresh" id="winThresh"></div>
-      <div class="wearn" id="winEarn"><span class="wpw"></span><b id="winEarnN">+0</b><i id="winEarnWhy"></i></div>
       <!-- 이 판에 묻힌 도토리 총량과 캔 만큼. 확인 화면의 막대와 같은 그림이라, 들어가기 전에
            본 것이 나올 때 채워진다 — 같은 축을 두 화면이 이어 말한다. -->
       <div class="wbar" id="winBar"><span class="wbico" id="winBIco"></span><span class="pbar" id="winBar3"></span><span class="wbnum" id="winBNum"></span></div>
@@ -292,7 +293,7 @@
            수집품까지 얼마인지는 동네 헤더의 `★N/M` 이 말한다. HUD 는 쓰는 자원 둘만.
            el() 은 브라우저에서 null 을 돌려주므로 갱신 코드도 같이 지운다 — 남겨 두면
            renderLvlMap 이 죽어 목록이 안 뜬다(실측). 헤드리스 로더는 스텁이라 안 걸린다. -->
-      <button class="hudpaw" id="hudPawBtn" aria-label="간식 쓰러 가기"><svg viewBox="0 0 48 48"><path d="M24 6.5a17.5 17.5 0 1 0 0 35a17.5 17.5 0 1 0 0-35z" fill="#E3A75F" stroke="#B5773A" stroke-width="2.6"/><path d="M24 24.6c3.7 0 6.6 2.2 6.6 5s-2.9 5-6.6 5-6.6-2.2-6.6-5 2.9-5 6.6-5z" fill="#8A5A2E"/><path d="M16.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M24 14.4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M31.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z" fill="#8A5A2E"/><path d="M12.5 13.5a14 14 0 0 1 8-4.6" stroke="rgba(255,255,255,.55)" fill="none" stroke-width="2.4" stroke-linecap="round"/></svg><b id="hudPaw">0</b><i class="hpp">+</i></button>
+      <button class="hudpaw" id="hudPawBtn" aria-label="간식 쓰러 가기"><svg viewBox="0 0 48 48"><path d="M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z" fill="#B39A6E"/><path d="M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z" fill="#FFFDF8"/><path d="M14.92 29.75L34.65 22.57" fill="none" stroke="#E6DAC2" stroke-width="2.6" stroke-linecap="round"/><path d="M8.06 21.72Q7.66 18.88 10.6 17.6" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.0" stroke-linecap="round"/></svg><b id="hudPaw">0</b><i class="hpp">+</i></button>
       <button class="hudmeal" id="hudMeal" aria-label="밥그릇"><svg viewBox="0 0 48 48"><ellipse cx="24" cy="40" rx="19" ry="4" fill="rgba(90,64,40,.16)"/><path d="M6 20h36l-3.4 14.6A6 6 0 0 1 32.8 39H15.2a6 6 0 0 1-5.8-4.4z" fill="#F0E2CC" stroke="#B99A72" stroke-width="2.4" stroke-linejoin="round"/><path class="mkib" d="M6 20c0-3.6 8-6.4 18-6.4S42 16.4 42 20c0 1.6-1.2 2.6-3 2.6H9c-1.8 0-3-1-3-2.6z" fill="#C98A4B" stroke="#8A5A2C" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="hudMealN">0</b><i class="mslash" id="hudMealMax">/0</i><i class="mcd" id="hudMealCd"></i><i class="hpp" id="hudMealPlus">+</i></button>
     </div>
     <div id="lvlsel">
@@ -3399,7 +3400,10 @@ let hardGift=null;                        // 이번 승리에 받은 꾸러미(�
 // 도토리로 합쳤다 — 받는 양은 안 바뀌고 통만 하나가 된다.
 const HARD_GIFT_PAW = 15;
 const HARD_GIFT_MAT = 0;                  // 남겨 둔다 — 옛 저장·테스트가 이 이름을 읽는다
-let ACORNS_ON = false;   // 간식 5개가 판 성적·수입을 맡으며 판에 묻는 도토리는 휴면(다람쥐·참새 포함)
+// 판 위 간식 줍기가 성적·수입을 맡는다(2026-09-27). 9-25~26 의 "간식 다섯 개 들고 출발, 재시작마다
+// 하나씩 준다"(SNACKS_ON)는 접었다 — 판 안 간식과 지갑 간식이 같은 이름·그림이라 헷갈렸고,
+// 무르기는 공짜라 재시작을 누른 초보만 깎였다. 줍기는 판에서 주운 것이 곧 지갑 간식이다.
+let ACORNS_ON = true;
 // 한 판에 새 것 하나. 2~5판 바닥 칸은 **도토리**("밟으면 줍는다"만 배운다), 5판 꾸러미가
 // 첫 도면(쓸 곳)을 준다. **수풀 속은 6판**, 울타리 속은 11판부터 — 그 첫 판이 두드려
 // 찾는 법을 가르친다(matCoach). 뒤 동네(31~)는 늘 다섯.
@@ -3485,12 +3489,14 @@ function matName(k){ return I18N.t('mat.'+k); }
 // 그림 한 벌을 SVG 와 캔버스가 같이 쓴다 — 목록 칸·재고 줄·설계도 칩은 SVG, 판 위는
 // 캔버스(Path2D). 같은 path 를 두 곳에서 그리므로 둘이 어긋날 수 없다. viewBox 48.
 const MAT_ART={
-  // 간식 — 발도장 찍힌 강아지 비스킷. 도토리(짙은 갈색)·방울 골드와 다른 웜 탠으로 갈린다.
+  // 간식 — 하얀 뼈다귀(개껌). 풀밭 초록 위에서 가장 또렷하고 설명이 필요 없는 강아지 간식이다(2026-09-27).
+  // 크림 카드·칩 위에서도 읽히게 갈색 외곽을 한 겹 깐다. 301~380판의 뼈 기믹(drawBone)과 모양이 겹치므로
+  // 그 판들을 열 때 기믹 그림을 바꾼다.
   snack:[
-    {d:'M24 6.5a17.5 17.5 0 1 0 0 35a17.5 17.5 0 1 0 0-35z', f:'#E3A75F', st:'#B5773A', w:2.6},
-    {d:'M24 24.6c3.7 0 6.6 2.2 6.6 5s-2.9 5-6.6 5-6.6-2.2-6.6-5 2.9-5 6.6-5z', f:'#8A5A2E'},
-    {d:'M16.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M24 14.4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M31.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z', f:'#8A5A2E'},
-    {d:'M12.5 13.5a14 14 0 0 1 8-4.6', f:null, st:'rgba(255,255,255,.55)', w:2.4, cap:'round'},
+    {d:'M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z', f:'#B39A6E'},
+    {d:'M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z', f:'#FFFDF8'},
+    {d:'M14.92 29.75L34.65 22.57', f:null, st:'#E6DAC2', w:2.6, cap:'round'},
+    {d:'M8.06 21.72Q7.66 18.88 10.6 17.6', f:null, st:'rgba(255,255,255,.9)', w:2.0, cap:'round'},
   ],
   // 도토리 — 1~5판 바닥 칸. HUD 도토리(PAW_SVG)와 같은 그림이라 주우면 무엇이 느는지 바로 이어진다.
   acorn:[
@@ -3544,7 +3550,7 @@ const MAT_ART={
     {d:'M12.5 13.5h23M12.5 38.5h16', st:'rgba(255,255,255,.85)', w:1.4, dash:[2.2,2.4], cap:'round'}],
 };
 function matSVG(k, mono){
-  if(k==='acorn' && SNACKS_ON) k='snack';   // 지갑이 간식이 된 뒤로 'acorn' 키의 화면 그림은 비스킷이다(성장·설계도 칩)
+  if(k==='acorn') k='snack';   // 지갑이 간식이 된 뒤로 'acorn' 키의 화면 그림은 비스킷이다(판 위·칸·성장·설계도 칩)
   const ops=MAT_ART[k]||MAT_ART.wood; let h='<svg viewBox="0 0 48 48" aria-hidden="true">';
   for(const o of ops){
     if(mono && o.f && /rgba\(255/.test(o.f)) continue;            // 하이라이트는 실루엣에 안 넣는다
@@ -3560,6 +3566,7 @@ function matSVG(k, mono){
 const MAT_SPARK={wood:'#A8743F',stone:'#B9AA92',iron:'#7C8790',rubber:'#6B6B72',cloth:'#8FB4D9'};
 const MAT_P2D={};                         // Path2D 캐시 — 판마다 새로 만들지 않는다
 function drawMat(k, x, y, s, t){
+  if(k==='acorn') k='snack';                                // matSVG 와 같은 규칙 — 판 위에서도 비스킷
   const ops=MAT_ART[k]||MAT_ART.wood;
   const up = t>0? Math.sin(Math.min(1,t)*Math.PI)*s*0.9 : 0;
   const al = t>0? Math.max(0,1-t) : 1;
@@ -4723,7 +4730,9 @@ const ECON = {
   // 판 하나에 묻힌 재료 수 = 그 판에서 벌 수 있는 전부. 셋은 바닥에 보이고,
   // 둘은 안쪽 수풀과 판 테두리(울타리) 속에 숨어 있다 — 치면 나온다(걸음은 안 쓴다).
   acornMax   : 5,
-  clearFirst : 3,        // (하위 호환) 별 1개 기준
+  // 첫 클리어 몫은 0 이다(2026-09-27). 수입은 판에서 주운 간식뿐 — 깨기만 해서 들어오는 몫이
+  // 있으면 "주운 만큼이 내 것" 이 흐려진다. 키는 남긴다(확인 화면·옛 테스트가 이 이름을 읽는다).
+  clearFirst : 0,
   moonFirst  : 10,       // 달빛 첫 클리어 (휴면)
   moonRepeat : 3,        // 달빛 재클리어 (휴면)
   streak     : {3:10, 7:25, 14:60},   // 연속 접속 도장
@@ -7576,7 +7585,7 @@ function lvCardOpen(lv,skipChapterStory){
   // 기본 줄 — 처음 깰 때 들어오는 도토리. 재료 줄과 같은 문법(라벨 + 값)으로 적는다.
   // 다녀온 길이면 안 적는다: 두 번째부터는 안 주는 몫이라 약속이 거짓이 된다.
   // 꾸러미 줄은 걷었다 — 지도 머리 바의 상자가 그걸 말하고, 여는 자리도 거기다.
-  { const b=el("lcBase"), pay=!(starMap[lv]|0);
+  { const b=el("lcBase"), pay=!(starMap[lv]|0) && ECON.clearFirst>0;
     if(b){ b.classList.toggle('on', pay);
       b.innerHTML = pay? '<span class="lclb">'+I18N.t('lvcard.rowBase')+'</span>'
         +'<span class="lcbv"><svg class="pawi" viewBox="0 0 48 48" aria-hidden="true">'+PAW_SVG+'</svg><b>'+ECON.clearFirst+'</b></span>' : ''; } }
@@ -7592,8 +7601,11 @@ function lvCardOpen(lv,skipChapterStory){
   // 도토리 진척은 진입 **직전**이 아니라 **직후**(승리 카드)에 쓰는 값이다. 색면도 하나로
   // 줄였다 — 주황 헤더 밴드와 베이지 박스를 걷어내고 크림 한 장에 얹는다.
   // 재료 줄 — 다 캔 판에선 안 그린다. 판에 안 묻혀 있는 걸 확인 화면이 약속하면 안 된다.
-  el("lcPar").innerHTML = (o && (pawMap[lv]|0)<matFull(lv))
-    ? ('<span class="lclb">'+I18N.t('lvcard.rowMat')+'</span><div class="lcgs">'+matDots(pawMap[lv]|0, matsOfLv(lv), matFull(lv))+'</div>') : '';
+  // 간소화(2026-09-27): 확인 화면은 제목 · 간식 다섯 칸 · 산책 가기(밥 값) 셋뿐이다. 칸은 판 안
+  // 걸음 카드 밑 칸과 같은 그림이라, 다시 걷는 길이면 지난번에 주운 만큼 차 있어 남은 몫이 보인다.
+  // 다 주운 길도 칸을 그린다(다섯이 다 차 있다) — 줄이 판마다 있다 없다 하면 카드 높이가 흔들린다.
+  el("lcPar").innerHTML = (o && matFull(lv)>0)
+    ? ('<div class="lcgs">'+matDots(Math.min(matFull(lv), pawMap[lv]|0), matsOfLv(lv), matFull(lv))+'</div>') : '';
   // 묶음은 안에 설 줄이 하나라도 있을 때만 — 다녀온 길이면 셋이 다 빈다(기둥만 남으면 안 된다).
   // 맨 위 줄의 점선은 지운다: 기둥 머리에 라벨이 앉는 자리라 선이 겹친다.
   { const g=el('lcGrp');
@@ -7621,10 +7633,13 @@ function lvCardOpen(lv,skipChapterStory){
 // 뒤부터는 나머지를 자물쇠로 예고한다(예고는 그 개념을 이미 아는 사람에게만 한다).
 // 탭바가 이미 쓰는 규칙과 같다: 20번 걷기 전엔 통째로 숨기고, 생긴 뒤에 잠긴 탭을 보여준다.
 function hintsShown(){ return HINTS.some(it=>FREEPLAY || clearedCount()>=it.at); }
+const LVCARD_TOOLS_ON=false;
 function lvCardBoost(){
   const o=BAKED[lcLv-1];
   let h='';
-  el("lcHintRow").hidden=!hintsShown();
+  // 도구 줄은 확인 화면에서 뺐다(2026-09-27 간소화) — 도구는 판 안 아래 도구 줄에서 쓰고 채운다.
+  // 타일은 계속 그려 둔다: 판 안 코치·테스트가 이 줄의 상태를 읽는다. 보이기만 끈다.
+  el("lcHintRow").hidden=!LVCARD_TOOLS_ON || !hintsShown();
   if(!hintsShown()){ el("lcBoost").innerHTML=''; return; }
   // 잠긴 표도 자리를 지킨다 — 슬롯 수가 안 변하고, 앞으로 뭐가 열리는지도 보인다.
   // 자물쇠 아래에 해금 판수를 적어 언제 열리는지까지 알린다.
@@ -8508,7 +8523,7 @@ function stepLimit(){ return par + stepSlackOf(level) + stepBonus; }
 // 승리 때 남은 간식을 맥스가 먹고, 그 수가 도토리로 적립된다(아끼는 것이 버는 것).
 // 판에 묻던 도토리 줍기는 이걸로 대체되어 휴면이다(ACORNS_ON=false) — 수입 상한이
 // 판당 5로 같고, 최고 기록 차액만 주는 규칙(pawMap)도 그대로 물려받아 파밍이 안 된다.
-let SNACKS_ON=true; const SNACK_MAX=5;   // let: 휴면 줍기 테스트가 끄고 옛 배선을 검사한다
+let SNACKS_ON=false; const SNACK_MAX=5;   // let: 휴면 줍기 테스트가 끄고 옛 배선을 검사한다
 function snacksLeftNow(){ return Math.max(0, SNACK_MAX - restartN); }
 // 걸음 수에 값이 하나도 없다 — 클리어는 0/1 깃발이고 수입은 주워 온 도토리가 정한다.
 // 예전엔 여기에 **챌린지 미션**(par 안에 걷기)이 있었다. 다 캔 판을 "도전" 으로 바꿔
@@ -8561,6 +8576,8 @@ function mvMatFly(a){
   let landed=false;
   const land=()=>{ if(landed) return; landed=true; f.remove(); mvMatLand();
     const s2=box.children[got-1]; if(s2 && s2.animate) s2.animate([{transform:'scale(1.5)'},{transform:'scale(1)'}],{duration:260,easing:'cubic-bezier(.3,1.6,.5,1)'});
+    if(s2 && s2.classList){ s2.classList.remove('shine'); void s2.offsetWidth; s2.classList.add('shine'); }   // 빈 칸이 진짜 간식이 되는 순간 — 반짝 테
+    if(treatAllPend===level && got>=matFull(level)) treatAllFinale();
     tone(880,0.05,'triangle',0.03,1180); };
   const reduce=window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(reduce){ land(); return; }
@@ -8933,13 +8950,32 @@ function drawAcorn(x,y,s,t){
   ctx.beginPath(); ctx.moveTo(0,-h*0.44); ctx.lineTo(0,-h*0.62); ctx.stroke();
   ctx.restore();
 }
+// 벽에 걸린 간식을 어느 쪽 가장자리에 그리나 — 맥스가 서서 밀 수 있는(벽이 아닌) 이웃 쪽.
+// 판마다 같은 칸이면 같은 쪽이다(DIRS 순서). 칸이 판 밖이거나 이웃이 없으면 제자리.
+function wallTreatOff(a){
+  if(a._off) return a._off;
+  let o=[0,0];
+  if(L && L.T) for(const [dr,dc] of DIRS){ const r=a.r+dr, c=a.c+dc;
+    if(r<0||c<0||r>=GN||c>=GN) continue;
+    if(L.T[r][c]!==WALL){ o=[dc,dr]; break; } }
+  return (a._off=o);
+}
 // 판 위 도토리 전부 + 왼쪽 위 카운터. 카운터는 시범용이라 캔버스에 직접 그린다.
 function drawAcorns(){
   if(!acornSt.length) return;
   const bob=Math.sin(animT*2.6)*cell*0.045;
   for(const a of acornSt){
     if(a.got && a.t>=1) continue;
-    if(a.w && !a.got) continue;                    // 벽 속은 안 보인다 — 쳐서 캔 뒤에만 튀어나온다
+    // 수풀·울타리에 걸린 둘도 **처음부터 보인다**(2026-09-27) — 결정론 퍼즐이라 다섯이 다
+    // 보여야 줍는 순서를 짤 수 있다. 벽 칸 한가운데가 아니라 맥스가 설 수 있는 쪽 가장자리에
+    // 반쯤 걸쳐 그리고, 흰 테를 둘러 수풀 초록 위에서도 읽히게 한다. 줍는 법은 그대로 —
+    // 옆에서 밀면 떨어진다(걸음 0).
+    if(a.w && !a.got){
+      const o=wallTreatOff(a), x=cx(a.c)+o[0]*cell*0.36, y=cy(a.r)+o[1]*cell*0.36+bob*0.5;
+      ctx.fillStyle='rgba(255,249,240,.85)'; ctx.beginPath(); ctx.arc(x, y, cell*0.29, 0, 7); ctx.fill();
+      drawMat(a.k, x, y, cell*0.56, 0);
+      continue;
+    }
     drawMat(a.k, cx(a.c), cy(a.r)+(a.got?0:bob), cell*0.66, a.got? a.t : 0);
   }
   // 보드 왼쪽 위 '0 / 3' 칩은 뺐다 — 판에 묻힌 도토리가 눈에 보이고, 주우면 그 자리에서
@@ -10105,7 +10141,7 @@ function applyScene(g){
   filled=new Set();
   par=g.par; moves=0; undoStack=[]; state="play"; undoFacing=null; undoFx=null;
   if(!tutMode) tutSlide=0;
-  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; seatCombo=0; seatLastMove=-99;
+  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; treatAllPend=0; seatCombo=0; seatLastMove=-99;
   matIntroT=(menuMode||moonMode||tutMode)? -1 : 0; winFest=null;
   { const wf=el('winFest'); if(wf) wf.classList.remove('show','stk'); } deadT=0; deadPend=false; trail=[]; walkPulse=[]; rollPulse=[];
   joyT=0; joyN=0; glum=0;                                        // 판 안 맥스 반응도 판마다 처음부터
@@ -10236,7 +10272,7 @@ function loadLevel(lv, moon, keepTries){
   tut = 0; tutWinT=0;
   hintPlan=null;                                      // 판이 바뀌면 계획을 새로 짓고 등장도 처음부터
   hintIdx=0; hintIdxK=null; hintIdxLast=0; bfly=null;  // 진행 위치도 처음으로
-  critterPeek={}; magpieStay=[];                        // 엿보던 동물도 판과 함께 물린다
+  critterPeek={}; magpieStay=[]; magpieFly=[];                        // 엿보던 동물도 판과 함께 물린다
   if(winPawPend){ const n=winPawPend; winPawPend=0; pawShow=null; syncHud(); gainFx('paw',n); }
   if(bfTeach){ bfTeach=null; if(typeof bfTeachHide==='function') bfTeachHide(); }
   syncHintAct();                                       // 뭘 켜고 들어왔는지 상단에 남긴다
@@ -11196,7 +11232,7 @@ function shopRenderYard(body){
 // 도토리 무더기 → 작은 자루 → 큰 자루. 도토리 한 톨만 그리면 "많이 준다" 가 안 읽힌다.
 // 자루는 크림색 천이다 — 갈색 자루로 그렸더니 갈색 도토리가 자루에 먹혀 한 덩어리가 됐다(실측).
 const AC_PATHS=   // 병·통·상자 속 내용물 — 지갑 아이콘(PAW_SVG)과 같은 간식 비스킷. PAW_SVG 는 뒤에 선언되어(TDZ) 참조 대신 같은 문자열을 박는다
-  '<path d="M24 6.5a17.5 17.5 0 1 0 0 35a17.5 17.5 0 1 0 0-35z" fill="#E3A75F" stroke="#B5773A" stroke-width="2.6"/><path d="M24 24.6c3.7 0 6.6 2.2 6.6 5s-2.9 5-6.6 5-6.6-2.2-6.6-5 2.9-5 6.6-5z" fill="#8A5A2E"/><path d="M16.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M24 14.4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M31.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z" fill="#8A5A2E"/><path d="M12.5 13.5a14 14 0 0 1 8-4.6" stroke="rgba(255,255,255,.55)" fill="none" stroke-width="2.4" stroke-linecap="round"/>';
+  '<path d="M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z" fill="#B39A6E"/><path d="M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z" fill="#FFFDF8"/><path d="M14.92 29.75L34.65 22.57" fill="none" stroke="#E6DAC2" stroke-width="2.6" stroke-linecap="round"/><path d="M8.06 21.72Q7.66 18.88 10.6 17.6" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.0" stroke-linecap="round"/>';
 // id 는 티어마다 다르게 — 셋이 한 화면에 같이 있어서 같은 id 를 쓰면 <use> 가 전부
 // 첫 번째 것만 가리킨다(지금은 그림이 같아 티가 안 나지만, 하나만 고쳐도 셋이 다 바뀐다).
 // <g> 가 아니라 <symbol> 이어야 한다 — <use> 의 width/height 는 viewBox 를 가진 것에만
@@ -18664,7 +18700,7 @@ function snapshot(){ return { d:{r:dog.r,c:dog.c,carry:!!dog.carry}, b:boxes.map
 // 이번 판에서 번 도토리. 2배 버튼이 얼마를 더 줄지는 이 값이 정한다.
 let win2xGain=0;
 // 판에서 번 도토리 — 목록에 나갈 때 HUD 로 날아든다. 0 이면 연출 없음.
-let winPawPend=0;
+let winPawPend=0, winNewFrom=0;
 onTap(el("winGiftBox"), winGiftOpen);
 onTap(el("win2x"), ()=>{
   const w2=el("win2x");
@@ -18673,7 +18709,7 @@ onTap(el("win2x"), ()=>{
   adReward('clear2x').then(ok=>{
     if(!ok){ w2.disabled=false; showToast(I18N.t('victory.adIncomplete'), 2200); return; }
     pawBal += win2xGain;                                 // 광고를 본 뒤에만 — 액수는 방금 번 만큼
-    winCopyText('winEarnN','victory.acorns',{count:win2xGain*2});
+    winCopyText('winEarnN','victory.plus',{count:win2xGain*2});
     winCopyText('winEarnWhy','victory.doubled');
     win2xGain=0; w2.classList.remove("on");
     persist(); syncStars(); syncHud();
@@ -19035,6 +19071,7 @@ function tryMove(dr,dc){
     a.got=1; a.t=1; spark(a.r,a.c,MAT_SPARK[a.k]||"#C98A4B",14,2.6); spark(a.r,a.c,"#FFF3D6",8,2.0);
     audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); buzz(6);
     matEatStart(a, false);                                        // 밟는 순간 입에 — 냠부터
+    treatPickFx(a);
     if(!tutMode && !moonMode && a.k!=='acorn') tipOnce('matFirst', I18N.html('tutorial.matFirst'), 3200);   // 6판 — 처음 줍는 재료
     // 1-2 에서 바닥 도토리를 다 주운 순간 한 번 — 여기서 처음으로 **어디에 쓰는지**를 말한다.
     // 상점은 아직 안 열렸으니 한 줄이면 족하다.
@@ -19413,7 +19450,7 @@ function toolApply(k, a, b){
     // 여기선 수풀 자체가 사라진다.
     const m=acornSt.find(x=>!x.got && x.w==='bush' && x.r===a.r && x.c===a.c);
     if(m){ m.got=1; m.t=1; spark(a.r,a.c, MAT_SPARK[m.k]||"#C98A4B", 16, 2.8);
-           audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); }
+           audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); treatPickFx(m); }
     // 잎은 **앞발이 닿는 순간**에 튄다(프레임 루프). 여기서 바로 튀기면 밟기 전에
     // 잎이 먼저 날아가 순서가 뒤집힌다. 맥스는 판에선 제자리다 — 그리는 자리만 그
     // 수풀로 뛰어갔다 밟고 돌아온다(cutPose). er/ec 가 돌아올 칸이다.
@@ -19966,8 +20003,11 @@ function critterPeekTick(mt){
 // 판을 그릴 때 누가 나왔는지만 모으고, 그리기는 맥스 뒤에 한다. 맥스가 수풀 바로 위에 서면
 // 다람쥐 고개가 맥스 발에 통째로 가렸다(실측).
 const peekDraws=[];
+// 다람쥐·참새는 "여기 숨어 있다" 표시였다. 간식이 처음부터 보이면서 할 일이 없어져 그리지 않는다
+// (2026-09-27). 상태(critterPeekTick)는 그대로 돈다 — 6·11판 코치가 그 첫 틱에 걸려 있다.
+const CRITTER_HINT_ON=false;
 function drawCritterPeeks(){
-  if(menuMode || yardMode) return;
+  if(!CRITTER_HINT_ON || menuMode || yardMode) return;
   for(const [mt,pk] of peekDraws){ if(mt.got) continue; if(mt.w==='edge') drawMagpieLand(mt, pk.p); else drawSquirrelPeek(mt, pk.p); }
 }
 function drawSquirrelPeek(mt, p){
@@ -20531,6 +20571,58 @@ let rollPulse=[];
 // 방석이 한 번 반짝여 목표를 짚는 타이머(-1=꺼짐). winStreak: 다시 걷기 0으로
 // 연속 클리어한 수(세션 한정 — 자기 기록 칭찬용이라 저장 안 한다).
 let praisePops=[], matIntroT=-1, winStreak=0, winFest=null;
+// ── 간식 하나 주울 때마다 (2026-09-27, 미도쿠가 고양이를 놓을 때의 세 박자) ─────────
+//   1. 그 자리에 금색 "냠!" — 주운 수가 늘수록 한 단계씩 커진다(소리는 이미 한 음씩 오른다).
+//   2. 날아간 간식이 걸음 카드 칸에 박히며 반짝 테가 퍼진다(mvMatFly 의 land).
+//   3. 다섯째를 주우면 판 위에 큰 초록 "다 주웠다!", 칸 줄이 왼쪽부터 차례로 들썩.
+// 연출은 전부 위에 겹쳐 흐른다 — 입력을 막지 않는다. 연습판·달빛은 안 탄다.
+function treatPickFx(a){
+  if(!a || tutMode || moonMode || menuMode) return;
+  const n=acornGot(), tot=matFull(level), o=a.w? wallTreatOff(a) : [0,0];
+  praisePops.push({kind:'yum', r:a.r+o[1]*0.36, c:a.c+o[0]*0.36, t:0, life:0.75, n, txt:I18N.t('fx.yum')});
+  // 다섯째는 **마지막 칸에 박히는 순간** 터진다(mvMatFly 의 land). 날아가는 중에 뜨면 네 칸만 찬
+  // 줄 위에 "다 주웠다" 가 떠서 말이 그림보다 앞선다(실측). 날지 않는 길(도구로 캔 수풀·움직임 줄이기)
+  // 을 위해 1.6초 뒤 안전망을 둔다 — 먼저 터진 쪽이 이긴다.
+  if(tot>1 && n>=tot){ const lv0=level; treatAllPend=lv0;
+    setTimeout(()=>{ if(treatAllPend===lv0 && level===lv0) treatAllFinale(); }, 1600); }
+}
+let treatAllPend=0;
+function treatAllFinale(){
+  if(!treatAllPend || treatAllPend!==level || menuMode){ treatAllPend=0; return; }
+  treatAllPend=0;
+  praisePops.push({kind:'all', r:1.1, c:(GN-1)/2, t:0, life:1.5, txt:I18N.t('fx.allTreats')});
+  mvMatsSweep();
+  [0,1,2].forEach(i=>setTimeout(()=>tone(990*Math.pow(2,i*4/12),0.12,"triangle",0.045,1400), i*90));
+  buzz([10,30,10,30,18]);
+}
+function mvMatsSweep(){
+  const box=el('mvMats'); if(!box || !box.children) return;
+  [...box.children].forEach((d,i)=>{ if(d.animate) d.animate([{transform:'scale(1)'},{transform:'scale(1.28) translateY(-3px)'},{transform:'scale(1)'}],{duration:420, delay:i*70, easing:'ease-out'}); });
+}
+function drawTreatPop(p){
+  const life=p.life||0.9, u=Math.min(1,p.t/life);
+  ctx.save();
+  if(p.kind==='yum'){
+    const a=u<0.2? u/0.2 : (u>0.65? Math.max(0,(1-u)/0.35) : 1);
+    const k=u<0.3? 0.5+ (u/0.3)*0.65 : 1.15-Math.min(0.15,(u-0.3)*0.5);
+    const sz=cell*(0.36+Math.min(4,(p.n|0)-1)*0.045);
+    ctx.globalAlpha=a; ctx.translate(cx(p.c), cy(p.r)-cell*(0.45+u*0.55)); ctx.scale(k,k);
+    ctx.font=Math.round(sz)+"px 'Jua','Apple SD Gothic Neo',sans-serif";
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+    ctx.lineWidth=Math.max(3,sz*0.24); ctx.strokeStyle='#8A4B12'; ctx.strokeText(p.txt,0,0);
+    ctx.fillStyle='#FFD35C'; ctx.fillText(p.txt,0,0);
+  }else{
+    const a=u<0.15? u/0.15 : (u>0.72? Math.max(0,(1-u)/0.28) : 1);
+    const k=u<0.2? 0.3+(u/0.2)*0.85 : (u<0.3? 1.15-(u-0.2)*1.5 : 1);
+    const sz=cell*0.78;
+    ctx.globalAlpha=a; ctx.translate(cx(p.c), cy(p.r)); ctx.scale(k,k); ctx.rotate(-0.04);
+    ctx.font=Math.round(sz)+"px 'Jua','Apple SD Gothic Neo',sans-serif";
+    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+    ctx.lineWidth=Math.max(5,sz*0.2); ctx.strokeStyle='#3F6E1F'; ctx.strokeText(p.txt,0,0);
+    ctx.fillStyle='#9BD35A'; ctx.fillText(p.txt,0,0);
+  }
+  ctx.restore();
+}
 // 칭찬 등급 — 방석에 앉힌 간격이 짧을수록 한 단계씩 오른다: 옳지(좋아) → 딱이야 → 최고야.
 // 다섯 걸음 안에 다음 공을 앉히면 이어진 것으로 본다. 무르기로 걸음이 줄면 끊긴다.
 let seatCombo=0, seatLastMove=-99;
@@ -20631,7 +20723,7 @@ function winGoalCopy(key,vars){
 function refreshWinCopy(){ if(state==='win') Object.values(winCopy).forEach(render=>render()); }
 // 간식 — 발도장 찍힌 강아지 비스킷(MAT_ART.snack 과 같은 그림). 색은 SVG 안에 박는다 —
 // 다색이라 CSS 한 줄로 못 칠한다.
-const PAW_SVG='<path d="M24 6.5a17.5 17.5 0 1 0 0 35a17.5 17.5 0 1 0 0-35z" fill="#E3A75F" stroke="#B5773A" stroke-width="2.6"/><path d="M24 24.6c3.7 0 6.6 2.2 6.6 5s-2.9 5-6.6 5-6.6-2.2-6.6-5 2.9-5 6.6-5z" fill="#8A5A2E"/><path d="M16.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M24 14.4a3 3 0 1 0 0 6a3 3 0 1 0 0-6z M31.5 17.6a3 3 0 1 0 0 6a3 3 0 1 0 0-6z" fill="#8A5A2E"/><path d="M12.5 13.5a14 14 0 0 1 8-4.6" stroke="rgba(255,255,255,.55)" fill="none" stroke-width="2.4" stroke-linecap="round"/>';
+const PAW_SVG='<path d="M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z" fill="#B39A6E"/><path d="M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z" fill="#FFFDF8"/><path d="M14.92 29.75L34.65 22.57" fill="none" stroke="#E6DAC2" stroke-width="2.6" stroke-linecap="round"/><path d="M8.06 21.72Q7.66 18.88 10.6 17.6" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.0" stroke-linecap="round"/>';
 // 간식 마크 — 이모지는 기기마다 그림이 달라 HUD·승리 카드와 딴 물건으로 보였다.
 // 화면의 모든 간식은 이 하나로.
 function pawIco(){ return '<svg class="pawi" viewBox="0 0 48 48">'+PAW_SVG+'</svg>'; }
@@ -20780,7 +20872,7 @@ function showWinStars(st, doReveal){
   for(let i=0;i<matFull(level);i++)
     // 못 캔 자리는 **점선 칸 안의 흐린 그림**이다. 그냥 흐리게만 두면 "없음"으로 읽히고,
     // 비워만 두면 무엇을 두고 왔는지가 안 보인다 — 둘을 겹쳐야 빈자리와 종류를 같이 말한다.
-    h += i<st ? '<span class="wbloom" data-i="'+i+'" style="visibility:hidden">'+matSVG(WK[i]||WK[0])+'</span>'
+    h += i<st ? '<span class="wbloom'+(i>=winNewFrom? ' nw' : '')+'" data-i="'+i+'" style="visibility:hidden">'+matSVG(WK[i]||WK[0])+'</span>'
               : '<span class="wbloom miss">'+matSVG(WK[i]||WK[0], true)+'</span>';
   ws.innerHTML=h+'</span>';
   // 다시 하기 버튼에 "+N" 뱃지는 안 붙인다 — 위 줄이 이미 "2 / 3" 과 빈 칸으로
@@ -21408,7 +21500,7 @@ function win(){
       // 묻힌 칸은 전부 도토리다(재료 폐지). 클리어 몫에 얹어 승리 카드에서 함께 날아간다 —
       // 주머니로 조용히 들어가던 재료와 달리, 받는 그림이 하나로 모인다.
       acornPick=matGain; }
-    if(firstClear){ pawGain=ECON.clearFirst; pawWhy='victory.clearAuto'; }
+    if(firstClear && ECON.clearFirst>0){ pawGain=ECON.clearFirst; pawWhy='victory.clearAuto'; }
     pawGain += acornPick;
   }
   // 잔액은 지금 넣는다 — 연출이 끊겨도 번 건 번 것이다(상점 IAP 가 같은 이유로 그렇게 한다).
@@ -21420,8 +21512,10 @@ function win(){
   el("win").classList.toggle("moonwin", moonMode);
   // 문구는 캔 개수로 고른다. **문안 자체는 아직 걸음 등급 시절 것이다** — 도토리 말로
   // 다시 쓰는 건 별도 작업이다(여기서 갈아 끼우면 열 줄이 한꺼번에 바뀐다).
-  { const pool=WIN_MSG[ac>=3?3:ac>=1?2:1];
-    winCopyText('winMsg',moonMode?'victory.moon':pool[(Math.random()*pool.length)|0]); }
+  // 간소화(2026-09-27): 승리 카드는 받은 수 · 다섯 칸 · 버튼 둘이다. 문구 줄은 비운다(달빛만 남김) —
+  // 칭찬은 판 위 "다 주웠다!" 와 방석 칭찬 칩이 이미 했다. WIN_MSG 는 되살릴 때를 위해 남긴다.
+  winCopyText('winMsg', moonMode? 'victory.moon' : '');
+  winNewFrom = firstClear? ac : Math.min(ac, pawPaidBefore|0);   // 다시 걸어 새로 주운 칸부터 붉게
   // 걸음 · 다음 별 줄은 걷어냈다. 별 셋이 이미 등급을 말하고, 그 아래 성장 줄이
   // "다음에 뭘 향해 가는지"를 말한다 — 그 사이에 par 숫자가 끼면 읽는 순서가 끊겼다.
   // 도토리는 아래 게이지(winBar)가 이미 말한다: 이 판에 묻힌 총량 중 얼마를 캤나.
@@ -21440,8 +21534,12 @@ function win(){
   // 같은 값을 이미 말한다. 값은 계속 채워 둔다: 2배로 받기가 이 요소를 갱신하고,
   // 되살릴 때 배선을 다시 찾을 필요가 없다.
   { const we=el("winEarn"); we.classList.remove("on","hold");
-    we.querySelector(".wpw").innerHTML='<svg viewBox="0 0 48 48">'+PAW_SVG+'</svg>';
-    winCopyText('winEarnN',pawGain===1?'victory.acorn':'victory.acorns',{count:pawGain});
+    we.querySelector(".wpw").innerHTML=matSVG('snack');
+    // 큰 +N 을 다시 띄운다 — 점 다섯에 붙어 있던 "주웠어요 3/5" 라벨을 걷으면서 받은 수를 말할
+    // 자리가 여기 하나가 됐다. 받은 게 없으면(기록을 못 넘김) 줄 자체를 안 띄운다.
+    winCopyText('winEarnN','victory.plus',{count:pawGain});
+    if(pawGain>0 && !moonMode && !tsMode && !lunchMode){ we.classList.add('hold');
+      setTimeout(()=>{ if(state==="win"){ we.classList.remove('hold'); we.classList.add('on'); } }, 120); }
     winCopyText('winEarnWhy',pawWhy,pawVars);
     winGiftRender();
     if(moonMode && flyCaught){
@@ -22494,6 +22592,7 @@ onTap(el("glMake"), ()=>{
 // (lcTapBoost 주석 참고 — 이 타일은 재고 표시이고 0 일 때 채우는 창구다). 눌러도 켜지는
 // 게 없는데 켜라고 말하고 있었다. 실제로 쓰는 법은 8·13·18판의 판 안 코치마크가 가르친다.
 function boostUseGuide(k){
+  if(!LVCARD_TOOLS_ON) return;                        // 확인 화면에 도구 줄이 없다 — 짚을 타일이 안 보인다
   if(el("win").classList.contains("show")) return;    // 승리 카드 위에 확인 화면을 겹쳐 열지 않는다
   const lv=Math.min(Math.max(maxLevel|0,1), playableMax());
   lvCardOpen(lv);
@@ -23562,6 +23661,7 @@ function matWallHit(dr, dc){
   spark(tr,tc, bm.w==='bush'? "#6B9A4E" : "#D9B27E", 10, 2.2);
   audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); buzz(10);
   matEatStart(bm, true);
+  treatPickFx(bm);
   const peeked=!!critterPeek[tr+','+tc]; delete critterPeek[tr+','+tc];   // 옆에서 엿보던 동물도 놀라 달아난다
   // 참새는 놀라 파닥이며 물고 있던 걸 떨구고(toss 연출이 그 길을 그린다), 그 파닥임이
   // 끝나면 날아간다(drawMagpieStay). 다가가는 것만으로는 안 달아난다 — 밀고 난 뒤다.
@@ -30652,7 +30752,7 @@ function render(){
       const pk=critterPeekTick(mt); if(pk) peekDraws.push([mt,pk]); }
     ctx.restore();
   }
-  if(!menuMode && !yardMode){ drawMagpieFly(); drawMagpieStay(); }
+  if(CRITTER_HINT_ON && !menuMode && !yardMode){ drawMagpieFly(); drawMagpieStay(); }
   if(yardMode){                                                    // 마당: 산 물건들
     if(yardZone===1){                                              // 텃밭 — 갈아 놓은 고랑
       ctx.strokeStyle="rgba(122,90,50,.24)"; ctx.lineWidth=cell*0.16; ctx.lineCap="round";
@@ -30899,6 +30999,7 @@ function render(){
     ctx.restore();
   }
   for(const p of praisePops){
+    if(p.kind==='yum' || p.kind==='all'){ drawTreatPop(p); continue; }
     const u=p.t/0.9, a=u<0.15? u/0.15 : (u>0.7? (1-u)/0.3 : 1);
     const top=(p.tier|0)>=3, mid=(p.tier|0)===2;
     const px=cx(p.c), py=cy(p.r)-cell*(0.62+u*0.35);
@@ -31812,7 +31913,7 @@ function frameInner(ts){
   if(npFx){ npFx.t+=dt/0.42; if(npFx.t>=1) npFx=null; }            // 화단 고양이 폴짝 0.42초
   for(const b of boxes){ if(b.buryT>0) b.buryT=Math.max(0,b.buryT-0.045*dtF); if(b.coverT>0) b.coverT=Math.max(0,b.coverT-0.05*dtF); if(b.sqT>0) b.sqT=Math.max(0,b.sqT-0.065*dtF); if(b.landT>0) b.landT=Math.max(0,b.landT-0.055*dtF); if(b.bump>0){ b.bump=Math.max(0,b.bump-0.13*dtF); if(b.bump===0) b.bumpK=1; } if(b.bumpD>0){ b.bumpD=Math.max(0,b.bumpD-0.13*dtF); if(b.bumpD===0){ b.bump=1; b.bumpK=0.45; } } if(b.sink>0&&b.sink<1){ b.sink=Math.min(1,b.sink+0.05*dtF); } }
   for(const k in holePulse){ holePulse[k]=Math.max(0,holePulse[k]-0.05*dtF); if(holePulse[k]<=0) delete holePulse[k]; }
-  for(let i=praisePops.length-1;i>=0;i--){ praisePops[i].t+=0.016*dtF; if(praisePops[i].t>0.9) praisePops.splice(i,1); }
+  for(let i=praisePops.length-1;i>=0;i--){ praisePops[i].t+=0.016*dtF; if(praisePops[i].t>(praisePops[i].life||0.9)) praisePops.splice(i,1); }
   if(matIntroT>=0 && matIntroT<2) matIntroT+=0.016*dtF;
   for(const tr2 of trail) tr2.t-=dt/3.2;                          // 발자국 ~3초에 걸쳐 사라짐
   trail=trail.filter(tr2=>tr2.t>0);
