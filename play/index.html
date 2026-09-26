@@ -7078,6 +7078,9 @@ el("mMax").innerHTML=MAX_SVG;                          // 타이틀 맥스도 �
 el("mContinueMax").innerHTML=MAX_SVG;
 // 값 아이콘은 HUD 것을 그대로 복제한다 — 경로를 두 벌 두면 언젠가 갈라진다.
 // (헤드리스 로더에선 querySelector 가 null 이라 빈 문자열로 떨어진다)
+// 지갑(간식) 아이콘 — HUD 칩과 같은 그림. 이름은 도토리 시절 것 그대로다: 실패 카드의 "다음 판" 값과
+// 유료 재시작 값이 이걸 쓴다. 잔치의 변환 팝과 함께 지웠더니 31판부터(유료 구간) 실패 카드가 예외로 안 떴다.
+const ICON_ACORN=(el("hudPawBtn").querySelector("svg")||{outerHTML:''}).outerHTML;
 const ICON_BOWL =(el("hudMeal").querySelector("svg")||{outerHTML:''}).outerHTML;
 // 초록 버튼 위에 얹는 그릇 — HUD 것을 그대로 쓰면 흰 그릇이 초록과 붙어 형태가 죽는다.
 // 테두리를 버튼 그림자색(#6E9E38)으로 바꿔 초록 위에서 윤곽이 선다.
@@ -18525,7 +18528,7 @@ let dragGrew=false, dragSwipe=false;
 // 조금만 처지면 대각선 칸을 짚어 **쓴 방향이 아닌 쪽으로** 걸었다(실측: 오른쪽 스와이프가 아래·오른쪽).
 const FLICK_MS=240;
 let walkPlanLen=0;              // 이번에 확정한 경로의 칸 수 — 도착 연출을 켤지 가른다
-let walkDoneFx=null;            // {r,c,at,sp} — 계획한 경로를 끝까지 걸었을 때 깃발이 한 번 선다
+let walkDoneFx=null;            // {r,c,at,sp} — 계획한 경로를 끝까지 걸었을 때 발밑이 한 번 반짝인다
 function dragReset(){ dragPath=null; dragStates=null; dragGrew=false; dragSwipe=false; }
 function walkQueueClear(){ walkQueue=null; walkDoneFx=null; }
 function flushWalkQueue(){
@@ -18542,7 +18545,7 @@ function flushWalkQueue(){
   lastPacedStepAt=performance.now();
   tryMove(dr,dc);
   if(dog.r!==t.r || dog.c!==t.c) walkQueue=null;           // 못 갔으면 나머지도 안 간다 — 벽에 여러 번 부딪히지 않게
-  // 계획한 경로(4칸 이상 — 진짜 "그린" 산책)를 한 칸도 안 어긋나고 다 걸었다 — 깃발이 한 번 선다.
+  // 계획한 경로(4칸 이상 — 진짜 "그린" 산책)를 한 칸도 안 어긋나고 다 걸었다 — 발밑이 한 번 반짝인다.
   // 두 칸짜리 드래그마다 서면 시끄럽다. 벌은 없고 상만 있다: 끊기면 그냥 아무 일도 없다.
   else if(!walkQueue && walkPlanLen>=4) walkDoneFx={r:t.r, c:t.c, at:animT+0.26, sp:0};
 }
@@ -31354,29 +31357,14 @@ function render(){
   // 녹색 깃발이 선다. 깃발은 맥스 목줄 색이고 꼭지는 방울 색이다. 민트와 녹색을 가른 건
   // 판이 초록이라서다 — 점선까지 녹색이면 잔디에 묻힌다(시안 F·G 비교).
   // 손을 떼면 바로 지운다. 도구 조준 중엔 안 그린다(위 조준 칸과 겹치면 헷갈린다).
-  // 계획대로 끝까지 걸었을 때의 깃발 — 미리보기의 깃발이 그 자리에서 잠깐 "진짜"가 된다.
-  // 살짝 튀며 서고(0.22s), 반 박자 서 있다가 흐려진다. 이기는 걸음이면 승리 카드에 자리를 내준다.
+  // 계획대로 끝까지 걸었을 때 — 발밑에 작은 반짝임과 한 음. 깃발은 뺐다(2026-09-26): 도착 칸엔
+  // 이미 맥스가 서 있고, 미리보기도 깃발 대신 반투명 맥스를 쓰니 도착 뒤 깃발은 남는 그림이었다.
   if(walkDoneFx && state==="play" && !pendingWin && cell){
     const e=animT-walkDoneFx.at;
     if(e>0.9) walkDoneFx=null;
-    else if(e>=0){
-      if(!walkDoneFx.sp){ walkDoneFx.sp=1;
-        spark(walkDoneFx.r, walkDoneFx.c, '#52993E', 10, 2.4); spark(walkDoneFx.r, walkDoneFx.c, '#FFF3D6', 6, 2.0);
-        try{ tone(783.99, 0.09, "triangle", 0.05, 1174.7); }catch(err){} }
-      const gx=cx(walkDoneFx.c), gy=cy(walkDoneFx.r);
-      const k=Math.min(1, e/0.22), sc=k*(1+0.35*(1-k)*Math.sin(k*Math.PI*2));
-      ctx.save(); ctx.globalAlpha = e<0.55? 1 : 1-(e-0.55)/0.35;
-      ctx.translate(gx, gy); ctx.scale(sc, sc); ctx.translate(-gx, -gy);
-      ctx.fillStyle='rgba(40,70,30,.22)';
-      ctx.beginPath(); ctx.ellipse(gx, gy+cell*0.32, cell*0.16, cell*0.06, 0, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle='#6B4A2A'; ctx.lineWidth=Math.max(2,cell*0.05); ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(gx, gy+cell*0.32); ctx.lineTo(gx, gy-cell*0.40); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(gx, gy-cell*0.40); ctx.lineTo(gx+cell*0.40, gy-cell*0.25); ctx.lineTo(gx, gy-cell*0.10); ctx.closePath();
-      ctx.fillStyle='#52993E'; ctx.fill();
-      ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=Math.max(1,cell*0.024); ctx.lineJoin='round'; ctx.stroke();
-      ctx.fillStyle='#E7B84F'; ctx.beginPath(); ctx.arc(gx, gy-cell*0.41, cell*0.05, 0, Math.PI*2); ctx.fill();
-      ctx.restore();
-    }
+    else if(e>=0 && !walkDoneFx.sp){ walkDoneFx.sp=1;
+      spark(walkDoneFx.r, walkDoneFx.c, '#52993E', 10, 2.4); spark(walkDoneFx.r, walkDoneFx.c, '#FFF3D6', 6, 2.0);
+      try{ tone(783.99, 0.09, "triangle", 0.05, 1174.7); }catch(err){} }
   }
   if(downOn && dragPath && dragPath.length>1 && !aimOn() && cell){
     const e=dragPath[dragPath.length-1];
