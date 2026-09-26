@@ -61,7 +61,7 @@
     <!-- H안 타이포 쌍 — 칩 대신 라벨 위·값 아래 글자만(미도쿠 「레벨/1」 문법). 구분은 여백이 진다. -->
     <div class="hgrp"><span class="lvlbl" data-i18n="hud.walk">산책</span><span id="lvl">1</span></div>
     <div id="mvbar">
-      <div class="mvhead" id="mvhead"><span class="mvnum" id="cdnum">0</span><span class="mvsep">/</span><span class="mvlim" id="mvlim">남은 걸음</span>
+      <div class="mvhead" id="mvhead"><span class="mvnum" id="cdnum">0</span><span class="mvprev" id="mvprev"></span><span class="mvsep">/</span><span class="mvlim" id="mvlim">남은 걸음</span>
         <span class="mvst" id="mvst"></span></div>
       <!-- 이 판에 묻힌 재료 칸 줄 — 캐면 판에서 이리로 날아와 박힌다. 캔 걸 판 어디에서도
            말하지 않던 자리다(승리 카드도 조용했다). 칸 모양은 목록·확인 화면의 matDots 그대로. -->
@@ -216,10 +216,7 @@
       </button>
     </div>
     <canvas id="c"></canvas>
-    <!-- 맥스 한마디 — 정해진 순간(처박힘 · 세 걸음 남음)에 한 판 한 번씩만. 조작은 안 막는다. -->
-    <div class="maxsay" id="maxSay" hidden aria-live="polite"><i aria-hidden="true"><svg viewBox="0 0 48 48"><ellipse cx="24" cy="31" rx="10" ry="8.5"/><circle cx="12" cy="19" r="4.6"/><circle cx="20" cy="12" r="4.6"/><circle cx="28" cy="12" r="4.6"/><circle cx="36" cy="19" r="4.6"/></svg></i><span id="maxSayT"></span></div>
     <div id="win"><div class="card">
-      <div class="wtitle" id="winTitle"></div>
       <div class="wmsg" id="winMsg"></div>
       <div id="winStars"></div>
       <div class="sub" id="winSub"></div>
@@ -6050,7 +6047,6 @@ function clearedCount(){ let n=0; for(const k in starMap) if(starMap[k]>0) n++; 
 function persist(){
   try{
     economyReconcile('game');
-    if(todayStat && todayStat.d) LS.set('roll_today', JSON.stringify(todayStat));
     LS.set(SK.lv, level);
     LS.set(SK.mx, maxLevel);
     LS.set(SK.st, JSON.stringify(starMap));
@@ -10109,7 +10105,7 @@ function applyScene(g){
   filled=new Set();
   par=g.par; moves=0; undoStack=[]; state="play"; undoFacing=null; undoFx=null;
   if(!tutMode) tutSlide=0;
-  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; seatCombo=0; seatLastMove=-99; maxSaid={}; if(typeof maxSayHide==='function') maxSayHide();
+  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; seatCombo=0; seatLastMove=-99;
   matIntroT=(menuMode||moonMode||tutMode)? -1 : 0; winFest=null;
   { const wf=el('winFest'); if(wf) wf.classList.remove('show','stk'); } deadT=0; deadPend=false; trail=[]; walkPulse=[]; rollPulse=[];
   joyT=0; joyN=0; glum=0;                                        // 판 안 맥스 반응도 판마다 처음부터
@@ -18501,13 +18497,16 @@ let moveBuffer=null;
 // 입력 시각부터 재면 밀기(≈264ms) 초반에 이어 쓴 스와이프가 끝나기도 전에 만료돼 버려졌다
 // (실측: 첫 밀기 뒤 40·80ms 에 쓴 두 번째 밀기가 사라짐). t0 는 너무 늦은 입력을 끊는 상한이다.
 const MOVE_BUFFER_CAP_MS=1500;
-function bufferMove(dr,dc){ const now=performance.now(); moveBuffer={dr,dc,at:now,t0:now}; }
+// 긋기 번호 — 그은 경로가 걷는 동안의 걸음은 같은 번호를 달고 무르기 스택에 쌓인다.
+// 무르기 한 번이 그 번호 전체를 되돌린다(2026-09-26). 한 칸 스와이프는 번호가 없어 한 걸음씩이다.
+let strokeTag=0, strokeSeq=0, strokeCur=0;
+function bufferMove(dr,dc){ const now=performance.now(); moveBuffer={dr,dc,at:now,t0:now,tag:strokeTag}; }
 function moveBufferWindowMs(){ return (MAX_LIVELY_POLISH_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)?520:MOVE_BUFFER_MS; }
 function flushMoveBuffer(){
   const q=moveBuffer; moveBuffer=null;
   const now=performance.now();
   if(!q || state!=="play" || now-q.at>moveBufferWindowMs() || now-(q.t0||q.at)>MOVE_BUFFER_CAP_MS) return;
-  tryMove(q.dr,q.dc);
+  strokeTag=q.tag||0; tryMove(q.dr,q.dc); strokeTag=0;
 }
 // ── 끌어서 걷기 (2026-09-25) ─────────────────────────────────────────────
 // 손가락으로 맥스를 끌면 지나온 칸이 그대로 경로가 된다. 꺾어도 되고(Flow Free 식),
@@ -18537,7 +18536,22 @@ let dragGrew=false, dragSwipe=false;
 const FLICK_MS=240;
 let walkPlanLen=0;              // 이번에 확정한 경로의 칸 수 — 도착 연출을 켤지 가른다
 let walkDoneFx=null;            // {r,c,at,sp} — 계획한 경로를 끝까지 걸었을 때 발밑이 한 번 반짝인다
-function dragReset(){ dragPath=null; dragStates=null; dragGrew=false; dragSwipe=false; }
+function dragReset(){ dragPath=null; dragStates=null; dragGrew=false; dragSwipe=false; stepPreviewSync(); }
+// 긋는 동안 걸음 카드가 **뗀 뒤 남을 걸음**을 미리 보여 준다(2026-09-26) — 숫자는 남을 값,
+// 옆 배지는 이번 긋기가 쓸 걸음(−N). 남은 걸음보다 길면 숫자가 붉고, 판 위 넘친 칸도 붉다.
+// 전엔 떼고 걷다가 중간에 걸음이 다 떨어져서야 알았다. 연습·달빛·보물은 제한이 없어 안 한다.
+let stepPrevN=-1;
+function stepPreviewOn(){ return !tutMode && !moonMode && !tsMode && !menuMode; }
+function stepPreviewSync(){
+  const n=(downOn && dragPath && dragPath.length>1 && stepPreviewOn())? dragPath.length-1 : 0;
+  if(n===stepPrevN) return; stepPrevN=n;
+  const num=el("cdnum"), pv=el("mvprev"), bar=el("mvbar"); if(!num || !pv || !bar) return;
+  const left=Math.max(0, stepLimit()-moves);
+  if(!n){ pv.textContent=''; bar.classList.remove('preview','over'); num.textContent=left; num.style.color=stepColor(left); return; }
+  const after=left-n;
+  num.textContent=Math.max(0,after); num.style.color= after<0? '#D8574A' : stepColor(Math.max(0,after));
+  pv.textContent='−'+n; bar.classList.add('preview'); bar.classList.toggle('over', after<0);
+}
 function walkQueueClear(){ walkQueue=null; walkDoneFx=null; }
 function flushWalkQueue(){
   if(!walkQueue || !walkQueue.length){ walkQueue=null; return; }
@@ -18551,7 +18565,7 @@ function flushWalkQueue(){
   const dr=t.r-dog.r, dc=t.c-dog.c;
   if(Math.abs(dr)+Math.abs(dc)!==1){ walkQueue=null; return; }
   lastPacedStepAt=performance.now();
-  tryMove(dr,dc);
+  strokeTag=strokeCur; tryMove(dr,dc); strokeTag=0;
   if(dog.r!==t.r || dog.c!==t.c) walkQueue=null;           // 못 갔으면 나머지도 안 간다 — 벽에 여러 번 부딪히지 않게
   // 계획한 경로(4칸 이상 — 진짜 "그린" 산책)를 한 칸도 안 어긋나고 다 걸었다 — 발밑이 한 번 반짝인다.
   // 두 칸짜리 드래그마다 서면 시끄럽다. 벌은 없고 상만 있다: 끊기면 그냥 아무 일도 없다.
@@ -18632,11 +18646,13 @@ function dragPreviewUpdate(px,py){
   if(bi>=0){ if(bi+1<dragPath.length) dragBackSfx(); dragPath.length=bi+1; dragStates.length=bi+1; }
   else dragPathExtendTo(p.r,p.c);
   if(dragPath.length>1) dragGrew=true;
+  stepPreviewSync();
 }
 // 손을 떼면 경로를 실제 걸음으로 — 첫 칸은 바로, 나머지는 한 칸씩 쉬어 가며.
 function commitDragPath(path){
   if(!path || path.length<2) return false;
-  tryMove(path[1].r-path[0].r, path[1].c-path[0].c);
+  strokeCur=++strokeSeq;
+  strokeTag=strokeCur; tryMove(path[1].r-path[0].r, path[1].c-path[0].c); strokeTag=0;
   lastPacedStepAt=performance.now(); walkPaced=1;
   walkQueue = (dog.r===path[1].r && dog.c===path[1].c && path.length>2)? path.slice(2) : null;
   walkPlanLen = walkQueue? path.length : 0;
@@ -19007,7 +19023,7 @@ function tryMove(dr,dc){
   if(chapterMaxMasterMotionRuntimeEnabled()) chapterMaxResetMasterIdleAfterValidMove();
   if(!chapterMaxMasterMotionRuntimeEnabled() && sawBall && !res.pushed){ dog.maxEvent='discover'; dog.maxEventT=0; }
   if(MAX_CUTOUT_RIG_ENABLED && chapterMaxAppliesToLevel(level)) maxChapterBlockedFx=null;
-  undoStack.push(snapshot());
+  { const sn=snapshot(); if(strokeTag) sn.grp=strokeTag; undoStack.push(sn); }
   trail.push({r:dog.r, c:dog.c, dr, dc, t:1, ph:trail.length&1});   // 떠나는 칸에 발자국
   if(trail.length>9) trail.shift();
   const nr=st.dog.r+dr, nc=st.dog.c+dc;             // 밀리기 전 공이 있던 칸
@@ -19045,8 +19061,6 @@ function tryMove(dr,dc){
   // 착지 스쿼시는 hop 이 0 이 되는 프레임에서 반대 부호로 들어간다.
   dog.sq = res.dug? -0.17 : (res.pushed? -0.10 : -0.04);
   moves++; syncMoves(); lastMoveT=animT; dog.act=null; dog.actT=0;
-  todayBump('steps');
-  if(stepLimit()-moves===3 && !isGoal(L, curState())) maxSay('say.low');   // 걸음 제한이 코앞 — 한 판 한 번
   skipOffer();                                                  // par 두 배를 넘겼으면 조용히 출구를 권한다
   // 트램플린에 올랐는데 내릴 자리가 막혀 안 튄 경우 — 왜 안 튀었는지 보여준다.
   // 결정론 퍼즐은 "왜 안 됐나"를 안 알려주면 유저가 규칙을 배울 수가 없다.
@@ -20521,36 +20535,6 @@ let praisePops=[], matIntroT=-1, winStreak=0, winFest=null;
 // 다섯 걸음 안에 다음 공을 앉히면 이어진 것으로 본다. 무르기로 걸음이 줄면 끊긴다.
 let seatCombo=0, seatLastMove=-99;
 const SEAT_COMBO_GAP=5;
-// 오늘 기록 — 걸은 걸음과 앉힌 공. 승리 카드 한 줄("오늘 214걸음 · 방석 31개")이 읽는다.
-// 날짜가 바뀌면 0 부터. 연습·달빛·메뉴 데모는 안 센다. 저장은 persist() 에 묻어 간다 — 걸음마다
-// 쓰면 한 수 두고 무를 때도 저장이 남는다(QA 무르기 계약). var 인 이유: persist 가 이 줄보다 먼저 불린다.
-var todayStat={d:'',steps:0,seats:0};
-function todayFresh(){ if(todayStat.d!==todayKey()) todayStat={d:todayKey(),steps:0,seats:0}; }
-try{ todayStat=JSON.parse(LS.get('roll_today')||'{}')||{}; }catch(e){ todayStat={}; }
-function todayBump(k){
-  if(tutMode||moonMode||menuMode||tsMode||lunchMode) return;
-  todayFresh(); todayStat[k]=(todayStat[k]|0)+1;
-}
-// 칭호 — 깬 판 수로 한 단씩. 승리 카드 머리에 붙고, 새 단에 오른 판에서만 "새 칭호" 로 빛난다.
-const WALK_TITLES=[0,10,30,60,120,200];
-function walkTitleIdx(n){ let i=0; for(let k=0;k<WALK_TITLES.length;k++) if(n>=WALK_TITLES[k]) i=k; return i; }
-// 맥스 한마디 — 한 판에 순간마다 한 번. 판이 바뀌면 다시 말할 수 있다.
-let maxSaid={}, maxSayTO=0;
-function maxSayHide(){ clearTimeout(maxSayTO); const b=el('maxSay'); if(b){ b.classList.remove('show'); b.hidden=true; } }
-function maxSay(key){
-  if(maxSaid[key] || tutMode || menuMode || moonMode || tsMode || state!=='play' || !cell) return;
-  maxSaid[key]=1;
-  const b=el('maxSay'), wrap=el('boardWrap'); if(!b || !wrap) return;
-  el('maxSayT').innerHTML=I18N.html(key);
-  const wr=wrap.getBoundingClientRect(), cr=cv.getBoundingClientRect();
-  const x=cr.left-wr.left+cx(dog.c), y=cr.top-wr.top+cy(dog.r)-cell*0.55;
-  b.hidden=false; b.classList.remove('show');
-  // 폭을 먼저 재고 판 안쪽에 맞춘다 — 가장자리에 붙여 두면 남은 폭만큼 접혀 세로로 길어졌다(실측 118px).
-  const half=(b.offsetWidth||200)/2+8;
-  b.style.left=Math.max(half, Math.min(wr.width-half, x))+'px'; b.style.top=Math.max(b.offsetHeight+8, y)+'px';
-  void b.offsetWidth; b.classList.add('show');
-  clearTimeout(maxSayTO); maxSayTO=setTimeout(maxSayHide, 2800);
-}
 // 판 규칙 칩 — 이 구간에서 가장 최근에 배운 기믹. 1동네('base')와 연습·달빛·메뉴엔 없다.
 let ruleChipKey=null;
 function syncRuleChip(){
@@ -20586,7 +20570,7 @@ function checkDeadlock(){
   // deadT 를 0 으로 두는 게 핵심이다 — 소리만 막고 두면 무르기 버튼이 계속 맥동한다(실측).
   if(tutMode && tutIdx!==2){ deadT=0; return; }
   if(deadlockNow()){
-    if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]); tutStuck(); maxSay('say.stuck'); }
+    if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]); tutStuck(); }
     deadT=1;
   }
   else deadT=0;
@@ -21442,17 +21426,7 @@ function win(){
   // "다음에 뭘 향해 가는지"를 말한다 — 그 사이에 par 숫자가 끼면 읽는 순서가 끊겼다.
   // 도토리는 아래 게이지(winBar)가 이미 말한다: 이 판에 묻힌 총량 중 얼마를 캤나.
   // 숫자 줄을 하나 더 두면 같은 자원을 두 문법으로 두 번 말하는 셈이다.
-  // 오늘 기록 한 줄 + 칭호(2026-09-26). 칭호는 깬 판 수로 한 단씩, 새 단에 오른 판에서만 빛난다.
-  maxSayHide();
-  if(moonMode){ el("winSub").innerHTML=''; winCopyText('winTitle',''); el('winTitle').classList.remove('new'); }
-  else {
-    todayFresh();
-    winCopyText('winSub','victory.today',()=>({steps:todayStat.steps|0, seats:todayStat.seats|0}));
-    const cc=clearedCount(), ti=walkTitleIdx(cc), up=firstClear && cc>0 && ti>walkTitleIdx(cc-1);
-    winCopyText('winTitle', up? 'title.new' : 'title.'+ti, up? ()=>({name:I18N.t('title.'+ti)}) : undefined);
-    el('winTitle').classList.toggle('new', up);
-    if(up) buzz([10,30,10,30,24]);
-  }
+  el("winSub").innerHTML='';
   // 도전 줄은 걷어냈다 — 걸음을 줄여 다시 걷게 하는 장치를 통째로 뺐다(lvDone3 주석).
   // 자리는 남겨 둔다: 빈 문자열이면 줄이 안 보이고, 뒤에 다른 줄이 들어올 자리다.
   winCopyText('winThresh', '');
@@ -21767,7 +21741,7 @@ function firePend(b){
       { const gap=moves-seatLastMove; seatCombo=(gap>0 && gap<=SEAT_COMBO_GAP)? seatCombo+1 : 1; seatLastMove=moves;
         const tier=Math.min(3, seatCombo);
         const key= tier>=3? 'fx.good4' : tier===2? 'fx.good2' : ((level+moves)%2? 'fx.good1' : 'fx.good3');
-        praisePops.push({r:b.r, c:b.c, t:0, tier, txt:I18N.t(key)}); todayBump('seats');
+        praisePops.push({r:b.r, c:b.c, t:0, tier, txt:I18N.t(key)});
         buzz(tier>=3? [10,30,22] : tier===2? [10,24,10] : 12); }
     }
     feedbackPulse('goal');
@@ -22002,8 +21976,9 @@ function onTapOnce(node, fn){
   onTap(node, fn);
   return node;
 }
-onTap(el("undo"), ()=>{ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buzz(8); return; }  // 산책은 되돌릴 수 없다 (보상 악용 방지)
-  if(state!=="play"||isAnimating()||!undoStack.length) return false;
+function undoPress(){ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buzz(8); return; }  // 산책은 되돌릴 수 없다 (보상 악용 방지)
+  if(state!=="play"||!undoStack.length) return false;
+  if(isAnimating() && !walkQueue) return false;             // 긋기를 걷는 중이면 멈추고 통째로 무른다
   const free=firstDistrictRetriesFree(level);
   // "다 썼어요" 는 상태만 말하고 규칙을 안 말했다 — 왜 더 못 쓰는지, 언제 돌아오는지가
   // 없으니 표처럼 사러 갈 수 있는 줄 안다(무르기는 유일하게 못 사는 도구다).
@@ -22022,7 +21997,12 @@ onTap(el("undo"), ()=>{ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buz
   hintFx=null; hintCancel(); aimReset();
   // 상태를 복원하기 전에 현재 칸을 기억한다. 복원만 하면 맥스가 순간이동하므로,
   // v22 걷기 보간과 같은 경로로 직전 칸까지 되감는다.
-  const beforeUndoR=dog.r, beforeUndoC=dog.c, undoSnap=undoStack.pop();
+  // 그은 경로 하나는 무르기 한 번에 통째로 — 같은 긋기 번호의 스냅숏을 다 걷고 가장 앞 것으로 돌아간다.
+  // 걷는 도중에 누르면 남은 걸음도 버린다(되돌린 뒤에 계속 걸으면 무른 게 아니다).
+  walkQueueClear(); moveBuffer=null;
+  let undoSnap=undoStack.pop(), undoSteps=1;
+  if(undoSnap.grp) while(undoStack.length && undoStack[undoStack.length-1].grp===undoSnap.grp){ undoSnap=undoStack.pop(); undoSteps++; }
+  const beforeUndoR=dog.r, beforeUndoC=dog.c;
   cutFx=null; tunFx=null; fetchFx=null;                    // 무르면 훈련 연출도 그 자리에서 끊는다 — 옛 칸을 향해 뛰면 거짓말이다
   restoreSnap(undoSnap);
   dog.rr=beforeUndoR; dog.cc=beforeUndoC;
@@ -22037,11 +22017,12 @@ onTap(el("undo"), ()=>{ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buz
   dog.maxEvent=null; dog.maxEventNext=null; dog.maxEventT=0; dog.undoing=true;
   // dir은 복귀 방향이 아니라 원래 도착할 때 바라보던 방향이다.
   // 위치는 반대로 이동하지만 얼굴은 돌리지 않아 뒷걸음처럼 보인다.
-  undoFx={t:0,dur:.50,fromR:beforeUndoR,fromC:beforeUndoC,toR:dog.r,toC:dog.c,
+  undoFx={t:0,dur:Math.min(.9,.42+.08*undoSteps),fromR:beforeUndoR,fromC:beforeUndoC,toR:dog.r,toC:dog.c,
     dirR:dog.r-beforeUndoR,dirC:dog.c-beforeUndoC};
   sfxUndo(); syncDockN();
   if(!tutMode) useFx(el("undoN"));
-  });
+}
+onTap(el("undo"), undoPress);
 // 재시작은 판마다 한 번 공짜, 그 뒤는 도토리다. 걸음 제한이 생기면서 재시작이
 // 회피 통로가 됐다 — 제한에 닿기 직전에 다시 깔면 영영 안 죽는다. 값을 붙여 막되,
 // 첫 한 번은 공짜로 둔다(몇 수 만에 알아챈 오입력까지 벌할 이유는 없다).
@@ -22705,7 +22686,7 @@ onTap(el("exitbtn"), ()=>{ if(giftBlocking()) return; requestQuit(); });
 // 다시 걸으려면 또 한 끼를 내야 하므로, 그게 곧 이 판을 다시 여는 값이 된다.
 let failOn=false;
 function failNow(){
-  failOn=true; state="fail"; maxSayHide();
+  failOn=true; state="fail";
   telemetry.track("level_fail", {level, chapter:Math.ceil(level/30), moves, reason:"move_limit"});
   skipHide();                                        // 건너뛰기 제안과 같은 자리에 뜬다 — 겹치면 둘 다 안 읽힌다
   sfxBlocked(); buzz([18,60,18]); shake=Math.min(1.4, shake+0.6);
@@ -31451,11 +31432,12 @@ function render(){
     // 칸 색은 목줄 민트 — 잔디의 노랑기 있는 초록과 색상이 갈려 흐린 알파로도 또렷하고,
     // 공·방석·물감의 빨강·파랑·골드 짝을 안 건드린다. 번호는 흰 원 위에 — 잔디 명도가
     // 칸마다 달라 맨 글자는 자리에 따라 뭉갰다.
+    const reach = stepPreviewOn()? Math.max(0, stepLimit()-moves) : Infinity;   // 이 칸 너머는 걸음이 모자라 못 간다
     for(let i=1;i<dragPath.length;i++){
-      const p=dragPath[i], last=i===dragPath.length-1;
+      const p=dragPath[i], last=i===dragPath.length-1, over=i>reach;
       const m=cell*0.09, w=cell-m*2, x=cx(p.c)-cell/2+m, y=cy(p.r)-cell/2+m, rd=cell*0.16;
-      ctx.globalAlpha=last?0.44:0.30; ctx.fillStyle='#1E9E8C'; rr(x,y,w,w,rd); ctx.fill();
-      ctx.globalAlpha=0.85; ctx.strokeStyle='#0F6E60'; ctx.lineWidth=Math.max(2,cell*0.045); rr(x,y,w,w,rd); ctx.stroke();
+      ctx.globalAlpha=last?0.44:0.30; ctx.fillStyle=over?'#D8574A':'#1E9E8C'; rr(x,y,w,w,rd); ctx.fill();
+      ctx.globalAlpha=0.85; ctx.strokeStyle=over?'#A8352B':'#0F6E60'; ctx.lineWidth=Math.max(2,cell*0.045); rr(x,y,w,w,rd); ctx.stroke();
       ctx.globalAlpha=1;
       if(!last){
         ctx.fillStyle='rgba(255,255,255,.95)';
@@ -31479,9 +31461,10 @@ function render(){
     }
     // 도착 칸엔 깃발 대신 **반투명 맥스**가 선다(2026-09-26) — "맥스가 여기까지 간다"를 그림 한 장으로.
     // 마지막 걸음 방향을 보게 해 그 칸에 도착한 모습 그대로다. 마스터 정지 셀이 아직 안 올라왔으면 drawDog.
-    { const pv=dragPath[dragPath.length-2], fr=Math.sign(e.r-pv.r), fc=Math.sign(e.c-pv.c);
+    { const stopI=Math.min(dragPath.length-1, reach), se=dragPath[stopI], pv=dragPath[Math.max(0,stopI-1)];
+      const fr=Math.sign(se.r-pv.r), fc=Math.sign(se.c-pv.c), sx=cx(se.c), sy=cy(se.r);
       ctx.globalAlpha=0.5;
-      if(!drawMaxMasterBoardStatic(gx, gy, cell*0.94, fr, fc, false)) drawDog(gx, gy, cell*0.94, fc||dog.face||1, 1, 1);
+      if(stopI>0 && !drawMaxMasterBoardStatic(sx, sy, cell*0.94, fr, fc, false)) drawDog(sx, sy, cell*0.94, fc||dog.face||1, 1, 1);
       ctx.globalAlpha=1; }
     ctx.restore();
   }

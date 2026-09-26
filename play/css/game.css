@@ -3976,24 +3976,9 @@ body.hud-pilot #helpbtn { display:none; }
 @media (hover:hover) and (pointer:fine) { #ruleChip:hover { background:#FFEFCB; } }
 #ruleChip:focus-visible { outline:3px solid #3AA57C; outline-offset:2px; }
 
-/* ── 맥스 한마디 말풍선 — 맥스 머리 위, 발바닥 아이콘 ── */
-#maxSay { position:absolute; left:0; top:0; z-index:44; transform:translate(-50%,-100%); pointer-events:none; width:max-content;
-  display:flex; align-items:center; gap:7px; max-width:250px; padding:7px 13px 7px 8px;
-  background:#FFFDF6; border:2px solid #E8CFA0; border-radius:14px; box-shadow:0 4px 0 rgba(74,53,36,.12);
-  font-family:var(--f-hand); font-size:var(--s8); color:#5A4030; line-height:1.35; text-align:left; }
-#maxSay[hidden] { display:none; }
-#maxSay::after { content:""; position:absolute; left:50%; bottom:-8px; width:12px; height:12px; margin-left:-6px;
-  background:#FFFDF6; border-right:2px solid #E8CFA0; border-bottom:2px solid #E8CFA0; transform:rotate(45deg); }
-#maxSay i { flex:none; width:24px; height:24px; border-radius:50%; background:#E8A94C; display:grid; place-items:center; }
-#maxSay i svg { width:15px; height:15px; fill:#FFFDF6; }
-#maxSay b { color:#C0671C; font-weight:400; }
-#maxSay.show { animation:maxsayin .26s cubic-bezier(.3,1.5,.5,1) both; }
-@keyframes maxsayin { from { opacity:0; transform:translate(-50%,-80%) scale(.85); } to { opacity:1; transform:translate(-50%,-100%) scale(1); } }
 
-/* ── 승리 카드 칭호 — 메시지 위 작은 이름표. 새 단에 오르면 금색으로 한 번 튄다 ── */
-#win .wtitle { display:inline-block; margin:0 auto 6px; padding:2px 12px; border-radius:999px;
-  font-family:var(--f-hand); font-size:var(--s8); color:#7A5C3A; background:#F3E7CF; }
-#win .wtitle:empty { display:none; }
-#win .wtitle.new { color:#6B3F00; background:#FFD86B; box-shadow:0 3px 0 #C98A12; animation:wtitlein .5s cubic-bezier(.3,1.6,.5,1) .15s both; }
-@keyframes wtitlein { from { transform:scale(.6) rotate(-4deg); opacity:0; } to { transform:scale(1) rotate(0); opacity:1; } }
-@media (prefers-reduced-motion:reduce) { #maxSay.show, #win .wtitle.new { animation:none; } }
+/* ── 긋는 동안 걸음 미리보기 — 숫자 옆 −N 배지(경로 민트), 넘치면 붉게 ── */
+#mvbar .mvprev { display:none; align-self:center; margin-left:4px; padding:1px 7px; border-radius:999px;
+  font-family:var(--f-hand); font-size:var(--s8); line-height:1.3; color:#FFFDF6; background:#1E9E8C; }
+#mvbar.preview .mvprev { display:inline-block; }
+#mvbar.over .mvprev { background:#D8574A; }
