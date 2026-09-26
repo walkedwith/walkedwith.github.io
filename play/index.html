@@ -31412,16 +31412,12 @@ function render(){
       ctx.beginPath(); ctx.arc(cx(p.c), cy(p.r), cell*0.34, 0, Math.PI*2); ctx.fill();
       ctx.globalAlpha=1;
     }
-    ctx.fillStyle='rgba(40,70,30,.22)';                                          // 깃대 그림자
-    ctx.beginPath(); ctx.ellipse(gx, gy+cell*0.32, cell*0.16, cell*0.06, 0, 0, Math.PI*2); ctx.fill();
-    ctx.strokeStyle='#6B4A2A'; ctx.lineWidth=Math.max(2,cell*0.05);             // 깃대
-    ctx.beginPath(); ctx.moveTo(gx, gy+cell*0.32); ctx.lineTo(gx, gy-cell*0.40); ctx.stroke();
-    // 폰 판(칸 44px)에서 시안 크기(0.30)로 두니 흰 테두리가 면을 먹어 흰 깃발로 읽혔다 — 키우고 테두리를 줄였다
-    ctx.beginPath(); ctx.moveTo(gx, gy-cell*0.40); ctx.lineTo(gx+cell*0.40, gy-cell*0.25); ctx.lineTo(gx, gy-cell*0.10); ctx.closePath();
-    ctx.fillStyle='#52993E'; ctx.fill();                                         // 깃발 — 목줄 녹색
-    ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=Math.max(1,cell*0.024); ctx.lineJoin='round'; ctx.stroke();
-    ctx.fillStyle='#E7B84F';                                                     // 꼭지 — 방울 색
-    ctx.beginPath(); ctx.arc(gx, gy-cell*0.41, cell*0.05, 0, Math.PI*2); ctx.fill();
+    // 도착 칸엔 깃발 대신 **반투명 맥스**가 선다(2026-09-26) — "맥스가 여기까지 간다"를 그림 한 장으로.
+    // 마지막 걸음 방향을 보게 해 그 칸에 도착한 모습 그대로다. 마스터 정지 셀이 아직 안 올라왔으면 drawDog.
+    { const pv=dragPath[dragPath.length-2], fr=Math.sign(e.r-pv.r), fc=Math.sign(e.c-pv.c);
+      ctx.globalAlpha=0.5;
+      if(!drawMaxMasterBoardStatic(gx, gy, cell*0.94, fr, fc, false)) drawDog(gx, gy, cell*0.94, fc||dog.face||1, 1, 1);
+      ctx.globalAlpha=1; }
     ctx.restore();
   }
   ctx.globalAlpha=1; if(tsMode){                                         // 보물 산책 오버레이
