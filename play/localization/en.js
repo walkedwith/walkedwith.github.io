@@ -241,8 +241,6 @@
     "fx.good2": "Nice!",
     "fx.good3": "There!",
     "fx.good4": "Amazing!",
-    "fx.yum": "Yum!",
-    "fx.allTreats": "Got them all!",
         "fx.streak": "{n} in a row, first try!",
     "tutorial.bath1": "Max is in the tub.<br>Time for some <b>bubbles</b>!",
     "tutorial.bath2": "<b>Tap Max a few times.</b><br>Fill the bubbles to get him clean.",

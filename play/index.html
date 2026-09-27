@@ -20475,8 +20475,13 @@ function matEatBite(){
   matEat.ph='bite'; matEat.t=0;
   if(Math.abs(matEat.dr)+Math.abs(matEat.dc)===1){ dog.lungeR=matEat.dr; dog.lungeC=matEat.dc; }
   if(matEat.dc) dog.face = matEat.dc<0? -1 : 1;
-  dog.wagBoost=1;
-  audio(); tone(520,0.05,'triangle',0.04,600); setTimeout(()=>tone(700,0.06,'triangle',0.04,820), 90); buzz(6);
+  // 와삭 — 글자 대신 맥스가 먹는 맛으로 말한다(2026-09-27). 부스러기가 튀고, 주운 수가 늘수록
+  // 꼬리가 더 세게 돈다(기분이 차오르는 게 보인다). 소리도 한 칸씩 오른다.
+  const n=Math.max(1, acornGot()), up=1+Math.min(4,n-1)*0.06;
+  dog.wagBoost=Math.min(1.8, 0.7+n*0.22);
+  if(!tutMode && !moonMode){ spark(dog.r,dog.c,'#FFF7E6',7+n,1.5); spark(dog.r,dog.c,'#D9C49B',5,1.2); }
+  audio(); tone(240*up,0.03,'square',0.025,170*up); setTimeout(()=>tone(880*up,0.035,'square',0.018,620*up), 40);
+  setTimeout(()=>tone(700*up,0.06,'triangle',0.04,820*up), 110); buzz(6);
 }
 function matEatGulp(){
   if(!matEat) return;
@@ -20571,15 +20576,17 @@ let rollPulse=[];
 // 방석이 한 번 반짝여 목표를 짚는 타이머(-1=꺼짐). winStreak: 다시 걷기 0으로
 // 연속 클리어한 수(세션 한정 — 자기 기록 칭찬용이라 저장 안 한다).
 let praisePops=[], matIntroT=-1, winStreak=0, winFest=null;
-// ── 간식 하나 주울 때마다 (2026-09-27, 미도쿠가 고양이를 놓을 때의 세 박자) ─────────
-//   1. 그 자리에 금색 "냠!" — 주운 수가 늘수록 한 단계씩 커진다(소리는 이미 한 음씩 오른다).
+// ── 간식 하나 주울 때마다 (2026-09-27) — 글자 없이 맥스의 몸으로 말한다 ─────────
+//   1. 깨무는 순간 와삭 소리·부스러기, 주운 수만큼 꼬리가 더 세게(matEatBite).
 //   2. 날아간 간식이 걸음 카드 칸에 박히며 반짝 테가 퍼진다(mvMatFly 의 land).
-//   3. 다섯째를 주우면 판 위에 큰 초록 "다 주웠다!", 칸 줄이 왼쪽부터 차례로 들썩.
+//   3. 다섯째가 칸에 박히면 맥스가 제자리 한 바퀴 + 두 번 폴짝, 칸 줄이 차례로 들썩, 짧은 가락.
+// (미도쿠식 "냠!"·"다 주웠다!" 글자를 먼저 넣었다가 걷었다 — 방석 칭찬 글자와 겹쳤다.)
 // 연출은 전부 위에 겹쳐 흐른다 — 입력을 막지 않는다. 연습판·달빛은 안 탄다.
 function treatPickFx(a){
   if(!a || tutMode || moonMode || menuMode) return;
-  const n=acornGot(), tot=matFull(level), o=a.w? wallTreatOff(a) : [0,0];
-  praisePops.push({kind:'yum', r:a.r+o[1]*0.36, c:a.c+o[0]*0.36, t:0, life:0.75, n, txt:I18N.t('fx.yum')});
+  const n=acornGot(), tot=matFull(level);
+  // "냠!" 글자는 걷었다(2026-09-27) — 방석 칭찬(옳지·딱이야·최고야)이 이미 글자로 말한다.
+  // 간식은 맥스의 몸으로 말한다: 깨무는 순간 와삭·부스러기·꼬리(matEatBite).
   // 다섯째는 **마지막 칸에 박히는 순간** 터진다(mvMatFly 의 land). 날아가는 중에 뜨면 네 칸만 찬
   // 줄 위에 "다 주웠다" 가 떠서 말이 그림보다 앞선다(실측). 날지 않는 길(도구로 캔 수풀·움직임 줄이기)
   // 을 위해 1.6초 뒤 안전망을 둔다 — 먼저 터진 쪽이 이긴다.
@@ -20590,38 +20597,23 @@ let treatAllPend=0;
 function treatAllFinale(){
   if(!treatAllPend || treatAllPend!==level || menuMode){ treatAllPend=0; return; }
   treatAllPend=0;
-  praisePops.push({kind:'all', r:1.1, c:(GN-1)/2, t:0, life:1.5, txt:I18N.t('fx.allTreats')});
+  // 다섯째 — "다 주웠다!" 글자 대신 맥스가 신나서 제자리에서 한 바퀴 돌고 두 번 폴짝, 칸 다섯이
+  // 차례로 들썩이고 짧은 가락이 끝까지 간다(2026-09-27).
+  treatSpin();
+  joyN=2; joyT=1; dog.wagBoost=1.8; heartBurst(dog.r, dog.c, 3);
   mvMatsSweep();
-  [0,1,2].forEach(i=>setTimeout(()=>tone(990*Math.pow(2,i*4/12),0.12,"triangle",0.045,1400), i*90));
+  [0,2,4,7,12].forEach((k,i)=>setTimeout(()=>tone(660*Math.pow(2,k/12),i===4?0.18:0.1,"triangle",0.045,1100*Math.pow(2,k/12)), i*95));
   buzz([10,30,10,30,18]);
+}
+// 제자리 한 바퀴 — 옆모습 그림이라 좌우를 빠르게 네 번 뒤집어 도는 것으로 읽히게 한다.
+// 끝나면 처음 보던 쪽으로 돌아온다. 판이 바뀌면 멈춘다.
+function treatSpin(){
+  const lv0=level, f0=dog.face||1;
+  [0,1,2,3].forEach(i=>setTimeout(()=>{ if(level!==lv0 || !dog) return; dog.face = (i%2===0)? -f0 : f0; }, 90+i*110));
 }
 function mvMatsSweep(){
   const box=el('mvMats'); if(!box || !box.children) return;
   [...box.children].forEach((d,i)=>{ if(d.animate) d.animate([{transform:'scale(1)'},{transform:'scale(1.28) translateY(-3px)'},{transform:'scale(1)'}],{duration:420, delay:i*70, easing:'ease-out'}); });
-}
-function drawTreatPop(p){
-  const life=p.life||0.9, u=Math.min(1,p.t/life);
-  ctx.save();
-  if(p.kind==='yum'){
-    const a=u<0.2? u/0.2 : (u>0.65? Math.max(0,(1-u)/0.35) : 1);
-    const k=u<0.3? 0.5+ (u/0.3)*0.65 : 1.15-Math.min(0.15,(u-0.3)*0.5);
-    const sz=cell*(0.36+Math.min(4,(p.n|0)-1)*0.045);
-    ctx.globalAlpha=a; ctx.translate(cx(p.c), cy(p.r)-cell*(0.45+u*0.55)); ctx.scale(k,k);
-    ctx.font=Math.round(sz)+"px 'Jua','Apple SD Gothic Neo',sans-serif";
-    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
-    ctx.lineWidth=Math.max(3,sz*0.24); ctx.strokeStyle='#8A4B12'; ctx.strokeText(p.txt,0,0);
-    ctx.fillStyle='#FFD35C'; ctx.fillText(p.txt,0,0);
-  }else{
-    const a=u<0.15? u/0.15 : (u>0.72? Math.max(0,(1-u)/0.28) : 1);
-    const k=u<0.2? 0.3+(u/0.2)*0.85 : (u<0.3? 1.15-(u-0.2)*1.5 : 1);
-    const sz=cell*0.78;
-    ctx.globalAlpha=a; ctx.translate(cx(p.c), cy(p.r)); ctx.scale(k,k); ctx.rotate(-0.04);
-    ctx.font=Math.round(sz)+"px 'Jua','Apple SD Gothic Neo',sans-serif";
-    ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
-    ctx.lineWidth=Math.max(5,sz*0.2); ctx.strokeStyle='#3F6E1F'; ctx.strokeText(p.txt,0,0);
-    ctx.fillStyle='#9BD35A'; ctx.fillText(p.txt,0,0);
-  }
-  ctx.restore();
 }
 // 칭찬 등급 — 방석에 앉힌 간격이 짧을수록 한 단계씩 오른다: 옳지(좋아) → 딱이야 → 최고야.
 // 다섯 걸음 안에 다음 공을 앉히면 이어진 것으로 본다. 무르기로 걸음이 줄면 끊긴다.
@@ -30999,7 +30991,6 @@ function render(){
     ctx.restore();
   }
   for(const p of praisePops){
-    if(p.kind==='yum' || p.kind==='all'){ drawTreatPop(p); continue; }
     const u=p.t/0.9, a=u<0.15? u/0.15 : (u>0.7? (1-u)/0.3 : 1);
     const top=(p.tier|0)>=3, mid=(p.tier|0)===2;
     const px=cx(p.c), py=cy(p.r)-cell*(0.62+u*0.35);

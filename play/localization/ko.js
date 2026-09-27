@@ -241,8 +241,6 @@
     "fx.good2": "딱이야!",
     "fx.good3": "좋아!",
     "fx.good4": "최고야!",
-    "fx.yum": "냠!",
-    "fx.allTreats": "다 주웠다!",
         "fx.streak": "{n}연속 한 번에!",
     "tutorial.bath1": "맥스가 통에 들어갔어요<br>이제 <b>거품</b>을 낼 차례예요",
     "tutorial.bath2": "<b>맥스를 여러 번 눌러</b> 주세요<br>거품이 다 차면 뽀송해져요",
