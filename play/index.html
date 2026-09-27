@@ -3398,7 +3398,9 @@ let hardGift=null;                        // 이번 승리에 받은 꾸러미(�
 // 자라게 하므로 받은 것이 화면에 남는다. 험한 판을 걷는 이유가 그쪽이어야 한다.
 // 꾸러미 한 상자 = 도토리 15. 재료를 폐지하며 옛 구성(도토리 10 + 재료 5)을 **금액 그대로**
 // 도토리로 합쳤다 — 받는 양은 안 바뀌고 통만 하나가 된다.
-const HARD_GIFT_PAW = 15;
+// 꾸러미 속 간식은 0 이다(2026-09-28) — 간식은 판에서 주운 것만 받는다(첫 클리어 몫도 0).
+// 꾸러미는 설계도(성장 사다리 칸)만 준다. 0 이면 상자에서 간식이 날아가지 않는다(winGiftAcorns).
+const HARD_GIFT_PAW = 0;
 const HARD_GIFT_MAT = 0;                  // 남겨 둔다 — 옛 저장·테스트가 이 이름을 읽는다
 // 판 위 간식 줍기가 성적·수입을 맡는다(2026-09-27). 9-25~26 의 "간식 다섯 개 들고 출발, 재시작마다
 // 하나씩 준다"(SNACKS_ON)는 접었다 — 판 안 간식과 지갑 간식이 같은 이름·그림이라 헷갈렸고,
@@ -7898,7 +7900,7 @@ function giftPopOpen(lv, anchor){
   const it=gi>=0? xs[gi] : null;
   pop.innerHTML='<h4>'+escAttr(I18N.t('map.giftTitle',{lv:lvLabel(lv)}))+'<i class="'+(got?'got':'')+'">'+escAttr(I18N.t(got?'map.giftGot':'map.hardWalk'))+'</i></h4>'
     +'<div class="gpits'+(got?' got':'')+'">'
-    +'<span class="gpit"><span class="gpic">'+'<svg viewBox="0 0 48 48">'+PAW_SVG+'</svg>'+'</span><b>'+HARD_GIFT_PAW+'</b></span>'
+    +(HARD_GIFT_PAW>0? '<span class="gpit"><span class="gpic">'+'<svg viewBox="0 0 48 48">'+PAW_SVG+'</svg>'+'</span><b>'+HARD_GIFT_PAW+'</b></span>' : '')
     +(it? '<span class="gpit"><span class="gpic bp"><canvas width="96" height="96"></canvas></span><b>'+escAttr(it.label)+'</b></span>' : '')
     +'</div>';
   const cv=pop.querySelector('canvas');
@@ -10170,6 +10172,7 @@ function applyScene(g){
   syncDockN();
   syncHud();                                          // 판 안에서도 도토리·밥그릇 칩을 띄운다
   winFx=null; starFly=[]; starPend=0; winT=0; lastLandK=null; clearTimeout(winCardTO);
+  finalFx=null; bonkFx=null; nudgeFx=null; deadBalls=[];
   quickWinTapReady=false; clearTimeout(quickWinTapTO); el("win").classList.remove("quicknext");
   cft=[]; if(cftEl) cftEl.classList.remove('on');
   hintFx=null; hintCancel(); aimReset();
@@ -18900,7 +18903,7 @@ function restoreSnap(s){
   dog.r=s.d.r; dog.c=s.d.c;
   boxes=s.b.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,rr:b.r,cc:b.c,roll:0,sqT:0,sdr:0,sdc:0,landT:0,sink:b.sink||0,covered:!!b.covered,wet:!!b.wet,coverT:0,carried:!!b.carried,buried:!!b.buried,buriedBall:!!b.buriedBall,buryT:0}));
   dog.carry=!!s.d.carry;
-  filled=new Set(s.f); moves=s.m; pendingWin=false; deadT=0; deadPend=true; syncMoves();
+  filled=new Set(s.f); moves=s.m; pendingWin=false; deadT=0; deadBalls=[]; deadPend=true; syncMoves();
   moundTrail=new Set(s.mt||[]);
   if(L.cat!=null){ catAwake=s.ca|0; catPos=s.ck==null?L.cat:s.ck; }
   if(curCatPath()){ kitty.i=s.ki|0; kitty.d=s.kd||1; kitty.rr=catR(kitty.i); kitty.cc=catC(kitty.i); }
@@ -18986,7 +18989,8 @@ function tryMove(dr,dc){
         ball.bump=1; ball.bumpK=1; ball.bumpR=dr; ball.bumpC=dc;
         if(blocker.kind==='ball'){ blocker.bumpD=0.45; blocker.bumpR=dr; blocker.bumpC=dc; }
         sfxBlocked(); buzz([10,40,10]);
-      }
+      } else { ball.bump=1; ball.bumpK=0.45; ball.bumpR=dr; ball.bumpC=dc; buzz([8,30,8]); }   // 벽·수풀 — 공이 떨기만 한다
+      bonkStart();                                              // 밀었는데 안 나갔다 — 머리 위로 별
     }
     return;
   }
@@ -19021,7 +19025,7 @@ function tryMove(dr,dc){
     if(hitTerrain){
       b.bump=1; b.bumpR=dr; b.bumpC=dc;
       dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=0.6;
-      sfxThud(); buzz([10,40,10]); shake=Math.min(1,shake+0.14);
+      sfxThud(); buzz([10,40,10]); shake=Math.min(1,shake+0.14); bonkStart();
       // 공은 튕기는데 고양이가 미동도 없으면 "왜 안 되지"에 답이 없다. 놀라기는 하되
       // **뛰지 못하고 도로 웅크린다** — 뛸 때와 같은 빨간 ! 를 쓰되 그다음이 갈린다.
       // 안내판의 "숨을 곳이 막히면 그대로 있어요"가 그림으로 증명되는 자리다.
@@ -19037,7 +19041,7 @@ function tryMove(dr,dc){
       // 로직은 불변 — 자리 이동 없는 순수 연출. 지연은 bumpD 카운터가, 진폭은 bumpK 가 진다.
       else if(blocker.kind==='ball'){ blocker.bumpD=0.45; blocker.bumpR=dr; blocker.bumpC=dc; }
       dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=0.6;
-      sfxBlocked(); buzz([10,40,10]); shake=Math.min(1,shake+0.18);
+      sfxBlocked(); buzz([10,40,10]); shake=Math.min(1,shake+0.18); bonkStart();
     } else if(dog.carry && (b||blocker)){               // 뼈를 물어 입이 찬 상태
       dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=0.5; sfxBlocked(); buzz([8,30,8]);
     } else if(L._knock){                                // 공이 도로 굴러떨어짐: 맥스 넉백 연출
@@ -19048,8 +19052,13 @@ function tryMove(dr,dc){
     } else {                                            // 그 외 못 가는 이유: 갸웃 말풍선으로 알려준다
       const t2=tileAt(L, filled, tr, tc);
       dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=0.45; dog.face=dc<0?-1:dc>0?1:dog.face;
+      // 공을 벽에 밀었다 — 공이 떨고 맥스 머리 위로 별. 갸웃 말풍선은 "왜 못 가지"라
+      // 이 경우엔 별이 대신한다(안 되는 게 보이는데 물음표까지 띄우면 말이 겹친다).
+      const bw=boxes.find(x=>x.sink===0 && !x.carried && x.kind==='ball' && x.r===tr && x.c===tc);
+      if(bw){ bw.bump=1; bw.bumpK=0.45; bw.bumpR=dr; bw.bumpC=dc; bonkStart(); }
       // 묻힌 칸을 친 경우는 위 matWallHit 이 이미 재료 말풍선을 띄웠다 — 덮지 않는다.
       if(bubble && bubble.kind==='mat'){}
+      else if(bw){}
       else if(t2===WATER || isFlow(t2) || t2===FS) bubble={kind:'water', t:2.2};   // 물은 무서워 (물줄기·물살·웅덩이)
       else bubble={kind:'huh', t:2.2};                  // 벽/울타리/덤불/고양이 = ?
       const hitsWall=t2===WALL || (boxes.some(x=>x.sink===0&&!x.carried&&x.r===tr&&x.c===tc) && tileAt(L,filled,tr+dr,tc+dc)===WALL);
@@ -19242,6 +19251,7 @@ function tryMove(dr,dc){
     if(b){
       b.sdr=dr; b.sdc=dc; b.sqT=(b.kind==='log'||b.kind==='cartV'||b.kind==='cartH'?0.45:1);
       ballKickFx(b,dr,dc);
+      if(b.kind==='ball'){ b.stopT=0; if(!motionReduced()) nudgeFx={dr, dc, t:0}; }
       // 트램플린에 올랐는데 못 내려앉았다 — 굴러 도착한 **뒤에** 떴다 되돌아온다.
       // 미는 순간 걸면 굴러가는 몸짓과 겹쳐 공이 납작한 채로 떠오른다(실측).
       if(res.trampBlock) b.tramp={dr, dc};
@@ -19285,7 +19295,7 @@ function tryMove(dr,dc){
     if(cut<0) acc+=pathTime(e.path);
   }
   prepareBallContacts(boxes);
-  if(isGoal(L, curState())) pendingWin=true;
+  if(isGoal(L, curState())){ pendingWin=true; finalStart(); }
   else deadPend=true;                                 // 실패 없음 — 걸음 제한 없이 계속 시도한다
 }
 
@@ -20571,6 +20581,7 @@ function blockedFeedback(r,c){
 let catEar=0, catLeaveT=0, catWas=false, catDir=1, catAwake=0, catPos=null, catJumpFx=null, catJoltT=0;   // 고양이 연출/상태
 let walkPulse=[];                                     // 구덩이 메움 → "이제 걸을 수 있음" 초록 링
 let rollPulse=[];
+const RP_DUR={goal:.44, gold:.7};
 // 미도쿠 벤치마크(2026-09-26) — 한 수마다의 칭찬·즉시 적립·연속 기록.
 // praisePops: 공이 방석에 앉는 순간의 짧은 말 칩(캔버스). matIntroT: 판이 선 뒤
 // 방석이 한 번 반짝여 목표를 짚는 타이머(-1=꺼짐). winStreak: 다시 걷기 0으로
@@ -20645,19 +20656,110 @@ function predictCat(){                                // 다음에 고양이가 
   return ni;
 }
 function catC(i){ const p=curCatPath(); return p? p[i]%GN : 0; }
-let lastLandK=null, winFx=null, starFly=[], starPend=0, winT=0, winCardTO=0;                                           // 되돌리기 강조 / 뼈 물기 시각
+let lastLandK=null, winFx=null, starFly=[], starPend=0, winT=0, winCardTO=0;
+// 밀기 손맛 셋(2026-09-28) — 전부 그림·소리뿐이라 규칙·par·무르기 스택엔 안 닿는다.
+//   finalFx : 마지막 한 수. 판을 푸는 공이 굴러가는 동안 느려지고 화면이 그 방석으로 당겨진다.
+//             {k:방석 칸, z:당김 0..1, hit:안착했나, slow:느려지나}
+//   bonkFx  : 밀었는데 공이 안 나갔다 — 맥스 머리 위로 별이 돈다. {t:지난 초}
+//   nudgeFx : 공을 민 방향으로 화면이 2px 밀렸다 돌아온다. {dr,dc,t}
+//   deadBalls: 방석까지 못 가는 자리에 박힌 공. 붉은 테와 땀방울을 그린다.
+let finalFx=null, bonkFx=null, nudgeFx=null, deadBalls=[];
+function motionReduced(){ return typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion: reduce)').matches; }
+function finalStart(){
+  // 같은 수에 공이 둘 이상 방석에 들 수 있다 — 제일 늦게 닿는 공이 판을 푼다.
+  let best=null, bt=-1;
+  for(const x of boxes){ if(!x.path || !x.pend || x.pend.land==null) continue;
+    const t=(x.delay||0)+pathTimeOf(x.path); if(t>bt){ bt=t; best=x; } }
+  finalFx = best? {k:best.pend.land, z:0, hit:false, slow:!motionReduced()} : null;
+}
+function sfxSeatClick(){ tone(1850,0.025,"square",0.035,1500); setTimeout(()=>tone(2500,0.035,"triangle",0.03,2150), 40); }
+function finalLand(b){
+  finalFx.hit=true;
+  sfxSeatClick(); buzz([6,30,18]);
+  rollPulse.push({r:b.r, c:b.c, t:0, kind:'gold'});
+  if(!motionReduced()) hitstop=Math.max(hitstop,0.14);
+  // 먼저 앉아 있던 공들이 같이 폴짝 — 차례로 조금씩 늦게.
+  let i=0;
+  for(const x of boxes){
+    if(x===b || x.sink || x.path || x.kind!=='ball' || x.goalFeelAt==null || !holes.has(kk(x.r,x.c))) continue;
+    x.hopT=1; x.hopD=0.16+0.07*(i++);
+  }
+}
+function bonkStart(){
+  bonkFx={t:0};
+  tone(110,0.12,"triangle",0.05,78);                              // 퉁
+}
+// 공 몸짓 — 출발할 때 진행 방향으로 늘어나고, 멈출 때 눌렸다 튀어 돌아온다.
+// 장난감 그림은 sx·sy 를 안 받아서(방석에 드는 순간 부풀지 말라고 1로 묶였다) 바깥에서 늘린다.
+function toySquash(b){
+  if(motionReduced()) return null;
+  let a=0;                                                        // + 진행 방향으로 늘어남, - 눌림
+  if(b.launchT>0) a+=Math.sin(b.launchT*Math.PI)*0.16;
+  if(b.stopT>0){ const u=1-b.stopT; a-=Math.cos(u*Math.PI*2.4)*Math.exp(-u*4)*0.2; }
+  if(Math.abs(a)<0.004) return null;
+  return (b.sdc||0)!==0? {sx:1+a, sy:1-a*0.7} : {sx:1-a*0.7, sy:1+a};
+}
+function deadBallList(){
+  if(!levelPlainPush(L) || !L._alive) return [];
+  return boxes.filter(b=>b.sink===0 && !b.carried && b.kind==='ball' && b.color>=0 && !holes.has(kk(b.r,b.c))
+    && L._alive[b.color] && !L._alive[b.color].has(kk(b.r,b.c)));
+}
+// 글자는 처음 세 번만 — 그다음부턴 테·땀방울·무르기 반짝임만 남긴다.
+// 무르기 코치마크를 아직 안 본 사람에겐 그 카드가 같은 말을 하므로 건너뛴다.
+const STUCK_TOAST_MAX=3;
+function stuckToast(){
+  if(tutMode || !deadBalls.length) return;
+  const n=tipSeen['stuckN']|0; if(n>=STUCK_TOAST_MAX) return;
+  tipSeen['stuckN']=n+1; LS.set('roll_tips', JSON.stringify(tipSeen));
+  showToast(I18N.t('notice.stuckBall'), 1800);
+}
+function drawDeadBalls(){
+  const still=motionReduced(), beat=still? 0.6 : 0.5+0.5*Math.sin(animT*5);
+  for(const b of deadBalls){
+    if(b.sink>0 || b.path) continue;
+    const x=cx(b.cc), y=cy(b.rr);
+    ctx.save();
+    // 맥박이 약한 순간에도 붉게 읽혀야 한다 — 0.45 까지 내리면 풀밭 위에서 흙색으로 보였다(실측).
+    ctx.fillStyle="rgba(214,72,56,"+(0.10+beat*0.08).toFixed(2)+")";
+    ctx.beginPath(); ctx.arc(x, y+cell*0.02, cell*(0.40+beat*0.04), 0, 7); ctx.fill();
+    ctx.strokeStyle="rgba(214,64,50,"+(0.7+beat*0.3).toFixed(2)+")"; ctx.lineWidth=cell*0.065;
+    ctx.stroke();
+    // 땀방울 — 오른쪽 위에서 흘러내린다
+    const u=still? 0.3 : (animT*0.9)%1, s=cell*0.09;
+    const dx=x+cell*0.30, dy=y-cell*0.34+u*cell*0.16;
+    ctx.globalAlpha=still? 1 : Math.min(1,(1-u)*2.2);
+    ctx.fillStyle="#8FD0F2"; ctx.strokeStyle="#3F8FBF"; ctx.lineWidth=cell*0.02;
+    ctx.beginPath(); ctx.moveTo(dx,dy-s*1.5); ctx.quadraticCurveTo(dx+s,dy-s*0.1,dx+s,dy+s*0.35);
+    ctx.arc(dx,dy+s*0.35,s,0,Math.PI); ctx.quadraticCurveTo(dx-s,dy-s*0.1,dx,dy-s*1.5); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+}
+function drawBonk(x,y){
+  const u=bonkFx.t/0.7; if(u>=1) return;
+  ctx.save(); ctx.globalAlpha=Math.min(1,(1-u)*2.5);
+  for(let i=0;i<3;i++){
+    const a=animT*7+i*2.094, sx=x+Math.cos(a)*cell*0.28, sy=y+Math.sin(a)*cell*0.09, R=cell*0.105;
+    ctx.fillStyle="#FFD65A"; ctx.strokeStyle="#B77A0E"; ctx.lineWidth=cell*0.024;
+    ctx.beginPath();
+    for(let j=0;j<10;j++){ const r2=j%2? R*0.45 : R, q=j*Math.PI/5-Math.PI/2; ctx.lineTo(sx+Math.cos(q)*r2, sy+Math.sin(q)*r2); }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}                                           // 되돌리기 강조 / 뼈 물기 시각
 let quickWinTapReady=false, quickWinTapTO=0;
 function checkDeadlock(){
   if(state!=="play" || pendingWin) return;
   // 무르기는 3판(못 당긴다)이 가르친다. 1판은 공이 아예 없어 deadlockNow() 가 늘 참이고
   // (방석을 채울 공이 없으니 당연하다), 앞 두 판에선 죽음 자체를 없는 것으로 친다.
   // deadT 를 0 으로 두는 게 핵심이다 — 소리만 막고 두면 무르기 버튼이 계속 맥동한다(실측).
-  if(tutMode && tutIdx!==2){ deadT=0; return; }
+  if(tutMode && tutIdx!==2){ deadT=0; deadBalls=[]; return; }
   if(deadlockNow()){
-    if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]); tutStuck(); }
+    deadBalls=deadBallList();                                    // 어느 공이 박혔나 — 그 공에 테를 두른다
+    if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]);
+      const knew=!!tipSeen['tutUndo']; tutStuck(); if(knew) stuckToast(); }
     deadT=1;
   }
-  else deadT=0;
+  else { deadT=0; deadBalls=[]; }
 }
 // 연습판에서 공을 구석에 처박은 순간 = 무르기가 필요해지는 순간. 전용 판을 따로 만들지 않고
 // 여기서 가르친다 — 아직 겪지 않은 문제의 해법을 먼저 외우게 하는 건 순서가 거꾸로다.
@@ -21819,7 +21921,10 @@ function firePend(b){
     if(p.recolor<0){ spark(b.r,b.c,"#9FD4EE",14,2.8); tone(880*m,0.14,"sine",0.04,300*m); tone(430*m,0.1,"triangle",0.03,180*m); }  // 물에 씻김
     else { spark(b.r,b.c,COL[p.recolor],10+chainN*2,2.5); tone(600*m,0.08,"triangle",0.05,1000*m); } }
   if(p.land!=null){ lastLandK=p.land; const m=chainStep(); b.landT=1; holePulse[p.land]=1;
-    b.goalFeelAt=animT;
+    b.goalFeelAt=animT; b.stopT=0;
+    // 판을 푸는 앉힘 — 글자 칭찬 대신 딸깍·금빛 테·먼저 앉은 공들의 폴짝이 맡는다.
+    const fin = !!(finalFx && !finalFx.hit && p.land===finalFx.k);
+    if(fin) finalLand(b);
     rollPulse.push({r:b.r,c:b.c,t:0,kind:'goal'});
     if(!goalFeelPreviewEnabled()){
       dog.maxEvent='arrive'; dog.maxEventT=0;
@@ -21828,7 +21933,7 @@ function firePend(b){
       // 앉는 순간의 짧은 말 — 연달아 앉힐수록 등급이 오른다(2026-09-26). 마지막 방석도 받는다:
       // 리본을 걷어낸 뒤로 마지막 앉힘이 말 없이 지나갔다.
       // 소리는 새로 안 낸다: sfxGoal 이 이미 완성도 음계를 진다(프레임 오디오 계수 불변).
-      { const gap=moves-seatLastMove; seatCombo=(gap>0 && gap<=SEAT_COMBO_GAP)? seatCombo+1 : 1; seatLastMove=moves;
+      if(!fin){ const gap=moves-seatLastMove; seatCombo=(gap>0 && gap<=SEAT_COMBO_GAP)? seatCombo+1 : 1; seatLastMove=moves;
         const tier=Math.min(3, seatCombo);
         const key= tier>=3? 'fx.good4' : tier===2? 'fx.good2' : ((level+moves)%2? 'fx.good1' : 'fx.good3');
         praisePops.push({r:b.r, c:b.c, t:0, tier, txt:I18N.t(key)});
@@ -30721,9 +30826,14 @@ function render(){
   ctx.save();
   if(tutSlide) ctx.translate(tutSlideX(), 0);
   if(shake>0.02){ ctx.translate((Math.random()-0.5)*shake*cell*0.25,(Math.random()-0.5)*shake*cell*0.25); }
-  if(winFx && winFx.t<1){ const zr=(winFx.k/GN)|0, zc=winFx.k%GN;                 // C: 방석 중심 줌
-    const z=1+Math.sin(winFx.t*Math.PI)*0.14;
-    ctx.translate(cx(zc),cy(zr)); ctx.scale(z,z); ctx.translate(-cx(zc),-cy(zr)); }
+  if(nudgeFx && nudgeFx.t<0.16){ const k=Math.sin(nudgeFx.t/0.16*Math.PI)*cell*0.035; ctx.translate(nudgeFx.dc*k, nudgeFx.dr*k); }
+  // C: 방석 중심 줌. 마지막 한 수가 먼저 조금 당겨 두고(0.08), 승리 줌(0.14)이 이어받는다 —
+  // 둘 중 큰 쪽을 써야 이어받는 순간 화면이 튀지 않는다.
+  { let z=0, zk=null;
+    if(finalFx && finalFx.z>0.001){ z=finalFx.z*0.08; zk=finalFx.k; }
+    if(winFx && winFx.t<1){ const zw=Math.sin(winFx.t*Math.PI)*0.14; if(zw>=z){ z=zw; zk=winFx.k; } }
+    if(zk!=null && z>0){ const zr=(zk/GN)|0, zc=zk%GN;
+      ctx.translate(cx(zc),cy(zr)); ctx.scale(1+z,1+z); ctx.translate(-cx(zc),-cy(zr)); } }
   drawTilesCached();
   drawAcorns();
   // 수풀 힌트 — 수풀에 묻힌 재료 한 칸을 짚는다. 울타리 힌트와 같은 그림이고 색만 다르다.
@@ -31007,7 +31117,17 @@ function render(){
     ctx.restore();
   }
   for(const p of rollPulse){
-    const dur=p.kind==='goal'? .44 : .22, u=p.t/dur; if(u>=1) continue;
+    if(p.kind==='gold'){                                       // 마지막 한 수 — 금빛 테가 크게 번진다
+      const u=p.t/RP_DUR.gold; if(u>=1) continue;
+      // 처음부터 빨리 번져야 장난감 뒤에 안 숨는다(ease-out). 가운데서 천천히 퍼지면 첫 0.2초가 가려졌다(실측).
+      const x=cx(p.c), y=cy(p.r)+cell*.06, R=cell*(.36+(1-(1-u)*(1-u))*.62);
+      ctx.save(); ctx.globalAlpha=(1-u)*.95; ctx.strokeStyle='#F2B230'; ctx.lineWidth=cell*.09*(1-u*.5);
+      ctx.beginPath(); ctx.ellipse(x,y,R,R*.74,0,0,7); ctx.stroke();
+      ctx.globalAlpha=(1-u)*.5; ctx.strokeStyle='#FFE08A'; ctx.lineWidth=cell*.03;
+      ctx.beginPath(); ctx.ellipse(x,y,R*1.25,R*.92,0,0,7); ctx.stroke(); ctx.restore();
+      continue;
+    }
+    const dur=RP_DUR[p.kind]||.22, u=p.t/dur; if(u>=1) continue;
     const x=cx(p.c), y=cy(p.r), goal=p.kind==='goal';
     const R=cell*((goal?.18:.14)+u*(goal?.38:.24));
     ctx.save();
@@ -31100,9 +31220,14 @@ function render(){
                         vx:-ux*0.5+(Math.random()-0.5)*0.5, vy:-uy*0.5-0.35-Math.random()*0.4,
                         t:0.75, col:"#DFF1FA" }); }
           } else b.foamT=0;
+          // 마지막 한 수 — 판을 푸는 공은 방석에 가까울수록 느려진다(0.35배까지). 입력은 안 막는다.
+          if(finalFx && !finalFx.hit && finalFx.slow && b.pend && b.pend.land===finalFx.k)
+            step*=0.35+0.65*Math.min(1,(Math.abs(b.r-b.rr)+Math.abs(b.c-b.cc))/1.5);
           if(dist<=step){ b.rr=tg.r; b.cc=tg.c; b.pathI++;
             if(tg.emitContact){b.air=0;fireBallContact(b,tg.emitContact);}
-            if(b.pathI>=b.path.length){ b.path=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc))); firePend(b); }
+            if(b.pathI>=b.path.length){ b.path=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
+              if(b.kind==='ball' && !b.tramp){ b.stopT=1; tone(210,0.06,"sine",0.03,150); }   // 멈추며 통 — 방석에 들면 firePend 가 거둔다
+              firePend(b); }
             else if(!tg.contactApproach && !tg.contactReturn){ const t=tileAt(L,filled,tg.r,tg.c); if(isSlope(t)){ b.holdT=SLOPE_HOLD; sfxSlide(); } }  // 접촉 반동에는 별도 멈칫을 넣지 않는다
           }
           else { b.cc+=dx/dist*step; b.rr+=dy/dist*step; }
@@ -31125,6 +31250,9 @@ function render(){
         // 제자리에 거의 닿으면 계수를 원래대로 돌려 다음 밀기가 굼떠지지 않게 한다.
         if(b.kMul && Math.abs(b.c-b.cc)+Math.abs(b.r-b.rr) < 0.06) b.kMul=0;
         const kM=decay(MOVE_K*(b.kMul||1)); b.rr+=(b.r-b.rr)*kM; b.cc+=(b.c-b.cc)*kM; }
+      if(b.launchT>0) b.launchT=Math.max(0,b.launchT-dt/0.2);
+      if(b.stopT>0) b.stopT=Math.max(0,b.stopT-dt/0.4);
+      if(b.hopT>0){ if(b.hopD>0) b.hopD-=dt; else b.hopT=Math.max(0,b.hopT-dt/0.34); }
       soundBallWaterEntry(b,prr,pcc);
     }
     const dccf=b.cc-pcc, drrf=b.rr-prr; b.roll+=(dccf+drrf)/0.30;   // 회전각 = 이동/반지름 (rad=cell*0.30)
@@ -31136,6 +31264,7 @@ function render(){
     if(goalFeelEnabled()&&b.kind==='ball'){ sx=1;sy=1; } // no ballooning at arrival
     let sink=b.sink>0? (1-b.sink) : 1; sx*=sink; sy*=sink;
     let bx=cx(b.cc), by=cy(b.rr);
+    if(b.hopT>0 && !(b.hopD>0)) by-=Math.sin((1-b.hopT)*Math.PI)*cell*0.2;   // 마지막 한 수 — 같이 폴짝
     // 빈 고양이 상자 위를 굴러 넘는다 — 규칙상 공은 그냥 지나가는데(빈 상자는 벽이 아니다),
     // 그림은 꽉 찬 나무 상자라 **뚫고 가는 것처럼** 보였다. 맥스가 올라서는 것과 같은
     // 문법으로, 칸에 가까울수록 떠올랐다 내려앉는다. 규칙·par 에는 아무 영향이 없다.
@@ -31234,10 +31363,14 @@ function render(){
         cell*bsc,b.color,b.roll+settle.offset*3,1,1);
       drawGoalFeelCushion(cx(b.c),cy(b.r),C,settle.press,true,animT-b.goalFeelAt);
     }
-    else if(goalFeelToyKind())drawGoalFeelToy(bx,by,cell*bsc,goalToyRotation(b.toyDX||0,b.toyDY||0),false,Math.min(1,spd*35),0,COL[b.color]||null);
+    else if(goalFeelToyKind()){ const q=b.kind==='ball'? toySquash(b) : null;
+      if(q){ const ay=by+cell*bsc*0.3; ctx.save(); ctx.translate(bx,ay); ctx.scale(q.sx,q.sy); ctx.translate(-bx,-ay); }
+      drawGoalFeelToy(bx,by,cell*bsc,goalToyRotation(b.toyDX||0,b.toyDY||0),false,Math.min(1,spd*35),0,COL[b.color]||null);
+      if(q) ctx.restore(); }
     else drawBall(bx,by,cell*bsc,b.color,b.roll,sx,sy);
     if(goalFeelToyKind()&&goalFeelToyKind()!=='puppy'&&b.kind==='ball')drawToyColorMark(bx,by+cell*bsc*.17,cell*bsc,COL[b.color]);
   }
+  if(deadT>0 && state==="play" && deadBalls.length) drawDeadBalls();
   drawUnderBridgeDecks();                                     // 물살의 공만 상판 아래, 맥스는 이후에 위로
   // 공 위를 지나는 고양이 — 공보다 나중에 그려야 뛰어넘는 게 보인다.
   // 규칙상 고양이는 공을 통과한다(공은 고양이에 막히는데 반대는 아니다). 그 비대칭을
@@ -31325,6 +31458,7 @@ function render(){
       if(!menuMode && !tutMode && !tunP) drawMud(cx(dog.cc)+dog.lungeC*lg+shX, cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift, cell, mudLevel());
     }
   }
+  if(bonkFx) drawBonk(cx(dog.cc)+dog.lungeC*lg, cy(dog.rr)+dog.lungeR*lg-cell*0.5);
   if(dog.carry){
     // 입에 문 것 — 뼈냐 작물이냐. 작물이면 물었던 색 그대로 그린다(당근·가지·옥수수).
     if(cropCarry!=null) drawCrop(cx(dog.cc)+dog.lungeC*lg+dog.face*cell*0.16, cy(dog.rr)+dog.lungeR*lg-hopY+cell*0.02, cell*0.80, cropCarry);
@@ -31797,7 +31931,7 @@ function frameInner(ts){
   if(walkPulse.length){ for(const p of walkPulse) p.t+=dt; walkPulse=walkPulse.filter(p=>p.t<1.25); }
   if(rollPulse.length){
     for(const p of rollPulse) p.t+=dt;
-    rollPulse=rollPulse.filter(p=>p.t<(p.kind==='goal'?.44:.22));
+    rollPulse=rollPulse.filter(p=>p.t<(RP_DUR[p.kind]||.22));
   }
   // 순찰 중이면 목표 칸으로 부드럽게 따라감. L.walk(처음부터 깬 고양이)뿐 아니라
   // 깨어난 방석 고양이(catAwake)도 같은 보간을 타야 한다 — 안 그러면 i 는 바뀌는데
@@ -31945,6 +32079,10 @@ function frameInner(ts){
   }
   dog.digT = 0;                                          // 파는 자세는 없앴다 — 이제 민다
   for(const h of hearts){ if(h.dly>0){ h.dly-=dt; continue; } h.t-=dt/1.5; } hearts=hearts.filter(h=>h.t>0);
+  if(finalFx){ const want=(state==="play" && !motionReduced())? 1 : 0;    // 굴러가는 동안 당기고, 승리가 오면 놓는다
+    finalFx.z += (want-finalFx.z)*Math.min(1, dt*(want? 5 : 3.2)); if(finalFx.z<0.001) finalFx.z=0; }
+  if(bonkFx){ bonkFx.t+=dt; if(bonkFx.t>=0.7) bonkFx=null; }
+  if(nudgeFx){ nudgeFx.t+=dt; if(nudgeFx.t>=0.16) nudgeFx=null; }
   if(state==="win"){ winT+=dt;
     if(dog.houseK!=null && !dog.entered){
       const near = Math.abs(dog.rr-dog.r)+Math.abs(dog.cc-dog.c) < 0.08;

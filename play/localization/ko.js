@@ -908,6 +908,7 @@
     "notice.bagAdded": "훈련 횟수가 늘었어요",
     "notice.hintActive": "채웠어요 — 켜 뒀어요",
     "notice.pickBall": "먼저 <b>공</b>을 눌러 주세요",
+    "notice.stuckBall": "여기선 방석까지 못 가요",
     "notice.full": "밥그릇이 가득이에요",
     "notice.adMeal": "광고를 다 못 봐서 밥을 받지 못했어요",
     "notice.adSkip": "광고를 다 못 봐서 건너뛰지 못했어요",

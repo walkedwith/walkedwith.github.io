@@ -908,6 +908,7 @@
     "notice.bagAdded": "Commands added!",
     "notice.hintActive": "Refilled and activated!",
     "notice.pickBall": "Tap a <b>ball</b> first.",
+    "notice.stuckBall": "It can’t reach a cushion from here.",
     "notice.full": "The bowl is full!",
     "notice.adMeal": "Finish the ad to receive a meal.",
     "notice.adSkip": "Finish the ad to skip this level.",
