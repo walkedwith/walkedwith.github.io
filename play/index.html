@@ -1123,58 +1123,12 @@ function stopGoalSound(){
   const a=el('sfxGoalAudio');
   if(a) try{a.pause();a.currentTime=0;}catch(e){}
 }
-// ---- 손맛 스위치 셋 (2026-09-28) — 읽어서 못 정하고 만져 봐야 하는 것들이라 끄고 켠다.
-//   규칙·par·무르기 스택·세이브에는 셋 다 안 닿는다. 소리와 그림의 타이밍뿐이다.
-//
-//   **1·2 는 기본 꺼짐이다.** 둘 다 이미 서 있는 결정과 부딪힌다:
-//     1 방석 소리는 고른 녹음을 원래 음높이로 둔다   (tests/goal-audio.test.js)
-//     2 밀기 소리는 hitstop 중에도 미는 즉시 난다     (tests/ball-contact-timing.test.js)
-//   그 결정을 조용히 뒤집지 않는다. 켜고 들어 본 뒤에 정할 몫이라 스위치만 달아 둔다.
-//   3 은 부딪히는 것이 없어 기본 켜짐이다.
-//
-//   ?feel=0     셋 다 끔(예전 그대로)     ?feel=1  셋 다 켬
-//   ?feel=scale 1번만 켬                  ?feel=contact 2번만 켬
-//   콘솔에서 낱개로도 바꾼다(전부 let).
-// 1번은 **기본 꺼짐**이다. 방석 소리를 고른 녹음 그대로 두자는 결정이 이미 서 있고
-// (tests/goal-audio.test.js — "원래 음높이로, 옛 tone 이 겹치지 않게") 그 결정을
-// 조용히 뒤집을 수는 없다. 켜면 앉힐 때마다 한 음씩 올라간다 — 들어 보고 정할 몫이다.
-let GOAL_SCALE_ON = false;  // 1 방석 음계 — 공을 앉힐 때마다 한 음씩 오른다
-let PUSH_DELAY_ON = false;  // 2 밀기 소리·먼지·화면 밀림을 공이 떠나는 시각에 맞춘다
-let PUSH_CURVE_ON = true;   // 3 1칸 밀기의 위치 곡선
-try{ const q=new URLSearchParams(location.search).get('feel');
-     if(q==='0') GOAL_SCALE_ON=PUSH_DELAY_ON=PUSH_CURVE_ON=false;
-     if(q==='1') GOAL_SCALE_ON=PUSH_DELAY_ON=PUSH_CURVE_ON=true;
-     if(q==='scale') GOAL_SCALE_ON=true;
-     if(q==='contact') PUSH_DELAY_ON=true;
-}catch(e){}
-// 개가 공에 닿기까지. 개는 DOG_K 로 목표 칸에 붙으므로 60fps 에서 네댓 프레임이면
-// 눈에 닿은 것으로 보인다. 전용 밀기 포즈가 있는 판은 제 접촉 프레임을 따로 쓴다.
-const PUSH_CONTACT=0.07;
-// 1칸 밀기가 가는 데 걸리는 시간. 예전 등속(SLIDE_STEP)으로도 약 0.16 초였다 —
-// 길이를 바꾸는 게 아니라 그 안의 속도 모양을 바꾸는 것이다.
-const PUSH1_DUR=0.17;
-// 끝에서 살짝 지나쳤다 앉는다(easeOutBack). c1 1.2 = 한 칸의 약 5% 가 최대 넘침 —
-// 55px 칸에서 3px 쯤이라 눈에 "탁 앉았다"로만 남고 어긋나 보이지 않는다.
-// 움직임 줄이기에서는 넘침만 빼고 빠른 출발·느린 도착은 남긴다(back 없는 3차 감속) —
-// 속도 모양은 어지럼과 무관하고, 그걸 빼면 2·3번 중 3번이 통째로 사라진다.
-const push1Ease=(u,back)=>{ const w=u-1;
-  return back? 1+2.2*w*w*w+1.2*w*w : 1+w*w*w; };
-// 방석 음계 — 공을 앉힐 때마다 한 음씩 오른다.
-// 예전엔 tone() 으로 C5·E5·G5·C6 를 쳤는데, 음원 파일로 갈아 끼우며(55e9599)
-// playbackRate 가 1 로 박혀 계단이 통째로 사라졌다. 인자 둘은 그때부터 안 쓰인 채
-// 남아 있었고, win() 주석은 아직도 "sfxGoal 이 완성도 음계를 진다"라고 적고 있었다.
-// 방석은 최대 셋이라(1개 42판 · 2개 133판 · 3개 125판) 뿌리·3도·5도로 떨어진다.
-// 2.0 배(옥타브)는 음원이 반으로 짧아져 다른 악기가 되므로 1.5 에서 멈춘다 —
-// 마지막 방석은 그 위에 딸깍(sfxSeatClick)이 얹혀 해결을 맡는다.
 function sfxGoal(index,total){
   if(!optSnd||document.hidden||bgmSuspended) return;
   uiSoundSerial++;
   const a=el('sfxGoalAudio');if(!a) return;
   try{
-    const n=Math.max(1,total|0), i=Math.max(0,Math.min(n-1,(index|0)-1));
-    a.volume=0.55;
-    a.playbackRate = GOAL_SCALE_ON? 1+0.5*(i/Math.max(1,n-1)) : 1;
-    a.currentTime=0;
+    a.volume=0.55;a.playbackRate=1;a.currentTime=0;
     const p=a.play();return p&&p.catch?p.catch(()=>{}):p;
   }catch(e){}
 }
@@ -19288,45 +19242,25 @@ function tryMove(dr,dc){
     tone(140,0.07,"sine",0.018,100); buzz(8); // 짧은 밀기 한 번. 도착은 Dirt 3이 맡는다.
   }
   if(res.pushed){
-    const heavy = res.kind==='log'||res.kind==='cartV'||res.kind==='cartH';
-    // 2번 — 소리·먼지·화면 밀림을 **공이 실제로 출발하는 시각**에 맞춘다.
-    // 공은 이미 기다리고 있었다: 마스터 모션이 전 판에 켜져 있어서 밀린 공은 0.114초
-    // 뒤에 움직인다(chapterMaxMasterPushBallDelay). 그런데 소리와 먼지는 미는 즉시
-    // 났다 — 들리는 것이 보이는 것보다 한 뼘 먼저라, 닿아서 움직인 것으로 안 읽혔다.
-    // 그래서 "공을 늦추는" 것이 아니라 **나머지를 공에 맞추는** 것이 이 스위치다.
-    // 짐(상자·대차)은 그대로 둔다 — 거긴 낑낑대는 소리가 먼저 나야 힘쓰는 그림이 된다.
-    const ballT = heavy? 0
-      : chapterMaxMasterMotionRuntimeEnabled()? chapterMaxMasterPushBallDelay(dog.protoMoveDur||.38)
-      : ((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1)? (dog.protoMoveDur||.34)*.42
-      : (PUSH_DELAY_ON? PUSH_CONTACT : 0);
-    // 스위치를 끄면 예전 타이밍 그대로 — 1판 전용 포즈만 제 접촉 프레임을 쓰고 나머지는 즉시.
-    const fxT = PUSH_DELAY_ON? ballT
-      : (((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1)? (dog.protoMoveDur||.34)*.42 : 0);
-    // 미룰 것이 있으면 공 자신에게 표를 달아 둔다(b.pushSfx) — 공이 출발하는 프레임에
-    // 프레임 루프가 떼어 간다. fxQueue 로 예약하지 않는 이유가 둘이다:
-    //   · 출발 시각의 정본은 b.delay 가 0 이 되는 그 프레임이지 따로 센 시계가 아니다
-    //   · fxQueue 는 frameInner 가 비우는데 접촉 판정 테스트들은 render() 만 돌린다
-    const deferFx = !heavy && fxT>0;
-    if(heavy){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } // 상자와 대차는 재질을 구분한다
-    else if(!deferFx){ sfxBallPush(); feedbackPulse('push'); }
+    if(res.kind==='log'||res.kind==='cartV'||res.kind==='cartH'){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } // 상자와 대차는 재질을 구분한다
+    else if((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1){
+      // 전용 밀기 포즈의 접촉 프레임(.42)에서 소리와 공이 함께 출발한다.
+      fxAfter((dog.protoMoveDur||.34)*.42,()=>{sfxBallPush();feedbackPulse('push');});
+    } else { sfxBallPush(); feedbackPulse('push'); }
     const b=boxes.find(x=>x.sink===0 && x.r===nr && x.c===nc); // 밀린 라이브 공
     if(b){
       b.sdr=dr; b.sdc=dc; b.sqT=(b.kind==='log'||b.kind==='cartV'||b.kind==='cartH'?0.45:1);
-      // 먼지와 화면 밀림도 같은 표를 탄다 — 소리만 미루면 몸짓이 소리보다 먼저 나 어긋난다.
-      if(deferFx) b.pushSfx=1;
-      else { ballKickFx(b,dr,dc);
-             if(b.kind==='ball' && !motionReduced()) nudgeFx={dr, dc, t:0}; }
-      if(b.kind==='ball') b.stopT=0;
+      ballKickFx(b,dr,dc);
+      if(b.kind==='ball'){ b.stopT=0; if(!motionReduced()) nudgeFx={dr, dc, t:0}; }
       // 트램플린에 올랐는데 못 내려앉았다 — 굴러 도착한 **뒤에** 떴다 되돌아온다.
       // 미는 순간 걸면 굴러가는 몸짓과 겹쳐 공이 납작한 채로 떠오른다(실측).
       if(res.trampBlock) b.tramp={dr, dc};
       if(b.kind==='log'||b.kind==='cartV'||b.kind==='cartH'){ b.strain=1; b.tilt=0; b.wasMoving=true; b.path=null; } // 무거운 짐은 느린 추종
       else { b.path=res.path; b.pathI=0;
-        if(ballT>0) b.delay=Math.max(b.delay||0, ballT);
-        // 평지 한 칸이면 등속 대신 곡선으로 간다. 출발 자리는 **지금** 잡아 둔다 —
-        // 프레임 루프에서 잡으면 이미 움직인 뒤라 시작점이 어긋난다.
-        b.p1 = push1Simple(res, b)? {fr:b.rr, fc:b.cc, tr:res.path[0].r, tc:res.path[0].c, u:0,
-                                      back:!motionReduced()} : null;
+        if(chapterMaxMasterMotionRuntimeEnabled())
+          b.delay=Math.max(b.delay||0,chapterMaxMasterPushBallDelay(dog.protoMoveDur||.38));
+        else if((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1)
+          b.delay=Math.max(b.delay||0,(dog.protoMoveDur||.34)*.42);
         b.bridgeUnder=ballUsesBridgeUnderpass(L,filled,b.rr,b.cc,res.path); } // 물살에서 다리로 들면 상판 아래
       b.r=res.restR; b.c=res.restC;
       const fb=res.boxes.find(x=>x.r===res.restR&&x.c===res.restC);
@@ -21909,23 +21843,28 @@ function drawTutorHand(){
 }
 
 function spark(r,c,col,n,spd){ for(let i=0;i<n;i++){ const a=Math.random()*6.283,s=(spd||3)*(0.5+Math.random()); fx.push({r,c,vx:Math.cos(a)*s,vy:Math.sin(a)*s-2,t:1,col}); } }
-// 3번 — 이 밀기가 "그냥 한 칸"인가. 밀기의 91% 가 여기 걸린다(300판 전수 실측).
-// 얼음·물살·경사는 제 속도 규칙이 있고, 접촉 연쇄·트램플린·되튐은 경로가 시간을
-// 나눠 쓰므로 전부 뺀다. 남는 것이 평지 위의 한 칸 — 이 게임에서 제일 자주 하는 일이다.
-function push1Simple(res, b){
-  if(!PUSH_CURVE_ON || !b || b.kind!=='ball') return false;
-  const p=res.path; if(!p || p.length!==1) return false;
-  const s=p[0];
-  if(s.waitContact||s.contactJump||s.rb||s.emitContact||s.postHop||s.contactApproach||s.contactReturn) return false;
-  if(res.trampBlock) return false;
-  // 바닥은 **평지와 방석만** 받는다. 처음엔 얼음·물살·경사만 뺐는데 트램플린 칸이
-  // 그대로 새어 들어와, 튕김 경로를 타야 할 공이 곡선으로 한 칸만 가고 멈췄다(테스트가 잡음).
-  // 빼야 할 것을 세는 대신 받을 것을 세는 쪽이 맞는다 — 새 타일이 생겨도 저절로 빠진다.
-  const plain=t=>t===GRASS||t===MAT;
-  if(!plain(tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)))) return false;
-  if(!plain(tileAt(L,filled,s.r,s.c))) return false;
-  return true;
-}
+// ---- 물린 손맛 시안 셋 (2026-09-28) — 재고 만들고 들어 보고 만져 본 뒤 전부 접었다.
+// 다시 제안될 것들이라 무엇을 왜 물렸는지 남긴다. 셋 다 규칙엔 안 닿는 연출이었다.
+//
+//   1 방석 음계 — 공을 앉힐 때마다 녹음을 한 음씩 올렸다(배속 1 → 1.25 → 1.5).
+//     진행이 귀에 들리게 하려던 것. 들어 보니 "별 느낌 없다". 배속으로 음을 올리면
+//     0.26초 음원이 0.17초로 짧아져 얇아지는 게 한계다. 되살릴 거면 방석마다
+//     **다른 음원**을 두는 쪽이어야 한다. sfxGoal 의 index·total 인자가 안 쓰인 채
+//     남아 있는 건 그래서다.
+//
+//   2 접촉 맞춤 — 밀기 소리·흙먼지·화면 밀림을 공이 실제로 떠나는 시각에 맞췄다.
+//     공은 예전부터 0.114초를 기다리는데(마스터 모션의 접촉 프레임) 셋은 미는 즉시
+//     났으니 들리는 것이 보이는 것보다 117ms 먼저였다 — 고칠 값은 있었는데
+//     만져 보니 나아진 게 없었다. 덧붙여 "밀기 소리는 hitstop 중에도 즉시 난다"가
+//     이미 결정으로 서 있다(tests/ball-contact-timing.test.js).
+//
+//   3 1칸 밀기 곡선 — 밀기의 91% 가 정확히 한 칸이라(300판 전수) 거기에 걸었다.
+//     등속 직선 대신 첫 프레임에 3.4배 튀어나갔다 한 칸의 5% 를 지나친 뒤 앉게 했다.
+//     총 시간은 같았다(약 0.17초). 결론은 **등속이 낫다** — 이 게임의 공은 굴러가는
+//     것이라 튕기는 몸짓이 재질과 안 맞는다.
+//
+// 배운 것: 이 판의 손맛은 밀기 한 수의 타이밍·곡선이 아니라 **이미 들어 있는
+// 마지막 한 수 연출·막힘 별·막힌 공 표시** 쪽에 있다(abc325a). 그쪽은 남았다.
 function ballKickFx(b,dr,dc){
   if(!b || b.kind!=="ball") return;
   b.launchT=1;
@@ -31252,14 +31191,6 @@ function render(){
     const prr=b.rr, pcc=b.cc;
     if(!frozen){
       if(b.path && b.pathI<b.path.length){                   // 슬라이드: 경로 따라 이동
-        // 2번 — 개가 닿아 공이 **실제로 떠나는** 프레임. 밀기 소리·먼지·화면 밀림이
-        // 여기서 한꺼번에 난다. 예전엔 셋 다 미는 즉시 났고 공만 0.114초 뒤에 떠나서,
-        // 들리는 것이 보이는 것보다 한 뼘 먼저였다.
-        if(b.pushSfx && !(b.delay>0)){
-          b.pushSfx=0; sfxBallPush(); feedbackPulse('push');
-          ballKickFx(b, b.sdr||0, b.sdc||0);
-          if(b.kind==='ball' && !motionReduced()) nudgeFx={dr:b.sdr||0, dc:b.sdc||0, t:0};
-        }
         const wait=b.path[b.pathI].waitContact;
         if((!wait||wait.ready) && !(b.delay>0) && b.startSfx){
           b.startSfx=false;b.sqT=.6;
@@ -31268,20 +31199,6 @@ function render(){
         if(wait && !wait.ready){ /* 친 공이 실제 접점에 올 때까지 이 공은 정지 */ }
         else if(b.delay>0) b.delay=Math.max(0,b.delay-dt);
         else if(b.holdT>0) b.holdT=Math.max(0,b.holdT-dt);  // 경사 위에서 잠깐 멈칫
-        else if(b.p1){
-          // 1칸 밀기 — 등속 직선 대신 곡선. 길이(약 0.17초)는 예전과 같고 속도 모양만 다르다.
-          b.p1.u=Math.min(1, b.p1.u + dt/PUSH1_DUR);
-          const f=push1Ease(b.p1.u, b.p1.back);
-          b.rr=b.p1.fr+(b.p1.tr-b.p1.fr)*f;
-          b.cc=b.p1.fc+(b.p1.tc-b.p1.fc)*f;
-          if(b.p1.u>=1){
-            b.rr=b.p1.tr; b.cc=b.p1.tc; b.p1=null; b.pathI++;
-            b.path=null; b.air=0; b.reb=null;
-            b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
-            b.stopT=1; tone(210,0.06,"sine",0.03,150);   // 멈추며 통 — 아래 등속 갈래와 같은 소리
-            firePend(b);
-          }
-        }
         else {
           const tg=b.path[b.pathI], dx=tg.c-b.cc, dy=tg.r-b.rr, dist=Math.hypot(dx,dy);
           const pv=b.pathI>0? b.path[b.pathI-1] : null;
