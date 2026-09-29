@@ -36,7 +36,7 @@
 })();
 </script>
 </head>
-<body class="hud-pilot booting">
+<body class="hud-pilot booting testbuild"><div id="testBuildBadge" style="position:fixed;left:8px;bottom:8px;z-index:10000;padding:6px 10px;border-radius:999px;background:#2B2036;color:#FFF9F0;font:12px sans-serif;pointer-events:none">TEST · 전 동네·전 콘텐츠 열림</div>
 <audio id="bgmHub" loop preload="none" src="sound/bgm-hub-lite.mp3"></audio>
 <audio id="bgmGame" preload="none" src="sound/bgm-game-lite.mp3"></audio>
 <audio id="bgmGameAlt" preload="none" src="sound/bgm-game-9am.mp3"></audio>
@@ -743,6 +743,7 @@
 <script src="mechanics/progress-recovery.js"></script>
 <script src="mechanics/telemetry.js"></script>
 <script>
+const TEST_BUILD=true;
 let cv=document.getElementById("c"), ctx=cv.getContext("2d");   // 힌트 데모 렌더 시 잠시 교체됨
 const el=id=>document.getElementById(id);
 // 파일럿 말풍선은 기존 단일 스타일시트 계약을 건드리지 않고 런타임에만 붙인다.
@@ -932,9 +933,9 @@ const TRAINING_PRACTICE_KEY=new URLSearchParams(location.search).get('trainingpr
 const TRAINING_PRACTICE=['sniff','dest','order'].includes(TRAINING_PRACTICE_KEY);
 const trainingPracticeSave=new Map();
 const LS={
-  get(k){ if(TRAINING_PRACTICE)return trainingPracticeSave.get(k)??null; if(GOAL_FEEL_QA)return goalFeelSave.get(k)??null; try{ return localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ if(TRAINING_PRACTICE){trainingPracticeSave.set(k,String(v));return;} if(GOAL_FEEL_QA){goalFeelSave.set(k,String(v));return;} try{ localStorage.setItem(k,v); }catch(e){} },
-  del(k){ if(TRAINING_PRACTICE){trainingPracticeSave.delete(k);return;} if(GOAL_FEEL_QA){goalFeelSave.delete(k);return;} try{ localStorage.removeItem(k); }catch(e){} },
+  get(k){ if(TRAINING_PRACTICE)return trainingPracticeSave.get(k)??null; if(GOAL_FEEL_QA)return goalFeelSave.get(k)??null; try{ return localStorage.getItem('max_test_'+k); }catch(e){ return null; } },
+  set(k,v){ if(TRAINING_PRACTICE){trainingPracticeSave.set(k,String(v));return;} if(GOAL_FEEL_QA){goalFeelSave.set(k,String(v));return;} try{ localStorage.setItem('max_test_'+k,v); }catch(e){} },
+  del(k){ if(TRAINING_PRACTICE){trainingPracticeSave.delete(k);return;} if(GOAL_FEEL_QA){goalFeelSave.delete(k);return;} try{ localStorage.removeItem('max_test_'+k); }catch(e){} },
 };
 const progressRecovery=MaxProgressRecovery.createProgressRecovery({
   getItem:k=>LS.get(k), setItem:(k,v)=>LS.set(k,v), removeItem:k=>LS.del(k)
@@ -4905,6 +4906,7 @@ function shopBillingNotice(result){
 }
 // 반환: 구조화된 구매 결과. 장부 저장이 끝난 purchased 만 지급 완료로 취급한다.
 function iapPurchase(k){
+  if(TEST_BUILD) return Promise.resolve({status:"unavailable", errorCode:"test_build"});
   const item=window.RollEconomy.catalog[k];
   if(!item) return Promise.resolve({status:'failed', errorCode:'unknown_product'});
   if(!economyLedger) return Promise.resolve({status:'failed', errorCode:'storage_unavailable'});
@@ -6127,17 +6129,13 @@ function persist(){
 // 200판으로 늘리면서 106 에서 끊긴 채 남아 있었다. 그러면 마지막 챕터가 106~200 즉
 // 95판짜리가 되어 bloomedChapterCount 가 95판 전부 별3을 요구해 금장이 사실상 잠긴다.
 const CH_FROM=[1,6,11,16,21,26,31,36,41,46,51,56,61,66,71,76,81,86,91,96,101,106,111,116,121,126,131,136,141,146,151,156,161,166,171,176,181,186,191,196,201,206,211,216,221,226,231,236,241,246,251,256,261,266,271,276,281,286,291,296,301,306,311,316,321,326,331,336,341,346,351,356,361,366,371,376,381,391,401,411,421];   // 동네 순서와 같은 실제 챕터 경계
-const FREEPLAY=false;                          // 테스트: 전 판 즉시 플레이 (출시 전 false 로)
+const FREEPLAY=true;                          // 테스트: 전 판 즉시 플레이 (출시 전 false 로)
 const DIARY_FREEPLAY=false;                    // 테스트: 점심/보물 산책 하루 1회 잠금 무시 (출시 전 false 로)
 const SHOP_FREEPLAY=false;                     // 테스트: 도토리가게 도토리·확정조건 무시하고 전부 구매 가능 (출시 전 false 로)
 const MOON_FREEPLAY=false;                     // 테스트: 달빛 산책 별 40 잠금 무시 (출시 전 false 로)
 // 로컬 QA에서만 ?open=300 으로 원하는 구간까지 연다. 배포 주소에서는 쿼리를
 // 붙여도 작동하지 않으므로 실제 플레이 진행도를 우회할 수 없다.
-const TEST_OPEN_TO=(()=>{
-  const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
-  const requested=Number(new URLSearchParams(location.search).get('open'));
-  return local && Number.isInteger(requested) && requested>0 ? Math.min(requested, BAKED.length) : 0;
-})();
+const TEST_OPEN_TO=BAKED.length;
 // 냇가마을 첫 판 아트/규칙 검증용. 일반 1-1과 저장 데이터에는 절대 섞이지 않는다.
 const STREAM_ART_ENABLED=(()=>{
   const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';

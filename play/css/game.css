@@ -3016,6 +3016,19 @@
     border:none; border-radius:14px; padding:6px 13px; font-family:var(--f-body); font-size:var(--s8);
     color:#8A6A4F; cursor:pointer; display:none; }
   body.intut .tutskip { display:block; }
+  body.inhouse .tutskip { display:none; }          /* 하우스는 연습이 아니다 — 건너뛸 게 없다 */
+  /* 갈아입기 줄 — 매트를 밟는 동안만 판 아래 한 줄. 마당 꾸미기 줄(.yedit)과 같은 값. */
+  .hoodrow { position:absolute; left:12px; right:12px; bottom:92px; z-index:57; display:none; gap:6px; justify-content:center; }   /* 도크(56px+여백) 위 */
+  .hoodrow.on { display:flex; }
+  .hoodrow .htile { flex:none; width:56px; border:2px solid #EADFC9; border-radius:10px; background:#FFFDF8;
+    padding:4px 2px 3px; display:flex; flex-direction:column; align-items:center; gap:1px; cursor:pointer;
+    font-family:var(--f-body); -webkit-tap-highlight-color:transparent; }
+  .hoodrow .htile svg { width:30px; height:30px; display:block; }
+  .hoodrow .htile em { font-style:normal; font-size:var(--s10); color:#8A5A18; line-height:1.15; white-space:nowrap; }
+  .hoodrow .htile.on { background:#FFF0D4; border-color:#E7A72C; }
+  .hoodrow .htile.lock { border-style:dashed; background:transparent; justify-content:center; min-height:46px; }
+  .hoodrow .htile.lock em { color:#B4763A; }
+  .hoodrow .htile:active { transform:scale(.95); }
   #gintro { position:absolute; inset:0; z-index:58; display:none; align-items:center; justify-content:center;
     background:rgba(30,24,20,.5); backdrop-filter:blur(1.5px); }
   #gintro.show { display:flex; }
