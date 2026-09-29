@@ -925,10 +925,13 @@ function goalFeelDepthState(kind,seconds){
     contactShadow:.12+.76*engage
   };
 }
+const TRAINING_PRACTICE_KEY=new URLSearchParams(location.search).get('trainingpractice');
+const TRAINING_PRACTICE=['sniff','dest','order'].includes(TRAINING_PRACTICE_KEY);
+const trainingPracticeSave=new Map();
 const LS={
-  get(k){ if(GOAL_FEEL_QA)return goalFeelSave.get(k)??null; try{ return localStorage.getItem(k); }catch(e){ return null; } },
-  set(k,v){ if(GOAL_FEEL_QA){goalFeelSave.set(k,String(v));return;} try{ localStorage.setItem(k,v); }catch(e){} },
-  del(k){ if(GOAL_FEEL_QA){goalFeelSave.delete(k);return;} try{ localStorage.removeItem(k); }catch(e){} },
+  get(k){ if(TRAINING_PRACTICE)return trainingPracticeSave.get(k)??null; if(GOAL_FEEL_QA)return goalFeelSave.get(k)??null; try{ return localStorage.getItem(k); }catch(e){ return null; } },
+  set(k,v){ if(TRAINING_PRACTICE){trainingPracticeSave.set(k,String(v));return;} if(GOAL_FEEL_QA){goalFeelSave.set(k,String(v));return;} try{ localStorage.setItem(k,v); }catch(e){} },
+  del(k){ if(TRAINING_PRACTICE){trainingPracticeSave.delete(k);return;} if(GOAL_FEEL_QA){goalFeelSave.delete(k);return;} try{ localStorage.removeItem(k); }catch(e){} },
 };
 const progressRecovery=MaxProgressRecovery.createProgressRecovery({
   getItem:k=>LS.get(k), setItem:(k,v)=>LS.set(k,v), removeItem:k=>LS.del(k)
@@ -4840,9 +4843,9 @@ const PAW_PACK=[
   {k:'paw3', productId:'treats_large',  get nm(){return I18N.t('shop.paw3')}, paw:1200, price:'₩12,000', bonus:'+25%'},
 ];
 const ECONOMY_STORAGE={
-  getItem(k){ return localStorage.getItem(k); },
-  setItem(k,v){ localStorage.setItem(k,v); },
-  removeItem(k){ localStorage.removeItem(k); }
+  getItem(k){ return TRAINING_PRACTICE?LS.get(k):localStorage.getItem(k); },
+  setItem(k,v){ if(TRAINING_PRACTICE){LS.set(k,v);return;} localStorage.setItem(k,v); },
+  removeItem(k){ if(TRAINING_PRACTICE){LS.del(k);return;} localStorage.removeItem(k); }
 };
 let economyLedger=null;
 try{ economyLedger=window.RollEconomy.createLedger(ECONOMY_STORAGE); }catch(e){ economyLedger=null; }
@@ -4859,6 +4862,24 @@ function economyReconcile(source){
     : economyLedger.debit({amount:-delta, type:'game_sync', source:source||'game'});
   if(!op.ok){ pawBal=economyLedger.getBalance(); return false; }
   pawBal=economyLedger.getBalance(); return true;
+}
+// Legacy migrations are committed to the durable ledger before their source
+// keys are removed. The transaction key makes a crash between those two writes
+// safe to retry on the next boot.
+function commitLegacyMigration(marker, amount){
+  if(!amount) return true;
+  if(LS.get(marker)==='1') return true;
+  if(!economyLedger) return false;
+  const migrationKey='legacy:'+marker;
+  const state=economyLedger.getState();
+  const already=Array.isArray(state.transactions) && state.transactions.some(t=>t && t.metadata && t.metadata.migrationKey===migrationKey);
+  if(!already){
+    LS.set(marker,'pending');
+    const op=economyLedger.credit({amount, type:'migration', source:'startup_migration', metadata:{migrationKey}});
+    if(!op.ok) return false;
+  }
+  LS.set(marker,'1');
+  return true;
 }
 function iapMessage(result){
   if(!result) return I18N.t("billing.verify");
@@ -5994,8 +6015,8 @@ function loadSave(){
         for(let i=0;i<p;i++) back+=old[i]|0; }
       for(const n in potMap) back+=Math.max(0, potMap[n]|0);
       partMap={}; potMap={};
-      if(back>0) pawBal=(pawBal|0)+back;
-      LS.set('roll_partfix','1');
+      const migrated=back===0 || commitLegacyMigration('roll_partfix',back);
+      if(migrated){ partMap={}; potMap={}; LS.set('roll_partfix','1'); }
     }
     { const cp=JSON.parse(LS.get(SK.cp)||'null'); colPot=(cp && typeof cp==='object')? cp : {}; }
     careLoad();                                      // starMap 이 실린 뒤라야 이월값이 맞는다
@@ -6010,9 +6031,10 @@ function loadSave(){
       for(const ck in colPot){ const pot=colPot[ck]; if(!pot || typeof pot!=='object') continue;
         let t=0; for(const m in pot) t+=Math.max(0, pot[m]|0);
         colPot[ck]= t? {acorn:t} : {}; }
-      // 잔액만 올린다 — 부팅의 economyReconcile('startup_migration') 이 레저와 맞춰 준다.
-      if(carry>0) pawBal += carry;
-      LS.del(SK.mt); LS.set('roll_matfix','1');
+      // 레저에 먼저 커밋된 뒤에만 원본 재료를 삭제한다. 중간 종료 후 재부팅해도
+      // migrationKey 트랜잭션을 찾아 중복 지급 없이 마무리한다.
+      const migrated=carry===0 || commitLegacyMigration('roll_matfix',carry);
+      if(migrated){ LS.del(SK.mt); LS.set('roll_matfix','1'); }
     }
     // 지은 단계. 키가 없던 시절 사람들은 험한 판을 깨는 즉시 자랐으므로, 그만큼을
     // 이미 지은 것으로 옮긴다 — 안 그러면 다 지어 둔 마당이 통째로 되감긴다.
@@ -6222,7 +6244,7 @@ const MAX_EVENT_PREVIEW=(()=>{
   const q=new URLSearchParams(location.search), k=q.get('maxevent') || (location.hash==='#sitSleep'?'sitSleep':null);
   const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
   if(local&&q.get('maxmastertest')==='1') return 'sitIdle';
-  return local && ['walk','arrive','discover','push','blocked','sitTransition','sitIdle','sitSleep','victory','sniff','fail','yawn','shake','wash','sniffIdle','lieYawn','backstep','stretch'].includes(k)?k:null;
+  return local && ['walk','arrive','discover','push','blocked','masterBlocked','sitTransition','sitIdle','masterSit','sitSleep','victory','sniff','fail','yawn','shake','wash','sniffIdle','lieYawn','backstep','stretch'].includes(k)?k:null;
 })();
 const MAX_POSE_PREVIEW=(()=>{
   const q=new URLSearchParams(location.search), k=q.get('maxpose');
@@ -6266,6 +6288,41 @@ const MAX_DEFAULT_MASTER_STAGE1_ENABLED=(()=>{
   const legacyPreview=q.get('maxart')==='1' || q.has('v') || MAX_ALL_ART_ENABLED || STREAM_ART_ENABLED || MAX_DEPTH_PROTO_ENABLED || MAX_NATIVE_RIG_ENABLED;
   return !legacyPreview && q.get('masterstage1')!=='0';
 })();
+// DragonBones 파일럿과 비교하기 위한 가든 키퍼 스킨. 착석 좌측만 1-1에서 교체한다.
+const MAX_GARDEN_KEEPER_SKIN_ENABLED=(()=>{
+  const q=new URLSearchParams(location.search);
+  const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+  return local && q.get('maxskin')==='garden-keeper';
+})();
+// 동네 스킨(?maxskin=duck 등, 로컬 전용). 한 벌 = 아래 목록의 시트들이고, **목록에 없는
+// 모션은 기본 맥스로 떨어진다** — 만드는 중인 스킨도 그대로 판에서 볼 수 있다.
+// 스킨이 늘어도 분기를 늘리지 않는다. 여기 한 줄과 파일만 더한다.
+// 시트가 새로 배치되면 tests/max-skin-sheets.test.cjs 가 이 목록과 디스크를 대조해 알려준다.
+const MAX_SKIN_SHEETS={
+  duck:['walk-left','walk-up','walk-down','push-left','push-up','push-down','wall-left','wall-up','wall-down',
+        'sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
+  frog:['walk-down','walk-up','walk-left','push-left','push-up','push-down','wall-left']            // 3동네 졸졸 냇가 — 만드는 중. 나머지 모션은 기본 맥스로 떨어진다
+};
+// 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
+// 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
+const MAX_SKIN_FRONT={sit:'front',sleep:'front',idle:'front',victory:'front'};
+const MAX_SKIN=(()=>{
+  const q=new URLSearchParams(location.search);
+  const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
+  const name=local && q.get('maxskin');
+  return name && MAX_SKIN_SHEETS[name] ? name : null;
+})();
+const MAX_SKIN_SET=MAX_SKIN?new Set(MAX_SKIN_SHEETS[MAX_SKIN]):null;
+function chapterMaxSkinSheet(motion,dir){
+  if(!MAX_SKIN_SET || !MAX_SKIN_SET.has(motion+'-'+dir)) return null;
+  return chapterMaxRuntimeSheet('art/max-master/motions/skins/max-'+MAX_SKIN+'-'+motion+'-'+dir+'-8f-runtime.png');
+}
+function chapterMaxSkinSheetForDirection(motion,dirR,dirC){
+  const front=MAX_SKIN_FRONT[motion];
+  if(Math.abs(dirR)>Math.abs(dirC)) return chapterMaxSkinSheet(motion,dirR<0?'up':(front||'down'));
+  if(dirC===0 && front) return chapterMaxSkinSheet(motion,front);
+  return chapterMaxSkinSheet(motion,'left');
+}
 const MAX_CHAPTER_PROTO_ENABLED=(()=>{
   const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
   const q=new URLSearchParams(location.search);
@@ -6334,7 +6391,13 @@ function chapterMaxResetMasterIdleAfterValidMove(){
   dog.masterSleepT=0;
 }
 function chapterMaxWalkOnlyAllowsInput(dr,dc){
+  // 7종 모션 패널의 걷기 항목은 조작 테스트가 아니라 시트 재생 검수다.
+  // 보드 입력이 섞이면 방향·위치·남은 걸음이 바뀌어 다른 모션처럼 보인다.
+  if(chapterMaxWalkMotionQaEnabled()) return false;
   return !chapterMaxWalkOnlyQaEnabled() || Math.abs(dc)===1 || (dc===0 && Math.abs(dr)===1);
+}
+function chapterMaxWalkMotionQaEnabled(){
+  return false;                       // 닭 후디 스킨 QA 와 함께 걷어냈다(2026-09-28)
 }
 // 외곽선 없는 새 걷기 원화 비교용. 1-1 로컬 시안에만 제한한다.
 const MAX_NO_OUTLINE_WALK_TEST=(()=>{
@@ -6355,8 +6418,19 @@ function chapterMaxMasterGroundOffset(){ return MAX_MASTER_GROUND_OFFSET; }
 function chapterMaxMasterDrawScale(){
   return Number((MAX_MASTER_RENDERED_TILE_HEIGHT_RATIO*256/MAX_MASTER_FRAME_CONTENT_HEIGHT).toFixed(6));
 }
+const MAX_MASTER_NATIVE_PNG_ONLY=new Set([
+  'art/max-master/motions/canonical/max-run-master-v1-left-8f.png',
+  'art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png',
+  'art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png',
+  'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png',
+  'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png',
+  // 뒷걸음은 투명 AVIF 내보내기가 아직 없다. 목록에서 빠져 있는 동안 네이티브가
+  // 존재하지 않는 .avif 를 요청해 스프라이트가 통째로 비었다.
+  'art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png'
+]);
 function chapterMaxRuntimeSheet(path){
   const native=typeof window!=='undefined' && !!window.Capacitor?.isNativePlatform?.();
+  if(native && MAX_MASTER_NATIVE_PNG_ONLY.has(path)) return path;
   return native ? path.replace(/\.png$/,'.avif') : path;
 }
 function chapterMaxMasterMirrorRight(dr,dc){ return Math.abs(dc)>Math.abs(dr)&&dc>0; }
@@ -6397,38 +6471,48 @@ function chapterMaxWalkAtlasSource(){
 function chapterMaxMasterWalkV1SheetSource(){
   // 최신 8프레임 달리기 시트를 기본 수평 이동 클립으로 사용한다.
   // 우측은 기존처럼 같은 원본을 좌우 반전해 프레임 수·비율을 유지한다.
+  const skin=chapterMaxSkinSheet('walk','left'); if(skin) return skin;
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-run-master-v1-left-8f.png');
 }
 function chapterMaxMasterWalkV1SheetSourceForDirection(dirR,dirC){
-  if(Math.abs(dirR)>Math.abs(dirC)) return dirR<0
-    ?chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-walk-master-v1-up-8f.png')
-    :chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-walk-master-v1-down-8f.png');
+  const skin=chapterMaxSkinSheetForDirection('walk',dirR,dirC); if(skin) return skin;
+  if(Math.abs(dirR)>Math.abs(dirC)) return chapterMaxRuntimeSheet(dirR<0
+      ?'art/max-master/motions/canonical/max-walk-master-v1-up-8f.png'
+      :'art/max-master/motions/canonical/max-walk-master-v1-down-8f.png');
   return chapterMaxMasterWalkV1SheetSource();
 }
 function chapterMaxMasterPushV1SheetSource(){
+  const skin=chapterMaxSkinSheet('push','left'); if(skin) return skin;
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.png');
 }
 function chapterMaxMasterPushV1SheetSourceForDirection(dirR,dirC){
-  if(Math.abs(dirR)>Math.abs(dirC)) return dirR<0
-    ?chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.png')
-    :chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-push-master-v3-down-8f-low.png');
+  const skin=chapterMaxSkinSheetForDirection('push',dirR,dirC); if(skin) return skin;
+  if(Math.abs(dirR)>Math.abs(dirC)) return chapterMaxRuntimeSheet(dirR<0
+      ?'art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.png'
+      :'art/max-master/motions/canonical/max-push-master-v3-down-8f-low.png');
   return chapterMaxMasterPushV1SheetSource();
 }
 function chapterMaxMasterWallBumpV1SheetSource(){
+  const skin=chapterMaxSkinSheet('wall','left'); if(skin) return skin;
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.png');
 }
 function chapterMaxMasterWallBumpV1SheetSourceForDirection(dirR,dirC){
-  if(Math.abs(dirR)>Math.abs(dirC)) return dirR<0
-    ?chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.png')
-    :chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.png');
+  const skin=chapterMaxSkinSheetForDirection('wall',dirR,dirC); if(skin) return skin;
+  if(Math.abs(dirR)>Math.abs(dirC)) return chapterMaxRuntimeSheet(dirR<0
+      ?'art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.png'
+      :'art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.png');
   return chapterMaxMasterWallBumpV1SheetSource();
 }
 function chapterMaxMasterSitV1SheetSource(){
+  if(MAX_GARDEN_KEEPER_SKIN_ENABLED && level===1)
+    return chapterMaxRuntimeSheet('art/max-master/motions/skins/max-garden-keeper-sit-left-8f-runtime.png');
+  const skin=chapterMaxSkinSheet('sit','front'); if(skin) return skin;
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png');
 }
 function chapterMaxMasterSitV1SheetSourceForDirection(dirR,dirC){
   // 정면(아래)은 기존 시트, 위는 뒷모습, 좌우는 하나의 측면 원본을 반전한다.
   // 방향마다 다른 크롭 보정을 두지 않아 착석 후 크기가 튀지 않는다.
+  const skin=chapterMaxSkinSheetForDirection('sit',dirR,dirC); if(skin) return skin;
   if(Math.abs(dirR)>Math.abs(dirC)) return dirR<0
     ?chapterMaxRuntimeSheet(MAX_EVENT_PREVIEW==='sitSleep'
       ?'art/max-master/motions/review/max-sit-master-v1-up-8f-collar-normalized-qa.png'
@@ -6442,9 +6526,11 @@ function chapterMaxMasterSitV1MirrorsRight(dirR,dirC){
   return Math.abs(dirC)>Math.abs(dirR) && dirC>0;
 }
 function chapterMaxMasterVictoryV1SheetSource(){
+  const skin=chapterMaxSkinSheet('victory','front'); if(skin) return skin;
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.png');
 }
 function chapterMaxMasterIdleV1SheetSource(){
+  const skin=chapterMaxSkinSheet('idle','front'); if(skin) return skin;
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-idle-master-v1-front-8f.png');
 }
 function chapterMaxMasterStretchV1SheetSource(){
@@ -6453,9 +6539,12 @@ function chapterMaxMasterStretchV1SheetSource(){
 function chapterMaxMasterSitSleepV2SheetSourceForDirection(dirR,dirC){
   // 승인된 상·좌(우측 반전)와 기존 정면 포즈는 review 파일이 아닌
   // 전용 런타임 아틀라스에서 읽는다.
-  if(Math.abs(dirR)>Math.abs(dirC)) return dirR<0
-    ?chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png')
-    :chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png');
+  if(MAX_GARDEN_KEEPER_SKIN_ENABLED && level===1)
+    return chapterMaxRuntimeSheet('art/max-master/motions/skins/max-garden-keeper-sleep-left-8f-runtime.png');
+  const skin=chapterMaxSkinSheetForDirection('sleep',dirR,dirC); if(skin) return skin;
+  if(Math.abs(dirR)>Math.abs(dirC)) return chapterMaxRuntimeSheet(dirR<0
+    ?'art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png'
+    :'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png');
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png');
 }
 function chapterMaxMasterSitSleepV2MirrorsRight(dirR,dirC){
@@ -10195,6 +10284,7 @@ function hudPilotForLevel(lv){ return true; }
 function uiuxPolishForLevel(lv){ return lv>=1; }
 // keepTries: 같은 판을 다시 까는 것이라 시도 횟수를 이어 센다(재시작). 안 주면 새 입장이다.
 function loadLevel(lv, moon, keepTries){
+  if(TRAINING_PRACTICE && typeof trainingPracticeStart==='function') return trainingPracticeStart();
   stopGameEffects();
   trampFx=null;                                   // 앞 판의 헛점프 잔상이 새 판으로 넘어오면 안 된다
   moveBuffer=null;                                // 앞 판 마지막 스와이프가 새 판 첫 수가 되면 안 된다
@@ -12984,11 +13074,19 @@ function trampBounce(B){
   if(!B || (B.bounce|0)>=TRAMP_BOUNCE_MAX) return false;
   const t=trampSpot(); if(!t) return false;
   if(Math.hypot(B.x-t.x, B.y-t.y) > t.r) return false;
-  // 튀는 자리 — 트램플린에서 비스듬히, 마당 안으로. 걸을 수 없는 데면 안 튄다.
+  // 튀는 자리 — 한 방향만 랜덤으로 고르면 울타리·냇물 쪽을 향한 날에 놀이가
+  // 멈춘다. 첫 방향은 매번 다르게 두되, 같은 반경의 이웃 자리를 모두 훑어
+  // 걸을 수 있는 첫 칸을 고른다. 마당이 정말 막힌 경우에만 실패한다.
   const a=Math.random()*Math.PI*2, d=YW_TS*(2.2+Math.random()*1.4);
-  let nx=Math.max(YW_TS*0.6, Math.min(YW_WU-YW_TS*0.6, t.x+Math.cos(a)*d));
-  let ny=Math.max(8, Math.min(YW_HU-YW_TS, t.y+Math.sin(a)*d));
-  if(!ywWalkable(nx,ny)) return false;
+  let nx=null, ny=null;
+  for(let i=0;i<12;i++){
+    const q=a+i*Math.PI/6;
+    const cx=Math.max(YW_TS*0.6, Math.min(YW_WU-YW_TS*0.6, t.x+Math.cos(q)*d));
+    const cy=Math.max(8, Math.min(YW_HU-YW_TS, t.y+Math.sin(q)*d));
+    if(!ywWalkable(cx,cy)) continue;
+    nx=cx; ny=cy; break;
+  }
+  if(nx==null || ny==null) return false;
   B.fx=t.x; B.fy=t.y; B.x=nx; B.y=ny; B.t=0; B.phase='fly'; B.bounce=(B.bounce|0)+1;
   playSquash=1;                                        // 천이 눌리는 연출이 그대로 따라온다
   sfxBounce(); buzz([8,20,8]);
@@ -18899,7 +18997,18 @@ function mealGrant(n, why){                          // 회복 공통 경로 —
 // 나가면 그 판은 처음부터고, 다시 들어올 때 또 한 끼를 낸다.
 // restoreSnap 은 무르기가 쓰므로 남는다.
 function restoreSnap(s){
+  // 훈련 한 번만 환급한다. 전체 재고를 복원하면 도중 구매한 횟수까지 잃는다.
+  if(s.trainingUse && !s.trainingUse.refunded){
+    const use=s.trainingUse;
+    boost[use.k]=(boost[use.k]|0)+1;
+    if(use.material){ const m=acornSt.find(x=>x.r===use.material.r && x.c===use.material.c && x.w===use.material.w);
+      if(m){ m.got=use.material.got; m.t=use.material.t; } }
+    use.refunded=true;
+    telemetry.track('training_undo',{level,training:use.k});
+    persist(); syncHud(); syncHintAct();
+  }
   walkQueueClear();                               // 무르기·재시작 뒤에 앞서 끌어 둔 걸음이 이어 나가면 안 된다
+  L._alive=null; L._aliveK=null;                   // 밟아서 열린 길을 무르면 막힌 칸도 다시 계산한다
   dog.r=s.d.r; dog.c=s.d.c;
   boxes=s.b.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,rr:b.r,cc:b.c,roll:0,sqT:0,sdr:0,sdc:0,landT:0,sink:b.sink||0,covered:!!b.covered,wet:!!b.wet,coverT:0,carried:!!b.carried,buried:!!b.buried,buriedBall:!!b.buriedBall,buryT:0}));
   dog.carry=!!s.d.carry;
@@ -19327,10 +19436,13 @@ function aimEnter(k){
   if(state!=="play" || menuMode || yardMode || tsMode || tutMode) return;
   if(!hintUnlocked(k)){ sfxBlocked(); return; }
   if(aimTool===k){ aimCancel(); return; }              // 같은 도구를 다시 누르면 취소
-  if((boost[k]|0)<=0){ hintBuyShow(k); return; }
   // 쓸 자리가 하나도 없으면 아예 안 들린다 — 들고 나서 "여긴 못 써요"는 늦다.
   const cells=toolTargets(k);
-  if(!cells.length){ sfxBlocked(); showToast(I18N.t('tool.noTarget'),1600); return; }
+  if(!cells.length){ sfxBlocked(); showToast(I18N.t('tool.noTarget.'+k),2200); return; }
+  if((boost[k]|0)<=0){
+    if(TRAINING_PRACTICE){ showToast(I18N.t('training.practice.used'),2200); return; }
+    hintBuyShow(k); return;
+  }
   aimTool=k; aimPhase=0; aimFrom=null; aimCells=cells;
   sfxHintToggle(true);
 }
@@ -19457,14 +19569,17 @@ function toolTargets(k){
 // 도구를 실제로 쓴다. 무르기 스냅샷은 **효과보다 먼저** 쌓는다 —
 // 뒤에 쌓으면 이미 바뀐 판을 저장해서 되감아도 그대로다.
 function toolApply(k, a, b){
-  undoStack.push(snapshot());
+  const before=snapshot();
+  before.trainingUse={k,refunded:false};
+  undoStack.push(before);
   if(k==='sniff'){                                     // 밟아! — 맥스가 수풀 한 칸을 밟아 길로 만든다
     filled.add(cutKey(a.r,a.c));
     // 그 수풀에 묻혀 있던 도토리는 같이 나온다. 가위 값이 도토리 한 개보다 비싸서
     // 펌프가 안 된다. matEatStart 는 안 돌린다 — 그 연출은 수풀이 남아 있는 그림인데
     // 여기선 수풀 자체가 사라진다.
     const m=acornSt.find(x=>!x.got && x.w==='bush' && x.r===a.r && x.c===a.c);
-    if(m){ m.got=1; m.t=1; spark(a.r,a.c, MAT_SPARK[m.k]||"#C98A4B", 16, 2.8);
+    if(m){ before.trainingUse.material={r:m.r,c:m.c,w:m.w,got:m.got,t:m.t};
+           m.got=1; m.t=1; spark(a.r,a.c, MAT_SPARK[m.k]||"#C98A4B", 16, 2.8);
            audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); treatPickFx(m); }
     // 잎은 **앞발이 닿는 순간**에 튄다(프레임 루프). 여기서 바로 튀기면 밟기 전에
     // 잎이 먼저 날아가 순서가 뒤집힌다. 맥스는 판에선 제자리다 — 그리는 자리만 그
@@ -19489,7 +19604,8 @@ function toolApply(k, a, b){
     // 그림이 된다. 뛰는 동안의 자리는 tunPose 가 따로 준다(웅크림 → 호 → 착지).
     dog.rr=a.r; dog.cc=a.c;
     tunFx={fr:over.r, fc:over.c, tr:a.r, tc:a.c, er:dog0r, ec:dog0c, t:0, took:false, out:false, sd:kk(over.r,over.c)*4.3+11};
-    maxWalkCycle(TUN_DUR);                           // 뛰는 동안 걷기 8프레임 한 바퀴
+    tunFx.dur=trainingJumpDuration(dog0r,dog0c,a.r,a.c);
+    maxWalkCycle(tunFx.dur);
   }
   else if(k==='order'){                                // 갖고와! — 맥스가 공을 물어 온다
     const b2=boxes[a.bi];
@@ -19512,8 +19628,8 @@ function toolApply(k, a, b){
   // 그대로 둔다: 바꾸면 지금까지 쌓인 것과 이어서 못 본다.
   telemetry.track("hint_use", {level, chapter:Math.ceil(level/30), hint:k});
   moves++;                                             // 도구도 행동이다. 안 그러면 걸음 제한이 무의미해진다
-  sfxLand(); buzz([14,26,18]);
-  persist(); aimReset(); syncHud();
+  // 접촉음은 각 연출의 실제 접촉 순간에만 낸다.
+  persist(); aimReset(); syncHud(); syncHintAct();
 }
 function aimTapCell(r,c){
   const k=aimTool; if(!k) return false;
@@ -21487,6 +21603,8 @@ function scheduleWinReveal(st){
   }
 }
 function win(){
+  if(TRAINING_PRACTICE){ state='win'; pendingWin=false; winT=0; sfxWin();
+    el('trainingPracticeStatus').textContent=I18N.t('training.practice.done'); return; }
   if(tsMode) return;                                              // 보물 산책: 방석이 없어 isGoal 이 항상 참 — 종료는 tsFinish 가 맡는다
   if(tutMode){ state="win"; winT=0; sfxWin(); buzz([16,40,16]); tutNext(); return; }   // 연습판: 별·도토리·기록 없음
   if(lunchMode){ lunchFinish(); return; }                          // 점심 산책: level 이 이전 값 그대로라 starMap 을 덮어쓸 뻔했다 — 전용 경로로 분리
@@ -24891,7 +25009,7 @@ function drawChapterMaxPrototype(x,y,s){
     ?(poseDirR<0?maxChapterMasterWalkV1UpAtlas:maxChapterMasterWalkV1DownAtlas)
     :maxChapterMasterWalkV1Atlas;
   const masterWalkMirrorRight=chapterMaxMasterWalkV1MirrorsRight(poseDirR,poseDirC);
-  const masterPushActive=chapterMaxMasterMotionRuntimeEnabled() && !!dog.protoPush && dog.protoMoveT!=null && dog.protoMoveT<1;
+  const masterPushActive=chapterMaxMasterMotionRuntimeEnabled() && ((!!dog.protoPush && dog.protoMoveT!=null && dog.protoMoveT<1) || previewPushing);
   const masterBlockedActive=chapterMaxMasterMotionRuntimeEnabled() && dog.maxEvent==='masterBlocked';
   const masterSitActive=chapterMaxMasterMotionRuntimeEnabled() && dog.maxEvent==='masterSit';
   const masterVictoryActive=MAX_MASTER_SPRITES_ENABLED && dog.maxEvent==='victory';
@@ -24940,12 +25058,16 @@ function drawChapterMaxPrototype(x,y,s){
       :masterIdleActive
       ?chapterMaxMasterIdleV1Frame((dog.masterIdleT||0)-.55)
       :masterPushActive
-      ?chapterMaxMasterPushV1Frame(dog.protoMoveT)
+      ?chapterMaxMasterPushV1Frame(previewPushing
+        ?Math.min(1,Math.max(0,(dog.maxEventT||0)/chapterMaxEventDuration('push')))
+        :dog.protoMoveT)
       :chapterMaxMasterWalkV1Frame(!!dog.moving,dog.walkT);
     // drawSize 는 소스 셀 크기가 아니라 **보이는 몸체 높이**를 0.90 tile로 맞춘 크기다.
     // 이 보정을 빼면 205px 원화가 80% 크기로만 보여 공보다 작게 읽힌다.
     // 착석→수면의 1프레임은 실제 착석 완료 셀을 픽셀 그대로 복사한다.
     // 따라서 두 상태는 반드시 같은 drawSize/발 기준선을 사용해야 한다.
+    // 수면도 다른 마스터 모션과 같은 셀 스케일을 쓴다. 스킨 전용 보정값을
+    // 기본 맥스 렌더러에 섞으면 착석→수면 중 몸이 갑자기 작아진다.
     const drawSize=s*chapterMaxMasterDrawScale();
     // drawChapterMaxPrototype()는 타일의 중앙을 받는다. 마스터 원화의 발 기준선을
     // 타일의 중앙 아래 45%에 맞춰야 90% 실루엣이 위·아래 어느 행에서도 잘리지 않는다.
@@ -29139,6 +29261,9 @@ function cutPose(){
 //   ③ 건너편 칸에 **내려앉는다**(TUN_OUT~1) — 눌렸다 펴진다
 // 예전 땅굴은 맥스가 땅 밑으로 사라졌다(0.27초 동안 화면에 없었다). 점프는 내내 보인다.
 const TUN_DUR=0.62, TUN_TAKEOFF=0.18, TUN_OUT=0.74;
+function trainingJumpDuration(fr,fc,tr,tc){
+  return TUN_DUR+Math.min(0.24,Math.max(0,Math.abs(tr-fr)+Math.abs(tc-fc)-2)*0.06);
+}
 let tunFx=null;
 function tunPose(){
   if(!tunFx || tunFx.er==null) return null;
@@ -31404,7 +31529,11 @@ function render(){
     drawCat(catOver.x, catOver.y, catOver.s, 0.4, catOver.face, catOver.turnT);
     catOver=null;
   }
-  if(!frozen && chapterMaxAppliesToLevel(level) && dog.protoMoveT!=null && dog.protoMoveT<1){
+  // 걷기 시트 QA는 아래의 일반 위치 보간이 moving/walkT를 다시 계산하지 않는다.
+  // 전용 반복기가 정식 8프레임의 위상과 방향을 단독으로 관리한다.
+  if(chapterMaxWalkMotionQaEnabled()){
+    dog.rr=dog.r; dog.cc=dog.c;
+  } else if(!frozen && chapterMaxAppliesToLevel(level) && dog.protoMoveT!=null && dog.protoMoveT<1){
     const pr0=dog.rr, pc0=dog.cc;
     dog.protoMoveT=Math.min(1,dog.protoMoveT+dt/(dog.protoMoveDur||0.20));
     const p=chapterMaxPrototypeMoveAt(dog.protoFromR,dog.protoFromC,dog.r,dog.c,dog.protoMoveT,
@@ -31579,6 +31708,27 @@ function render(){
   }
   for(const p of fx){ ctx.globalAlpha=Math.max(0,p.t); ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(cx(p.c)+p.vx*cell*0.2, cy(p.r)+p.vy*cell*0.2, cell*0.055,0,7); ctx.fill(); }
 
+  // 조준 결과: 맥스가 설 자리와 공의 이동 방향을 구분한다.
+  if(aimOn() && cell){
+    ctx.save();
+    if(aimTool==='sniff' || aimTool==='dest'){
+      for(const t of aimCells){
+        ctx.globalAlpha=0.32;
+        drawMaxStaticUi(cx(t.c),cy(t.r)+cell*.36,cell*.78,
+          t.r<dog.r?'back':t.r>dog.r?'front':t.c<dog.c?'left':'right');
+      }
+    } else if(aimTool==='order' && aimFrom){
+      ctx.strokeStyle='#FFF3DC'; ctx.lineWidth=Math.max(2,cell*.05); ctx.globalAlpha=.85;
+      for(const t of aimCells){
+        const x0=cx(aimFrom.c), y0=cy(aimFrom.r), x1=cx(t.c), y1=cy(t.r);
+        const a=Math.atan2(y1-y0,x1-x0), endX=x1-Math.cos(a)*cell*.28, endY=y1-Math.sin(a)*cell*.28;
+        ctx.setLineDash([cell*.10,cell*.10]); ctx.beginPath(); ctx.moveTo(x0,y0);ctx.lineTo(endX,endY);ctx.stroke();
+        ctx.setLineDash([]);ctx.beginPath();ctx.moveTo(endX-Math.cos(a-.55)*cell*.17,endY-Math.sin(a-.55)*cell*.17);
+        ctx.lineTo(endX,endY);ctx.lineTo(endX-Math.cos(a+.55)*cell*.17,endY-Math.sin(a+.55)*cell*.17);ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
   // 조준 중 — 쓸 수 있는 칸만 도구 색으로 숨 쉰다. **맨 위에** 그린다:
   // 대상이 수풀이나 공이라 그림 밑에 깔면 통째로 가려진다(실측: 대상 칸 픽셀이
   // 수풀 녹색 그대로였다). 대상은 방석이 될 수 없으므로 덮을 걱정은 없다.
@@ -32033,7 +32183,7 @@ function frameInner(ts){
       maxWalkCycle((FETCH_HOME-FETCH_HOLD)*FETCH_DUR); }                                   // 물고 걸어 돌아오는 몫
     if(was<FETCH_HOME && fetchFx.t>=FETCH_HOME)                                           // 놓을 쪽으로 몸을 튼다
       maxFaceDir(Math.sign(fetchFx.tr-fetchFx.er), Math.sign(fetchFx.tc-fetchFx.ec));
-    if(fetchFx.t>=1){ const b=boxes[fetchFx.bi]; if(b && b.fetch===fetchFx) b.fetch=null;
+    if(fetchFx.t>=1){ const b=boxes[fetchFx.bi]; if(b && b.fetch===fetchFx){ b.fetch=null; b.landT=1; }
       spark(fetchFx.tr, fetchFx.tc, "#C9B98A", 8, 1.8); sfxLand(); buzz([10,18,12]); fetchFx=null; }
   }
   if(fcFx){ fcFx.t-=0.045*dtF; if(fcFx.t<=0) fcFx=null; }
@@ -32066,7 +32216,7 @@ function frameInner(ts){
   trail=trail.filter(tr2=>tr2.t>0);
   for(const p of fx){ p.vx*=Math.pow(0.9,dtF); p.vy+=0.25*dtF; p.t-=0.03*dtF; } fx=fx.filter(p=>p.t>0);
   if(tunFx){                                              // 점프! — 0.62초
-    tunFx.t+=dt/TUN_DUR;
+    tunFx.t+=dt/(tunFx.dur||TUN_DUR);
     if(!tunFx.took && tunFx.t>=TUN_TAKEOFF){ tunFx.took=true; sfxBounce(); buzz(8); }   // 뛰어올랐다
     if(!tunFx.out && tunFx.t>=TUN_OUT){                   // 내려앉았다 — 여기서 먼지가 인다
       tunFx.out=true;
@@ -32090,7 +32240,7 @@ function frameInner(ts){
       dog.lungeT=1;
     }
     if(was<CUT_SNAP && cutFx.t>=CUT_SNAP) maxWalkCycle((1-CUT_SNAP)*CUT_DUR);   // 무너진 자리로 걸어 들어선다
-    if(cutFx.t>=1) cutFx=null;
+    if(cutFx.t>=1){ walkPulse.push({r:cutFx.r,c:cutFx.c,t:0}); sfxLand(); cutFx=null; }
   }
   if(digFx){                                              // 흙더미 밀기 — 0.34초
     const was=digFx.t; digFx.t+=dt/DIG_DUR;
@@ -32322,5 +32472,6 @@ if(MAX_EVENT_PREVIEW==='sitSleep'){
 <script src="mechanics/core-joy-levels.js"></script>
 <script src="mechanics/grandpa-tools.js"></script>
 <script src="mechanics/core-joy-qa.js"></script>
+<script src="mechanics/training-practice.js"></script>
 </body>
 </html>

@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-09-28T03:42:33.120Z",
-  "totalBytes": 14503451,
+  "generatedAt": "2026-09-29T12:50:52.817Z",
+  "totalBytes": 14773890,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2358307
+      "bytes": 2368093
     },
     {
       "path": "css/game.css",
@@ -15,12 +15,12 @@
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 64027
+      "bytes": 65270
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 58113
+      "bytes": 59134
     },
     {
       "path": "localization/i18n.js",
@@ -76,6 +76,11 @@
       "path": "mechanics/core-joy-qa.js",
       "source": "mechanics/core-joy-qa.js",
       "bytes": 22455
+    },
+    {
+      "path": "mechanics/training-practice.js",
+      "source": "mechanics/training-practice.js",
+      "bytes": 3542
     },
     {
       "path": "sound/bgm-hub-lite.mp3",
@@ -391,6 +396,11 @@
       "path": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png",
       "source": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png",
       "bytes": 348289
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png",
+      "source": "art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png",
+      "bytes": 254847
     }
   ]
 }
