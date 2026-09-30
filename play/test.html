@@ -18360,8 +18360,11 @@ function houseLotGrid(){
   for(const key in HOUSE_PROPS){ const [r,c]=key.split(',').map(Number); g[r][c]='0'; }
   return g;
 }
+// 산책 대문 — 마당 아랫변 가운데 두 칸(7,3)·(7,4). 여기에 부딪히면 "산책 가자" → 다음 산책 확인 화면.
+// 하우스가 끝나는 곳이 아니라 다음 산책으로 나가는 문이다. 탭으로 들어오면 맥스는 이 문 앞에서 기다린다.
+function houseIsWalkGate(r,c){ return r===GN-1 && (c===3||c===4); }
 function houseLotSpec(k, at){
-  const g=houseLotGrid(), d=at||[5,4];
+  const g=houseLotGrid(), d=at||[GN-2,4];
   return {T:g.map(r=>r.join('')).join(''), h:[], p:[], b:houseToysFor(false, g, d), d, par:0};
 }
 // 방 안 자리: 매트(옷걸이 앞), 침대(오른쪽 아래 구석), 장난감 자리 열(왼·오른 벽을 따라). 장난감은
@@ -18465,12 +18468,23 @@ function houseBoxTidy(b){
 function houseFenceHit(dr,dc){
   const r=dog.r+dr, c=dog.c+dc;
   if(!(r===0||c===0||r===GN-1||c===GN-1) || (r===0&&(c===3||c===4))) return;
+  if(houseIsWalkGate(r,c)){ houseWalkGo(); return; }
   if((r===0||r===GN-1) && (c===0||c===GN-1)) return;
   if(tileAt(L,filled,r,c)!==WALL) return;
   const ks=Object.keys(HOUSE_FENCE), cur=houseFenceAt(r,c), nx=ks[(ks.indexOf(cur)+1)%ks.length];
   houseTheme.fences=Object.assign({}, houseTheme.fences||{}, {[r+','+c]:nx});
   LS.set('roll_house', JSON.stringify(houseTheme)); tileKey='';
   tone(560,0.05,'triangle',0.04,760); buzz(8);
+}
+let houseWalkTO=0;
+function houseWalkGo(){
+  if(houseWalkTO) return;
+  dog.maxEvent='victory'; dog.maxEventT=0; dog.wagBoost=1;
+  tone(660,0.06,'triangle',0.05,990); buzz([10,30,10]);
+  showToast(I18N.t('house.walkGo'), 1200);
+  houseWalkTO=setTimeout(()=>{ houseWalkTO=0; if(!houseMode) return;
+    const lv=Math.max(1, Math.min(maxLevel, BAKED.length));
+    houseEnd(); lvCardOpen(lv); }, 650);
 }
 function houseBoxHit(dr,dc){
   if(houseMode && !houseIn){ houseFenceHit(dr,dc); return false; }
@@ -18598,6 +18612,14 @@ function drawHouseTile(r,c){
     return true; }
   if(t!==WALL) return true;
   if(!edge) return true;
+  if(houseIsWalkGate(r,c)){                                               // 산책 대문 — 낮은 나무 문 두 짝, 바깥 기둥
+    const left=c===3, g2=g, px=left? x+cell*0.04 : x+cell*0.78;
+    g2.fillStyle='rgba(60,50,30,.14)'; g2.fillRect(x,y+cell*.66,cell,cell*.1);
+    g2.fillStyle='#C98A4B'; g2.beginPath(); g2.roundRect(x+(left?cell*.2:0),y+cell*.3,cell*.8,cell*.4,cell*.06); g2.fill();
+    g2.fillStyle='#E0A868'; for(let k=0;k<3;k++) g2.fillRect(x+(left?cell*.26:cell*.06)+k*cell*.25,y+cell*.32,cell*.13,cell*.36);
+    g2.fillStyle='#8E5E36'; g2.beginPath(); g2.roundRect(px,y+cell*.12,cell*.18,cell*.62,cell*.05); g2.fill();
+    g2.fillStyle='#F2A7A0'; g2.beginPath(); g2.arc(px+cell*.09,y+cell*.12,cell*.1,0,7); g2.fill();
+    return true; }
   // 울타리 — 위·아래는 가로 살, 좌·우는 기둥 줄. 모서리는 둘 다.
   const post=(px,py)=>{ g.fillStyle='rgba(60,50,30,.14)'; g.fillRect(px+cell*.03,py+cell*.06,cell*.2,cell*.6);
     g.fillStyle=F.post; g.beginPath(); g.moveTo(px,py+cell*.62); g.lineTo(px,py+cell*.12); g.lineTo(px+cell*.1,py); g.lineTo(px+cell*.2,py+cell*.12); g.lineTo(px+cell*.2,py+cell*.62); g.closePath(); g.fill();
@@ -18768,6 +18790,15 @@ function drawHouseToyBox(){
 function drawHouseOverlay(){
   if(!houseMode) return;
   if(houseIn){ drawHouseRoom(); return; }
+  { const c=cell, gx=c*4, gy=cy(GN-1), near=dog.r===GN-2 && (dog.c===3||dog.c===4), pulse=0.5+0.5*Math.sin(animT*4);   // 산책 대문 표지 + 목줄
+    if(near){ ctx.fillStyle='rgba(255,226,140,'+(0.25+0.3*pulse)+')'; ctx.beginPath(); ctx.ellipse(gx,gy+c*0.02,c*1.15,c*0.5,0,0,7); ctx.fill(); }
+    ctx.strokeStyle='#D9534F'; ctx.lineWidth=Math.max(2,c*0.06); ctx.lineCap='round';                     // 오른 기둥에 걸린 빨간 목줄
+    ctx.beginPath(); ctx.moveTo(c*4.87,gy-c*0.3); ctx.bezierCurveTo(c*5.05,gy-c*0.05,c*4.7,gy+c*0.1,c*4.88,gy+c*0.25); ctx.stroke();
+    ctx.beginPath(); ctx.arc(c*4.87,gy-c*0.3,c*0.07,0,7); ctx.stroke();
+    ctx.fillStyle='#FFF9F0'; ctx.strokeStyle='#8A6741'; ctx.lineWidth=Math.max(1,c*.025);
+    ctx.beginPath(); ctx.roundRect(gx-c*.36,gy-c*.36-(near?pulse*c*0.04:0),c*.72,c*.3,c*.08); ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#8A5A18'; ctx.font='700 '+(c*.16)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(I18N.t('house.walkSign'), gx, gy-c*.21-(near?pulse*c*0.04:0)); ctx.textAlign='start'; ctx.textBaseline='alphabetic'; }
   { const sx=cx(HOUSE_SIGN[1]), sy=cy(HOUSE_SIGN[0]), on=dog.r===HOUSE_SIGN[0]&&dog.c===HOUSE_SIGN[1];   // 꾸미기 푯말
     ctx.fillStyle='rgba(60,50,30,.14)'; ctx.beginPath(); ctx.ellipse(sx,sy+cell*.34,cell*.22,cell*.06,0,0,7); ctx.fill();
     ctx.fillStyle='#8A6741'; ctx.fillRect(sx-cell*.04,sy-cell*.05,cell*.08,cell*.4);

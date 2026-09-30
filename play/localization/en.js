@@ -275,6 +275,8 @@
     "house.room": "Max's Room",
     "house.hoodBase": "Plain",
     "house.lockedDistrict": "District {n}",
+    "house.walkGo": "Walk time!",
+    "house.walkSign": "Walk",
     "house.hookLocked": "Finish District {n} to hang one here",
     "house.toyOut": "{toy} rolled out to the yard",
     "house.toyIn": "{toy} rolled into the room",

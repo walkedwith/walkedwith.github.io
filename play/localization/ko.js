@@ -275,6 +275,8 @@
     "house.room": "맥스네 방",
     "house.hoodBase": "기본",
     "house.lockedDistrict": "{n}동네",
+    "house.walkGo": "산책 가자!",
+    "house.walkSign": "산책",
     "house.hookLocked": "{n}동네를 다 걸으면 여기 걸려요",
     "house.toyOut": "{toy} — 마당으로 톡",
     "house.toyIn": "{toy} — 방으로 톡",
