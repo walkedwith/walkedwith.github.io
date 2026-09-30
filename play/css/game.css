@@ -3029,6 +3029,10 @@
   .hoodrow .htile.on { background:#FFF0D4; border-color:#E7A72C; }
   .hoodrow .htile.lock { border-style:dashed; background:transparent; justify-content:center; min-height:46px; }
   .hoodrow .htile.lock em { color:#B4763A; }
+  .hoodrow .htile.buy { border-style:dashed; }
+  .hoodrow .htile.buy em { color:#B4763A; }
+  .hoodrow .htile.bal { background:#FFF6E2; border-color:#E8C98A; pointer-events:none; justify-content:center; }
+  .hoodrow .htile.bal em { color:#8A5A18; font-weight:700; }
   .hoodrow .htile:active { transform:scale(.95); }
   .hoodrow .hsw { width:30px; height:30px; border-radius:50%; border:2px solid rgba(0,0,0,.08); display:block; }
   .hoodrow .hsw.fence { border-radius:8px; border-width:3px; }
