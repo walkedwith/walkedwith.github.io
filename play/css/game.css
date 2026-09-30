@@ -4063,9 +4063,9 @@ body.hud-pilot.hudinplay:not(.inhouse) #hud {
   box-shadow:0 4px 12px rgba(74,53,36,.12); }
 body.hudinplay:not(.inhouse) #hud > .hgrp .lvlbl { display:none; }
 body.hudinplay:not(.inhouse) #hud > .hgrp #lvl { position:relative; display:grid; place-items:center;
-  min-width:44px; height:46px; padding:6px 6px 0; margin-top:6px; border-radius:15px;
-  background:#F5C45C; border:2.5px solid #CE963A; color:#6E4614; font-size:var(--s5); line-height:1; }
-body.hudinplay:not(.inhouse) #hud > .hgrp #lvl::before { content:""; position:absolute; left:50%; top:-10px; width:12px; height:12px;
+  min-width:38px; height:40px; padding:5px 5px 0; margin-top:5px; border-radius:13px;
+  background:#F5C45C; border:2.5px solid #CE963A; color:#6E4614; font-size:var(--s6); line-height:1; }
+body.hudinplay:not(.inhouse) #hud > .hgrp #lvl::before { content:""; position:absolute; left:50%; top:-9px; width:10px; height:10px;
   translate:-50% 0; border:3px solid #BE9446; border-radius:50%; background:transparent; }
 body.hud-pilot.hudinplay:not(.inhouse) #mvbar { margin:0; padding:0; width:auto; min-width:0; background:none; box-shadow:none;
   display:block; height:52px; position:relative; }
@@ -4089,3 +4089,138 @@ body.inhouse #hintAct { display:none !important; }
 /* 도크의 「무료」 딱지 — 무르기는 늘, 다시하기는 첫 동네에서 늘 공짜라 붙는 딱지였다(2026-09-30 걷음).
    공짜는 기본이라 말할 필요가 없다. 값이 붙는 순간(밥 한 끼 · 도토리 · 남은 수)만 보인다. */
 #undoN.free, #restartN.free { display:none !important; }
+
+/* 하우스 제목 줄 — 위 "산책" 라벨은 판 이름표용이라 방·마당에선 뺀다(2026-09-30) */
+body.inhouse #hud .lvlbl { display:none; }
+
+/* ── 험한 판 = 동네 보스 (2026-09-30) — 노을 하늘 · 금빛 판 · 입장 카드 ───────────── */
+body.hardlv:not(.inhouse) #wrap { background:linear-gradient(180deg,#E99A6A 0%,#F2BC8A 28%,#F4D7B0 55%,#EEDFC4 100%); }
+body.hardlv:not(.inhouse) #boardWrap.trimmed { filter:drop-shadow(0 0 10px rgba(255,196,80,.95)) drop-shadow(0 0 22px rgba(240,150,50,.6)); }
+body.hardlv:not(.inhouse) #hud > .hgrp #lvl { background:#F2C24E; border-color:#B9812A; }
+#hardIntro { position:absolute; left:50%; top:44%; z-index:57; display:grid; justify-items:center; gap:4px;
+  padding:14px 34px; background:#FFF6E6; border:3px solid #E7A72C; border-radius:20px; pointer-events:none;
+  box-shadow:0 0 0 5px rgba(255,246,230,.7), 0 10px 24px rgba(74,53,36,.3); font-family:var(--f-hand);
+  opacity:0; visibility:hidden; transform:translate(-50%,-50%) scale(.7); transition:opacity .3s, transform .3s, visibility 0s .3s; }
+#hardIntro.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1);
+  transition:opacity .25s, transform .4s cubic-bezier(.3,1.5,.5,1), visibility 0s; }
+#hardIntro svg { width:46px; height:28px; }
+#hardIntro b { font-weight:var(--w-reg); font-size:var(--s2); color:#B5452F; line-height:1; white-space:nowrap; }
+#hardIntro span { display:flex; align-items:center; gap:6px; font-family:var(--f-body); font-size:var(--s8); color:#8A5A18; white-space:nowrap; }
+#hardIntro span[hidden] { display:none; }
+#hardIntro em { font-style:normal; }
+#hardIntro .higift { width:20px; height:18px; border-radius:3px;
+  background:linear-gradient(90deg,transparent 42%,#F07C8A 42% 58%,transparent 58%),#9FC7E8; box-shadow:0 -5px 0 -1px #B7D6EF; }
+
+/* ── 아슬아슬 도장 (2026-09-30) — 남은 걸음 셋 이하로 깼을 때 카드 오른쪽 위에 쿵 ─────── */
+#win .card { position:relative; }
+#win .wclose { position:absolute; right:-24px; top:-32px; z-index:3; width:100px; height:100px; border-radius:50%;
+  display:none; place-content:center; justify-items:center; pointer-events:none;
+  --sc:#D9644F; border:4px solid var(--sc); box-shadow:inset 0 0 0 3px #FFF6E6, inset 0 0 0 5px var(--sc);
+  background:rgba(255,246,230,.94); color:var(--sc); font-family:var(--f-hand); transform:rotate(-14deg); }
+#win .wclose.gold { --sc:#C88A1E; background:rgba(255,241,200,.96); }
+#win .wclose.on { display:grid; animation:closeStamp .42s cubic-bezier(.3,1.4,.5,1) both; }
+#win .wclose b { font-weight:var(--w-reg); font-size:var(--s6); line-height:1; white-space:nowrap; }
+#win .wclose span { font-family:var(--f-body); font-size:var(--s10); margin-top:3px; white-space:nowrap; }
+@keyframes closeStamp { 0%{ opacity:0; transform:rotate(-30deg) scale(2.2) } 60%{ opacity:1; transform:rotate(-12deg) scale(.92) } 100%{ transform:rotate(-14deg) scale(1) } }
+body.hudinplay:not(.inhouse) #mvbar .mvphew { position:absolute; left:calc(clamp(26px, calc(var(--fr,1) * 100%), calc(100% - 26px)) + 30px); top:-8px;
+  z-index:3; font-family:var(--f-hand); font-size:var(--s8); color:#8A7458; transform:rotate(-8deg); white-space:nowrap;
+  opacity:0; pointer-events:none; }
+body.hudinplay:not(.inhouse) #mvbar .mvphew.on { animation:phewIn 1.8s ease-out .9s both; }
+.mvphew { display:none; } body.hudinplay:not(.inhouse) #mvbar .mvphew { display:block; }
+@keyframes phewIn { 0%{ opacity:0; translate:0 6px } 20%{ opacity:1; translate:0 0 } 80%{ opacity:1 } 100%{ opacity:.85 } }
+
+/* ── 꾸러미 여는 연출 (2026-09-30) — 뚜껑이 튀어 오르고 색종이가 터진다 ─────────────── */
+.wgbico svg .gblid { transform-box:fill-box; transform-origin:30% 100%; }
+.wgift.burst .wgbico { animation:wgSquash .5s ease-out forwards; }
+.wgift.burst .wgbico svg .gblid { animation:wgLidOff .55s cubic-bezier(.2,.7,.4,1) forwards; }
+@keyframes wgSquash { 0%{ transform:scale(1) } 25%{ transform:scale(1.12,.86) } 55%{ transform:scale(.96,1.06) } 100%{ transform:scale(1); opacity:.0 } }
+@keyframes wgLidOff { 0%{ transform:none } 100%{ transform:translate(-4px,-26px) rotate(-38deg); opacity:0 } }
+.wgconf { position:absolute; z-index:3; left:50%; top:38%; width:0; height:0; pointer-events:none; }
+.wgconf i { position:absolute; left:-4px; top:-4px; width:8px; height:11px; border-radius:2px; opacity:0; background:var(--cc); }
+.wgift.burst .wgconf i { animation:wgConf .8s cubic-bezier(.2,.8,.4,1) forwards; }
+@keyframes wgConf { 0%{ opacity:1; transform:translate(0,0) rotate(0) } 100%{ opacity:0; transform:translate(var(--dx),var(--dy)) rotate(var(--rr)) } }
+.wgconf i:nth-child(1){ --cc:#F07C8A; --dx:-70px; --dy:-60px; --rr:200deg }
+.wgconf i:nth-child(2){ --cc:#F2C24E; --dx:-40px; --dy:-86px; --rr:-160deg }
+.wgconf i:nth-child(3){ --cc:#8CC063; --dx:-6px;  --dy:-96px; --rr:240deg }
+.wgconf i:nth-child(4){ --cc:#6FB3D9; --dx:30px;  --dy:-88px; --rr:-220deg }
+.wgconf i:nth-child(5){ --cc:#F07C8A; --dx:66px;  --dy:-64px; --rr:180deg }
+.wgconf i:nth-child(6){ --cc:#F2C24E; --dx:80px;  --dy:-22px; --rr:-140deg }
+.wgconf i:nth-child(7){ --cc:#6FB3D9; --dx:-82px; --dy:-20px; --rr:150deg }
+.wgconf i:nth-child(8){ --cc:#8CC063; --dx:-54px; --dy:14px;  --rr:-200deg }
+.wgconf i:nth-child(9){ --cc:#C0554A; --dx:52px;  --dy:16px;  --rr:210deg }
+.wgconf i:nth-child(10){ --cc:#F2C24E; --dx:12px; --dy:-120px; --rr:-260deg }
+@media (prefers-reduced-motion:reduce){ .wgift.burst .wgconf i, .wgift.burst .wgbico svg .gblid, #win .wclose.on { animation:none; } }
+/* 승리 카드 위에서 여는 꾸러미 — 상자가 카드 한가운데 주인공이라 한 단 키운다 */
+#giftsel .wgbico { width:84px; }
+
+/* 험한 판 꾸러미 줄 — 파란 상자 + "방에 가서 열기". 여는 건 방에서. */
+#win .wroom { cursor:default; }
+#win .wroom .wptx { flex:1; }
+#win .wroom .wptx i { color:#8A7458; }
+#win .wroom canvas { background:#EAF4FC; border-color:#B7D6EF; }
+#win .wroom .wrgo { flex:none; border:0; border-radius:12px; padding:9px 11px; background:#F2B04E; color:#3A2206;
+  font-family:var(--f-hand); font-size:var(--s9); box-shadow:0 3px 0 #C98A2A; cursor:pointer; white-space:nowrap; }
+#win .wroom .wrgo:active { transform:translateY(2px); box-shadow:0 1px 0 #C98A2A; }
+
+/* ── 방 꾸미기 시트 (2026-09-30) — 꾸러미 여섯 자리 + 소품 넷. 방 푯말을 밟으면 아래에서 올라온다 ── */
+#hdeco { position:absolute; left:0; right:0; bottom:0; z-index:40; display:none; background:#FFF9EE;
+  border-radius:22px 22px 0 0; box-shadow:0 -6px 20px rgba(74,53,36,.18); font-family:var(--f-body);
+  padding:10px 12px calc(14px + env(safe-area-inset-bottom)); touch-action:manipulation; user-select:none; -webkit-user-select:none; }
+#hdeco.on { display:block; animation:hdUp .26s cubic-bezier(.3,1.2,.5,1) both; }
+@keyframes hdUp { from { transform:translateY(40px); opacity:0 } to { transform:none; opacity:1 } }
+body.inhouse #boardWrap { transition:transform .26s ease-out; }
+#hdeco button { font-family:inherit; border:0; padding:0; background:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+#hdeco .hdgrab { width:44px; height:5px; border-radius:3px; background:#E3D3B6; margin:0 auto 8px; }
+#hdeco .hdhd { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+#hdeco .hdhd b { font-family:var(--f-hand); font-weight:var(--w-reg); font-size:var(--s6); color:#4A3524; }
+#hdeco .hdbal { display:inline-flex; align-items:center; gap:4px; font-size:var(--s8); color:#8A5A18; background:#FFF0D4;
+  border:2px solid #E8C98A; border-radius:14px; padding:2px 10px; }
+#hdeco .hdbal svg { width:18px; height:18px; }
+#hdeco .hdtabs { display:grid; grid-template-columns:repeat(6,1fr) 2px 1.15fr; gap:5px; margin-bottom:8px; }
+#hdeco .hddv { background:#E3D3B6; border-radius:1px; margin:6px 0; }
+#hdeco .hdtab { position:relative; display:grid; justify-items:center; gap:1px; padding:5px 0; border-radius:12px;
+  background:#FFFDF8; border:2px solid #EADFC9; }
+#hdeco .hdtab canvas { width:34px; height:34px; }
+#hdeco .hdtab em { font-style:normal; font-size:var(--s10); color:#8A7458; white-space:nowrap; }
+#hdeco .hdtab u { position:absolute; top:-8px; right:-4px; text-decoration:none; font-size:var(--s10); line-height:15px;
+  color:#fff; background:#B59A74; border-radius:8px; padding:0 4px; }
+#hdeco .hdtab.shop { background:#FFF6E6; border-color:#E8C98A; }
+#hdeco .hdtab.shop u.bone { width:20px; height:15px; padding:0; background:#C98E55 url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M2.9 22.8a8.3 8.3 0 1 0 16.7 0a8.3 8.3 0 1 0-16.7 0zM6.7 33.1a8.3 8.3 0 1 0 16.7 0a8.3 8.3 0 1 0-16.7 0zM24.6 14.9a8.3 8.3 0 1 0 16.7 0a8.3 8.3 0 1 0-16.7 0zM28.4 25.2a8.3 8.3 0 1 0 16.7 0a8.3 8.3 0 1 0-16.7 0zM11 22.2l4.2 11.5l21.7-7.9l-4.2-11.5z' fill='white'/></svg>") center/12px no-repeat; }
+#hdeco .hdtab.on { background:#FFF0D4; border-color:#E7A72C; }
+#hdeco .hdtab.on em { color:#4A3524; font-weight:700; }
+#hdeco .hdtab.on u:not(.bone) { background:#E7A72C; }
+#hdeco .hdspots { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin-bottom:8px; }
+#hdeco .hdspots[hidden] { display:none; }
+#hdeco .hdspot { display:flex; align-items:center; gap:4px; padding:3px 6px; border:2px dashed #E3C9A0; border-radius:11px; background:#FFFDF8; }
+#hdeco .hdspot canvas { width:28px; height:28px; flex:none; }
+#hdeco .hdspot em { font-style:normal; font-size:var(--s10); color:#8A7458; white-space:nowrap; }
+#hdeco .hdspot.on { border-style:solid; border-color:#E7A72C; background:#FFF0D4; }
+#hdeco .hdspot.on em { color:#4A3524; font-weight:700; }
+#hdeco .hdcap { display:flex; align-items:center; gap:8px; font-size:var(--s9); color:#8A7458; margin:2px 2px 8px; min-height:24px; }
+#hdeco .hdcap > span { flex:1; min-width:0; }
+#hdeco .hdcap b { color:#4A3524; font-weight:700; }
+#hdeco .hdcap .hdn { margin-left:6px; color:#8A7458; font-weight:400; }
+#hdeco .hdclr { flex:none; font-size:var(--s10); color:#8A5A18; background:#FFF0D4; border:1.5px solid #E8C98A !important; border-radius:10px; padding:3px 9px !important; }
+#hdeco .hdclr[hidden] { display:none; }
+#hdeco .hdgrid { display:grid; gap:6px; max-height:34vh; overflow-y:auto; overscroll-behavior:contain; padding:6px 2px 2px; }
+#hdeco .hdgrid.c5 { grid-template-columns:repeat(5,1fr); }
+#hdeco .hdgrid.c4 { grid-template-columns:repeat(4,1fr); }
+#hdeco .hdit { position:relative; display:grid; justify-items:center; align-content:start; gap:1px; min-height:82px;
+  background:#FFFDF8; border:2px solid #EADFC9 !important; border-radius:13px; padding:5px 1px 5px !important; }
+#hdeco .hdit canvas { width:50px; height:50px; }
+#hdeco .hdit canvas.fc { position:absolute; top:3px; left:3px; width:16px; height:16px; }
+#hdeco .hdit em { font-style:normal; font-size:var(--s10); color:#6B5238; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+#hdeco .hdit i { position:absolute; top:3px; left:4px; font-style:normal; font-size:var(--s10); line-height:15px; color:#fff; background:#B59A74; border-radius:7px; padding:0 5px; }
+#hdeco .hdit.on { background:#FFF0D4; border-color:#E7A72C !important; }
+#hdeco .hdit.on::after { content:'✓'; position:absolute; top:-7px; right:-6px; width:20px; height:20px; border-radius:50%;
+  background:#7FB85A; color:#fff; font-size:var(--s10); display:grid; place-items:center; border:2px solid #FFF9EE; }
+#hdeco .hdit.no { background:transparent; border-style:dashed !important; border-color:#E3D3B6 !important; }
+#hdeco .hdit.no canvas:not(.fc) { opacity:.16; filter:grayscale(1); }
+#hdeco .hdit.no em { color:#B8A588; }
+#hdeco .hdit.boxed canvas:not(.fc) { opacity:.45; }
+#hdeco .hdit.boxed em { color:#6FA0CE; }
+#hdeco .hdit.buy { border-style:dashed !important; }
+#hdeco .hdit .pr { display:inline-flex; align-items:center; gap:2px; font-size:var(--s10); color:#fff; background:#C98E55; border-radius:9px; padding:1px 7px; font-weight:700; }
+#hdeco .hdit .pr svg { width:12px; height:12px; }
+#hdeco .hdit .pr svg path { fill:#fff; }
+#hdeco button:active { transform:scale(.96); }
