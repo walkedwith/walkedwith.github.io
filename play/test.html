@@ -321,7 +321,7 @@
       <div class="tabbar">
         <button class="tab lock" id="tbShop"><i class="tbdot"></i><span class="tbi"><svg viewBox="0 0 48 48"><path d="M8 20h32v20a3 3 0 01-3 3H11a3 3 0 01-3-3z" fill="#F4E3C8"/><path d="M6 10h36l3 8q0 4-4.5 4t-4.5-4q0 4-4.5 4T27 18q0 4-4.5 4T18 18q0 4-4.5 4T9 18q0 4-4.5 4T1.5 18z" fill="#D95757"/><path d="M6 10h36l1.5 4H4.5z" fill="#C24A4A"/><rect x="13" y="27" width="9" height="16" rx="1.5" fill="#A87843"/><rect x="26" y="27" width="9" height="9" rx="1.5" fill="#9FD4EE"/><rect x="26" y="27" width="9" height="9" rx="1.5" fill="none" stroke="#C99863" stroke-width="2"/></svg></span><i data-i18n="nav.shop">상점</i><b class="tbl"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3" fill="#C9B99F"/><path d="M8 10V7a4 4 0 018 0v3" fill="none" stroke="#C9B99F" stroke-width="2.6"/><circle cx="12" cy="15.5" r="1.8" fill="#8A7458"/></svg></b></button>
         <button class="tab main on" id="tbWalk"><span class="tbi"><svg viewBox="0 0 48 48"><ellipse cx="24" cy="33" rx="11" ry="9"/><ellipse cx="11" cy="20" rx="4.6" ry="5.4"/><ellipse cx="19" cy="13" rx="4.8" ry="5.6"/><ellipse cx="29" cy="13" rx="4.8" ry="5.6"/><ellipse cx="37" cy="20" rx="4.6" ry="5.4"/></svg></span><i data-i18n="nav.walk">산책</i></button>
-        <button class="tab lock" id="tbYard"><span class="tbi"><svg viewBox="0 0 48 48"><path d="M3 30h42v4H3z" fill="#8FC24E"/><path d="M4 34h40v9H4z" fill="#A9D178"/><g fill="#E3C18E" stroke="#B98A52" stroke-width="1.6"><rect x="4" y="30" width="4.4" height="12" rx="1.4"/><rect x="12" y="30" width="4.4" height="12" rx="1.4"/><rect x="31.6" y="30" width="4.4" height="12" rx="1.4"/><rect x="39.6" y="30" width="4.4" height="12" rx="1.4"/></g><path d="M3.4 33.4h41.2" stroke="#B98A52" stroke-width="2.4" stroke-linecap="round"/><path d="M13 20 24 9l11 11z" fill="#9BC9F0" stroke="#5E93C4" stroke-width="2.2" stroke-linejoin="round"/><rect x="15.6" y="20" width="16.8" height="12" rx="2" fill="#FDFBF7" stroke="#C9B99F" stroke-width="2.2"/><rect x="21" y="24" width="6" height="8" rx="3" fill="#D2A469" stroke="#96662E" stroke-width="1.8"/></svg></span><i data-i18n="nav.yard">동네</i><b class="tbl"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3" fill="#C9B99F"/><path d="M8 10V7a4 4 0 018 0v3" fill="none" stroke="#C9B99F" stroke-width="2.6"/><circle cx="12" cy="15.5" r="1.8" fill="#8A7458"/></svg></b></button>
+        <button class="tab lock" id="tbYard"><span class="tbi"><svg viewBox="0 0 48 48"><path d="M3 30h42v4H3z" fill="#8FC24E"/><path d="M4 34h40v9H4z" fill="#A9D178"/><g fill="#E3C18E" stroke="#B98A52" stroke-width="1.6"><rect x="4" y="30" width="4.4" height="12" rx="1.4"/><rect x="12" y="30" width="4.4" height="12" rx="1.4"/><rect x="31.6" y="30" width="4.4" height="12" rx="1.4"/><rect x="39.6" y="30" width="4.4" height="12" rx="1.4"/></g><path d="M3.4 33.4h41.2" stroke="#B98A52" stroke-width="2.4" stroke-linecap="round"/><path d="M13 20 24 9l11 11z" fill="#9BC9F0" stroke="#5E93C4" stroke-width="2.2" stroke-linejoin="round"/><rect x="15.6" y="20" width="16.8" height="12" rx="2" fill="#FDFBF7" stroke="#C9B99F" stroke-width="2.2"/><rect x="21" y="24" width="6" height="8" rx="3" fill="#D2A469" stroke="#96662E" stroke-width="1.8"/></svg></span><i data-i18n="nav.yard">하우스</i><b class="tbl"><svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3" fill="#C9B99F"/><path d="M8 10V7a4 4 0 018 0v3" fill="none" stroke="#C9B99F" stroke-width="2.6"/><circle cx="12" cy="15.5" r="1.8" fill="#8A7458"/></svg></b></button>
       </div>
       <div class="tabtoast" id="tabToast"></div>
     </div>
@@ -11979,6 +11979,19 @@ function yardUnlocked(){                                     // 수첩 도면에
 // 스위치를 다시 내리면 notice.yardSoon(아직 준비 중이에요)으로 돌아간다.
 function yardLockedMsg(){ return YARD_CONTENT_ON? I18N.t('notice.yardLocked',{count:clearedCount()})
                                                 : I18N.t('notice.yardSoon'); }
+// 3번 탭으로 가는 길은 전부 여기로 — 하우스가 켜져 있으면 옛 동네(들르기 지도)가 아니라 하우스다.
+// 해금 스포트라이트·완주 카드·목록 버튼이 openYard() 를 직접 불러 옛 동네가 떴다(2026-09-30).
+function openHomeTab(){ if(HOUSE_ON) openHouse(); else openYard(); }
+// 3번 탭 안내는 보여 준 게 아니라 도착해야 확인된 것이다 — 옛 동네든 하우스든 들어온 순간.
+function yardGuideAck(){
+  if(!yardUnlocked()) return;
+  tipSeen.diaryOpen=1;
+  for(let n=1;n<=DISTRICTS.length;n++){
+    const it=districtGiftItem(n);
+    if(it && districtCleared(n) && yardOwned.includes(it.k)) tipSeen['yardGiftGuide'+n]=1;
+  }
+  LS.set('roll_tips',JSON.stringify(tipSeen));
+}
 function openYard(){
   stopGameEffects();
   yardNormalize();                                   // 소품을 앞줄 땅으로 모은다
@@ -12036,15 +12049,7 @@ function openYard(){
       break;
     }
   }
-  // A guide is acknowledged by arriving here, not merely by showing its spotlight.
-  if(yardUnlocked()){
-    tipSeen.diaryOpen=1;
-    for(let n=1;n<=DISTRICTS.length;n++){
-      const it=districtGiftItem(n);
-      if(it && districtCleared(n) && yardOwned.includes(it.k)) tipSeen['yardGiftGuide'+n]=1;
-    }
-    LS.set('roll_tips',JSON.stringify(tipSeen));
-  }
+  yardGuideAck();
   dog.wagBoost=1;                                       // 들어오면 반긴다
   setTimeout(()=>{ if(yardMode) heartBurst(dog.r, dog.c, 2); }, 420);
   bgmSync();
@@ -16386,7 +16391,7 @@ function districtGrowthDrawIcons(root){
   // 짓는 자리는 이제 그 동네 마당이다 — 수첩 사다리 대신 마당으로 바로 보낸다.
   root.querySelectorAll('.lsgrow[data-gld]').forEach(b=>onTap(b, ()=>{
     const n=+b.dataset.gld; tone(620,0.05,'triangle',0.03,840);
-    openYard(); hoodEnter(n);
+    openHomeTab(); hoodEnter(n);
   }));
   root.querySelectorAll('canvas[data-ygitem]').forEach(cv2=>{
     const c2=cv2.getContext('2d'), oldCtx=ctx, oldCell=cell, item=cv2.dataset.ygitem, phase=cv2.dataset.ygphase;
@@ -17006,7 +17011,7 @@ function yardFirstOpen(n){
   if(!n || !DISTRICT_GROWTH[n]) return false;
   if(hoodOpen().indexOf(n)<0) dcGrantGift(n);
   tone(660,0.05,'triangle',0.03,880);
-  closeGrowthLadder(); openYard(); hoodEnter(n);
+  closeGrowthLadder(); openHomeTab(); hoodEnter(n);
   setTimeout(()=>{ if(yardMode && YARD_COACH_ON) tipOnce('yardHammer', I18N.t('growth.hammerHint'), 3200); }, 700);
   return true;
 }
@@ -17034,7 +17039,7 @@ function showDistrictGiftGuide(it,n){
   if(!it || contentCardBlocked()) return false;
   if(!YARD_CONTENT_ON && !TEST_YARD) return false;            // 잠긴 탭을 짚으면 눌러도 안 열린다
   const txt=()=>districtGiftGuideText(it,n).split('\n').join('<br>');
-  showUnlockSpotlight('tbYard', txt, 'tutorial.goYard', ()=>openYard());
+  showUnlockSpotlight('tbYard', txt, 'tutorial.goYard', ()=>openHomeTab());
   return true;
 }
 function pendingDistrictGiftGuide(){
@@ -17575,7 +17580,7 @@ function bpRender(){
   // 완성된 도면 → 그 마당의 빈 자리 시트로. 자리가 없으면 왜 없는지를 말한다.
   for(const b of box.querySelectorAll('[data-yk]')) onTap(b, ()=>{
     const n=+b.dataset.yb, k=b.dataset.yk; tone(660,0.05,'triangle',0.03,880);
-    closeGrowthLadder(); openYard(); hoodEnter(n);
+    closeGrowthLadder(); openHomeTab(); hoodEnter(n);
     setTimeout(()=>{ const i=ygEmptySlot(n);
       if(i<0){ sfxBlocked(); showToast(I18N.t('note.bpNoSlot'), 2600); return; }
       ysSel=k; hoodSlotOpen(i); }, 420);
@@ -17626,7 +17631,7 @@ function caseItemBox(box, k, again){
       +'<div class="cswh">'+I18N.t('note.caseFrom',{n:lvLabel(lv)})+'</div>';
     caseDraw(box.querySelector('canvas'), k, 150, 120, 112);
     // 수첩은 보내는 곳이다 — 놓는 건 마당이 한다.
-    onTap(box.querySelector('.csput'), ()=>{ tone(620,0.05,'triangle',0.03,840); openYard(); hoodEnter(dn); });
+    onTap(box.querySelector('.csput'), ()=>{ tone(620,0.05,'triangle',0.03,840); openHomeTab(); hoodEnter(dn); });
     return;
   }
   const m=colCurMat(k), need=m? colLeft(k)[m] : 0, have=m? (matBag[m]|0) : 0, put=Math.min(need, have);
@@ -18338,15 +18343,18 @@ const HOUSE_FENCE={
   hedge:{post:'#9FD48F', rail:'#8CC77B', ink:'#6FA860', label:'꽃 생울타리', flower:'#FFB3C7'},
 };
 let houseTheme={grass:'clover', fence:'white'};
-function houseThemeLoad(){ try{ const o=JSON.parse(LS.get('roll_house')||'null'); if(o&&o.grass&&HOUSE_GRASS[o.grass]) houseTheme.grass=o.grass; if(o&&o.fence&&HOUSE_FENCE[o.fence]) houseTheme.fence=o.fence; if(o&&o.toys&&typeof o.toys==='object') houseTheme.toys=o.toys; }catch(e){} }
-function houseThemeSet(k,v){ if(k==='grass'&&!HOUSE_GRASS[v]) return; if(k==='fence'&&!HOUSE_FENCE[v]) return; houseTheme[k]=v; LS.set('roll_house', JSON.stringify(houseTheme)); tileKey=''; }
+// 울타리는 한 칸씩 바꾼다 — houseTheme.fences['r,c'] 가 그 칸 모양. 없으면 기본(fence). 푯말에서 고르면 전체가 그 모양으로.
+function houseFenceAt(r,c){ const f=(houseTheme.fences||{})[r+','+c]; return HOUSE_FENCE[f]? f : houseTheme.fence; }
+function houseFenceSig(){ const o=houseTheme.fences||{}; return Object.keys(o).sort().map(k=>k+o[k]).join(''); }
+function houseThemeLoad(){ try{ const o=JSON.parse(LS.get('roll_house')||'null'); if(o&&o.grass&&HOUSE_GRASS[o.grass]) houseTheme.grass=o.grass; if(o&&o.fence&&HOUSE_FENCE[o.fence]) houseTheme.fence=o.fence; if(o&&o.toys&&typeof o.toys==='object') houseTheme.toys=o.toys; if(o&&o.fences&&typeof o.fences==='object') houseTheme.fences=o.fences; }catch(e){} }
+function houseThemeSet(k,v){ if(k==='grass'&&!HOUSE_GRASS[v]) return; if(k==='fence'&&!HOUSE_FENCE[v]) return; houseTheme[k]=v; if(k==='fence') houseTheme.fences={}; LS.set('roll_house', JSON.stringify(houseTheme)); tileKey=''; }
 const HOUSE_SIGN=[6,1];                                // 꾸미기 푯말 — 마당 왼쪽 아래 구석. 밟으면 줄이 열린다.
 function houseGrid(){ const g=[]; for(let r=0;r<GN;r++){ const row=[]; for(let c=0;c<GN;c++) row.push(r===0||c===0||r===GN-1||c===GN-1? '0':'1'); g.push(row); } return g; }
 // 마당 판 — 둘레는 울타리(벽). 개집은 판 위 띠에 서고, 윗줄 (0,3)·(0,4)가 대문 = 문간이다.
 const HOUSE_BAND=2.1;                                  // 판 위 개집 띠 높이(칸)
 let houseTop=0;                                        // fit() 이 픽셀로 잰다
 // 마당 소품 — 칸을 차지하지만(못 지나감) 그림은 칸 경계를 무시하고 앉는다. 격자가 눈에서 사라지는 자리.
-const HOUSE_PROPS={'4,6':'pond','5,6':'pond','2,1':'bush','6,6':'bed'};
+const HOUSE_PROPS={'6,6':'bed'};                          // 연못·수풀은 뺐다(2026-09-30) — 꽃밭만 남는다
 function houseLotGrid(){
   const g=houseGrid(); g[0][3]='1'; g[0][4]='1';
   for(const key in HOUSE_PROPS){ const [r,c]=key.split(',').map(Number); g[r][c]='0'; }
@@ -18359,7 +18367,7 @@ function houseLotSpec(k, at){
 // 방 안 자리: 매트(옷걸이 앞), 침대(오른쪽 아래 구석), 장난감 자리 열(왼·오른 벽을 따라). 장난감은
 // 공(b)이라 밀 수 있다. 처음엔 전부 장난감 상자 안 — 상자에 부딪히면 하나 튀어나오고, 밀어 넣으면 쏙 들어간다.
 // 꺼내 둔 자리는 houseTheme.toys 에 저장해 다음에 들어와도 그 자리에 있다(내가 어질러 놓은 내 방).
-const HOUSE_MAT=[1,4], HOUSE_BED=[5,6], HOUSE_BOX=[5,1], HOUSE_MIRROR=[1,6];   // 매트는 물렸다(옷걸이 쿵 + 거울) — 자리만 남긴다
+const HOUSE_MAT=[1,4], HOUSE_BED=[5,6], HOUSE_BOX=[5,1];   // 매트는 물렸다(옷걸이 쿵 + 거울) — 자리만 남긴다
 const HOUSE_ROOM_BAND=0.5;                             // 방: 판 위 반 칸을 벽지 벽으로 쓴다(벽 1.5줄)
 let houseToys=[];                                     // boxes[i] 가 그릴 장난감 이름 — 스냅샷이 공을 새로 만들어도 순서는 같다
 let houseBoxFx=null;                                  // {kind:'out'|'in', toy, t0, to:[r,c]} — 상자 드나드는 연출
@@ -18369,12 +18377,11 @@ function houseBoxOn(){ return toyOwned().length>0; }   // 장난감이 하나도
 function houseRoomSpec(at){
   const g=houseGrid(); for(let c=0;c<GN;c++) g[GN-2][c]='0'; g[GN-2][3]='1'; g[GN-2][4]='1';
   if(houseBoxOn()) g[HOUSE_BOX[0]][HOUSE_BOX[1]]='0';
-  g[HOUSE_MIRROR[0]][HOUSE_MIRROR[1]]='0';
   const d=at||[GN-3,4];
   return {T:g.map(r=>r.join('')).join(''), h:[], p:[], b:houseToysFor(true, g, d), d, par:0};
 }
 function houseRoomGrid(){ const g=houseGrid(); for(let c=0;c<GN;c++) g[GN-2][c]='0'; g[GN-2][3]='1'; g[GN-2][4]='1';
-  if(houseBoxOn()) g[HOUSE_BOX[0]][HOUSE_BOX[1]]='0'; g[HOUSE_MIRROR[0]][HOUSE_MIRROR[1]]='0'; return g; }
+  if(houseBoxOn()) g[HOUSE_BOX[0]][HOUSE_BOX[1]]='0'; return g; }
 // 저장된 장난감 자리 — [r,c] 는 방, [r,c,'y'] 는 마당. 그 판에 있는 것만 공으로 깐다.
 function houseToysFor(room, g, d){
   // 둘 수 없는 자리(옛 저장·가구가 새로 선 칸·겹침)는 상자로 돌려보낸다 — 안 그러면 판에도 상자에도 없는 장난감이 된다.
@@ -18414,8 +18421,8 @@ function houseToyCross(){
   return true;
 }
 // ── 옷걸이 + 거울 — 옷걸이 밑에서 벽 쪽으로 부딪히면 그 후디를 입는다. 그 칸에 서 있으면 구석 거울에 그 옷을 입은 맥스가 비친다.
-// 자리: 뒷벽 1~5열(▲), 오른벽 2~4행(▶), 왼벽 2~4행(◀) — 맨몸 + 10벌이 다 걸린다. 다음 것은 점선(첫 벌 뒤부터).
-const HOUSE_HOOK_SLOTS=[[1,1,-1,0],[1,2,-1,0],[1,3,-1,0],[1,4,-1,0],[1,5,-1,0],[2,6,0,1],[3,6,0,1],[4,6,0,1],[2,1,0,-1],[3,1,0,-1],[4,1,0,-1]];
+// 자리: 뒷벽 1·2·5·6열(▲, 가운데 3·4열은 거울), 오른벽 2~5행(▶), 왼벽 2~4행(◀) — 맨몸 + 10벌이 다 걸린다. 다음 것은 점선.
+const HOUSE_HOOK_SLOTS=[[1,1,-1,0],[1,2,-1,0],[1,5,-1,0],[1,6,-1,0],[2,6,0,1],[3,6,0,1],[4,6,0,1],[5,6,0,1],[2,1,0,-1],[3,1,0,-1],[4,1,0,-1]];
 function houseHooks(){
   const own=hoodOwned(); if(!own.length) return [];                  // 후디가 0벌이면 옷걸이도 없다
   const items=['__base'].concat(own), nx=hoodNext(); if(nx) items.push('__next');
@@ -18432,15 +18439,6 @@ function houseHookHit(dr,dc){
     hoodieWear(want); showToast(want? I18N.t('hood.name.'+want) : I18N.t('house.hoodBase'), 1200); }, 320);
 }
 let houseWearTO=0;
-// 거울 속 그림 — 그 후디의 대기 시트 1번 칸. 한 번 받아 두고 쓴다.
-const houseMirrorImgs={};
-function houseMirrorImg(k){
-  const key=k||'__base'; if(houseMirrorImgs[key]) return houseMirrorImgs[key];
-  const path = k && MAX_SKIN_SETS[k] && MAX_SKIN_SETS[k].has('idle-front')
-    ? 'art/max-master/motions/skins/max-'+k+'-idle-front-8f-runtime.png'
-    : 'art/max-master/motions/canonical/max-idle-master-v1-front-8f.png';
-  const im=new Image(); im.decoding='async'; im.src=chapterMaxRuntimeSheet(path); houseMirrorImgs[key]=im; return im;
-}
 // 상자에 부딪힘 — 안에 남은 첫 장난감(동네 완주 순)이 상자 앞 빈 칸으로 톡.
 function houseBoxPop(){
   const left=houseInBox(); if(!left.length || houseBoxFx) return false;
@@ -18463,7 +18461,19 @@ function houseBoxTidy(b){
   houseToysSave(); return true;
 }
 // 벽 막힘 직후 — 상자와 관련된 막힘이면 처리한다. true 면 호출부가 나머지 막힘 연출을 건너뛴다.
+// 마당 — 울타리 한 칸에 부딪히면 그 칸만 다음 모양으로. 대문·모서리는 안 바뀐다.
+function houseFenceHit(dr,dc){
+  const r=dog.r+dr, c=dog.c+dc;
+  if(!(r===0||c===0||r===GN-1||c===GN-1) || (r===0&&(c===3||c===4))) return;
+  if((r===0||r===GN-1) && (c===0||c===GN-1)) return;
+  if(tileAt(L,filled,r,c)!==WALL) return;
+  const ks=Object.keys(HOUSE_FENCE), cur=houseFenceAt(r,c), nx=ks[(ks.indexOf(cur)+1)%ks.length];
+  houseTheme.fences=Object.assign({}, houseTheme.fences||{}, {[r+','+c]:nx});
+  LS.set('roll_house', JSON.stringify(houseTheme)); tileKey='';
+  tone(560,0.05,'triangle',0.04,760); buzz(8);
+}
 function houseBoxHit(dr,dc){
+  if(houseMode && !houseIn){ houseFenceHit(dr,dc); return false; }
   if(!(houseMode && houseIn)) return false;
   if(!houseBoxOn()){ houseHookHit(dr,dc); return false; }
   const tr=dog.r+dr, tc=dog.c+dc;
@@ -18520,6 +18530,7 @@ function openHouse(lot, opts){
   coachSteps=null; coachI=0; el("coach").classList.remove("show");
   gintroOn=false; el("gintro").classList.remove("show");
   houseLot=lot; houseIn=!!opts.room;
+  yardGuideAck();
   chapterMaxSkinAtlasSync(); hoodRowHide();
   applyScene(fromBaked(houseIn? houseRoomSpec(opts.at) : houseLotSpec(lot, opts.at))); fit();
   tut=0; tutWinT=0; tutFlash=0; tutDimT=0; treatK=null; treatEaten=true;
@@ -18562,17 +18573,10 @@ function drawHouseGround(){
     g.fillStyle='rgba(60,50,30,.10)'; g.beginPath(); g.ellipse(cell*c, cell*(r+0.58), cell*rx, cell*rx*0.55, 0, 0, 7); g.fill();
     g.fillStyle='#E4D7BA'; g.beginPath(); g.ellipse(cell*c, cell*(r+0.5), cell*rx, cell*rx*0.55, 0, 0, 7); g.fill();
     g.strokeStyle='rgba(255,255,255,.6)'; g.lineWidth=1; g.stroke(); }
-  // 연못 — 두 칸에 걸친 하나
-  { const px=cell*6.5, py=cell*5.0, rx=cell*0.6, ry=cell*1.05;   // (4,6)·(5,6) 두 칸 위
-    g.fillStyle='rgba(60,50,30,.10)'; g.beginPath(); g.ellipse(px, py+cell*0.06, rx*1.06, ry*1.04, 0, 0, 7); g.fill();
-    g.fillStyle='#BFE0F2'; g.beginPath(); g.ellipse(px, py, rx, ry, 0, 0, 7); g.fill();
-    g.fillStyle='#D2EBF8'; g.beginPath(); g.ellipse(px-rx*0.15, py-ry*0.2, rx*0.62, ry*0.62, 0, 0, 7); g.fill();
-    g.strokeStyle='rgba(255,255,255,.7)'; g.lineWidth=Math.max(1,cell*.03); g.beginPath(); g.ellipse(px, py, rx, ry, 0, 0, 7); g.stroke();
-    g.fillStyle='#8FC46B'; g.beginPath(); g.ellipse(px+rx*0.35, py+ry*0.35, cell*0.14, cell*0.09, 0.4, 0, 7); g.fill(); }
 }
 function drawHouseTile(r,c){
   const t=L.T[r][c], x=c*cell, y=r*cell, g=ctx;
-  const G=HOUSE_GRASS[houseTheme.grass]||HOUSE_GRASS.clover, F=HOUSE_FENCE[houseTheme.fence]||HOUSE_FENCE.white;
+  const G=HOUSE_GRASS[houseTheme.grass]||HOUSE_GRASS.clover, FK=houseFenceAt(r,c), F=HOUSE_FENCE[FK]||HOUSE_FENCE.white;
   const edge=r===0||c===0||r===GN-1||c===GN-1;
   const sd=kk(r,c)*7.3+1.7, h1=hsh(sd), h2=hsh(sd+1), h3=hsh(sd+2);
   const prop=HOUSE_PROPS[r+','+c];
@@ -18585,11 +18589,6 @@ function drawHouseTile(r,c){
     else if(G.deco==='heart'){ g.fillStyle='#FF9FB4'; g.beginPath(); g.arc(dx-r0*0.5,dy-r0*0.3,r0*0.55,0,7); g.arc(dx+r0*0.5,dy-r0*0.3,r0*0.55,0,7); g.fill(); g.beginPath(); g.moveTo(dx-r0*1.02,dy-r0*0.15); g.lineTo(dx,dy+r0*0.95); g.lineTo(dx+r0*1.02,dy-r0*0.15); g.closePath(); g.fill(); }
     else if(G.deco==='cloud'){ g.fillStyle='rgba(255,255,255,.85)'; for(const [ox,oy,rr0] of [[-0.8,0.1,0.7],[0,-0.2,0.9],[0.8,0.1,0.7]]){ g.beginPath(); g.arc(dx+ox*r0,dy+oy*r0,r0*rr0,0,7); g.fill(); } }
   }
-  if(prop==='pond') return true;                                          // 바닥에서 한 덩어리로 그렸다
-  if(prop==='bush'){ const bx=x+cell*0.5, by=y+cell*0.55;
-    g.fillStyle='rgba(60,50,30,.12)'; g.beginPath(); g.ellipse(bx,by+cell*0.3,cell*0.44,cell*0.12,0,0,7); g.fill();
-    for(const [ox,oy,rr0,col] of [[-0.22,0.05,0.3,'#7DB55C'],[0.2,-0.02,0.32,'#8FC46B'],[0,0.15,0.3,'#7DB55C'],[0,-0.18,0.26,'#9AD07A']]){ g.fillStyle=col; g.beginPath(); g.arc(bx+cell*ox,by+cell*oy,cell*rr0,0,7); g.fill(); }
-    return true; }
   if(prop==='bed'){ const bx=x+cell*0.5, by=y+cell*0.5;
     g.fillStyle='#E4D7BA'; g.beginPath(); g.ellipse(bx,by+cell*0.05,cell*0.46,cell*0.34,0,0,7); g.fill();
     g.fillStyle='#C9A87A'; g.beginPath(); g.ellipse(bx,by+cell*0.02,cell*0.38,cell*0.26,0,0,7); g.fill();
@@ -18604,12 +18603,12 @@ function drawHouseTile(r,c){
     g.fillStyle=F.post; g.beginPath(); g.moveTo(px,py+cell*.62); g.lineTo(px,py+cell*.12); g.lineTo(px+cell*.1,py); g.lineTo(px+cell*.2,py+cell*.12); g.lineTo(px+cell*.2,py+cell*.62); g.closePath(); g.fill();
     g.strokeStyle=F.ink; g.lineWidth=Math.max(1,cell*.02); g.stroke(); };
   const rail=(rx,ry,rw)=>{ g.fillStyle=F.rail; g.fillRect(rx,ry,rw,cell*.11); g.strokeStyle=F.ink; g.lineWidth=Math.max(1,cell*.02); g.strokeRect(rx,ry,rw,cell*.11); };
-  if(houseTheme.fence==='brick'){                                          // 벽돌 담 — 살 대신 줄눈
+  if(FK==='brick'){                                          // 벽돌 담 — 살 대신 줄눈
     g.fillStyle=F.rail; g.fillRect(x,y+cell*.18,cell,cell*.62); g.strokeStyle=F.ink; g.lineWidth=Math.max(1,cell*.02); g.strokeRect(x,y+cell*.18,cell,cell*.62);
     g.fillStyle=F.post; g.fillRect(x,y+cell*.18,cell,cell*.1);
     for(let k=0;k<2;k++){ const yy=y+cell*(.36+k*.2); g.beginPath(); g.moveTo(x,yy); g.lineTo(x+cell,yy); g.stroke(); const xo=(k&1)? cell*.5 : 0; g.beginPath(); g.moveTo(x+xo,yy); g.lineTo(x+xo,yy+cell*.2); g.stroke(); }
     return true; }
-  if(houseTheme.fence==='hedge'){                                          // 생울타리 — 둥근 덤불 + 꽃
+  if(FK==='hedge'){                                          // 생울타리 — 둥근 덤불 + 꽃
     g.fillStyle='rgba(60,50,30,.12)'; g.beginPath(); g.ellipse(x+cell*.5,y+cell*.8,cell*.46,cell*.12,0,0,7); g.fill();
     for(const [ox,oy,rr0,col] of [[.28,.5,.3,F.rail],[.62,.44,.32,F.post],[.5,.62,.3,F.rail]]){ g.fillStyle=col; g.beginPath(); g.arc(x+cell*ox,y+cell*oy,cell*rr0,0,7); g.fill(); }
     if(h1<0.5){ g.fillStyle=F.flower; g.beginPath(); g.arc(x+cell*(0.3+h2*0.4),y+cell*(0.35+h3*0.3),cell*.06,0,7); g.fill(); }
@@ -18674,7 +18673,7 @@ function drawHouseHooks(T){
   const g=ctx, c=cell, cur=dogWear.hood||null, here=houseHookAt(dog.r,dog.c);
   const rr=(x,y,w,h,r)=>{ g.beginPath(); g.roundRect(x,y,w,h,r); };
   const hy=T+c*0.3;
-  if(hooks.some(h=>h.dr)){ g.fillStyle='#8A6741'; g.fillRect(c*1.1,hy-c*0.03,c*4.4,c*0.06); }   // 봉은 거울 앞에서 끝난다
+  if(hooks.some(h=>h.dr)){ g.fillStyle='#8A6741'; g.fillRect(c*1.1,hy-c*0.03,c*1.7,c*0.06); g.fillRect(c*5.2,hy-c*0.03,c*1.7,c*0.06); }   // 봉은 거울 양옆
   for(const h of hooks){
     const back=!!h.dr, s=back? 1 : 0.72;
     const x = back? cx(h.c) : (h.dc>0? c*7.02 : c*0.98), y = back? hy : cy(h.r)-c*0.34;
@@ -18694,46 +18693,76 @@ function drawHouseHooks(T){
     g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.arc(x,y+c*0.06+hh*0.25,w*0.2,0,7); g.fill();
   }
 }
-// 거울 — 오른쪽 위 구석에 선 전신 거울. 옷걸이 칸에 서면 그 옷을 입은 맥스, 아니면 지금 입은 맥스가 비친다.
+// 거울 — 뒷벽 가운데, 개 눈높이의 낮고 넓은 거울. 테두리 네 귀가 뼈다귀 매듭이다(사람 전신 거울로 읽히던 걸 바꿨다).
+// 맥스가 그 앞(1행 3·4열 쪽)에 오면 비친다 — 지금 입은 옷, 지금 하는 동작(걷기·대기) 그대로, 맥스를 따라 옆으로 움직인다.
 function drawHouseMirror(T){
-  const g=ctx, c=cell, x0=c*5.62, x1=c*6.9, top=T+c*0.08, bot=c*1.86, mx=(x0+x1)/2, my=(top+bot)/2-c*0.04;
-  g.fillStyle='rgba(120,70,40,.2)'; g.beginPath(); g.ellipse(mx,bot,c*0.7,c*0.11,0,0,7); g.fill();
-  g.fillStyle='#8A6741'; g.beginPath(); g.roundRect(mx-c*0.08,bot-c*0.2,c*0.16,c*0.2,c*0.03); g.fill();       // 받침
-  const rx=(x1-x0)/2, ry=(bot-top)/2-c*0.08;
-  g.fillStyle='#A8764B'; g.beginPath(); g.ellipse(mx,my,rx,ry,0,0,7); g.fill();
-  g.fillStyle='#C99463'; g.beginPath(); g.ellipse(mx,my,rx-c*0.05,ry-c*0.05,0,0,7); g.fill();
-  const irx=rx-c*0.1, iry=ry-c*0.1;
-  const gr=g.createLinearGradient(mx-irx,my-iry,mx+irx,my+iry); gr.addColorStop(0,'#E9F4F8'); gr.addColorStop(1,'#BFD7E2');
-  g.fillStyle=gr; g.beginPath(); g.ellipse(mx,my,irx,iry,0,0,7); g.fill();
-  const h=houseHookAt(dog.r,dog.c), k = h? (h.k==='__base'? null : h.k==='__next'? undefined : h.k) : (dogWear.hood||null);
-  if(k!==undefined){ const im=houseMirrorImg(k);
-    if(im.complete && im.naturalWidth){ const cw=im.naturalWidth/8, chh=im.naturalHeight, sz=Math.min(irx,iry)*2.05;
-      g.save(); g.beginPath(); g.ellipse(mx,my,irx,iry,0,0,7); g.clip();
-      g.drawImage(im, 0, 0, cw, chh, mx-sz/2, my+iry-sz*0.98, sz, sz); g.restore(); } }
-  else { g.fillStyle='rgba(138,103,65,.5)'; g.font='700 '+(c*0.4)+'px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('?', mx, my); g.textAlign='start'; g.textBaseline='alphabetic'; }
-  g.fillStyle='rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(mx-irx*0.5,my-iry*0.5,c*0.06,c*0.2,0.5,0,7); g.fill();
-  g.fillStyle='#F2A7A0'; g.beginPath(); g.arc(mx,top+c*0.02,c*0.07,0,7); g.fill();
+  const g=ctx, c=cell, x0=c*2.92, x1=c*5.08, y0=T+c*0.3, y1=c*0.9, w=x1-x0, h=y1-y0, rad=c*0.16;
+  g.fillStyle='#E9D6B8'; g.beginPath(); g.roundRect(x0-c*0.07,y0-c*0.07,w+c*0.14,h+c*0.14,rad+c*0.05); g.fill();
+  for(const [bx,by,sx,sy] of [[x0,y0,-1,-1],[x1,y0,1,-1],[x0,y1,-1,1],[x1,y1,1,1]]){ g.beginPath(); g.arc(bx+sx*c*0.07,by+sy*c*0.01,c*0.07,0,7); g.fill(); g.beginPath(); g.arc(bx+sx*c*0.01,by+sy*c*0.07,c*0.07,0,7); g.fill(); }
+  const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#EAF4F7'); gr.addColorStop(1,'#C6DDE6');
+  g.save(); g.beginPath(); g.roundRect(x0,y0,w,h,rad); g.clip(); g.fillStyle=gr; g.fillRect(x0,y0,w,h);
+  g.fillStyle='rgba(247,230,204,.55)'; g.fillRect(x0,y1-h*0.28,w,h*0.28);                           // 비친 마루
+  const near=Math.max(0,Math.min(1,(2.4-dog.rr)/0.9));                                          // 앞으로 올수록 또렷
+  if(near>0){
+    const moving=Math.abs(dog.rr-dog.r)+Math.abs(dog.cc-dog.c)>0.02, side=Math.abs(dog.cc-dog.c)>Math.abs(dog.rr-dog.r);
+    const im = moving? (side? maxChapterMasterWalkV1Atlas : maxChapterMasterWalkV1DownAtlas) : maxChapterMasterIdleV1Atlas;
+    if(im && im.complete && im.naturalWidth){
+      const cw=im.naturalWidth/8, ch=im.naturalHeight, f=Math.floor(animT*(moving?12:6))%8, sz=h*1.35;
+      const mx=cx(dog.cc), flip=moving && side && dog.cc>dog.c;
+      g.globalAlpha=0.35+0.65*near;
+      g.save(); g.translate(mx, y1+sz*0.06); if(flip) g.scale(-1,1);
+      g.drawImage(im, f*cw, 0, cw, ch, -sz/2, -sz, sz, sz); g.restore(); g.globalAlpha=1;
+    }
+  }
+  g.fillStyle='rgba(255,255,255,.5)'; g.beginPath(); g.moveTo(x0+w*0.12,y0); g.lineTo(x0+w*0.22,y0); g.lineTo(x0+w*0.08,y1); g.lineTo(x0-w*0.02,y1); g.closePath(); g.fill();
+  g.restore();
+  g.strokeStyle='#C9A77F'; g.lineWidth=Math.max(1,c*0.03); g.beginPath(); g.roundRect(x0,y0,w,h,rad); g.stroke();
 }
 // 장난감 상자 — 뚜껑 열린 나무 상자. 안에 남은 장난감이 머리만 빼꼼(최대 셋). 드나들 때 뚜껑이 들썩인다.
+// 지금 한 수에 공이 상자로 들어가나 — 공이 상자 옆 칸에 있고 맥스가 그 반대편에 줄 서 있으면.
+function houseTidyReady(){
+  for(const [br,bc,dr,dc] of [[4,1,1,0],[5,2,0,-1]]){
+    const b=boxes.find(x=>x.r===br && x.c===bc && !x.houseHop); if(!b) continue;
+    if(dog.r===br-dr && dog.c===bc-dc) return {b,dr,dc};
+  }
+  return null;
+}
+// 장난감 상자 — 칸보다 조금 큰 나무 궤짝. 뚜껑은 뒤로 젖혀 열려 있고 안에 남은 장난감이 빼꼼(최대 셋).
+// 넣을 수 있는 순간(houseTidyReady)엔 상자가 숨 쉬듯 빛나고 뚜껑이 더 열리며, 공에서 상자까지 화살표가 뜬다.
+// 맥스가 상자에 붙어 있고 안에 장난감이 있으면 빼꼼한 머리들이 통통 뛴다 — 부딪히면 나온다는 뜻.
 function drawHouseToyBox(){
-  const g=ctx, c=cell, bx=cx(HOUSE_BOX[1]), by=cy(HOUSE_BOX[0]), w=c*0.86, h=c*0.56, top=by-c*0.02;
+  const g=ctx, c=cell, bx=cx(HOUSE_BOX[1]), by=cy(HOUSE_BOX[0]), w=c*1.02, h=c*0.62, top=by-c*0.18;
   const rr=(x,y,w2,h2,r)=>{ g.beginPath(); g.roundRect(x,y,w2,h2,r); };
   const head=(k,x,y,s)=>{ g.fillStyle=(GOAL_FEEL_SETS[k]||{}).base||'#ccc'; g.beginPath(); g.arc(x,y,s,0,7); g.fill();
     g.fillStyle='#2B2036'; g.beginPath(); g.arc(x-s*0.3,y-s*0.12,s*0.13,0,7); g.arc(x+s*0.3,y-s*0.12,s*0.13,0,7); g.fill(); };
   const fx=houseBoxFx, age=fx? animT-fx.t0 : 9, D=0.38;
   if(fx && age>=D){ if(fx.kind==='out'){ const b=boxes.find(x=>x.houseHop); if(b){ b.houseHop=false; b.landT=1; } } houseBoxFx=null; }
-  const jolt=(fx && age<D)? Math.sin(age/D*Math.PI)*c*0.06 : 0;
-  g.fillStyle='rgba(120,70,40,.18)'; g.beginPath(); g.ellipse(bx,top+h+c*0.04,w*0.52,c*0.08,0,0,7); g.fill();
-  g.fillStyle='#8E5E36'; rr(bx-w/2,top-c*0.42-jolt,w,c*0.2,c*0.05); g.fill();             // 열린 뚜껑(뒤로 젖힘)
+  const jolt=(fx && age<D)? Math.sin(age/D*Math.PI)*c*0.07 : 0;
+  const ready=houseTidyReady(), pulse=0.5+0.5*Math.sin(animT*5);
   const inside=houseInBox().filter(k=>!(fx && fx.kind==='in' && fx.toy===k && age<D)).slice(0,3);
-  inside.forEach((k,i)=>head(k, bx+(i-(inside.length-1)/2)*c*0.24, top-c*0.06-(i===1?c*0.08:0)-jolt, c*0.17));
-  g.fillStyle='#C98A4B'; rr(bx-w/2,top,w,h,c*0.08); g.fill();
-  g.fillStyle='#B57A42'; g.fillRect(bx-w/2,top+h*0.34,w,c*0.03); g.fillRect(bx-w/2,top+h*0.68,w,c*0.03);
-  { const hx=bx, hy=top+h*0.5, s=c*0.07; g.fillStyle='#F2A7A0'; g.beginPath();
+  const nextTo=Math.abs(dog.r-HOUSE_BOX[0])+Math.abs(dog.c-HOUSE_BOX[1])===1 && inside.length>0;
+  if(ready){ g.fillStyle='rgba(255,226,140,'+(0.28+0.3*pulse)+')'; g.beginPath(); g.ellipse(bx,top+h*0.35,w*0.78,h*1.05,0,0,7); g.fill(); }
+  g.fillStyle='rgba(120,70,40,.2)'; g.beginPath(); g.ellipse(bx,top+h+c*0.05,w*0.55,c*0.09,0,0,7); g.fill();
+  const lift=(ready? c*0.1 : 0)+jolt;                                                                  // 뚜껑 — 뒤로 젖혀 연 판
+  g.fillStyle='#B7793F'; g.beginPath(); g.moveTo(bx-w/2+c*0.02,top); g.lineTo(bx-w/2+c*0.08,top-c*0.3-lift); g.lineTo(bx+w/2-c*0.08,top-c*0.3-lift); g.lineTo(bx+w/2-c*0.02,top); g.closePath(); g.fill();
+  g.fillStyle='#A06633'; g.fillRect(bx-w/2+c*0.08,top-c*0.3-lift,w-c*0.16,c*0.05);
+  g.fillStyle='#5E3B21'; g.beginPath(); g.ellipse(bx,top+c*0.02,w*0.46,c*0.1,0,0,7); g.fill();                     // 입구 안쪽 어둠
+  inside.forEach((k,i)=>{ const bob=nextTo? Math.abs(Math.sin(animT*6+i*1.3))*c*0.07 : 0;
+    head(k, bx+(i-(inside.length-1)/2)*c*0.27, top-c*0.02-(i===1&&inside.length===3?c*0.07:0)-jolt-bob, c*0.17); });
+  g.fillStyle='#D69A5C'; rr(bx-w/2,top,w,h,c*0.1); g.fill();                                           // 몸통
+  g.fillStyle='#C4854A'; for(const f of [0.36,0.7]) g.fillRect(bx-w/2+c*0.04,top+h*f,w-c*0.08,c*0.028);
+  g.fillStyle='#E3AE72'; g.fillRect(bx-w/2+c*0.05,top+c*0.02,w-c*0.1,c*0.045);                          // 윗 테두리 빛
+  g.fillStyle='#8E5E36'; for(const sx of [-1,1]){ rr(bx+sx*(w/2-c*0.06)-c*0.06,top+c*0.02,c*0.12,c*0.12,c*0.03); g.fill(); rr(bx+sx*(w/2-c*0.06)-c*0.06,top+h-c*0.14,c*0.12,c*0.12,c*0.03); g.fill(); }
+  g.fillStyle='#FFF4E2'; rr(bx-c*0.17,top+h*0.3,c*0.34,c*0.24,c*0.06); g.fill();                        // 이름표 + 하트
+  { const hx=bx, hy=top+h*0.3+c*0.12, s=c*0.055; g.fillStyle='#F2A7A0'; g.beginPath();
     g.moveTo(hx,hy+s); g.bezierCurveTo(hx-s*2,hy-s*0.4,hx-s*0.6,hy-s*1.6,hx,hy-s*0.5); g.bezierCurveTo(hx+s*0.6,hy-s*1.6,hx+s*2,hy-s*0.4,hx,hy+s); g.fill(); }
-  // 드나드는 장난감 — 상자 입구와 그 칸 사이를 포물선으로
-  if(fx && age<D){ const u=Math.min(1,age/D), p=fx.kind==='out'? u : 1-u, o=fx.kind==='out'? fx.to : fx.from;
-    const x0=bx, y0=top-c*0.1, x1=cx(o[1]), y1=cy(o[0]);
+  if(ready){ const b=ready.b, ax=cx(b.c)+ready.dc*c*0.42, ay=cy(b.r)+ready.dr*c*0.42;                // 공 → 상자 화살표
+    const a=Math.atan2(ready.dr,ready.dc), sh=c*0.06*pulse;
+    for(let k=0;k<2;k++){ const px=ax+ready.dc*(c*0.16*k+sh), py=ay+ready.dr*(c*0.16*k+sh), R=c*0.13;
+      g.fillStyle='#FFF8EC'; g.beginPath(); g.moveTo(px+Math.cos(a)*R*1.25,py+Math.sin(a)*R*1.25); g.lineTo(px+Math.cos(a+2.3)*R*1.25,py+Math.sin(a+2.3)*R*1.25); g.lineTo(px+Math.cos(a-2.3)*R*1.25,py+Math.sin(a-2.3)*R*1.25); g.closePath(); g.fill();
+      g.fillStyle='#E8923C'; g.beginPath(); g.moveTo(px+Math.cos(a)*R,py+Math.sin(a)*R); g.lineTo(px+Math.cos(a+2.3)*R,py+Math.sin(a+2.3)*R); g.lineTo(px+Math.cos(a-2.3)*R,py+Math.sin(a-2.3)*R); g.closePath(); g.fill(); } }
+  if(fx && age<D){ const u=Math.min(1,age/D), p=fx.kind==='out'? u : 1-u, o=fx.kind==='out'? fx.to : fx.from;   // 드나드는 장난감
+    const x0=bx, y0=top-c*0.05, x1=cx(o[1]), y1=cy(o[0]);
     head(fx.toy, x0+(x1-x0)*p, y0+(y1-y0)*p-Math.sin(p*Math.PI)*c*0.6, c*(0.17+0.2*p)); }
 }
 function drawHouseOverlay(){
@@ -22056,7 +22085,7 @@ function checkContentUnlocks(){
     // 물그릇 선물은 걷어냈다. 밥그릇이 집 문턱에 놓이면서 마당에 비슷하게 생긴 그릇이
     // 둘이 됐고, 하필 처음 배우는 자리에서 "채워 주세요"의 대상이 흐려진다.
     // 자리 고르기는 맥스 하우스 하나로 배운다(dcGrantGift 가 집을 들려 준다).
-    showUnlockSpotlight(tabbarOn()? 'tbYard' : 'lsYard', 'tutorial.yardOpen', 'tutorial.viewYard', ()=>openYard());
+    showUnlockSpotlight(tabbarOn()? 'tbYard' : 'lsYard', 'tutorial.yardOpen', 'tutorial.viewYard', ()=>openHomeTab());
   }
 }
 // 수첩을 연 다음 걸음 — 방금 받은 노트 줄을 짚는다. "여기 쌓인다 · 재료가 모이면 짓는다" 를
@@ -22991,7 +23020,7 @@ onTap(el("tbShop"),  ()=>{
   if(shopUnlocked()) openShop();
   else tabToast(I18N.t("notice.shopLocked"));
 });
-onTap(el("lsYard"), ()=>{ if(yardUnlocked()) openYard(); });
+onTap(el("lsYard"), ()=>{ if(yardUnlocked()) openHomeTab(); });
 onTap(el("tbYard"), ()=>{
   if(HOUSE_ON){ if(yardUnlocked()) openHouse(); else tabToast(yardLockedMsg()); return; }
   if(yardUnlocked()) openYard();
@@ -23277,7 +23306,7 @@ function questRender(){
       if(!yardUnlocked()){ sfxBlocked(); diaryToast(yardLockedMsg()); return; }
       const k=b.dataset? b.dataset.yardgo : b.getAttribute('data-yardgo');
       tone(660,0.05,'triangle',0.03,880);
-      closeGrowthLadder(); openYard();
+      closeGrowthLadder(); openHomeTab();
       // 못 들어가면(동네가 아직 안 열렸으면) 지도가 그대로 남는다 — 고를 자리가 거기다.
       hoodEnter(hoodOf(k));
     });
@@ -29239,7 +29268,7 @@ function drawTilesCached(){
   const fk=[...filled].sort((a,b)=>a-b).join(',');
   // 바스락이 켜져 있으면 위상을 키에 넣는다 — 안 넣으면 50ms 캐시가 떨림을 20fps 로 얼린다.
   const rustleOn=acornSt.some(m=>m.w && !m.got && (matWallTeach(m.w) || critterHidden(m.r,m.c)));
-  const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence:'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
+  const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
     +'|'+(rustleOn? Math.round(animT*60) : '-');
   const stale=(key!==tileKey) || (animT-tileT>0.05);
   if(stale){

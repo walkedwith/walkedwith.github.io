@@ -827,7 +827,7 @@
     'language.en': 'English',
 "nav.shop": "Shop",
 "nav.walk": "Walk",
-"nav.yard": "Town",
+"nav.yard": "House",
 "notice.dailyLocked": "The routine board opens after 50 walks (you're at {count})",
 "notice.dailyDone": "That's all for today. See you tomorrow!",
 "notice.dailySoon": "Neighborhood Walk is coming soon.",

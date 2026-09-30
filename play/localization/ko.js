@@ -827,7 +827,7 @@
     'language.en': 'English',
 "nav.shop": "상점",
 "nav.walk": "산책",
-"nav.yard": "동네",
+"nav.yard": "하우스",
 "notice.dailyLocked": "50번 걸으면 일과표가 열려요 (지금 {count}번)",
 "notice.dailyDone": "오늘은 다녀왔어요 — 내일 또 만나요",
 "notice.dailySoon": "동네 한 바퀴는 곧 열려요",
