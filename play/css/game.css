@@ -436,10 +436,8 @@
      폭(width)이 안 먹던 것과 같은 함정이라 선택자를 `#dock #undo` 로 올린다. */
   /* 굽 깊이는 **4px 로 통일**한다 — 무르기만 5px 이라 아래끝이 1px 더 튀어나와 있었다.
      주 행동이라는 건 색(앰버)이 말하지, 높이가 말하지 않는다. */
-  body.hud-pilot #dock #undo {
-    background:#FFC66B; border-color:#E7A72C;
-    box-shadow:0 4px 0 #C99340, 0 7px 13px rgba(103,72,29,.13);
-  }
+  /* (2026-09-30) 무르기도 다시하기와 **같은 크기·같은 크림**이다 — 앰버 두 칸짜리가 화면 아래를 무겁게 눌렀다.
+     정말 필요한 순간(막힘)엔 bfring 이 금빛 테로 부른다. 평소엔 조용히 있다. */
   /* 글자는 안 쓴다 — 다섯 칸 모두 정사각 아이콘이다. 라벨을 달았더니 칸마다 글자 수가
      달라 폭이 제각각이 됐고(무르기 96 / 다시하기 74 / 힌트 50), 한 줄이 들쭉날쭉해졌다.
      아이콘만 두면 칸이 같은 크기로 떨어지고 언어에도 안 매인다. */
@@ -447,11 +445,11 @@
   /* 무르기는 **두 칸 폭**이다(50×2 + 간격 6 = 106). 가장 자주 누르고 되돌릴 수 없는
      실수를 고치는 유일한 도구라, 손가락이 제일 쉽게 닿아야 한다.
      #dock .dbtn(width:50) 보다 특정도가 높아야 폭이 먹는다. */
-  body.hud-pilot:not(.dpad) #dock #undo { width:106px; padding:0; }
+  body.hud-pilot:not(.dpad) #dock #undo { padding:0; }
   body.hud-pilot:not(.dpad) #dock #undo .undo-pilot { width:27px; height:27px; flex:none; }
   body.hud-pilot:not(.dpad) #dock #restart svg { width:26px; height:26px; }
 
-  body.hud-pilot #dock #undo:active { box-shadow:0 1px 0 #C99340; }
+
   body.hud-pilot #undo .undo-default { display:none; }
   body.hud-pilot #undo .undo-pilot { display:block; }
   /* 힌트 줄과 도크는 **한 줄**이다. 예전엔 둘을 각각 절대좌표로 놓아(hintact left:50%-164,
@@ -1148,11 +1146,12 @@
   .lstrail .lslv.hard .lso { border-color:#E7A72C; border-width:3px; }
   /* 빚 — 밖으로 나오는 **유일한** 표식이다. 다 챙긴 판엔 아무것도 안 붙으므로
      화면에 뜬 뱃지 수가 곧 할 일 수다. */
-  .lstrail .lslv .lsdebt { position:absolute; right:-6px; top:-6px; min-width:17px; height:17px;
-    padding:0 3px; border-radius:9px; background:#E7A72C; border:2px solid #FFF9F0; color:#FFF9F0;
-    font-family:var(--f-hand); font-size:var(--s11); line-height:13px; text-align:center;
-    box-shadow:0 1px 3px rgba(43,32,54,.3); }
-  .lstrail .lslv .lsdebt.mis { background:#6EA83C; }
+  /* 주울 뼈가 남았다 — 숫자 대신 뼈 하나(2026-09-30). 주황 숫자가 판 번호·별 수로 읽혔다. */
+  .lstrail .lslv .lsdebt { position:absolute; right:-14px; top:-5px; width:26px; height:15px; min-width:0;
+    padding:0; border:0; font-size:0; color:transparent; filter:drop-shadow(0 1px 1.5px rgba(43,32,54,.35));
+    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 12'%3E%3Cg fill='%23fff' stroke='%23B4791A' stroke-width='1.4'%3E%3Ccircle cx='4' cy='3.5' r='2.6'/%3E%3Ccircle cx='4' cy='8.5' r='2.6'/%3E%3Ccircle cx='20' cy='3.5' r='2.6'/%3E%3Ccircle cx='20' cy='8.5' r='2.6'/%3E%3Crect x='4' y='3.6' width='16' height='4.8' rx='2'/%3E%3C/g%3E%3Crect x='4.6' y='4.3' width='14.8' height='3.4' fill='%23fff'/%3E%3C/svg%3E") center/contain no-repeat; }
+  .lstrail .lslv .lsdebt.mis { background:#6EA83C; width:17px; height:17px; border-radius:9px; border:2px solid #FFF9F0;
+    font-size:var(--s11); color:#FFF9F0; font-family:var(--f-hand); line-height:13px; text-align:center; right:-6px; top:-6px; filter:none; }
   /* 번호는 원 밖 — 흰 글씨에 그림자. 풍경 위에서도 읽힌다. */
   .lstrail .lslv .lcn { font-family:var(--f-hand); font-size:var(--s10); font-weight:var(--w-reg);
     color:#4A3524; background:rgba(255,249,240,.8); border-radius:6px; padding:0 4px;
@@ -1163,9 +1162,12 @@
   /* 험한 판은 리본 하나로 말한다 — 테두리를 금색으로 두면 완성 링과 색이 겹친다. */
   /* (꾸러미 리본 — 금 테두리가 대신한다. 밖으로 −7px 튀어나오던 그림이 하나 줄었다) */
   /* 잠긴 판 — 회색 원. 안개 대신 색으로 말한다. */
+  /* 잠긴 판 — 자물쇠 없이 길 위의 작은 점. 자물쇠가 줄지어 서면 앞길이 막힌 문으로 읽혔다.
+     "아직"은 점선 길과 흐린 점이 이미 말한다. 험한 판만 번호·왕관으로 앞길에서 보인다. */
   .lstrail .lslv.lock { opacity:1; }
-  .lstrail .lslv.lock .lso { background:#B7B0A4; border-color:rgba(255,249,240,.9); box-shadow:0 2px 4px rgba(43,32,54,.2); }
-  .lstrail .lslv.lock .lso svg { fill:rgba(255,249,240,.92); width:15px; height:15px; }
+  .lstrail .lslv.lock:not(.hard) .lso { width:14px; height:14px; background:rgba(255,249,240,.92);
+    border:2px solid rgba(176,150,112,.45); box-shadow:none; }
+  .lstrail .lslv.lock:not(.hard) .lso svg { display:none; }
   /* 지금 걸을 판 — 유일하게 크고 색이 있다. 화면에서 눈이 처음 가는 곳. */
   /* 목록 옛 규칙(.lslv.nx 금 테 + 그림자)이 길 위 버튼(34px 네모)에 남아 알 뒤로 네모가 비쳤다 — 길 위에선 알이 전부 말한다. */
   .lstrail .lslv.nx { border:0; box-shadow:none; }
@@ -1181,8 +1183,8 @@
   /* (재료 미리보기는 확인 화면으로 갔다) */
   /* 맥스와 말풍선은 징검돌 **위로** 올린다 — 격자 시절엔 칸 모서리에 걸쳤는데
      둥근 돌에서는 판 번호를 덮는다(실측). */
-  .lstrail .lslv .lsnx  { bottom:calc(100% - 8px); }
-  .lstrail .lslv .lsbark{ bottom:calc(100% - 6px); }
+  .lstrail .lslv .lsnx  { width:80px; height:80px; bottom:calc(100% - 22px); filter:drop-shadow(0 4px 6px rgba(40,60,80,.32)); }   /* 길 위 맥스 — 지금 걸을 판을 맥스가 딛고 선다(38→80px, 2026-09-30) */
+  .lstrail .lslv .lsbark{ bottom:calc(100% + 44px); }   /* 커진 맥스 머리 옆 */
   /* ── 험한 판 ─────────────────────────────────────────────────────────
      색을 뒤집어 어두운 바위로. 겁주는 빨강 대신 **발밑이 다르다**로 읽히게 한다
      — 업계는 여기서 부스터를 팔지만 우리는 판 안에서 못 판다. */
@@ -1218,14 +1220,17 @@
   .lstrail .lsgift.bounce { animation:lsGiftHop 1.8s ease-in-out infinite; }
   @keyframes lsGiftHop { 0%,100%{transform:translate(-50%,-50%) rotate(7deg)} 50%{transform:translate(-50%,-64%) rotate(2deg)} }
   @media (prefers-reduced-motion:reduce){ .lstrail .lsgift.bounce { animation:none; } }
-  /* 험한 판 — 한 치수 크고 어두운 알 + 금 테 두 겹 + 왕관. 잠겨 있어도 번호와 왕관이 보인다. */
-  .lstrail .lslv.hard .lso { width:42px; height:42px; background:#5E4D3E; border:3px solid #E7A72C;
-    box-shadow:0 0 0 3px rgba(231,167,44,.35), 0 3px 6px rgba(43,32,54,.35); }
-  .lstrail .lslv.hard .lso .lsn { color:#FFE7B0; }
-  .lstrail .lslv.hard.done .lso { background:#7C6A58; }
-  .lstrail .lslv.hard.lock .lso { background:#8D8173; border-color:#D9B061; }
-  .lstrail .lslv.hard.lock .lso .lsn { color:#F6EEDF; }
-  .lstrail .lslv.hard.nx .lso { width:52px; height:52px; background:#B6452F; border-color:#E7A72C; }
+  /* 험한 판 — 다른 판과 **같은 알**(크림/연두)에 금 테 + 왕관만 얹는다(2026-09-30). 어두운 알이 따로
+     있으면 알 모양이 다섯 가지가 되어 규칙을 따로 배워야 했다. 잠겨 있어도 번호와 왕관은 보인다. */
+  .lstrail .lslv.hard .lso { width:42px; height:42px; background:#FFF6E6; border:3px solid #E7A72C;
+    box-shadow:0 0 0 3px rgba(231,167,44,.30), 0 3px 6px rgba(43,32,54,.28); }
+  .lstrail .lslv.hard .lso .lsn { color:#8A7458; }
+  .lstrail .lslv.hard.done .lso { background:#EEF6E2; }
+  .lstrail .lslv.hard.done .lso .lsn { color:#5F8A3C; }
+  .lstrail .lslv.hard.lock .lso { background:#FFF6E6; border-color:#E4C88C; box-shadow:none; opacity:.85; }
+  .lstrail .lslv.hard.lock .lso .lsn { color:#B9A27E; }
+  .lstrail .lslv.hard.nx .lso { width:52px; height:52px; background:#D9644F; border-color:#E7A72C; }
+  .lstrail .lslv.hard.nx .lso .lsn { color:#FFF9F0; }
   .lstrail .lslv .lscrown { position:absolute; left:50%; top:-15px; transform:translateX(-50%); width:24px; height:14px; z-index:2; pointer-events:none; }
   .lstrail .lslv .lscrown svg { width:100%; height:100%; display:block; filter:drop-shadow(0 1px 1px rgba(60,45,25,.3)); }
   /* 꾸러미 속 — 크림 말풍선. 도토리 · 재료 · 도면 셋을 그림과 숫자로만. */
@@ -1274,16 +1279,22 @@
     max-width:132px; overflow:hidden; text-overflow:ellipsis;
     background:#FBF3E1; border-radius:8px; padding:1px 7px; }
   .lstrail .lsgrow:active { transform:scale(.96); }
-  /* 경계 이정표 — 동네 첫 판 아래에 선 나무 팻말. 위가 지금 동네, 아래가 지나온 동네. */
-  .lstrail .lssign { position:absolute; transform:translateX(-50%); display:grid; gap:5px;
-    justify-items:center; pointer-events:none; }
-  .lstrail .lssb { display:block; font-weight:400; font-size:var(--s9); white-space:nowrap;
-    background:#F6E3B8; color:#5B452C; border-radius:7px; padding:3px 10px;
-    box-shadow:0 2px 0 rgba(150,110,55,.28); }
-  .lstrail .lssb.dn { background:#EADFC6; color:#8A7458; }
-  .lstrail .lssb i { font-style:normal; }
-  .lstrail .lsspost { display:block; width:7px; height:34px; border-radius:3px;
-    background:#C79A5E; box-shadow:0 2px 0 rgba(150,110,55,.3); margin-top:-2px; }
+  /* 경계 대문 — 동네 첫 판 아래, 길이 문설주 사이로 지나간다. 머리판에 그 동네 친구 얼굴과 이름. */
+  .lstrail .lssign { position:absolute; transform:translateX(-50%); width:168px; height:92px;
+    pointer-events:none; z-index:1; }
+  .lstrail .lsglint { position:absolute; left:0; right:0; top:0; z-index:2; height:40px;
+    display:flex; align-items:center; justify-content:center; gap:4px; padding:0 12px 0 6px;
+    background:#C98E55; border:2px solid #9A6A3A; border-radius:11px;
+    box-shadow:inset 0 2px 0 rgba(255,236,200,.35), 0 3px 0 rgba(120,80,40,.3);
+    font-weight:var(--w-reg); font-size:var(--s7); color:#FFF6E6; white-space:nowrap; }
+  .lstrail .lsglint span { overflow:hidden; text-overflow:ellipsis; }
+  .lstrail .lsgtoy { width:30px; height:30px; flex:none; }
+  /* 머리판 밑에 걸린 덩굴 — 대문이 판자 두 쪽이 아니라 장소로 읽히게 하는 한 줄 */
+  .lstrail .lsglint::after { content:""; position:absolute; left:14px; right:14px; top:100%; height:9px;
+    background:radial-gradient(circle at 50% 30%, #7FB85A 3.5px, transparent 4px) 0 0/16px 9px repeat-x; }
+  .lstrail .lsgpost { position:absolute; top:22px; bottom:0; width:11px; border-radius:4px;
+    background:linear-gradient(90deg,#B07A45,#C98E55 55%,#9A6A3A); box-shadow:0 2px 0 rgba(120,80,40,.3); }
+  .lstrail .lsgpost.l { left:12px; } .lstrail .lsgpost.r { right:12px; }
   /* 짓는 화면 — **도면이 화면이다.** 카드 안에 종이를 넣던 것을 뒤집었다.
      모눈·안쪽 테두리가 화면 테두리를 지고, 그 위에서 짓는다. */
   #glCard { position:absolute; inset:0; z-index:60; display:none;
@@ -1955,10 +1966,10 @@
      둘 다 열렸는데 자물쇠가 그대로였다). */
   .tab .tbl { display:none; position:absolute; top:1px; right:14%; font-size:var(--fs-caption); }
   .tab.lock .tbl { display:block; }
-  .tab.main { flex:1.35; margin-top:-18px; background:#FFC66B; border-radius:17px; box-shadow:0 4px 0 #c99340;
-    padding:10px 2px 7px; color:#4A3524; }
-  .tab.main .tbi svg { width:26px; height:26px; fill:#4A3524; }
-  .tab.main:active { transform:translateY(3px) scaleY(.985); box-shadow:0 1px 0 #c99340; }
+  /* 셋이 같은 크기 — 산책 탭만 솟은 황토 덩어리였는데 화면 아래가 무거웠다(2026-09-30).
+     지금 있는 탭만 옅은 바탕으로 말한다. */
+  .tab.on { background:#F6E3BE; color:#4A3524; }
+  .tab.on .tbi svg { fill:#4A3524; }
   .tabtoast { position:absolute; left:50%; bottom:84px; transform:translateX(-50%) translateY(6px);
     background:rgba(58,46,34,.92); color:#FFF6E6; font-size:var(--s8); border-radius:99px; padding:8px 16px;
     opacity:0; pointer-events:none; transition:all .25s; white-space:nowrap; z-index:6; }
@@ -2981,7 +2992,7 @@
   .stdots i { width:7px; height:7px; border-radius:50%; background:#D8C9AE; transition:width .18s,background .18s; }
   .stdots i.on { width:20px; border-radius:8px; background:#8FC54A; }
   #storysel .okbtn { min-width:150px; }
-  #chapterStory { position:absolute; inset:0; z-index:59; display:none; align-items:center; justify-content:center;
+  #chapterStory { position:absolute; inset:0; z-index:60;   /* 지갑 알약(.hudcur 59)보다 위 — 같은 59 면 뒤에 오는 알약이 어두운 막 위로 떴다 */ display:none; align-items:center; justify-content:center;
     padding:18px; background:rgba(43,55,34,.54); backdrop-filter:blur(3px); }
   #chapterStory.show { display:flex; }
   .chstorycard { position:relative; width:min(88%,360px); height:min(84%,640px); overflow:hidden;
@@ -3437,7 +3448,7 @@ body.inmenu #dock { display:none !important; }         /* dpad 모드의 #dock g
      세로 그라디언트는 위아래 합쳐 6% 안쪽. 반사 블롭도, 카지노식 광택도 없다.
      턱 색은 예전엔 전부 #c99340 이라 크림색 버튼에도 금색 턱이 붙어 있었다.
      눌리면 턱이 절반으로 줄고 내부 그림자가 위로 뒤집히며 세로로 1.5% 눌린다. */
-  .pbtn, .dbtn.hi, .btn2, .lsback, .tab.main, .ylockbtn, .qget, .okbtn, .mcta, .ycmd {
+  .pbtn, .dbtn.hi, .btn2, .lsback, .ylockbtn, .qget, .okbtn, .mcta, .ycmd {
     background-image:linear-gradient(180deg,
       rgba(255,255,255,.11) 0%, rgba(255,255,255,0) 44%, rgba(90,60,20,.05) 100%);
     box-shadow:
@@ -3454,7 +3465,7 @@ body.inmenu #dock { display:none !important; }         /* dpad 모드의 #dock g
       0 3px 0 var(--btn-lip,#D69C3F),
       0 8px 18px rgba(74,53,36,.18); }         /* 주 CTA 만 한 단 더 떠 있다 */
   .pbtn:active, .cdrow:active .pbtn, .dbtn.hi:active, .btn2:active, .lsback:active,
-  .tab.main:active, .ylockbtn:active, .qget:active, .okbtn:active, .mcta:active, .ycmd:active {
+  .ylockbtn:active, .qget:active, .okbtn:active, .mcta:active, .ycmd:active {
     box-shadow:
       inset 0 1px 0 rgba(255,255,255,.30),
       inset 0 2px 4px rgba(122,83,48,.20),
@@ -4039,3 +4050,42 @@ body.hud-pilot #helpbtn { display:none; }
 /* 하얀 뼈다귀(2026-09-27)는 빈 칸 실루엣(연회색)과 명도가 가까워 "찼다/비었다" 가 약하다.
    찬 칸에만 따뜻한 바탕 원을 깐다 — 판 안 칸 줄 · 확인 화면 칸이 같은 문법. */
 .mvmats .adot.on, #lvcard .lcgs .adot.on { background:#F6DFB6; border-radius:50%; box-shadow:inset 0 0 0 1.5px #E7C68E; }
+
+/* ── 판 위 줄 — 이름표 + 걸음 게이지(2026-09-30) ─────────────────────────────
+   글자 없이 둘만 말한다: 몇 번째 산책(목걸이 이름표)과 남은 걸음(게이지). 큰 "37 / 남은 걸음" 카드와
+   주운 뼈 칸 줄을 걷었다 — 뼈는 판 위에서 주우면 사라지는 것으로 충분하다.
+   게이지는 남은 만큼 차 있고, 그 끝을 숫자 원이 따라간다 — 양과 수가 한 점에 모여 눈이 한 곳만 본다.
+   색은 syncMoves 가 --mvc(원 테·숫자)·--mvf(채움)로 넘긴다: 넉넉하면 초록, 마지막 다섯 걸음부터 호박→빨강.
+   하우스(inhouse)는 같은 #hud 를 제목 줄로 쓰므로 빼 둔다. */
+body.hud-pilot.hudinplay:not(.inhouse) #hud {
+  grid-template-columns:auto minmax(0,1fr) auto; align-items:center; column-gap:14px;
+  margin:10px 12px 0; padding:10px 12px 10px 16px; background:#FFF9F0; border-radius:28px;
+  box-shadow:0 4px 12px rgba(74,53,36,.12); }
+body.hudinplay:not(.inhouse) #hud > .hgrp .lvlbl { display:none; }
+body.hudinplay:not(.inhouse) #hud > .hgrp #lvl { position:relative; display:grid; place-items:center;
+  min-width:44px; height:46px; padding:6px 6px 0; margin-top:6px; border-radius:15px;
+  background:#F5C45C; border:2.5px solid #CE963A; color:#6E4614; font-size:var(--s5); line-height:1; }
+body.hudinplay:not(.inhouse) #hud > .hgrp #lvl::before { content:""; position:absolute; left:50%; top:-10px; width:12px; height:12px;
+  translate:-50% 0; border:3px solid #BE9446; border-radius:50%; background:transparent; }
+body.hud-pilot.hudinplay:not(.inhouse) #mvbar { margin:0; padding:0; width:auto; min-width:0; background:none; box-shadow:none;
+  display:block; height:52px; position:relative; }
+body.hudinplay:not(.inhouse) #mvbar .mvtrack { display:block; position:absolute; left:0; right:0; top:50%; height:14px; margin:0;
+  translate:0 -50%; width:auto; border-radius:7px; background:#ECE4D6; box-shadow:inset 0 1px 2px rgba(74,53,36,.12); overflow:hidden; }
+body.hudinplay:not(.inhouse) #mvbar .mvfill { display:block; position:absolute; left:0; top:0; bottom:0;
+  width:calc(var(--fr,1) * 100%); border-radius:7px; background:var(--mvf,#8CC063); transition:width .25s ease-out, background .25s; }
+body.hudinplay:not(.inhouse) #mvbar .mvtick, body.hudinplay:not(.inhouse) #mvbar .mvend, body.hudinplay:not(.inhouse) #mvbar .mvmk { display:none; }
+body.hudinplay:not(.inhouse) #mvbar .mvhead { position:absolute; top:50%; z-index:2; margin:0; padding:0;
+  left:clamp(26px, calc(var(--fr,1) * 100%), calc(100% - 26px)); translate:-50% -50%;
+  width:52px; height:52px; border-radius:50%; background:#FFFDF8; border:4px solid var(--mvc,#4A6B27);
+  box-shadow:0 3px 8px rgba(74,53,36,.22); display:grid; place-items:center; transition:left .25s ease-out, border-color .25s; }
+body.hudinplay:not(.inhouse) #mvbar .mvhead .mvnum { font-size:var(--s3); line-height:1; color:var(--mvc,#4A6B27) !important; }
+body.hudinplay:not(.inhouse) #mvbar .mvhead .mvlim, body.hudinplay:not(.inhouse) #mvbar .mvhead .mvsep,
+body.hudinplay:not(.inhouse) #mvbar .mvhead .mvst, body.hudinplay:not(.inhouse) #mvbar .mvmats { display:none !important; }
+/* 하우스엔 수가 없다 — 판 훈련 칩 줄이 하우스 아래에 남던 것(실측) */
+body.inhouse #hintAct { display:none !important; }
+/* 잘라 낸 판(fit 의 trim) — 아래 립 대신 부드러운 그림자로 떠 있다. clip-path 가 캔버스 그림자를 자르므로 감싸는 쪽에 건다. */
+#boardWrap.trimmed { filter:drop-shadow(0 8px 12px rgba(70,90,40,.22)); }
+
+/* 도크의 「무료」 딱지 — 무르기는 늘, 다시하기는 첫 동네에서 늘 공짜라 붙는 딱지였다(2026-09-30 걷음).
+   공짜는 기본이라 말할 필요가 없다. 값이 붙는 순간(밥 한 끼 · 도토리 · 남은 수)만 보인다. */
+#undoN.free, #restartN.free { display:none !important; }
