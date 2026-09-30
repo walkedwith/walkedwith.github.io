@@ -499,6 +499,8 @@
         <div class="lcgrp" id="lcGrp"><span class="lcgtag" data-i18n="lvcard.grpReward">보상</span>
           <div class="lcbase lcrow" id="lcBase"></div>
           <div class="lcpar lcrow" id="lcPar"></div>
+          <!-- 꾸러미 줄 — 험한 판만. 몇 번째 상자인지, 이미 받았으면 무엇이었는지. 지도 머리 줄을 대신한다(2026-09-30). -->
+          <div class="lcgift2 lcrow" id="lcGift"></div>
         </div>
         <div class="lcwrap lcrow" id="lcHintRow"><div class="lctip" id="lcTip"><b id="lcTipNm"></b><i id="lcTipD"></i><span class="lctarw" id="lcTipArw"></span></div>
         <span class="lclb" data-i18n="lvcard.rowHint">도구</span><div class="lcboost" id="lcBoost"></div></div>
@@ -6317,7 +6319,7 @@ const MAX_GARDEN_KEEPER_SKIN_ENABLED=(()=>{
 const MAX_SKIN_SHEETS={
   duck:['walk-left','walk-up','walk-down','push-left','push-up','push-down','wall-left','wall-up','wall-down',
         'sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  frog:['walk-down','walk-up','walk-left','push-left','push-up','push-down','wall-left','sit-left','sit-up'],           // 3동네 졸졸 냇가 — 만드는 중. 나머지 모션은 기본 맥스로 떨어진다
+  frog:['walk-down','walk-up','walk-left','push-left','push-up','push-down','wall-left','wall-up','wall-down','sit-left','sit-up','sit-front','sleep-front','idle-front'],           // 3동네 졸졸 냇가 — 만드는 중. 나머지 모션은 기본 맥스로 떨어진다
   chicken:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 1동네 — 한 벌 완성
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
@@ -7787,6 +7789,21 @@ function lvCardOpen(lv,skipChapterStory){
   // 다 주운 길도 칸을 그린다(다섯이 다 차 있다) — 줄이 판마다 있다 없다 하면 카드 높이가 흔들린다.
   el("lcPar").innerHTML = (o && matFull(lv)>0)
     ? ('<div class="lcgs">'+matDots(Math.min(matFull(lv), pawMap[lv]|0), matsOfLv(lv), matFull(lv))+'</div>') : '';
+  // 꾸러미 줄 — 험한 판만. 안 연 상자는 파란 상자 + 그 동네 몇 번째인지(안에 든 건 열 때 본다 — 지도 줄과 같은 규칙).
+  // 이미 받았으면 받은 가구 그림 + 이름.
+  { const g=el('lcGift');
+    if(g){ let h='';
+      if(isHardLv(lv)){
+        const dn=districtOfLv(lv), lvs=HARD_LV.filter(x=>districtOfLv(x)===dn), idx=lvs.indexOf(lv)+1;
+        const got=giftOpenedSet().has(lv), it=got? furnAtLv(lv) : null;
+        h='<span class="lclb">'+I18N.t('lvcard.rowGift')+'</span><span class="lcbv lcgv"><canvas id="lcGiftIco" width="44" height="44"></canvas>'
+          +(got? '<b>'+escAttr(it? furnName(it) : '')+'</b><i>'+I18N.t('lvcard.giftGot')+'</i>'
+                : '<b>'+escAttr(I18N.t('lvcard.giftNth',{district:I18N.t(DISTRICTS[dn-1].nameKey), n:idx, t:lvs.length}))+'</b>')+'</span>';
+      }
+      g.innerHTML=h;
+      const cv=el('lcGiftIco'); if(cv && cv.getContext){
+        if(isHardLv(lv) && giftOpenedSet().has(lv)){ const it=furnAtLv(lv); if(it && it.kind==='hood'){ const o=ctx; ctx=cv.getContext('2d'); ctx.clearRect(0,0,44,44); try{ furnHead(it.m,22,25,12); }catch(e){} ctx=o; } else furnCanvasDraw(cv,it); }
+        else { const o=ctx, oc=cell; ctx=cv.getContext('2d'); cell=40; ctx.clearRect(0,0,44,44); try{ drawHouseGift(22,24); }catch(e){} ctx=o; cell=oc; } } } }
   // 묶음은 안에 설 줄이 하나라도 있을 때만 — 다녀온 길이면 셋이 다 빈다(기둥만 남으면 안 된다).
   // 맨 위 줄의 점선은 지운다: 기둥 머리에 라벨이 앉는 자리라 선이 겹친다.
   { const g=el('lcGrp');
@@ -8401,6 +8418,9 @@ function lsDistHTML(openN){
 }
 // 진행 바 — 험한 판 여섯이 눈금이 된다(성장 사다리 여섯 칸과 같은 자리라 한 번 배우면 끝).
 // 끝의 선물은 동네 완주. 예전엔 이 셋이 길 위에 흩어져 떠 있었다.
+// 지도 머리의 꾸러미 줄은 걷었다(2026-09-30). 받은 수는 방 시트 탭의 N/10 이, 이 판의 꾸러미는 확인 화면 줄이 말한다.
+// 상자를 여는 자리도 방이라 지도에 남을 일이 없다. 코드는 두고 스위치만 내린다.
+const LS_PROG_ON=false;
 function lsProgHTML(n){
   const d=DISTRICTS[n-1]; if(!d) return '';
   const to=Math.min(d.to, playableMax());
@@ -8467,7 +8487,7 @@ function lsSceneFromScroll(){
   const d0=DISTRICTS[dn-1];
   if(d0 && selMode && !unlockCB && !coachSteps && d0.from<=maxLevel) chapterStoryOpen(d0.from, ()=>{});
   lsOpenCh=DISTRICTS[dn-1] ? DISTRICTS[dn-1].from : lsOpenCh;
-  const pg=el('lsProg'); if(pg){ pg.innerHTML=lsProgHTML(dn); giftBarBind(); }
+  const pg=el('lsProg'); if(pg){ pg.innerHTML=LS_PROG_ON? lsProgHTML(dn) : ''; if(LS_PROG_ON) giftBarBind(); }
   const dl=LS_DIST_STRIP_ON? el('lsDist') : null;
   if(dl) for(const b of dl.querySelectorAll('[data-dn]'))
     b.classList.toggle('on', districtOfLv(+b.dataset.dn)===dn);
@@ -8582,7 +8602,7 @@ function renderLvlMap(){
       const on=dl.querySelector('.lsdt.on');
       if(on) requestAnimationFrame(()=>{ try{ on.scrollIntoView({block:'nearest',inline:'center'}); }catch(e){} });
     }
-    const pg=el('lsProg'); if(pg){ pg.innerHTML=lsProgHTML(dn); giftBarBind(); }
+    const pg=el('lsProg'); if(pg){ pg.innerHTML=LS_PROG_ON? lsProgHTML(dn) : ''; if(LS_PROG_ON) giftBarBind(); }
     lsLeftRender(dn);
   }
   syncBuildFab(districtOfLv(openD>=0? openD : nextLv()));   // 보고 있는 동네가 곧 짓는 동네다
@@ -16840,7 +16860,7 @@ function giftBarClose(){
     // lsOpenCh 는 동네 번호가 아니라 그 동네의 첫 판(from)을 기억한다(2동네면 31).
     // 진행 바와 두고 온 꾸러미는 동네 번호를 받으므로 닫을 때 반드시 변환한다.
     const dn=districtOfLv(lsOpenCh!=null?lsOpenCh:nextLv());
-    const pg=el('lsProg'); if(pg){ pg.innerHTML=lsProgHTML(dn); giftBarBind(); }
+    const pg=el('lsProg'); if(pg){ pg.innerHTML=LS_PROG_ON? lsProgHTML(dn) : ''; if(LS_PROG_ON) giftBarBind(); }
     lsLeftRender(dn);
   }
   if(fly && selMode && !wasFurn) noteFlyToBook(fly);                 // 가구는 수첩으로 안 날아간다 — 방으로 간다
@@ -22917,7 +22937,7 @@ function checkContentUnlocks(){
   if(showPendingCompletionCard()) return;
   if(checkBoostUnlock()) return;
   // 첫 꾸러미가 바에 걸린 순간 한 번 — 상자가 무엇이고 눌러야 열린다는 걸 그 자리에서 말한다.
-  if(!tipSeen['giftBar']){
+  if(LS_PROG_ON && !tipSeen['giftBar']){
     const b=el('lsProg') && el('lsProg').querySelector('.gb.rdy');
     if(b && b.getBoundingClientRect().width){
       tipSeen['giftBar']=1; LS.set('roll_tips', JSON.stringify(tipSeen));

@@ -4224,3 +4224,9 @@ body.inhouse #boardWrap { transition:transform .26s ease-out; }
 #hdeco .hdit .pr svg { width:12px; height:12px; }
 #hdeco .hdit .pr svg path { fill:#fff; }
 #hdeco button:active { transform:scale(.96); }
+
+/* 지도 머리 꾸러미 줄 — 걷었다(LS_PROG_ON=false). 이 판의 꾸러미는 확인 화면 줄로. */
+.lsprog { display:none !important; }
+#lvcard .lcgift2:empty { display:none; }
+#lvcard .lcgv canvas { width:34px; height:34px; flex:none; }
+#lvcard .lcgv i { font-style:normal; font-size:var(--s10); color:#8A7458; margin-left:2px; }
