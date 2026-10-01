@@ -1224,7 +1224,11 @@ const WALL=0,GRASS=1,ICE=2,MAT=3,SU=4,SD=5,SL=6,SR=7,PIT=8,PAINT=9,WATER=10,PLAT
       // ── 흙더미 (36진 s) ────────────────────────────────────────────────
       // 밭 사이 흙벽. 파기 전엔 맥스도 공도 못 넘는다. 맥스가 걸어 들어가면 흙이
       // **앞으로** 밀려 그 너머 구덩이로 쏟아지고, 두 칸이 한꺼번에 평지가 된다.
-      DUREONG=28;
+      DUREONG=28,
+      // ── 여닫이 문 기둥 (36진 t) ─────────────────────────────────────────
+      // 기둥은 벽이다. 문짝은 타일이 아니라 판 데이터 dr 이 정하고(기둥 칸·처음 방향·모양),
+      // 돌아간 방향은 filled 에 실린다(DOOR_F) — 무르기·풀이 키·재생이 새 필드 없이 따라온다.
+      DOOR=29;
 // 그리기 전용 상태값 — 타일이 아니라 drawTile 의 분기 열쇠다(mechOff 의 9901·9902 와 같은 문법).
 const TILLED=9800,                                 // 메운 자리 — 구덩이든 흙더미이든 흙으로 덮인 칸
       SOWN=9801,                                   // 수확 구덩이 — 작물이 들어갔지만 아직 구멍
@@ -1322,7 +1326,69 @@ function isInnerWall(r,c){
   return r>0 && c>0 && r<GN-1 && c<GN-1
       && L.T[r][c]===WALL && !filled.has(cutKey(r,c));
 }
-function tileAt(L, filled, r, c){ if(r<0||c<0||r>=GN||c>=GN) return WALL; if(L._catB!=null && L._catB===kk(r,c)) return WALL; if(L._cbB!=null && L._cbB.has(kk(r,c))) return WALL; if(L._npB!=null && L._npB.has(kk(r,c))) return WALL; if(L._cqB!=null && L._cqB===kk(r,c)) return WALL; if(filled.has(kk(r,c))) return GRASS; if(filled.has(kk(r,c)+4096)) return GRASS; /* +4096 = 작물이 든 자리. 그림만 다르고 통행은 평지 */ if(filled.has(kk(r,c)+CUT_OFF)) return GRASS; /* 정원 가위가 자른 수풀 — L.T 보다 앞이어야 걸린다 */ if(filled.has(kk(r,c)+16384) || filled.has(kk(r,c)+32768)) return WALL; if(L.T[r][c]===DUREONG) return WALL; return L.T[r][c]; }
+function tileAt(L, filled, r, c){ if(r<0||c<0||r>=GN||c>=GN) return WALL; if(L._catB!=null && L._catB===kk(r,c)) return WALL; if(L._cbB!=null && L._cbB.has(kk(r,c))) return WALL; if(L._npB!=null && L._npB.has(kk(r,c))) return WALL; if(L._cqB!=null && L._cqB===kk(r,c)) return WALL; if(filled.has(kk(r,c))) return GRASS; if(filled.has(kk(r,c)+4096)) return GRASS; /* +4096 = 작물이 든 자리. 그림만 다르고 통행은 평지 */ if(filled.has(kk(r,c)+CUT_OFF)) return GRASS; /* 정원 가위가 자른 수풀 — L.T 보다 앞이어야 걸린다 */ if(filled.has(kk(r,c)+16384) || filled.has(kk(r,c)+32768)) return WALL; if(L.T[r][c]===DUREONG) return WALL; if(L.T[r][c]===DOOR) return WALL; if(L.doors && doorLeafAt(L, filled, r, c)) return WALL; return L.T[r][c]; }
+// ── 여닫이 문 ────────────────────────────────────────────────
+// 기둥(DOOR 타일) 하나에 문짝이 붙어 있다. 문짝 칸은 맥스도 공도 못 지난다(tileAt 이 WALL).
+// 맥스가 문짝을 **옆에서** 밀면 기둥을 축으로 미는 쪽으로 90° 돌고, 맥스는 비워진 칸으로 들어간다.
+// 문짝이 쓸고 지나갈 모퉁이 칸과 도착 칸이 비어 있어야 돈다. 공으로는 못 민다(문짝은 공에게 벽).
+// 문으로 공 치기(L.doorHit, 판 데이터 dh:1) — 도착 칸에 공이 있으면 문이 도는 쪽으로 한 칸 쳐낸다.
+// 쳐낼 자리가 막혔으면 안 돈다. 모퉁이 칸 공은 늘 막는다(어느 쪽으로 튈지 안 읽힌다).
+//   방향은 나침반 번호다: 0 위 · 1 오른 · 2 아래 · 3 왼 (시계 방향). DIRS 와 순서가 다르다.
+//   L.doors[i] = {k, r, c, rot(처음 방향), sh(모양: 0 한 짝 · 1 일자 · 2 ㄱ자 · 3 십자)}
+//   돌아간 방향은 filled 의 DOOR_F + i*4 + rot — 처음 방향이면 비운다(같은 배치 = 같은 풀이 키).
+const DOOR_F=1<<20, DOOR_CV=[[-1,0],[0,1],[1,0],[0,-1]], DOOR_SHAPES=[[0],[0,2],[0,1],[0,1,2,3]];
+function doorRot(L, filled, i){ for(let q=0;q<4;q++) if(filled.has(DOOR_F+i*4+q)) return q; return L.doors[i].rot; }
+function doorSetRot(L, filled, i, q){ for(let x=0;x<4;x++) filled.delete(DOOR_F+i*4+x); if(q!==L.doors[i].rot) filled.add(DOOR_F+i*4+q); }
+function doorLegs(L, filled, i){ const q=doorRot(L, filled, i); return DOOR_SHAPES[L.doors[i].sh].map(g=>(g+q)&3); }
+function doorCompass(dr, dc){ return dr<0? 0 : dc>0? 1 : dr>0? 2 : 3; }
+// (r,c) 가 문짝이면 {i, w}(문 번호·기둥에서 본 방향), 아니면 null
+function doorLeafAt(L, filled, r, c){
+  for(let i=0;i<L.doors.length;i++){ const d=L.doors[i], dr=r-d.r, dc=c-d.c;
+    if(Math.abs(dr)+Math.abs(dc)!==1) continue;
+    if(doorLegs(L, filled, i).includes(doorCompass(dr, dc))) return {i, w:doorCompass(dr, dc)}; }
+  return null;
+}
+// 맥스가 (dr,dc) 로 문짝 lf 를 밀었다. 돌면 applyMoveCore 결과, 안 돌면 null.
+function doorSwing(L, st, filled, lf, dr, dc){
+  if(L.doorLock) return null;                               // 잣대 전용 — 문을 못 돌리는 판으로 재 본다(MECH.door.off)
+  const m=doorCompass(dr, dc);
+  if(m===lf.w || m===((lf.w+2)&3)) return null;            // 문짝 길이 방향으로 밀면 벽과 같다
+  const s=(m===((lf.w+1)&3))? 1 : 3;                       // 1 = 시계, 3 = 반시계
+  const d=L.doors[lf.i], q0=doorRot(L, filled, lf.i), q1=(q0+s)&3;
+  const legs=doorLegs(L, filled, lf.i);
+  const nb=st.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried}));
+  const own=new Set(legs.map(w=>kk(d.r+DOOR_CV[w][0], d.c+DOOR_CV[w][1])));   // 지금 이 문의 문짝 칸 — 같이 움직이니 비어 있는 셈
+  const floorFree=(r,c)=>{ if(r<1||c<1||r>GN-2||c>GN-2) return false;
+    if(r===st.dog.r && c===st.dog.c) return false;
+    const t=tileAt(L, filled, r, c);
+    return t===GRASS || t===MAT || (t===WALL && own.has(kk(r,c))); };
+  let knock=null;
+  for(const w of legs){ const w2=(w+s)&3;
+    const cr=d.r+DOOR_CV[w][0]+DOOR_CV[w2][0], cc=d.c+DOOR_CV[w][1]+DOOR_CV[w2][1];   // 모퉁이
+    const er=d.r+DOOR_CV[w2][0], ec=d.c+DOOR_CV[w2][1];                                // 도착
+    if(!floorFree(cr,cc) || boxIdxAt(nb,cr,cc,-1)>=0) return null;
+    if(!floorFree(er,ec)) return null;
+    const bi=boxIdxAt(nb,er,ec,-1);
+    if(bi<0) continue;
+    if(!L.doorHit || knock || nb[bi].kind!=='ball') return null;
+    const h=(w+2)&3, hr=er+DOOR_CV[h][0], hc=ec+DOOR_CV[h][1];                         // 문이 도는 쪽으로 한 칸
+    knock={bi, fromR:er, fromC:ec, toR:hr, toC:hc};
+  }
+  const f2=new Set(filled); doorSetRot(L, f2, lf.i, q1);
+  const pr=d.r+DOOR_CV[lf.w][0], pc=d.c+DOOR_CV[lf.w][1];                            // 비워진 칸 — 맥스가 들어간다
+  let extra=[];
+  if(knock){
+    const ht=tileAt(L, f2, knock.toR, knock.toC);
+    if(!(ht===GRASS || ht===MAT) || boxIdxAt(nb,knock.toR,knock.toC,-1)>=0 || (knock.toR===pr && knock.toC===pc) || (knock.toR===st.dog.r && knock.toC===st.dog.c)) return null;
+    nb[knock.bi].r=knock.toR; nb[knock.bi].c=knock.toC;
+    extra.push({fromR:knock.fromR, fromC:knock.fromC, path:[{r:knock.toR,c:knock.toC}], restR:knock.toR, restC:knock.toC,
+                sunk:false, landCell:null, recolored:false, color:nb[knock.bi].color, slid:1});
+  }
+  const enter = tileAt(L, f2, pr, pc)!==WALL;               // ㄱ자·십자는 다른 문짝이 그 칸으로 들어올 수 있다 — 그러면 제자리
+  extra=extra.concat(settleSlopes(L, f2, nb, true, null, null, !valveOpen(L,f2,nb)));
+  return { dog: enter? {r:pr,c:pc} : {r:st.dog.r,c:st.dog.c}, boxes:nb, filled:f2, carry:false, pushed:false, slid:0, sunk:false,
+           recolored:false, door:{i:lf.i, from:q0, to:q1, s, hit:knock? {fromR:knock.fromR,fromC:knock.fromC,toR:knock.toR,toC:knock.toC} : null}, extra };
+}
 // 통은 **공에게만 벽**이다. 담벼락에 붙어 있어 사람은 옆으로 스쳐 가고, 굴러오는 공은
 // 부딪힌다(그 소리가 욕심쟁이를 부른다). 고양이가 통 위에 올라앉으면 그때는 맥스도 못
 // 지나간다(_cqB 가 tileAt 에서 막는다) — 공을 풀어주는 대가로 지름길이 닫히는 셈이다.
@@ -2001,6 +2067,8 @@ function applyMoveCore(L, st, dr, dc){
       return { dog:{r:nr,c:nc}, boxes:nb, filled, carry:false, pushed:false, slid:0, sunk:false,
                recolored:false, dug:{from:_mk, to:_bk, pit:destPit, wear:worn+1, gone}, extra };
     } }
+  // ── 여닫이 문 — 문짝도 tileAt 이 WALL 로 주므로 벽 판정보다 먼저 ──
+  if(L.doors && !st.carry){ const lf=doorLeafAt(L, filled, nr, nc); if(lf) return doorSwing(L, st, filled, lf, dr, dc); }
   if(tdst===WALL) return null;
   const boxes=st.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried}));
   // 구덩이 — 뭘 물고 있든 넣어 메운다. 빈손이면 못 들어간다(구덩이니까).
@@ -2481,6 +2549,9 @@ const GI_MULTI={
   dureong:[
     { demo:'dureong', nameKey:'guide.dureong.name', textKey:'guide.dureong.text' },
   ],
+  door:[
+    { demo:'door', nameKey:'guide.door.name', textKey:'guide.door.text' },
+  ],
   cart:[
     { demo:'cartV', nameKey:'guide.cart.name', textKey:'guide.cart.text' },
   ],
@@ -2574,6 +2645,7 @@ const GI_TXT={
   dpit:{nameKey:'guide.dpit.name',textKey:'guide.dpit.text'},
   crop:{nameKey:'guide.crop.name',textKey:'guide.crop.text'},
   dureong:{nameKey:'guide.dureong.name',textKey:'guide.dureong.text'},
+  door:{nameKey:'guide.door.name',textKey:'guide.door.text'},
   cart:{nameKey:'guide.cart.name',textKey:'guide.cart.text'},
   cartH:{nameKey:'guide.cartH.name',textKey:'guide.cartH.text'},
   color:{nameKey:'guide.color.name',textKey:'guide.color.text'},
@@ -2614,8 +2686,10 @@ function guideKeysForBoard(board){
 }
 // 도움말은 현재 구간에서 가장 최근에 배운 규칙 하나만 보여 준다.
 // 동네 전체를 누적 재생하면 후반 구간에서 4~6장이 연달아 떠 도움말 자체가 피로해진다.
+// 여닫이 문 판(11~15)을 심기 전엔 끈다 — 문 없는 11판에 문 안내가 뜨면 안 된다. 판을 굽고 나서 true.
+const DOOR_LEVELS_ON=false;
 const GUIDE_TRACKS=[
-  {from:1,to:30,steps:[[1,'base']]},
+  {from:1,to:30,steps: DOOR_LEVELS_ON? [[1,'base'],[11,'door']] : [[1,'base']]},   // 여닫이 문(2026-10-01) — 11판부터
   {from:31,to:60,steps:[[31,'ice'],[41,'billiard']]},
   {from:61,to:90,steps:[[61,'flow'],[71,'pool'],[81,'bridge']]},
   {from:91,to:120,steps:[[91,'slope'],[101,'slopebilliard'],[111,'slopeback']]},
@@ -2750,7 +2824,7 @@ function showBoardGuides(){
 }
 // 자동 안내는 실제 첫 학습판에 붙인다. 페인트와 색 맞추기는 181판의 두 장으로 묶고,
 // 상자 구덩이 메우기는 그 조합이 실제 등장하는 205판에서 따로 연다.
-const INTRO={31:'ice',41:'billiard',61:'flow',71:'pool',81:'bridge',91:'slope',101:'slopebilliard',111:'slopeback',121:'tramp',126:'trampknock',136:'trampback',151:'dpit',156:'crop',166:'dureong',181:'log',191:'cart',211:'paint',220:'pit',221:'valve',235:'logpit',236:'logvalve',241:'catbox',251:'greedy',261:'twocats',271:'wind',281:'windbox',291:'windpush'};
+const INTRO={...(DOOR_LEVELS_ON? {11:'door'} : {}),31:'ice',41:'billiard',61:'flow',71:'pool',81:'bridge',91:'slope',101:'slopebilliard',111:'slopeback',121:'tramp',126:'trampknock',136:'trampback',151:'dpit',156:'crop',166:'dureong',181:'log',191:'cart',211:'paint',220:'pit',221:'valve',235:'logpit',236:'logvalve',241:'catbox',251:'greedy',261:'twocats',271:'wind',281:'windbox',291:'windpush'};
 // 76 은 새 기믹이 아니라 뼈다귀 조합의 심화라 데모 힌트가 없다(56 '호스+박스', 26 '언덕 쿵' 과 같은 패턴).
 // 옛 76(순찰 고양이 테스트 1판) 시절의 항목은 제거했다. 실제 도입과 데모는 221판이다.
 const BILLIARD_FROM=41;   // 당구(공-공 전달) 해금 판 (재배열: 물리 4연속의 마지막)
@@ -2902,7 +2976,7 @@ function solStats(L, start, ml){
   // 카운터는 MECH 사전의 fired() 가 읽는다. 기믹을 추가하면 여기에 카운터를 하나 늘리고
   // 사전에 fired 를 연결한다 — 그래야 audit 이 "이 기믹이 최적해에서 실제로 작동했나"를 잰다.
   const s={slides:0,sunk:0,recolor:0,chain:0,logPush:0,cartPush:0,furrowStep:0,logDam:0,valveToggles:0,pits:0,rinse:0,
-           catWake:0,catPass:0,boneBury:0,cropFill:0,cropPick:0,packed:0,dug:0,colorFit:0,bounce:0,tknock:0,rebound:0,tstall:0,gust:0,gustPush:0,cbJump:0,npDrop:0,npUp:0,pkJump:0,pkOut:0,fwOut:0,cqMove:0,cqPounce:0,cqBin:0};
+           catWake:0,catPass:0,boneBury:0,cropFill:0,cropPick:0,packed:0,dug:0,colorFit:0,bounce:0,tknock:0,rebound:0,tstall:0,gust:0,gustPush:0,cbJump:0,npDrop:0,npUp:0,pkJump:0,pkOut:0,fwOut:0,cqMove:0,cqPounce:0,cqBin:0,door:0,doorHit:0};
   st.wc=start.wc;                                           // 바람 박자를 안 이어받으면 영영 안 분다
   let vo=valveOpen(L,st.filled,st.boxes);
   st.ci=start.ci; st.cd=start.cd; st.ca=start.ca;            // 순찰 위치·고양이 각성 상태를 이어간다
@@ -2928,6 +3002,7 @@ function solStats(L, start, ml){
     if(r.picked && r.cropCol!=null) s.cropPick++;              // 작물을 물었다
     if(r.packed) s.packed++;                                   // 이랑을 다졌다
     if(r.dug) s.dug++;                                         // 흙더미을 파헤쳐 흙을 부었다
+    if(r.door){ s.door++; if(r.door.hit) s.doorHit++; }       // 여닫이 문을 돌렸다 · 문으로 공을 쳤다
     // 트램플린으로 건너뛴 칸은 미끄러진 게 아니다 — 빼고 세지 않으면 얼음이 없는 판에서도
     // slides 가 올라가 비눗물이 "작동한 것처럼" 보인다(fired 가 거짓말하는 그 사고).
     s.bounce += (r.bounced|0);
@@ -4361,7 +4436,8 @@ function fromBaked(o, lv){
   // 값이 있으면 따라오는 중이다. 두 모드가 한 필드로 갈린다.
   const fw = (o.fw!=null)? o.fw : null;
   return { L:{tc:(lv!=null? toolCutKey(lv) : null),T,holes,paintCol,needBone:boxes.some(b=>b.kind==='bone'),billiard:!!o.bi,treat:(o.tr==null?null:o.tr),cat:(o.ct==null?null:o.ct),walk,catP,wind,wl:(o.wl||null),cb:(o.cb||null),cbm:(o.cbm||null),np:(o.np||null),pk,fw,bn:(o.bn||null),nap:(o.nap==null?null:o.nap),_bnB:(o.bn? new Set(o.bn) : null),
-       _pkCells:(pk? new Set(pk.flat()) : null)},
+       _pkCells:(pk? new Set(pk.flat()) : null),
+       doors:(o.dr? o.dr.map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})) : null), doorHit:!!o.dh, doorLock:!!o.dl},
            start:{dog:{r:o.d[0],c:o.d[1]},boxes,filled:new Set(),ci:(walk?walk.i:0),cd:(walk?walk.d:1),ca:0,ck:(o.ct==null?undefined:o.ct),
                   wc:(wind==null?undefined:WIND_EVERY),
                   ns:(o.np? (o.ns? o.ns.slice() : o.np.map(()=>-1)) : undefined),
@@ -4484,6 +4560,15 @@ const MECH={
               fired:s=>s.dug,
               pairs:{ dpit:'구덩이에 부으면 한 번에 평지가 된다',
                       crop:'작물을 아껴야 하는 판에서 두 번째 길이 된다' } },
+  // 여닫이 문 — 1동네 11~30판. 기둥을 축으로 도는 문짝(dr). 16판부터 문으로 공 치기(dh:1).
+  // 문이 막는 길은 문 방향이 정하므로, 못 도는 문(dl:1)으로 바꿔 par 가 달라지면 문이 일한 것이다.
+  door:     { nm:'여닫이 문',   intro:11, tiles:[DOOR], tags:['#Rotate','#Gate'],
+              rule:'문짝을 옆에서 밀면 기둥을 축으로 90° 돌고 맥스는 비워진 칸으로 들어간다. 문짝이 쓸고 갈 칸이 막혀 있으면 안 돈다. 공으로는 못 민다.',
+              fail:'문을 엉뚱한 쪽으로 돌려 공 길을 막는다. 돌리려면 맥스가 반대쪽으로 돌아가야 한다.',
+              has:o=>!!(o.dr && o.dr.length),
+              off:o=>({...o, dl:1}),                   // 못 도는 문 — 기둥·문짝이 그대로 벽
+              fired:s=>s.door,
+              pairs:{} },
   // dpit 과 같은 구덩이다(타일 번호만 다르다 — PIT 은 밭 밖 동네에 깔린다).
   // 안내판은 121 하나로 끝내고, 여기서는 조합만 가르친다(205 상자로 메우기).
   pit:      { nm:'구덩이',      intro:151, tiles:[PIT], tags:['#Fall','#Bridge'],
@@ -6325,7 +6410,7 @@ const MAX_SKIN_SHEETS={
   chicken:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 1동네 — 한 벌 완성
   bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
   pig:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 6동네 — 한 벌 완성(2026-10-01). 장난감 색 #F4A486 로 맞춤
-  hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-up','sleep-front','idle-front','victory-front']   // 4동네 도토리 갑옷 — 15/17(2026-10-01). 벽쿵 앞·잠 옆을 다시 받는 중 — 17장이 차기 전엔 옷걸이에 안 걸린다
+  hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
 // 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
@@ -9002,6 +9087,13 @@ const DEMOS={
     act(p){ const a=seg(p,.08,.24), b=seg(p,.34,.50), c2=seg(p,.62,.84);
       return { dog:a+b+c2, crops: a>=1? [] : [{c:1,color:0}], carryCrop:(a>=1&&b<1)? 0 : null,
                sown:(b>=1?[2]:[]) }; } },
+  // 여닫이 문 — 3×3 판(grid). 한 줄 띠로는 "옆에서 민다"를 그릴 수 없다(문짝이 길을 막으면 맥스는
+  // 문짝 길이 방향으로만 다가온다). 기둥 (1,1), 문짝은 오른쪽 (1,2). 맥스가 위 줄을 걸어와
+  // (0,2) 에서 아래로 밀면 문짝이 아래 (2,1) 로 돌고 맥스는 (1,2) 로 들어간다.
+  door:{ grid:[[GRASS,GRASS,GRASS],[GRASS,DOOR,GRASS],[GRASS,GRASS,GRASS]], doors:[[9,1]], dur:4.4,
+    act(p){ const a=seg(p,.06,.22), b=seg(p,.26,.42), c2=seg(p,.52,.70);
+      const dogR = c2, dogC = a+b, face = c2>0? 'front' : 'right';
+      return { dogR, dogC: Math.min(2,dogC), face, doorQ: 1 + c2 }; } },
   // 흙더미 — 맥스가 걸어 들어가면 흙이 앞으로 밀려 그 너머 구덩이를 메운다. 두 칸이 같이 평지가 된다.
   dureong:{ tiles:[GRASS,DUREONG,GRASS,HPIT,GRASS], dur:6.0,
     act(p){ const a=seg(p,.10,.26), b=seg(p,.40,.56), c2=seg(p,.70,.86);
@@ -9123,11 +9215,14 @@ for(const k in DEMOS){ const d=DEMOS[k], T=[];
   // 세로 데모(d.vert)는 tiles 를 0열에 **세로로** 심는다. 세로 대차 안내판이 가로로
   // 움직이던 건 데모 캔버스가 한 줄뿐이라 위아래를 그릴 수가 없어서였다(vertical 은
   // 스프라이트만 바꿨다). 세로 축을 쓰는 기믹은 세로 판으로 보여야 말이 맞는다.
-  if(d.vert) d.tiles.forEach((t,i)=>{ T[i][0]=t; });
+  if(d.grid) d.grid.forEach((row,r)=>row.forEach((t,c)=>{ T[r][c]=t; }));   // 여러 줄 데모(여닫이 문)
+  else if(d.vert) d.tiles.forEach((t,i)=>{ T[i][0]=t; });
   else       d.tiles.forEach((t,i)=>{ T[0][i]=t; });
   d._L={ T, holes:new Map(Object.keys(d.holes||{}).map(c=>[+c, d.holes[c]])), paintCol:{}, boneHole:(d.boneHole==null?null:d.boneHole) };
   for(const c in (d.paint||{})) d._L.paintCol[+c]=d.paint[c];
-  d._n=d.tiles.length; d._rows=d.vert?d._n:1; d._cols=d.vert?1:d._n;
+  if(d.grid){ d._rows=d.grid.length; d._cols=d.grid[0].length; d._n=d._cols;
+    d._L.doors=(d.doors||[]).map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})); }
+  else { d._n=d.tiles.length; d._rows=d.vert?d._n:1; d._cols=d.vert?1:d._n; }
 }
 let hintKey=null;
 let hintT0=0;                                   // 데모 시작 시각 — 전역 animT 를 그대로 쓰면
@@ -9143,8 +9238,8 @@ function setHintDemo(key){
   // 캔버스가 정확히 한 칸 높이면 뜬 공이 잘려서 "뛴다"가 안 보인다(실측).
   HTOP=Math.round(HCELL*0.55);
   const hh=HCELL+HTOP;
-  const cw = d.vert? HCELL : d._n*HCELL;                 // 세로 데모는 폭 한 칸
-  const ch = d.vert? (d._n*HCELL+HTOP) : hh;            // 대신 높이가 n 칸
+  const cw = d.grid? d._cols*HCELL : d.vert? HCELL : d._n*HCELL;                 // 세로 데모는 폭 한 칸
+  const ch = d.grid? (d._rows*HCELL+HTOP) : d.vert? (d._n*HCELL+HTOP) : hh;      // 대신 높이가 n 칸
   hcv.width=cw*dpr; hcv.height=ch*dpr;
   hcv.style.width=cw+"px"; hcv.style.height=ch+"px";
   hctx.setTransform(dpr,0,0,dpr,0,0);
@@ -10258,6 +10353,24 @@ function renderHint(){
   for(const sc of (st.sown||[])) filled.add(sc+4096);   // 작물만 들어간 칸 — 판과 같은 +4096 문법
   if(d.wind!=null){ windNow=d.wind; windCnt=(st.wc==null? WIND_EVERY : st.wc); gustT=st.gust||0; } else windNow=null;
   L._nograin=d.nograin?1:0;                       // 깃발 골목 데모 — 결 밖 줄은 결을 안 그린다
+  if(d.grid){                                     // 여러 줄 데모 — 지금은 여닫이 문 하나다
+    boxes=[];
+    ctx.clearRect(0,0,d._cols*HCELL,d._rows*HCELL+HTOP);
+    ctx.save(); ctx.translate(0, HTOP);
+    for(let r=0;r<d._rows;r++) for(let c=0;c<d._cols;c++) drawTile(r,c);
+    const q=st.doorQ;                              // 문짝 방향(나침반, 소수면 도는 중)
+    const q0=Math.floor(q), t=q-q0;
+    doorFx= t>0? {i:0, from:q0&3, to:(q0+1)&3, s:1, t} : null;
+    filled=new Set(); if(!doorFx && (q0&3)!==L.doors[0].rot) filled.add(DOOR_F+(q0&3));
+    const dx=cx(st.dogC), dy=cy(st.dogR);
+    if(st.dogR<1){ if(!drawMaxStaticUi(dx,dy+cell*.36,cell,st.face)) drawDog(dx,dy,cell,1,1,1); drawDoors(); }
+    else { drawDoors(); if(!drawMaxStaticUi(dx,dy+cell*.36,cell,st.face)) drawDog(dx,dy,cell,1,1,1); }
+    doorFx=null;
+    ctx.restore();
+    ctx=oc; cell=ocell; L=oL; filled=ofil; dog=odog; boxes=obx;
+    windNow=ow; windCnt=owc; gustT=og;
+    return;
+  }
   boxes=(st.balls||[]).map(b=>({r:0,c:Math.round(b.c),color:b.color,kind:'ball',sink:0}))
     .concat((st.logs||[]).map(g=>({r:0,c:Math.round(g.c),color:-9,kind:'log',sink:0})))
     .concat((st.carts||[]).map(g=>({r:d.vert?Math.round(g.c):0,c:d.vert?0:Math.round(g.c),color:g.vertical?-10:-11,kind:g.vertical?'cartV':'cartH',sink:0})));
@@ -10371,6 +10484,7 @@ function applyScene(g){
   maxChapterIdleT=0; maxChapterBlockedFx=null;                    // v12 대기·막힘 포즈도 판마다 처음부터
   gustFx=[]; gustT=0;                                            // 바람 연출도 처음부터
   digFx=null; cutFx=null; tunFx=null; fetchFx=null; dog.digT=0;   // 흙더미 파헤치기·밟기·점프·물어오기 연출도
+  doorFx=null;                                                  // 문 도는 연출도
   moundTrail=new Set();                                         // 판을 새로 열면 자국도 없다
   fxQueue=[];                                                   // 늦게 도는 연출도 같이 버린다
   cbLid={};                                                     // 뚜껑도 처음 상태로
@@ -20444,7 +20558,7 @@ function chapterMaxPrototypeIsMoving(){
     dog.protoMoveT!=null && dog.protoMoveT<1) ||
     (MAX_EXPRESSIVE_PROTO_ENABLED && level===1 && maxChapterBlockedFx && maxChapterBlockedFx.t<maxChapterBlockedFx.dur));
 }
-function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
+function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!doorFx || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
 // 유효시간(at)은 **애니가 끝난 뒤부터** 잰다 — 프레임 루프가 애니 중엔 at 을 당겨 둔다.
@@ -20842,6 +20956,7 @@ function restoreSnap(s){
   dog.carry=!!s.d.carry;
   filled=new Set(s.f); moves=s.m; pendingWin=false; deadT=0; deadBalls=[]; deadPend=true; syncMoves();
   moundTrail=new Set(s.mt||[]);
+  doorFx=null;                                     // 문은 filled 가 되돌린다 — 도는 중이던 연출만 버린다
   if(L.cat!=null){ catAwake=s.ca|0; catPos=s.ck==null?L.cat:s.ck; }
   if(curCatPath()){ kitty.i=s.ki|0; kitty.d=s.kd||1; kitty.rr=catR(kitty.i); kitty.cc=catC(kitty.i); }
   // 바람 카운트도 되돌린다 — 안 되돌리면 무른 뒤에 박자가 어긋난다
@@ -21034,7 +21149,7 @@ function tryMove(dr,dc){
   if(chapterMaxAppliesToLevel(level)){
     dog.protoFromR=dog.rr; dog.protoFromC=dog.cc;
     dog.protoMoveT=0;
-    dog.protoMoveDur=chapterMaxPrototypeDuration(!!res.pushed);
+    dog.protoMoveDur=chapterMaxPrototypeDuration(!!(res.pushed||res.door));
     // 한 타일은 보행 주기의 정확히 절반이다. 다음 칸은 반대 발이 앞으로
     // 나온 구간에서 시작하므로, 연속 이동해도 같은 발부터 미끄러지지 않는다.
     dog.walkStride=dog.walkStride===0?1:0;
@@ -21042,8 +21157,8 @@ function tryMove(dr,dc){
     dog.moving=true;
   }
   // 흙더미는 상자보다 무겁다 — 더 오래 뻗고 더 깊이 눌린다. 걷기(0.7)·상자(1)와 층이 갈린다.
-  dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=res.dug? 1.35 : (res.pushed?1:0.7); dog.hop=1;
-  dog.protoPush=res.pushed?1:0;
+  dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=res.dug? 1.35 : ((res.pushed||res.door)?1:0.7); dog.hop=1;
+  dog.protoPush=(res.pushed||res.door)?1:0;                     // 문짝도 몸으로 민다
   if(!chapterMaxMasterMotionRuntimeEnabled() && res.pushed){
     dog.maxEvent='push'; dog.maxEventT=0;
   }
@@ -21180,6 +21295,11 @@ function tryMove(dr,dc){
     dog.wagBoost=1;
     tone(140,0.07,"sine",0.018,100); buzz(8); // 짧은 밀기 한 번. 도착은 Dirt 3이 맡는다.
   }
+  if(res.door){                                         // 여닫이 문 — 걷기 경로는 filled 를 안 맞추므로 여기서 맞춘다(흙더미와 같은 이유)
+    filled=new Set(res.filled);
+    doorFx={i:res.door.i, from:res.door.from, to:res.door.to, s:res.door.s, t:0, hit:!!res.door.hit};
+    dog.wagBoost=1; tone(250,0.09,"triangle",0.035,185); buzz(8);
+  }
   if(res.pushed){
     if(res.kind==='log'||res.kind==='cartV'||res.kind==='cartH'){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } // 상자와 대차는 재질을 구분한다
     else if((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1){
@@ -21210,7 +21330,7 @@ function tryMove(dr,dc){
       filled=new Set(res.filled);              // 침몰·물감 소모 등 지형 변화 즉시 반영
       if(res.slid>1){ const m=chainStep(); tone(520*m,0.12,"sine",0.04,900*m); }
     }
-  } else if(!res.buriedNow && !res.packed && !res.dug && !res.picked){ sfxStep(); }
+  } else if(!res.buriedNow && !res.packed && !res.dug && !res.picked && !res.door){ sfxStep(); }
   const pathTime=pathTimeOf;                                   // 경로 소요 시간 (경사=멈칫+감속 반영)
   let acc = (res.kind==='log'||res.kind==='cartV'||res.kind==='cartH') ? 0.7 : pathTime(res.path); // 앞선 것이 멈출 때까지의 시간
   const assigned=new Set();                                    // 이미 경로 배정된 공 (밀린 공 포함 — 중복 배정 방지)
@@ -21232,6 +21352,10 @@ function tryMove(dr,dc){
     bb.startSfx=!e.path[0].contactIn;
     if(e.path[0].contactIn) bb.delay=0; // 시간 추정 대신 친 공의 실제 접촉을 기다린다
     if(cut<0) acc+=pathTime(e.path);
+  }
+  if(res.door && res.door.hit){                       // 문으로 친 공은 문짝이 닿는 순간 떠난다
+    const hb=boxes.find(x=>x.path && x.r===res.door.hit.toR && x.c===res.door.hit.toC);
+    if(hb){ hb.delay=DOOR_DUR*DOOR_HIT_T; hb.startSfx=false; }
   }
   prepareBallContacts(boxes);
   if(!houseMode && isGoal(L, curState())){ pendingWin=true; finalStart(); }
@@ -22113,7 +22237,8 @@ function drawUndoGlyph(cxx, cyy, size){
 }
 function computeAlive(L, fil){
   const res={};
-  const floor=(r,c)=>{ if(fil && fil.has(kk(r,c))) return true; const t=L.T[r][c]; return t!==WALL && t!==PIT; };
+  // 문 기둥은 벽, 문짝은 돌 수 있으니 바닥으로 친다(빗금은 덜 치는 쪽이 안전하다).
+  const floor=(r,c)=>{ if(fil && fil.has(kk(r,c))) return true; const t=L.T[r][c]; return t!==WALL && t!==PIT && t!==DOOR; };
   for(const col of new Set([...L.holes.values()])){
     const alive=new Set(), q=[];
     for(const [k,c2] of L.holes) if(c2===col){ alive.add(k); q.push([(k/GN)|0, k%GN]); }
@@ -22183,7 +22308,7 @@ function deadlockNow(){
     for(const col in perNeed) if((perAlive[col]|0) < perNeed[col]) return true;   // 산 공이 방석 수보다 적음
   }
   // 구석 박힘 검사 — 여분공 시대: 박힌 공을 빼고도 색별 수가 충분하면 데드락 아님
-  const solid=(r,c)=>tileAt(L,filled,r,c)===WALL;
+  const solid=(r,c)=>tileAt(L,filled,r,c)===WALL && !(L.doors && doorLeafAt(L,filled,r,c));   // 문짝은 돌면 비킨다 — 구석으로 안 친다
   // 물살에 갇힘 — 맥스는 물살에 못 들어가므로 물 위에 **멈춘** 공은 손을 댈 수 없다.
   // 앞이 비면 저절로 흘러가니, 멈춰 있다는 건 하류가 막혔다는 뜻이다. 하류를 따라가
   // 벽·판 밖·축 다른 굴다리에서 끝나면 영영 그 자리다(앞에 선 공도 같은 처지면 같이).
@@ -28257,6 +28382,35 @@ function drawCatPlanterWall(x,y,sd){                          // 고양이골목
     ctx.fillStyle='#F6D474'; ctx.beginPath(); ctx.arc(x+cell*.64,y+cell*.27,cell*.025,0,7); ctx.fill();
   }
 }
+// 1동네 맥스네 마당 — 나무 화단 상자(2026-10-01 사람 결정). 수풀 대신. 흰 문짝(여닫이 문)과 재질로 갈린다:
+// 문은 흰 살, 벽은 갈색 상자 + 꽃. 상자는 낮게 두어 옆 칸의 공·맥스를 안 가린다.
+// 꽃은 칸마다 색 조합만 바뀐다(해시) — 개수·자리는 같아서 벽 줄이 한 덩어리로 읽힌다.
+function drawYardFlowerBoxWall(x,y,sd){
+  const c=cell;
+  ctx.fillStyle='rgba(42,52,30,.20)'; ctx.beginPath(); ctx.ellipse(x+c*.5,y+c*.86,c*.42,c*.085,0,0,7); ctx.fill();
+  // 잎·꽃 — 상자 뒤에서 솟는다
+  const PET=['#F59DB8','#F7CF58','#FFFFFF','#9DC2F2','#F4A47A'];
+  const k=Math.floor(hsh(sd)*PET.length);
+  const fl=[[.27,.30,.105],[.50,.24,.115],[.73,.31,.10],[.38,.40,.085],[.62,.41,.085]];
+  ctx.fillStyle='#3F6B33';
+  for(const [u,v] of [[.22,.47],[.36,.44],[.50,.45],[.64,.44],[.78,.47]]){ ctx.beginPath(); ctx.ellipse(x+c*u,y+c*v,c*.075,c*.05,0,0,7); ctx.fill(); }
+  ctx.strokeStyle='#4E7E3C'; ctx.lineWidth=Math.max(1,c*.02); ctx.lineCap='round';
+  for(const [u,v] of fl){ ctx.beginPath(); ctx.moveTo(x+c*u,y+c*.48); ctx.lineTo(x+c*u,y+c*v); ctx.stroke(); }
+  fl.forEach(([u,v,R],i)=>{ const px=x+c*u, py=y+c*v, col=PET[(k+i)%PET.length], rad=c*R*.5;
+    ctx.fillStyle=col; for(let j=0;j<5;j++){ const a=j/5*Math.PI*2-Math.PI/2;
+      ctx.beginPath(); ctx.arc(px+Math.cos(a)*rad*.62,py+Math.sin(a)*rad*.62,rad*.52,0,7); ctx.fill(); }
+    if(col==='#FFFFFF'){ ctx.strokeStyle='rgba(180,170,150,.5)'; ctx.lineWidth=c*.008; ctx.beginPath(); ctx.arc(px,py,rad*.95,0,7); ctx.stroke(); }
+    ctx.fillStyle=col==='#F7CF58'? '#D9873A' : '#F6D06A'; ctx.beginPath(); ctx.arc(px,py,rad*.36,0,7); ctx.fill(); });
+  // 상자 — 판자 둘, 아래가 짙다
+  ctx.fillStyle='#7A5232'; ctx.beginPath(); ctx.roundRect(x+c*.11,y+c*.50,c*.78,c*.33,c*.06); ctx.fill();
+  ctx.fillStyle='#B07A4C'; ctx.beginPath(); ctx.roundRect(x+c*.12,y+c*.47,c*.76,c*.32,c*.055); ctx.fill();
+  ctx.fillStyle='#C48D5A'; ctx.beginPath(); ctx.roundRect(x+c*.12,y+c*.47,c*.76,c*.10,c*.05); ctx.fill();   // 윗 테
+  ctx.fillStyle='#5E3F28'; ctx.fillRect(x+c*.16,y+c*.49,c*.68,c*.035);                                        // 흙
+  ctx.strokeStyle='rgba(110,72,44,.55)'; ctx.lineWidth=Math.max(1,c*.016);
+  ctx.beginPath(); ctx.moveTo(x+c*.15,y+c*.665); ctx.lineTo(x+c*.85,y+c*.665); ctx.stroke();                 // 판자 이음
+  ctx.fillStyle='rgba(255,236,200,.35)'; ctx.beginPath(); ctx.roundRect(x+c*.16,y+c*.585,c*.30,c*.04,c*.02); ctx.fill();
+  ctx.fillStyle='#8C6A3E'; for(const u of [.17,.83]){ ctx.beginPath(); ctx.arc(x+c*u,y+c*.53,c*.018,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(x+c*u,y+c*.74,c*.018,0,7); ctx.fill(); }   // 못
+}
 function drawPlayPlanterWall(x,y,sd,flag){                    // 놀이 공터 A안 — 절제된 목재 화단
   ctx.fillStyle='rgba(42,50,30,.20)';
   ctx.beginPath(); ctx.ellipse(x+cell*.52,y+cell*.82,cell*.40,cell*.085,0,0,7); ctx.fill();
@@ -28961,7 +29115,7 @@ const EDGE_ART = (() => {
     // "여기서 저기로 넘어왔다"가 아니라 "딴 게임이 됐다"로 읽혔다.
     // **빨래는 안 건다** — 빨래는 재질(E)이 아니라 덧그림(P)이고, P['맥스네 마당'] 이
     // 없으므로 저절로 안 걸린다. 빨래는 비눗물 동네의 얼굴이라 거기 남는다.
-    '맥스네 마당':'판자벽',
+    '맥스네 마당':'앞마당 울타리', // 2026-10-01 맥스네 집 앞마당(drawHouseTile)과 같은 흰 말뚝 울타리 — drawYardEdgeFence
     '뽀득 뒷마당':'판자벽',   // 비눗물·빨래 — 낮은 나무 담
     '도토리 동산':'숲',       // 언덕 — 테두리가 울타리가 아니라 숲이다
     '폴짝 공터':'놀이 울타리', // 트램플린 — 알록달록한 낮은 목재 울타리
@@ -28972,7 +29126,7 @@ const EDGE_ART = (() => {
     '졸졸 냇가':'냇가',       // 물살 — 위·아래 강, 양옆 바위둑. 물길은 어귀로 강과 이어진다
     '바람개비 들판':'억새',   // 바람 — 트인 들판. 억새가 바람 쪽으로 눕고, 모서리 바람개비·윗변 풍차가 얹힌다
   };
-  const INNER = { '폴짝 공터':'놀이 화단', '덜컹 창고':'짚단', '냥냥 골목':'상자 화단' };
+  const INNER = { '맥스네 마당':'나무 화단', '폴짝 공터':'놀이 화단', '덜컹 창고':'짚단', '냥냥 골목':'상자 화단' };
   const FLOOR = { '덜컹 창고':'창고 흙길', '쑥쑥 텃밭':'밭흙' };
   return { E, P, PLAN, INNER, FLOOR };
 })();
@@ -29039,12 +29193,33 @@ function drawEdgeCornerFan(f, x, y, r, c){
     ctx.restore();
   }
 }
+// 1동네 테두리 — 맥스네 집 앞마당(drawHouseTile 의 흰 울타리)과 같은 그림(2026-10-01 사람 요청: "실제 앞마당과 비슷하게").
+// 뾰족한 흰 말뚝 + 가로대 둘 + 옅은 갈색 테두리선. 위·아래는 가로대가 이어지고, 양옆은 말뚝만 한 줄로 선다.
+// 판에서는 테두리 칸의 **안쪽 반**만 보이므로(boardTrim) 울타리를 안쪽 반에 앉힌다 — 앞마당 치수 그대로면 위 가로대가 잘린다.
+function drawYardEdgeFence(x,y,r,c){
+  const F=HOUSE_FENCE.white, g=ctx, s=cell, lw=Math.max(1,s*.02);
+  const top=r===0, bot=r===GN-1, left=c===0, right=c===GN-1;
+  const post=(px,base,h)=>{ const w=s*.18, tip=s*.09;
+    g.fillStyle='rgba(60,50,30,.14)'; g.fillRect(px-w/2+s*.03,base-h+s*.06,w,h-s*.04);
+    g.fillStyle=F.post; g.beginPath(); g.moveTo(px-w/2,base); g.lineTo(px-w/2,base-h+tip); g.lineTo(px,base-h);
+    g.lineTo(px+w/2,base-h+tip); g.lineTo(px+w/2,base); g.closePath(); g.fill();
+    g.strokeStyle=F.ink; g.lineWidth=lw; g.stroke(); };
+  const rail=(x0,x1,ry)=>{ g.fillStyle=F.rail; g.fillRect(x0,ry,x1-x0,s*.085); g.strokeStyle=F.ink; g.lineWidth=lw; g.strokeRect(x0,ry,x1-x0,s*.085); };
+  if(top||bot){
+    const base= top? y+s*.95 : y+s*.46, H=s*.42;
+    const x0= left? x+s*.70 : x-1, x1= right? x+s*.30 : x+s+1;
+    g.fillStyle='rgba(60,50,30,.10)'; g.fillRect(x0, base-s*.02, x1-x0, s*.05);            // 발밑 그늘
+    rail(x0,x1,base-H*.74); rail(x0,x1,base-H*.36);
+    post(left? x+s*.70 : right? x+s*.30 : x+s*.5, base, H);
+  } else post(left? x+s*.70 : x+s*.30, y+s*.80, s*.56);
+}
 function drawEdgeTile(x, y, r, c){
   const d = districtOf(level), nm = d && d.nm;
   const f = EDGE_ART.E[EDGE_ART.PLAN[nm] || '말뚝 울타리'] || EDGE_ART.E['말뚝 울타리'];
   // 0.6px 물림 — 칸 경계에 딱 맞춰 자르면 이웃 칸과 반투명 픽셀이 겹쳐 밝은 실선이 남는다(냇물에서 실측)
   ctx.save(); ctx.beginPath(); ctx.rect(x-0.6, y-0.6, cell+1.2, cell+1.2); ctx.clip();
-  if(!(MAX_EXPRESSIVE_PROTO_ENABLED && level===1 && drawChapterMaxConnectedFence(x,y,r,c))){
+  if(EDGE_ART.PLAN[nm]==='앞마당 울타리') drawYardEdgeFence(x,y,r,c);           // 모서리도 직접 — 부채꼴로 돌리면 말뚝이 눕는다
+  else if(!(MAX_EXPRESSIVE_PROTO_ENABLED && level===1 && drawChapterMaxConnectedFence(x,y,r,c))){
     const hh=r===0||r===GN-1, corner=hh && (c===0||c===GN-1) && EDGE_ART.PLAN[nm]!=='냇가';   // 냇가는 위아래 강·양옆 바위둑이라 돌리면 강이 둑으로 휘어 든다
     if(corner) drawEdgeCornerFan(f, x, y, r, c);
     else f(x, y, hh, kk(r,c)*3+7, hh? r===GN-1 : c===GN-1);
@@ -31185,6 +31360,66 @@ let gustFx=[], gustT=0, gustDir=null;
 // 흙더미 파헤치기 연출 — {fr,fc,tr,tc,t,dr,dc}. 확정 시안 P2+E1:
 // 맥스가 흙더미에 올라서며 곧장 **구덩이를 등지고** 앞발로 긁고, 흙은 배 밑을 지나
 // 뒤(구덩이)로 날아간다. 흙더미은 위에서 깎이는 게 아니라 **긁히는 쪽부터 가루로** 파여 나간다.
+// ── 여닫이 문 그림 ─────────────────────────────────────────────
+// 문짝은 땅에 박힌 흰 울타리 살 셋 + 가로대 둘이다. 어느 방향이든 "땅 선 위에 선 살"로 그린다 —
+// 옆으로 누운 문짝은 정면 울타리가, 위아래로 선 문짝은 깊이로 물러나는 울타리가 된다.
+// 시안의 세로 문짝(가로로 눕힌 살 블록)이 흰 덩어리로 읽혔던 것을 이 한 문법으로 푼다.
+// 도는 중간 각도도 같은 식이라 연출이 따로 없다 — 땅 선이 기둥을 축으로 돈다.
+// 살의 넓은 면은 울타리 면을 따른다: 정면이면 넓게, 깊이로 물러나면 모서리만 보인다.
+const DOOR_P={hi:'#FFFFFF', base:'#F8F1E3', dark:'#D9CCB4', deep:'#BFAE92'};
+const DOOR_WD={top:'#EFCB93', light:'#E3B67C', base:'#D29C5E', dark:'#AD7840', deep:'#8E6034'};
+const DOOR_DUR=0.28, DOOR_HIT_T=0.55;
+let doorFx=null;
+function drawDoorPicket(g, x, y, s, wf, side){
+  // wf 1 = 정면(넓은 면), 0 = 깊이로 물러남. 물러날수록 앞면이 좁아지고 옆면(두께)이 보인다 —
+  // 앞면만 좁히면 살 셋이 한 줄로 겹쳐 막대 하나로 읽혔다(실측).
+  const pw=s*(.22+.0*wf), sw=s*.05*(1-wf), ph=s*.58, top=y-ph;
+  g.fillStyle='rgba(48,64,35,.16)'; g.beginPath(); g.ellipse(x, y+s*.015, pw*.75+s*.03, s*.045, 0, 0, 7); g.fill();
+  g.fillStyle=DOOR_P.deep; g.beginPath(); g.roundRect(x-pw/2+s*.02, top+s*.04, pw, ph-s*.02, s*.04); g.fill();
+  // 외곽 — 깊이로 늘어선 살은 서로 겹치므로, 앞 살 머리 둘레에 짙은 테가 있어야 셋으로 갈라 읽힌다
+  if(wf<0.7){ const o=s*.022; g.fillStyle=DOOR_P.deep; g.beginPath(); g.moveTo(x-pw/2-o, y); g.lineTo(x-pw/2-o, top+pw*.55);
+    g.quadraticCurveTo(x, top-pw*.3-o*1.6, x+pw/2+o, top+pw*.55); g.lineTo(x+pw/2+o, y); g.closePath(); g.fill(); }
+  if(sw>0.5){ const sx=side>=0? x+pw/2-s*.01 : x-pw/2-sw+s*.01;           // 옆면 — 바깥쪽으로
+    g.fillStyle=DOOR_P.dark; g.beginPath(); g.roundRect(sx, top+pw*.45, sw, ph-pw*.45, s*.025); g.fill(); }
+  const gr=g.createLinearGradient(x-pw/2,0,x+pw/2,0); gr.addColorStop(0,DOOR_P.hi); gr.addColorStop(.6,DOOR_P.base); gr.addColorStop(1,DOOR_P.dark);
+  g.fillStyle=gr; g.beginPath(); g.moveTo(x-pw/2, y); g.lineTo(x-pw/2, top+pw*.55);
+  g.quadraticCurveTo(x, top-pw*.3, x+pw/2, top+pw*.55); g.lineTo(x+pw/2, y); g.closePath(); g.fill();
+  g.fillStyle='rgba(255,255,255,.7)'; g.beginPath(); g.roundRect(x-pw*.32, top+pw*.6, pw*.22, ph*.55, s*.02); g.fill();   // 살 빛
+}
+function drawDoorPost(g, x, y, s){
+  g.fillStyle='rgba(48,64,35,.2)'; g.beginPath(); g.ellipse(x, y, s*.2, s*.065, 0, 0, 7); g.fill();
+  const top=y-s*.68, w=s*.22;
+  g.fillStyle=DOOR_WD.deep; g.beginPath(); g.roundRect(x-w/2+s*.02, top+s*.02, w, s*.68, s*.08); g.fill();
+  const gr=g.createLinearGradient(x-w/2,0,x+w/2,0); gr.addColorStop(0,DOOR_WD.light); gr.addColorStop(.6,DOOR_WD.base); gr.addColorStop(1,DOOR_WD.dark);
+  g.fillStyle=gr; g.beginPath(); g.roundRect(x-w/2, top, w, s*.66, s*.09); g.fill();
+  g.fillStyle=DOOR_WD.top; g.beginPath(); g.ellipse(x-s*.005, top+s*.03, w*.48, s*.04, 0, 0, 7); g.fill();
+  g.fillStyle='#C9A24A'; for(const u of [.2,.46]){ g.beginPath(); g.roundRect(x-w/2-s*.01, top+s*u, w+s*.02, s*.05, s*.02); g.fill(); }   // 경첩 띠
+}
+function drawDoors(){
+  if(!L || !L.doors) return;
+  const g=ctx, s=cell, H=Math.PI/2;
+  L.doors.forEach((d,i)=>{
+    const fx=(doorFx && doorFx.i===i)? doorFx : null;
+    let base=(doorRot(L, filled, i)-1)*H;                  // 나침반 → 화면 각(0 = 오른쪽)
+    if(fx){ const t=Math.min(1,fx.t), e=1-Math.pow(1-t,3);
+      base=(fx.from-1)*H + (fx.s===1? H : -H)*e; }
+    const px=cx(d.c), gy=cy(d.r)+s*.3, items=[];
+    for(const leg of DOOR_SHAPES[d.sh]){
+      const th=base+leg*H, ux=Math.cos(th), uy=Math.sin(th), wf=Math.abs(ux);
+      // 땅 그림자 — 문짝이 어느 칸을 막는지 바닥에서도 읽히게
+      g.lineCap='round'; g.strokeStyle='rgba(48,64,35,.13)'; g.lineWidth=s*.16;
+      g.beginPath(); g.moveTo(px+ux*s*.2, gy+uy*s*.2+s*.02); g.lineTo(px+ux*s*.92, gy+uy*s*.92+s*.02); g.stroke();
+      // 가로대 둘 — 살보다 뒤. 기둥에서 끝까지
+      for(const h of [.2,.42]){ const y0=gy-s*h, x1=px+ux*s*.94, y1=gy+uy*s*.94-s*h;
+        g.lineCap='round'; g.strokeStyle=DOOR_P.deep; g.lineWidth=Math.max(2,s*.075); g.beginPath(); g.moveTo(px,y0+s*.02); g.lineTo(x1,y1+s*.02); g.stroke();
+        g.strokeStyle=DOOR_P.dark; g.lineWidth=Math.max(1.5,s*.06); g.beginPath(); g.moveTo(px,y0); g.lineTo(x1,y1); g.stroke(); }
+      const side=(Math.abs(ux)<0.3)? 1 : 0;                    // 세로 문짝은 오른쪽 옆면을 보인다(빛이 왼쪽 위)
+      for(const u of [.36,.63,.9]){ const bx=px+ux*s*u, by=gy+uy*s*u; items.push({y:by, f:()=>drawDoorPicket(g, bx, by, s, wf, side)}); }
+    }
+    items.push({y:gy+.001, f:()=>drawDoorPost(g, px, gy, s)});
+    items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
+  });
+}
 let digFx=null;
 // ── 정원 가위 — 자르는 그림 (2026-09-21)
 // 예전엔 수풀이 그 자리에서 사라지고 녹색 알갱이만 튀었다. 도구를 처음 배우는
@@ -31307,7 +31542,8 @@ function drawCutFx(){
     ctx.translate(x+cell*0.5+jolt*cell*0.085, y+cell*0.92);
     ctx.scale(1+sq*0.42, 1-sq*0.84); ctx.rotate(jolt*0.10);
     ctx.translate(-(x+cell*0.5), -(y+cell*0.92));
-    drawBushWall(x, y, cutFx.sd);
+    if(EDGE_ART.INNER[(districtOf(level)||{}).nm]==='나무 화단') drawYardFlowerBoxWall(x, y, kk(cutFx.r,cutFx.c));   // 1동네는 화단 상자를 밟는다 — 판 그림과 같은 꽃 조합
+    else drawBushWall(x, y, cutFx.sd);
     ctx.restore();
   }
 }
@@ -31536,7 +31772,7 @@ function drawTile(r,c){
   const _cut    = filled.has(_k+CUT_OFF);                                   // 정원 가위가 자른 수풀 — 길이 됐다
   const _wear   = filled.has(_k+32768)? 1.00 : filled.has(_k+16384)? 0.60 : 0;
   const x=c*cell, y=r*cell,
-        t = _packed? IRANG : _mound? DUREONG : _tilled? TILLED : _sown? SOWN : ((_fl||_cut)? GRASS : _raw);
+        t = _packed? IRANG : _mound? DUREONG : _tilled? TILLED : _sown? SOWN : ((_fl||_cut||_raw===DOOR)? GRASS : _raw);   // 문 기둥은 잔디 위에 drawDoors 가 세운다
   if(t===WALL){
     if(streamArtUsesRiverbankWalls(level)){
       drawStreamRiverbankWall(x,y,r,c);
@@ -31556,8 +31792,10 @@ function drawTile(r,c){
     // 잔디 동네의 판 안 덤불은 **잔디 위에** 선다(2026-09-30). 짙은 초록 네모가 덤불 칸마다 깔려
     // 덤불이 판에서 가장 무거운 덩어리였다 — 막힌 칸이라는 건 덤불 실루엣과 그림자가 이미 말한다.
     // 화단·짚단·수숫대처럼 제 바탕이 있는 벽과 흙·판자 동네는 예전 바탕 그대로.
-    const bushOnGrass = !edge && !soilFloor && !plankFloor && !innerArt;
-    if(bushOnGrass){ drawFloorBase(x,y,r,c,fa);
+    const yardFence = edge && EDGE_ART.PLAN[(districtOf(level)||{}).nm]==='앞마당 울타리';   // 말뚝 사이로 잔디가 보인다
+    const bushOnGrass = yardFence || (!edge && !soilFloor && !plankFloor && (!innerArt || innerArt==='나무 화단'));   // 화단 상자도 잔디 위에 놓인다
+    if(yardFence) drawFloorBase(x,y,r,c,fa);
+    else if(bushOnGrass){ drawFloorBase(x,y,r,c,fa);
       ctx.fillStyle="rgba(70,100,50,.12)"; ctx.beginPath(); ctx.ellipse(x+cell*.5,y+cell*.82,cell*.44,cell*.10,0,0,7); ctx.fill(); }
     else {
     // 벽 바탕도 면으로 잇는다 — 잔디만 잇고 벽을 카드로 두면 벽만 떠오른다.
@@ -31583,7 +31821,8 @@ function drawTile(r,c){
       ctx.rotate(_rs*MAT_RUSTLE_AMP);
       ctx.translate(-_px, -_py); }
     if(edge){ drawEdgeTile(x,y,r,c); if(_hf||_rsOn) ctx.restore(); return; }
-    if(innerArt==='놀이 화단') drawPlayPlanterWall(x,y,kk(r,c),kk(r,c)===playFlagWallKey(L));
+    if(innerArt==='나무 화단') drawYardFlowerBoxWall(x,y,kk(r,c));
+    else if(innerArt==='놀이 화단') drawPlayPlanterWall(x,y,kk(r,c),kk(r,c)===playFlagWallKey(L));
     else if(innerArt==='짚단') drawStrawWall(x,y);
     else if(innerArt==='상자 화단') drawCatPlanterWall(x,y,kk(r,c));
     else if(innerArt==='수숫대 단') drawStalkWall(x,y,kk(r,c)*3+7);
@@ -33155,6 +33394,7 @@ function render(){
   drawBridgeDecks();                                                     // 기본 상판 — 다리 위 공·맥스보다 뒤
   drawParkBoxes();
   drawCatBoxes();                                                        // 고양이 상자 — 바닥 층, 공·맥스보다 앞
+  drawDoors();                                                           // 여닫이 문 — 기둥·문짝, 공·맥스보다 앞
   drawCurious();                                                         // 통 + 방석에서 자는 고양이 — 바닥 층
   for(const b of boxes) if(b.covered) drawCrateCover(cx(b.c), cy(b.r), cell, b.coverT||0, b.wet);   // 구덩이·물줄기 덮개 (바닥 레벨)
   for(const b of boxes) if(b.buriedBall) drawBuriedBall(cx(b.c), cy(b.r), cell, b.color, kk(b.r,b.c)*7.7+3, b.buryT||0);
@@ -34205,12 +34445,19 @@ function frameInner(ts){
     }
     if(!cutFx.snapped && cutFx.t>=CUT_SNAP*0.82){         // 두 번째 — 여기서 무너진다
       cutFx.snapped=true;
-      spark(cutFx.r, cutFx.c, "#6B9A4E", 18, 2.8);
+      if(EDGE_ART.INNER[(districtOf(level)||{}).nm]==='나무 화단'){        // 화단 — 판자 조각과 꽃잎이 튄다
+        spark(cutFx.r, cutFx.c, "#B07A4C", 10, 2.6); spark(cutFx.r, cutFx.c, "#F59DB8", 6, 2.2); spark(cutFx.r, cutFx.c, "#F7CF58", 4, 2.0); }
+      else spark(cutFx.r, cutFx.c, "#6B9A4E", 18, 2.8);
       sfxSelected('dirt'); buzz([12,26,16]); shake=Math.min(1, shake+0.18);
       dog.lungeT=1;
     }
     if(was<CUT_SNAP && cutFx.t>=CUT_SNAP) maxWalkCycle((1-CUT_SNAP)*CUT_DUR);   // 무너진 자리로 걸어 들어선다
     if(cutFx.t>=1){ walkPulse.push({r:cutFx.r,c:cutFx.c,t:0}); sfxLand(); cutFx=null; }
+  }
+  if(doorFx){                                             // 여닫이 문 — DOOR_DUR 동안 돈다
+    const was=doorFx.t; doorFx.t+=dt/DOOR_DUR;
+    if(doorFx.hit && was<DOOR_HIT_T && doorFx.t>=DOOR_HIT_T){ tone(180,0.06,"square",0.04,120); buzz([10,18,10]); }
+    if(doorFx.t>=1){ tone(140,0.05,"sine",0.03,110); doorFx=null; }
   }
   if(digFx){                                              // 흙더미 밀기 — 0.34초
     const was=digFx.t; digFx.t+=dt/DIG_DUR;
