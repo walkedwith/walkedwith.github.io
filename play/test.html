@@ -1346,8 +1346,8 @@ function tileAt(L, filled, r, c){ if(r<0||c<0||r>=GN||c>=GN) return WALL; if(L._
 // 기둥(DOOR 타일) 하나에 문짝이 붙어 있다. 문짝 칸은 맥스도 공도 못 지난다(tileAt 이 WALL).
 // 맥스가 문짝을 **옆에서** 밀면 기둥을 축으로 미는 쪽으로 90° 돌고, 맥스는 비워진 칸으로 들어간다.
 // 문짝이 쓸고 지나갈 모퉁이 칸과 도착 칸이 비어 있어야 돈다. 공으로는 못 민다(문짝은 공에게 벽).
-// 문으로 공 치기(L.doorHit, 판 데이터 dh:1) — 도착 칸에 공이 있으면 문이 도는 쪽으로 한 칸 쳐낸다.
-// 쳐낼 자리가 막혔으면 안 돈다. 모퉁이 칸 공은 늘 막는다(어느 쪽으로 튈지 안 읽힌다).
+// 문으로 공 치기(L.doorHit — 문 판이면 기본으로 켜짐, 판 데이터 dh:0 이면 끔) — 도착 칸에 공이 있으면 문이 도는 쪽으로 한 칸 쳐낸다.
+// 모퉁이 칸 공은 미는 방향으로 한 칸 밀려난다(2026-10-02). 쳐낼 자리가 막혔거나 공 둘을 한 번에 쳐야 하면 안 돈다.
 //   방향은 나침반 번호다: 0 위 · 1 오른 · 2 아래 · 3 왼 (시계 방향). DIRS 와 순서가 다르다.
 //   L.doors[i] = {k, r, c, rot(처음 방향), sh(모양: 0 한 짝 · 1 일자 · 2 ㄱ자 · 3 십자)}
 //   돌아간 방향은 filled 의 DOOR_F + i*4 + rot — 처음 방향이면 비운다(같은 배치 = 같은 풀이 키).
@@ -1381,7 +1381,12 @@ function doorSwing(L, st, filled, lf, dr, dc){
   for(const w of legs){ const w2=(w+s)&3;
     const cr=d.r+DOOR_CV[w][0]+DOOR_CV[w2][0], cc=d.c+DOOR_CV[w][1]+DOOR_CV[w2][1];   // 모퉁이
     const er=d.r+DOOR_CV[w2][0], ec=d.c+DOOR_CV[w2][1];                                // 도착
-    if(!floorFree(cr,cc) || boxIdxAt(nb,cr,cc,-1)>=0) return null;
+    if(!floorFree(cr,cc)) return null;
+    // 모퉁이 공 — 문짝 끝이 미는 방향(= w2, 맥스가 민 쪽)으로 쓸고 지나가므로 그쪽으로 한 칸(2026-10-02 사람).
+    // 예전엔 "튈 방향이 안 읽힌다"며 늘 막았는데, 문을 아래로 밀면 공도 아래로 가는 게 자연스럽다.
+    const ci=boxIdxAt(nb,cr,cc,-1);
+    if(ci>=0){ if(!L.doorHit || knock || nb[ci].kind!=='ball') return null;
+      knock={bi:ci, fromR:cr, fromC:cc, toR:cr+DOOR_CV[w2][0], toC:cc+DOOR_CV[w2][1], corner:true}; }
     if(!floorFree(er,ec)) return null;
     const bi=boxIdxAt(nb,er,ec,-1);
     if(bi<0) continue;
@@ -4452,7 +4457,7 @@ function fromBaked(o, lv){
   const fw = (o.fw!=null)? o.fw : null;
   return { L:{tc:(lv!=null? toolCutKey(lv) : null),T,holes,paintCol,needBone:boxes.some(b=>b.kind==='bone'),billiard:!!o.bi,treat:(o.tr==null?null:o.tr),cat:(o.ct==null?null:o.ct),walk,catP,wind,wl:(o.wl||null),cb:(o.cb||null),cbm:(o.cbm||null),np:(o.np||null),pk,fw,bn:(o.bn||null),nap:(o.nap==null?null:o.nap),_bnB:(o.bn? new Set(o.bn) : null),
        _pkCells:(pk? new Set(pk.flat()) : null),
-       doors:(o.dr? o.dr.map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})) : null), doorHit:!!o.dh, doorLock:!!o.dl},
+       doors:(o.dr? o.dr.map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})) : null), doorHit:o.dh!==0, doorLock:!!o.dl},   // 문으로 공 치기는 11판부터 기본(2026-10-02 사람) — dh:0 일 때만 끈다
            start:{dog:{r:o.d[0],c:o.d[1]},boxes,filled:new Set(),ci:(walk?walk.i:0),cd:(walk?walk.d:1),ca:0,ck:(o.ct==null?undefined:o.ct),
                   wc:(wind==null?undefined:WIND_EVERY),
                   ns:(o.np? (o.ns? o.ns.slice() : o.np.map(()=>-1)) : undefined),
@@ -10425,12 +10430,13 @@ function renderHint(){
     for(let r=0;r<d._rows;r++) for(let c=0;c<d._cols;c++) drawTile(r,c);
     const q=st.doorQ;                              // 문짝 방향(나침반, 소수면 도는 중)
     const q0=Math.floor(q), t=q-q0;
+    const odw=doorWind; doorWind=null;
     doorFx= t>0? {i:0, from:q0&3, to:(q0+1)&3, s:1, t} : null;
     filled=new Set(); if(!doorFx && (q0&3)!==L.doors[0].rot) filled.add(DOOR_F+(q0&3));
     const dx=cx(st.dogC), dy=cy(st.dogR);
     if(st.dogR<1){ if(!drawMaxStaticUi(dx,dy+cell*.36,cell,st.face)) drawDog(dx,dy,cell,1,1,1); drawDoors(); }
     else { drawDoors(); if(!drawMaxStaticUi(dx,dy+cell*.36,cell,st.face)) drawDog(dx,dy,cell,1,1,1); }
-    doorFx=null;
+    doorFx=null; doorWind=odw;
     ctx.restore();
     ctx=oc; cell=ocell; L=oL; filled=ofil; dog=odog; boxes=obx;
     windNow=ow; windCnt=owc; gustT=og;
@@ -10549,7 +10555,7 @@ function applyScene(g){
   maxChapterIdleT=0; maxChapterBlockedFx=null;                    // v12 대기·막힘 포즈도 판마다 처음부터
   gustFx=[]; gustT=0;                                            // 바람 연출도 처음부터
   digFx=null; cutFx=null; tunFx=null; fetchFx=null; dog.digT=0;   // 흙더미 파헤치기·밟기·점프·물어오기 연출도
-  doorFx=null;                                                  // 문 도는 연출도
+  doorFx=null; doorWind=null;                                  // 문 도는 연출·바람 결도
   moundTrail=new Set();                                         // 판을 새로 열면 자국도 없다
   fxQueue=[];                                                   // 늦게 도는 연출도 같이 버린다
   cbLid={};                                                     // 뚜껑도 처음 상태로
@@ -20741,7 +20747,7 @@ function chapterMaxPrototypeIsMoving(){
     dog.protoMoveT!=null && dog.protoMoveT<1) ||
     (MAX_EXPRESSIVE_PROTO_ENABLED && level===1 && maxChapterBlockedFx && maxChapterBlockedFx.t<maxChapterBlockedFx.dur));
 }
-function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!doorFx || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
+function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!(doorFx && !doorFx.fail) || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
 // 유효시간(at)은 **애니가 끝난 뒤부터** 잰다 — 프레임 루프가 애니 중엔 at 을 당겨 둔다.
@@ -21139,7 +21145,7 @@ function restoreSnap(s){
   dog.carry=!!s.d.carry;
   filled=new Set(s.f); moves=s.m; pendingWin=false; deadT=0; deadBalls=[]; deadPend=true; syncMoves();
   moundTrail=new Set(s.mt||[]);
-  doorFx=null;                                     // 문은 filled 가 되돌린다 — 도는 중이던 연출만 버린다
+  doorFx=null; doorWind=null;                      // 문은 filled 가 되돌린다 — 도는 중이던 연출만 버린다
   if(L.cat!=null){ catAwake=s.ca|0; catPos=s.ck==null?L.cat:s.ck; }
   if(curCatPath()){ kitty.i=s.ki|0; kitty.d=s.kd||1; kitty.rr=catR(kitty.i); kitty.cc=catC(kitty.i); }
   // 바람 카운트도 되돌린다 — 안 되돌리면 무른 뒤에 박자가 어긋난다
@@ -21205,7 +21211,7 @@ function tryMove(dr,dc){
   if(!res && houseBoxHit(dr,dc)) return;                      // 맥스네 방 — 장난감 상자에 밀어 넣었다
   // 묻힌 벽 칸을 쳤나 — **두 '못 감' 갈래보다 먼저** 본다. 아래 원화 검수 갈래가
   // 조건에 걸리면 거기서 바로 return 하므로, 뒤에 두면 그 모드에선 영영 안 걸린다.
-  if(!res) matWallHit(dr, dc);
+  if(!res) matWallHit(dr, dc, chapterMaxMasterMotionRuntimeEnabled()? chapterMaxEventDuration('masterBlocked')*BLOCK_HIT_U : 0);
   // 수풀에 막혔다 — "밟아!"가 필요해진 바로 그 순간이다(need-first).
   if(!res && isInnerWall(dog.r+dr, dog.c+dc)) toolNeedFire('sniff');
   if(!res && chapterMaxMasterMotionRuntimeEnabled()){
@@ -21217,18 +21223,37 @@ function tryMove(dr,dc){
     // 달라진다. 물·일반 막힘에는 쓰지 않고 실제 벽(공 너머 벽 포함)에만 재생한다.
     const tr=dog.r+dr, tc=dog.c+dc;
     const ball=boxes.find(x=>x.sink===0&&!x.carried&&x.kind==='ball'&&x.r===tr&&x.c===tc);
-    if(tileAt(L,filled,tr,tc)===WALL || (ball&&tileAt(L,filled,tr+dr,tc+dc)===WALL)) sfxWallBlocked();
-    // 공이 다른 공/상자에 막혔다 — 앞 공이 꾹 밀렸다 되튀고, 뒤가 공이면 접촉
-    // 시점(피크 u=0.42)에 맞춰 반 박자 늦게 작게 밀렸다 돌아온다. 로직 불변, 연출만.
-    if(ball){
-      const blocker=boxes.find(x=>x.sink===0&&!x.carried&&x.r===tr+dr&&x.c===tc+dc);
-      if(blocker){
-        ball.bump=1; ball.bumpK=1; ball.bumpR=dr; ball.bumpC=dc;
-        if(blocker.kind==='ball'){ blocker.bumpD=0.45; blocker.bumpR=dr; blocker.bumpC=dc; }
-        sfxBlocked(); buzz([10,40,10]);
-      } else { ball.bump=1; ball.bumpK=0.45; ball.bumpR=dr; ball.bumpC=dc; buzz([8,30,8]); }   // 벽·수풀 — 공이 떨기만 한다
-      bonkStart();                                              // 밀었는데 안 나갔다 — 머리 위로 별
+    // 막힘은 **갔다가 맞고 돌아온다**(2026-10-02 사람). 소리·별은 미는 순간이 아니라 닿는 순간에 낸다 —
+    // 맥스 벽쿵 시트가 벽에 닿는 칸(.35)과 되튀어 물러나는 칸(.66)에 맞춘다. 로직 불변, 연출만.
+    const bDur=chapterMaxEventDuration('masterBlocked'), tHit=bDur*BLOCK_HIT_U, tBack=bDur*BLOCK_BACK_U;
+    const lf=!ball && L.doors && doorLeafAt(L, filled, tr, tc), dm=doorCompass(dr, dc);
+    if(lf && !L.doorLock && dm!==lf.w && dm!==((lf.w+2)&3)){
+      // 여닫이 문이 못 돈다 — 문짝이 조금 돌다 막힌 것에 맞고 되돌아온다.
+      // **공에 막혔을 때만** 되돌아온 문이 맥스를 치고 별이 뜬다. 벽·화단 같은 다른 것에 막혔으면
+      // 부딪혔다 제자리로 돌아오기만 한다(2026-10-02 사람).
+      const ds=(dm===((lf.w+1)&3))? 1 : 3, dd=L.doors[lf.i];
+      const byBall=doorLegs(L, filled, lf.i).some(w=>{ const w2=(w+ds)&3;
+        return [[dd.r+DOOR_CV[w][0]+DOOR_CV[w2][0], dd.c+DOOR_CV[w][1]+DOOR_CV[w2][1]], [dd.r+DOOR_CV[w2][0], dd.c+DOOR_CV[w2][1]]]
+          .some(([r2,c2])=>boxes.some(x=>x.sink===0 && !x.carried && x.kind==='ball' && x.r===r2 && x.c===c2)); });
+      doorFx={i:lf.i, from:doorRot(L, filled, lf.i), s:ds, t:0, fail:true, ball:byBall};
+      fxAfter(tHit, ()=>{ tone(180,0.06,"square",0.04,120); buzz([10,18,10]); });
+      if(byBall) fxAfter(tBack, ()=>{ bonkStart(); buzz(8); });
+      return;
     }
+    if(ball){
+      // 공이 나갔다가 막힌 것(벽·공)에 맞고, 되튀어 와 맥스에 부딪힌다 — 별은 맥스에 닿을 때.
+      const blocker=boxes.find(x=>x.sink===0&&!x.carried&&x.r===tr+dr&&x.c===tc+dc);
+      ball.blockReb={t:0, dr, dc};   // b.reb 는 굴러가는 공의 튕김이 이미 쓴다 — 이름을 가른다
+      fxAfter(tHit, ()=>{
+        if(blocker){ if(blocker.kind==='ball'){ blocker.bump=1; blocker.bumpK=0.45; blocker.bumpR=dr; blocker.bumpC=dc; } sfxBlocked(); buzz([10,40,10]); }
+        else { sfxWallBlocked(); buzz([8,30,8]); } });
+      fxAfter(tBack, ()=>{ bonkStart(); buzz(8); });
+      return;
+    }
+    if(tileAt(L,filled,tr,tc)===WALL) fxAfter(tHit, ()=>{ sfxWallBlocked(); bonkStart(true);   // 벽쿵 — 이마가 닿는 순간 별
+      // 맞은 울타리·화단도 그 순간 부르르 — 간식이 묻힌 칸만 떨던 것을 모든 벽으로(2026-10-02 사람).
+      // 문짝·기둥은 문 그림이 따로라 빼고, 간식 벽은 matWallHitFx 가 더 큰 떨림을 이미 건다.
+      if(!(matHitFx && matHitFx.r===tr && matHitFx.c===tc) && L.T[tr] && L.T[tr][tc]===WALL) matHitFx={r:tr, c:tc, w:null, t:0.3}; });
     return;
   }
   if(!res){
@@ -22939,9 +22964,23 @@ function finalLand(b){
     x.hopT=1; x.hopD=0.16+0.07*(i++);
   }
 }
-function bonkStart(){
+// 막힘 연출의 두 순간 — 벽쿵 시트(masterBlocked) 진행률. 맞는 순간 / 되튀어 맥스에 닿는 순간.
+const BLOCK_HIT_U=0.35, BLOCK_BACK_U=0.66;
+function bonkStart(silent){
   bonkFx={t:0};
-  tone(110,0.12,"triangle",0.05,78);                              // 퉁
+  if(!silent) tone(110,0.12,"triangle",0.05,78);                  // 퉁
+}
+// 막힌 공 — 나갔다(0→.35) 맞고 되튀어 맥스 쪽으로 넘어갔다(→.66) 제자리로(→1). 칸 단위 거리.
+function rebOffset(u){
+  if(u<BLOCK_HIT_U) return Math.sin(u/BLOCK_HIT_U*Math.PI/2)*0.26;
+  if(u<BLOCK_BACK_U) return 0.26-(u-BLOCK_HIT_U)/(BLOCK_BACK_U-BLOCK_HIT_U)*0.50;
+  const q=(u-BLOCK_BACK_U)/(1-BLOCK_BACK_U); return -0.24*(1-q)*(1-q);
+}
+// 못 도는 문 — 미는 쪽으로 조금 돌다(→.35) 막혀 되돌아오고(→.66) 살짝 넘쳤다 선다. 90° 의 비율.
+function doorFailAngle(u, over){
+  if(u<BLOCK_HIT_U) return Math.sin(u/BLOCK_HIT_U*Math.PI/2)*0.3;
+  if(u<BLOCK_BACK_U) return 0.3*Math.cos((u-BLOCK_HIT_U)/(BLOCK_BACK_U-BLOCK_HIT_U)*Math.PI/2);
+  return over? -0.05*Math.sin((u-BLOCK_BACK_U)/(1-BLOCK_BACK_U)*Math.PI) : 0;   // 공에 막혔을 때만 맥스 쪽으로 살짝 넘친다
 }
 // 공 몸짓 — 출발할 때 진행 방향으로 늘어나고, 멈출 때 눌렸다 튀어 돌아온다.
 // 장난감 그림은 sx·sy 를 안 받아서(방석에 드는 순간 부풀지 말라고 1로 묶였다) 바깥에서 늘린다.
@@ -26125,11 +26164,18 @@ function drawDoze(){
 // 묻힌 벽 칸을 쳤다 — 재료가 튀어나온다. 벽은 안 부서지므로 통행 규칙은 그대로다.
 // 이동이 실패한 갈래에서만 불리므로 moves++ 가 안 돌아 **걸음을 안 쓴다** — 마음껏
 // 두들겨도 판이 안 망가진다. 같은 칸을 두 번 쳐도 got 이 이미 1 이라 두 번 주지 않는다.
-function matWallHit(dr, dc){
+function matWallHit(dr, dc, delay){
   const tr=dog.r+dr, tc=dog.c+dc;
   const bm = acornSt.find(a=>!a.got && a.w && a.r===tr && a.c===tc);
   if(!bm) return false;
-  bm.got=1; bm.t=1; matHitFx={r:tr, c:tc, w:bm.w, t:0.5};      // t=1: 제자리 팝 대신 먹는 연출이 그린다
+  bm.got=1; bm.t=1;                                              // 줍는 판정은 지금 — 그림은 맥스가 닿는 순간에
+  // 울타리·화단이 맥스보다 먼저 흔들렸다(2026-10-02 사람) — 벽쿵 시트가 벽에 닿는 칸까지 미룬다.
+  // 미는 사이 무르면 fxQueue 가 비워져 그림만 안 나온다(판정은 스냅샷이 되돌린다).
+  fxAfter(delay||0, ()=>matWallHitFx(bm, tr, tc));
+  return true;
+}
+function matWallHitFx(bm, tr, tc){
+  matHitFx={r:tr, c:tc, w:bm.w, t:0.5};      // t=1: 제자리 팝 대신 먹는 연출이 그린다
   spark(tr,tc, MAT_SPARK[bm.k]||"#C98A4B", 16, 2.8);
   spark(tr,tc, bm.w==='bush'? "#6B9A4E" : "#D9B27E", 10, 2.2);
   audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); buzz(10);
@@ -26142,7 +26188,6 @@ function matWallHit(dr, dc){
   if(bm.w==='bush' && (peeked || matWallTeach('bush'))){ squirrelRunOff(tr,tc); tone(1100,0.04,"triangle",0.03,1500); }
   if(matCoach && matCoach.r===tr && matCoach.c===tc) matCoachDone();
   else if(matWallTeach(bm.w)) tipOnce('matWallHit', I18N.html('tutorial.matWallHit'), 3200);
-  return true;
 }
 // 묻힌 벽 칸 바로 옆에 서 있나 — 맞으면 그 칸의 재료를 돌려준다.
 // 걸음을 쓰지 않고도 "여기 뭔가 있다"를 알게 하는 유일한 길이라 **늘 켜 둔다**.
@@ -28579,30 +28624,32 @@ function drawCatPlanterWall(x,y,sd){                          // 고양이골목
 // 문은 흰 살, 벽은 갈색 상자 + 꽃. 상자는 낮게 두어 옆 칸의 공·맥스를 안 가린다.
 // 꽃은 칸마다 색 조합만 바뀐다(해시) — 개수·자리는 같아서 벽 줄이 한 덩어리로 읽힌다.
 function drawYardFlowerBoxWall(x,y,sd){
+  // 칸을 꽉 채우는 정사각 상자(2026-10-02) — 예전엔 가로 .76 · 세로 .36 납작한 상자라 칸이 비어 보였고
+  // 벽이 어디까지인지 덜 읽혔다. 상자 몸통이 칸 폭 .88 · 높이 .60, 꽃은 그 위 .10~.32 에 핀다.
   const c=cell;
-  ctx.fillStyle='rgba(42,52,30,.20)'; ctx.beginPath(); ctx.ellipse(x+c*.5,y+c*.86,c*.42,c*.085,0,0,7); ctx.fill();
-  // 잎·꽃 — 상자 뒤에서 솟는다
+  ctx.fillStyle='rgba(42,52,30,.22)'; ctx.beginPath(); ctx.ellipse(x+c*.5,y+c*.93,c*.47,c*.07,0,0,7); ctx.fill();
+  // 잎·꽃 — 상자 흙에서 솟는다
   const PET=['#F59DB8','#F7CF58','#FFFFFF','#9DC2F2','#F4A47A'];
   const k=Math.floor(hsh(sd)*PET.length);
-  const fl=[[.27,.30,.105],[.50,.24,.115],[.73,.31,.10],[.38,.40,.085],[.62,.41,.085]];
+  const fl=[[.24,.16,.125],[.50,.10,.135],[.76,.17,.12],[.37,.25,.10],[.63,.26,.10]];
   ctx.fillStyle='#3F6B33';
-  for(const [u,v] of [[.22,.47],[.36,.44],[.50,.45],[.64,.44],[.78,.47]]){ ctx.beginPath(); ctx.ellipse(x+c*u,y+c*v,c*.075,c*.05,0,0,7); ctx.fill(); }
-  ctx.strokeStyle='#4E7E3C'; ctx.lineWidth=Math.max(1,c*.02); ctx.lineCap='round';
-  for(const [u,v] of fl){ ctx.beginPath(); ctx.moveTo(x+c*u,y+c*.48); ctx.lineTo(x+c*u,y+c*v); ctx.stroke(); }
+  for(const [u,v] of [[.17,.31],[.33,.28],[.50,.29],[.67,.28],[.83,.31]]){ ctx.beginPath(); ctx.ellipse(x+c*u,y+c*v,c*.09,c*.058,0,0,7); ctx.fill(); }
+  ctx.strokeStyle='#4E7E3C'; ctx.lineWidth=Math.max(1,c*.022); ctx.lineCap='round';
+  for(const [u,v] of fl){ ctx.beginPath(); ctx.moveTo(x+c*u,y+c*.32); ctx.lineTo(x+c*u,y+c*v); ctx.stroke(); }
   fl.forEach(([u,v,R],i)=>{ const px=x+c*u, py=y+c*v, col=PET[(k+i)%PET.length], rad=c*R*.5;
     ctx.fillStyle=col; for(let j=0;j<5;j++){ const a=j/5*Math.PI*2-Math.PI/2;
       ctx.beginPath(); ctx.arc(px+Math.cos(a)*rad*.62,py+Math.sin(a)*rad*.62,rad*.52,0,7); ctx.fill(); }
     if(col==='#FFFFFF'){ ctx.strokeStyle='rgba(180,170,150,.5)'; ctx.lineWidth=c*.008; ctx.beginPath(); ctx.arc(px,py,rad*.95,0,7); ctx.stroke(); }
     ctx.fillStyle=col==='#F7CF58'? '#D9873A' : '#F6D06A'; ctx.beginPath(); ctx.arc(px,py,rad*.36,0,7); ctx.fill(); });
-  // 상자 — 판자 둘, 아래가 짙다
-  ctx.fillStyle='#7A5232'; ctx.beginPath(); ctx.roundRect(x+c*.11,y+c*.50,c*.78,c*.33,c*.06); ctx.fill();
-  ctx.fillStyle='#B07A4C'; ctx.beginPath(); ctx.roundRect(x+c*.12,y+c*.47,c*.76,c*.32,c*.055); ctx.fill();
-  ctx.fillStyle='#C48D5A'; ctx.beginPath(); ctx.roundRect(x+c*.12,y+c*.47,c*.76,c*.10,c*.05); ctx.fill();   // 윗 테
-  ctx.fillStyle='#5E3F28'; ctx.fillRect(x+c*.16,y+c*.49,c*.68,c*.035);                                        // 흙
-  ctx.strokeStyle='rgba(110,72,44,.55)'; ctx.lineWidth=Math.max(1,c*.016);
-  ctx.beginPath(); ctx.moveTo(x+c*.15,y+c*.665); ctx.lineTo(x+c*.85,y+c*.665); ctx.stroke();                 // 판자 이음
-  ctx.fillStyle='rgba(255,236,200,.35)'; ctx.beginPath(); ctx.roundRect(x+c*.16,y+c*.585,c*.30,c*.04,c*.02); ctx.fill();
-  ctx.fillStyle='#8C6A3E'; for(const u of [.17,.83]){ ctx.beginPath(); ctx.arc(x+c*u,y+c*.53,c*.018,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(x+c*u,y+c*.74,c*.018,0,7); ctx.fill(); }   // 못
+  // 상자 — 판자 셋, 아래가 짙다
+  ctx.fillStyle='#7A5232'; ctx.beginPath(); ctx.roundRect(x+c*.05,y+c*.33,c*.90,c*.60,c*.08); ctx.fill();
+  ctx.fillStyle='#B07A4C'; ctx.beginPath(); ctx.roundRect(x+c*.06,y+c*.30,c*.88,c*.59,c*.075); ctx.fill();
+  ctx.fillStyle='#C48D5A'; ctx.beginPath(); ctx.roundRect(x+c*.06,y+c*.30,c*.88,c*.11,c*.06); ctx.fill();   // 윗 테
+  ctx.fillStyle='#5E3F28'; ctx.fillRect(x+c*.11,y+c*.32,c*.78,c*.04);                                         // 흙
+  ctx.strokeStyle='rgba(110,72,44,.55)'; ctx.lineWidth=Math.max(1,c*.018);
+  for(const v of [.56,.73]){ ctx.beginPath(); ctx.moveTo(x+c*.09,y+c*v); ctx.lineTo(x+c*.91,y+c*v); ctx.stroke(); }   // 판자 이음
+  ctx.fillStyle='rgba(255,236,200,.35)'; ctx.beginPath(); ctx.roundRect(x+c*.11,y+c*.45,c*.34,c*.045,c*.02); ctx.fill();
+  ctx.fillStyle='#8C6A3E'; for(const u of [.12,.88]) for(const v of [.37,.64,.81]){ ctx.beginPath(); ctx.arc(x+c*u,y+c*v,c*.02,0,7); ctx.fill(); }   // 못
 }
 function drawPlayPlanterWall(x,y,sd,flag){                    // 놀이 공터 A안 — 절제된 목재 화단
   ctx.fillStyle='rgba(42,50,30,.20)';
@@ -31563,6 +31610,35 @@ const DOOR_P={hi:'#FFFFFF', base:'#F8F1E3', dark:'#D9CCB4', deep:'#BFAE92'};
 const DOOR_WD={top:'#EFCB93', light:'#E3B67C', base:'#D29C5E', dark:'#AD7840', deep:'#8E6034'};
 const DOOR_DUR=0.28, DOOR_HIT_T=0.55;
 let doorFx=null;
+// 바람 결 (2026-10-02, 시안 A) — 문짝 끝이 쓸고 간 자리에 흰 결 셋이 남고 바깥 결 끝이 안으로 말린다.
+// 도는 동안 문짝을 따라 그려지고, 다 돈 뒤 DOOR_WIND_FADE 동안 옅어진다. 그림만이라 isAnimating 에 안 들어간다.
+const DOOR_WIND_FADE=0.4;
+let doorWind=null;
+function drawDoorWind(d, w, e, a){
+  if(a<=0.01) return;
+  if(typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const g=ctx, s=cell, H=Math.PI/2, px=cx(d.c), py=cy(d.r), dir=w.s===1? 1 : -1;
+  g.save(); g.lineCap='round';
+  for(const leg of DOOR_SHAPES[d.sh]){
+    const th0=(w.from-1)*H+leg*H, sweep=dir*H*e;
+    if(Math.abs(sweep)<0.05) continue;
+    [[1.38,.075,.10],[1.12,.06,.22],[.86,.045,.34]].forEach(([k,lw,lag],j)=>{
+      // 결마다 문짝보다 조금 뒤에서 끝난다 — 안쪽 결일수록 짧다
+      const a0=th0+sweep*(.18+lag*.5), a1=th0+sweep*(1-lag*.35), r=s*k, N=8;
+      for(let n=0;n<N;n++){                                  // 꼬리는 옅고 머리는 진하다
+        const u0=n/N, u1=(n+1)/N;
+        g.strokeStyle=`rgba(255,255,255,${(a*(.15+.7*u1)).toFixed(3)})`; g.lineWidth=Math.max(1.2,s*lw*(.5+.5*u1));
+        g.beginPath(); g.arc(px, py, r, a0+(a1-a0)*u0, a0+(a1-a0)*u1+dir*0.01, dir<0); g.stroke();
+      }
+      if(j===0){                                             // 바깥 결 끝이 안으로 말린다
+        const cr=s*.13, ccx=px+Math.cos(a1)*(r-cr), ccy=py+Math.sin(a1)*(r-cr);
+        g.strokeStyle=`rgba(255,255,255,${(a*.85).toFixed(3)})`; g.lineWidth=Math.max(1.2,s*lw*.85);
+        g.beginPath(); g.arc(ccx, ccy, cr, a1, a1+dir*Math.PI*1.3, dir<0); g.stroke();
+      }
+    });
+  }
+  g.restore();
+}
 function drawDoorPicket(g, x, y, s, wf, side){
   // wf 1 = 정면(넓은 면), 0 = 깊이로 물러남. 물러날수록 앞면이 좁아지고 옆면(두께)이 보인다 —
   // 앞면만 좁히면 살 셋이 한 줄로 겹쳐 막대 하나로 읽혔다(실측).
@@ -31594,23 +31670,32 @@ function drawDoors(){
   L.doors.forEach((d,i)=>{
     const fx=(doorFx && doorFx.i===i)? doorFx : null;
     let base=(doorRot(L, filled, i)-1)*H;                  // 나침반 → 화면 각(0 = 오른쪽)
-    if(fx){ const t=Math.min(1,fx.t), e=1-Math.pow(1-t,3);
+    if(fx && fx.fail) base=(fx.from-1)*H + (fx.s===1? H : -H)*doorFailAngle(Math.min(1,fx.t), fx.ball);
+    else if(fx){ const t=Math.min(1,fx.t), e=1-Math.pow(1-t,3);
       base=(fx.from-1)*H + (fx.s===1? H : -H)*e; }
     const px=cx(d.c), gy=cy(d.r)+s*.3, items=[];
+    // 문짝은 막는 칸을 **끝까지** 덮는다(2026-10-02) — 예전엔 기둥에서 0.94칸까지라 막는 칸(0.5~1.5)의 반만
+    // 가려 어느 칸이 막혔는지 안 읽혔다. 서 있을 땐 그 칸 바닥도 옅게 눌러 둔다(도는 동안엔 안 그린다).
+    const LEAF=1.42;
     for(const leg of DOOR_SHAPES[d.sh]){
       const th=base+leg*H, ux=Math.cos(th), uy=Math.sin(th), wf=Math.abs(ux);
+      if(!fx){ const w=(doorRot(L, filled, i)+leg)&3, lr=d.r+DOOR_CV[w][0], lc=d.c+DOOR_CV[w][1];
+        g.fillStyle='rgba(48,64,35,.10)'; g.beginPath(); g.roundRect(cx(lc)-s*.44, cy(lr)-s*.44, s*.88, s*.88, s*.16); g.fill(); }
       // 땅 그림자 — 문짝이 어느 칸을 막는지 바닥에서도 읽히게
       g.lineCap='round'; g.strokeStyle='rgba(48,64,35,.13)'; g.lineWidth=s*.16;
-      g.beginPath(); g.moveTo(px+ux*s*.2, gy+uy*s*.2+s*.02); g.lineTo(px+ux*s*.92, gy+uy*s*.92+s*.02); g.stroke();
+      g.beginPath(); g.moveTo(px+ux*s*.2, gy+uy*s*.2+s*.02); g.lineTo(px+ux*s*LEAF, gy+uy*s*LEAF+s*.02); g.stroke();
       // 가로대 둘 — 살보다 뒤. 기둥에서 끝까지
-      for(const h of [.2,.42]){ const y0=gy-s*h, x1=px+ux*s*.94, y1=gy+uy*s*.94-s*h;
+      for(const h of [.2,.42]){ const y0=gy-s*h, x1=px+ux*s*(LEAF+.02), y1=gy+uy*s*(LEAF+.02)-s*h;
         g.lineCap='round'; g.strokeStyle=DOOR_P.deep; g.lineWidth=Math.max(2,s*.075); g.beginPath(); g.moveTo(px,y0+s*.02); g.lineTo(x1,y1+s*.02); g.stroke();
         g.strokeStyle=DOOR_P.dark; g.lineWidth=Math.max(1.5,s*.06); g.beginPath(); g.moveTo(px,y0); g.lineTo(x1,y1); g.stroke(); }
       const side=(Math.abs(ux)<0.3)? 1 : 0;                    // 세로 문짝은 오른쪽 옆면을 보인다(빛이 왼쪽 위)
-      for(const u of [.36,.63,.9]){ const bx=px+ux*s*u, by=gy+uy*s*u; items.push({y:by, f:()=>drawDoorPicket(g, bx, by, s, wf, side)}); }
+      for(const u of [.38,.62,.86,1.1,1.34]){ const bx=px+ux*s*u, by=gy+uy*s*u; items.push({y:by, f:()=>drawDoorPicket(g, bx, by, s, wf, side)}); }
     }
     items.push({y:gy+.001, f:()=>drawDoorPost(g, px, gy, s)});
     items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
+    // 결은 살 높이 가운데(땅 선 위 .3칸)에 그린다 — 살 위로 지나가야 바람으로 읽힌다
+    if(fx && !fx.fail) drawDoorWind(d, fx, 1-Math.pow(1-Math.min(1,fx.t),3), Math.min(1,fx.t*3));
+    else if(doorWind && doorWind.i===i) drawDoorWind(d, doorWind, 1, 1-doorWind.age/DOOR_WIND_FADE);
   });
 }
 let digFx=null;
@@ -33827,6 +33912,7 @@ function render(){
     }
     // 막힘 튕김 — 박았다 되튄다. 앞으로 깊이 박히고(0→0.5) 그보다 빠르게 물러난다(0.5→1).
     // 예전엔 0.14칸짜리 대칭 호라 "닿았다" 정도로만 보였다.
+    if(b.blockReb){ const k=rebOffset(Math.min(1,b.blockReb.t))*cell; bx+=b.blockReb.dc*k; by+=b.blockReb.dr*k; }
     if(b.bump>0){ const u=1-b.bump;                                   // 0 → 1 로 진행
       const kb=(u<0.42? Math.sin(u/0.42*Math.PI*0.5) : Math.cos((u-0.42)/0.58*Math.PI*0.5)*0.72) * cell*0.26*(b.bumpK||1);
       bx+=(b.bumpC||0)*kb; by+=(b.bumpR||0)*kb; }
@@ -34647,11 +34733,14 @@ function frameInner(ts){
     if(was<CUT_SNAP && cutFx.t>=CUT_SNAP) maxWalkCycle((1-CUT_SNAP)*CUT_DUR);   // 무너진 자리로 걸어 들어선다
     if(cutFx.t>=1){ walkPulse.push({r:cutFx.r,c:cutFx.c,t:0}); sfxLand(); cutFx=null; }
   }
-  if(doorFx){                                             // 여닫이 문 — DOOR_DUR 동안 돈다
+  for(const b of boxes) if(b.blockReb){ b.blockReb.t+=dt/chapterMaxEventDuration('masterBlocked'); if(b.blockReb.t>=1) b.blockReb=null; }
+  if(doorFx && doorFx.fail){ doorFx.t+=dt/chapterMaxEventDuration('masterBlocked'); if(doorFx.t>=1) doorFx=null; }   // 못 도는 문 — 소리·별은 fxAfter 가 낸다
+  else if(doorFx){                                        // 여닫이 문 — DOOR_DUR 동안 돈다
     const was=doorFx.t; doorFx.t+=dt/DOOR_DUR;
     if(doorFx.hit && was<DOOR_HIT_T && doorFx.t>=DOOR_HIT_T){ tone(180,0.06,"square",0.04,120); buzz([10,18,10]); }
-    if(doorFx.t>=1){ tone(140,0.05,"sine",0.03,110); doorFx=null; }
+    if(doorFx.t>=1){ tone(140,0.05,"sine",0.03,110); doorWind={i:doorFx.i, from:doorFx.from, s:doorFx.s, age:0}; doorFx=null; }
   }
+  if(doorWind){ doorWind.age+=dt; if(doorWind.age>=DOOR_WIND_FADE) doorWind=null; }
   if(digFx){                                              // 흙더미 밀기 — 0.34초
     const was=digFx.t; digFx.t+=dt/DIG_DUR;
     if(was<DIG_B && digFx.t>=DIG_B){                                     // 도착
