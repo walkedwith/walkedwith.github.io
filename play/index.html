@@ -6323,7 +6323,9 @@ const MAX_SKIN_SHEETS={
         'sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
   frog:['walk-down','walk-up','walk-left','push-left','push-up','push-down','wall-left','wall-up','wall-down','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 3동네 졸졸 냇가 — 칠부바지 + 흰 발, 어깨 팔 없음. 한 벌 완성(2026-10-01). 개구리발 17장은 archive/frog-frogfoot-20260930
   chicken:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 1동네 — 한 벌 완성
-  bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
+  bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
+  pig:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 6동네 — 한 벌 완성(2026-10-01). 장난감 색 #F4A486 로 맞춤
+  hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-up','sleep-front','idle-front','victory-front']   // 4동네 도토리 갑옷 — 15/17(2026-10-01). 벽쿵 앞·잠 옆을 다시 받는 중 — 17장이 차기 전엔 옷걸이에 안 걸린다
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
 // 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
@@ -6347,6 +6349,11 @@ function maxSkinName(){
   const h=dogWear && dogWear.hood;
   return h && MAX_SKIN_SHEETS[h] ? h : null;
 }
+// 스킨별 그리기 배율 — 시트는 귀 끝~발끝을 같은 키(205px)로 맞춰 굽는다. 귀가 긴 토끼는 그만큼 몸이 작아져
+// 오리·개구리·닭 옆에서 한 치수 작아 보였다(몸통 폭 81~85%, 2026-10-01 실측). 시트를 다시 뽑지 않고 그릴 때만 키운다 —
+// 발바닥을 붙박아 키우므로 귀는 윗칸으로 조금 올라간다.
+const MAX_SKIN_DRAW_SCALE={bunny:1.15};
+function maxSkinDrawScale(){ const k=maxSkinName(); return (k && MAX_SKIN_DRAW_SCALE[k]) || 1; }
 function chapterMaxSkinSheet(motion,dir){
   const skin=maxSkinName();
   if(!skin || !MAX_SKIN_SETS[skin].has(motion+'-'+dir)) return null;
@@ -26991,6 +26998,7 @@ function drawChapterMaxPrototype(x,y,s){
     ctx.fillStyle='rgba(55,70,42,.15)';
     ctx.beginPath(); ctx.ellipse(x+wallBumpOffsetC,groundY+wallBumpOffsetR+s*.015,s*.25,s*.06,0,0,7); ctx.fill();
     ctx.translate(x+wallBumpOffsetC,wallBumpOffsetR+victoryLoopOffset);
+    { const ks=maxSkinDrawScale(); if(ks!==1){ ctx.translate(0,groundY); ctx.scale(ks,ks); ctx.translate(0,-groundY); } }   // 스킨별 키 보정 — 발바닥을 붙박고 키운다
     if((masterSitSleepActive&&chapterMaxMasterSitSleepV2MirrorsRight(poseDirR,poseDirC))||(!masterSitSleepActive&&((masterSitActive&&masterSitMirrorRight)||(!masterSitActive && (masterBlockedActive ? poseDirC>0 : masterWalkMirrorRight))))) ctx.scale(-1,1);
     ctx.drawImage(masterActionAtlas,frame*cellW,0,cellW,masterActionAtlas.height,
       -drawSize*.5,groundY-drawSize*(MAX_MASTER_FRAME_GROUND_Y/256),drawSize,drawSize);
