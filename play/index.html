@@ -6427,7 +6427,11 @@ const MAX_SKIN_SHEETS={
   chicken:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 1동네 — 한 벌 완성
   bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
   pig:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 6동네 — 한 벌 완성(2026-10-01). 장난감 색 #F4A486 로 맞춤
-  hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
+  hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
+  // 8동네 공작 · 9동네 생쥐 — 첫 17장 최종 검토(2026-10-02)에서 15장씩 받았다. 남은 둘씩은 다시 뽑는 중이라
+  // 아직 "완성"이 아니다(skinComplete 거짓) — 보상으로 안 나가고 ?maxskin= 로만 본다.
+  peacock:['walk-down','walk-left','walk-up','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 밀기 앞·옆 다시
+  mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','sit-left','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 벽쿵 뒤·앉기 뒤 다시
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
 // 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
@@ -6454,7 +6458,8 @@ function maxSkinName(){
 // 스킨별 그리기 배율 — 시트는 귀 끝~발끝을 같은 키(205px)로 맞춰 굽는다. 귀가 긴 토끼는 그만큼 몸이 작아져
 // 오리·개구리·닭 옆에서 한 치수 작아 보였다(몸통 폭 81~85%, 2026-10-01 실측). 시트를 다시 뽑지 않고 그릴 때만 키운다 —
 // 발바닥을 붙박아 키우므로 귀는 윗칸으로 조금 올라간다.
-const MAX_SKIN_DRAW_SCALE={bunny:1.15};
+const MAX_SKIN_DRAW_SCALE={bunny:1.25, peacock:1.15};   // 토끼 1.15→1.25(2026-10-02) — 바닥~목줄 비가 오리 대비 1.27(17모션 중앙). 1.15 는 판 위에서 여전히 작았다(사람).
+//   // 공작 — 볏이 키를 먹어 바닥~목줄이 70(오리 84·돼지 80). 토끼 귀와 같은 처지(2026-10-02 실측)
 function maxSkinDrawScale(){ const k=maxSkinName(); return (k && MAX_SKIN_DRAW_SCALE[k]) || 1; }
 function chapterMaxSkinSheet(motion,dir){
   const skin=maxSkinName();
