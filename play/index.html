@@ -3765,9 +3765,9 @@ function matDots(n, ks, tot){
 // 그 판의 걸음 제한 안에 들어오는 게 300판 전수로 확인됐다(초과 0판).
 // BAKED 를 안 건드리는 이유: resolveAll 이 그 자리를 다시 쓰므로 충돌 창이 생긴다.
 const ACORN_PACK =
-  '623442111322111315241113122514252231461113615256212325666232'+   // 1~10
-  '655662425153632315634665155165421536531216253213511246651254'+   // 11~20
-  '452225354622446365644225226231331341212633655641352351565426'+   // 21~30
+  '623442416333512314412644156266566433165136666233662562515446'+   // 1~10
+  '655662425153632315634665155165665516442552611536656126556611'+   // 11~20
+  '463126625114242252361621422156511322126144354614662316435424'+   // 21~30
   '251311533215564523243162464125155652262142642211655612156451'+   // 31~40
   '212231164335121315636462365661133215552541342156511554123124'+   // 41~50
   '613542646251663544251421424515152612635113464435611144564452'+   // 51~60
@@ -3819,7 +3819,7 @@ function acornCells(lv){
 //     (tools/acorn-par5.js 머리 주석). 이제 '00' 인 판은 1판 하나뿐이다(칸이 없다).
 // tools/acorn-par5.js 가 구웠다.
 const PAR5_PACK =
-  '00090q0m0m0o0p0n0l0o0j0n0k0k0q0r0x0o0t0v0i0l0o0m0m0m0p0s0k0q'+   // 1~30
+  '000h0j0j0p0j0l0l0m0r0j0n0k0k0q0n0l0p0q0v0m0r0p0n0r0o0q0n0p0x'+   // 1~30
   '0g0j0o0l0m0p0q0n0s0t0l0q0o0o0r0o0s0x0s0t0r0p0r0w0s100u0o0y0o'+   // 31~60
   '0o0p0k0o0m0l0m0m0o0v0h0i0q0p0r0l0l0u0n100i0k0v0r0s0p0r0u100v'+   // 61~90
   '0m0n0q0n0w0n0s0v0s0v0t0s0v0t0w0u0x0y0x0z0t100w0v110y0z0z0z0z'+   // 91~120
@@ -3830,9 +3830,9 @@ const PAR5_PACK =
   '0m0n0t0r0u0p0o0r0t120r0v100y0y1c181a171c0w1916191a1c16191c16'+   // 241~270
   '0k0i0f0m0m0j0r0l0l0l0n0l0p0s0i0n0o0q0p0o0o0s0u0m0w110t0y0p0w';  // 271~300
 const SL5_PACK =
-  ' UUUULURRR RRRDRUUURULUDLLULLDRRRRDRU DRUUUDRRUULULLDRRRRDRU DRUDDRUULURURULLLRRDLL DLURUULLRULLLDLDDDRRRUUUL DLDURRUULULRDRRULDDDRRDRUU RRRLLLLDLRCRUUURUULDDDD LUDRDLULDRDLUULUULLDRR RDRDLRDRRUULLLDLDUURULDLD ' +   // 1~10
-  'RLULLLRRRRUUUULLLLURR DLLLLRURURUUURRDRLULLLDRR DDDRUURURLDDRDRDDLDLUR DRDRURRUDDLDDLLRRRUUUU LLDLLDURRUURRUDDDLDDRUUURURL RRURDULLULLLDDRDURRDRDURUUULL UDLDLLLULURRDDDLDDRRRDUULLDLLUURRDL DRRDLDRRLUUULUURDRRDDLDLUU RRUULURUULRRRDDDRLULLDDLLURDRUU RULLDDULLURULULURRRDDULDDRDLRDRLL ' +   // 11~20
-  'UUURRRRDDLLULUURRUDL URUDDDRRDRULUDRRURLLDLU UDRDDLDDRRULUUURRUDDULULDD DLURURLUDLDLUUUDRRURLLUR ULLLDDDDRRRDRULULLRURULL LDLUULUDLLDLDRURULDDRDRR URDLLLULLDDDLURURDDURRDLDLL ULLDDLRDRUURDRDURLLULURLLURURR DDLULDLLLDDRUDRURUULDL DLLDDRRRLLUURLLUURURDRDLLULD ' +   // 21~30
+  ' LDDLDLLLUUDRRURUL ULDDLULLUURURURLDDD RDRDLDULDDLLULRDRRR LDDRRLLLLUULURURRURLDDDLU DDRUDDRRURRUULLULDLU RDLDDRLLLLDLDURRRDURRD DDLLDLLDDRRLUDDRRRRLLU DLDLDRRDRDULLLLDUUURUUL RURURRDRDDULLDDRLDLLULUUUUUR ' +   // 1~10
+  'RLULLLRRRRUUUULLLLURR DLLLLRURURUUURRDRLULLLDRR DDDRUURURLDDRDRDDLDLUR DRDRURRUDDLDDLLRRRUUUU LLDLLDURRUURRUDDDLDDRUUURURL LUUULULDURRRRLDLDDRDDRLUL ULLDDLRDRRUUUURDDDRDLLL LDDDRLDDRRRULUUURRRULULLLDR RDULLLLDUUUURURRRLDDRRRUUDDD LDDDLDRLUULLUULDLLUUDDDRDDLUURRRR ' +   // 11~20
+  'DUURLULULLRDRRDRRUUULRDD DLLUULUDDLLLDDRLUUUULRRRRLLUR URLURURRDUUULLRRRRDDDDLDRUU DLURRRRRDLDDRDDRLLULLDRRR DLLLDDRLUUUULRRDRRDRDUUULUULL DUUURURDDRDDDDRRUURLULDDUL LLULDLDRDRUULLLUDLDRLDDDURRR DRDDRUDRRUURLRUULLUDDRLLD DRRUUUUUDDDLLLULUDRUUULLDDD DDLDDLRDDLLLUUURRUULLLDDRRURDDDRDLL ' +   // 21~30
   'LLLDLDULLUUDRURDRR RRLLDDDULDLDDRRDULDLU LDUULLDLDRDRRDRULLLUURDLDR ULULDLDULDDULDLDRDURDRU DRDDRULLLDLDUDLUURRUURRD DRDURULLDLLRUULULURRRDLLULD URURUURRDLDRDRLLLULUULDDDDRU RRRDURRDUURULLLULLRDDLDRR UUUDDRRRDDDURLLLDLLUULULRRRURD UUURRRDDDDDLDULDLULRUULULURDLDR ' +   // 31~40
   'RLUULRRDLDRURDURURRDDLL RUUUDDDDLUULLDRRDRUUDLLLDLRR DURLLULRDRDDRDLDLURULULRUL UDDLRRDRUULUURRDLDLULURRUL LDDDRRRUUUUUDRDURDDLLLRUULLDD UUUDLULULDDURRRDDLDLLLUURD DDUURUURRDULLDRURDRLLDRDRRDLLL URRRDDUUULULLLDLRRRLLDDLDRLDDRRURUU LUDRRUUDRRUULLDLULUURRUURRDDLU DULULDDDRDDDRULURUURLDLLUURRLDD ' +   // 41~50
   'LLDLDUDLURRRUURLLLUDDLDRUUULD URDDRLLLDURUUULURDDDRDUURUL RRLLDDDLRULUURRRDDRDUULLLULDD URUDLLLULDDRRDDRULULUURURLDDRLLDRR ULDURRDDDULULLDDRDULUURDDLDDRR LDRDRRULDLUUURUUDRLLLULRDDDDLDLRDURRUU RLDLLULRRURRUULDDRDLUUUULDLULDLD UURRDLUUURURDDUURRDDDULDLU RDRRRDLULLLDRRRDDLLULULDDLDUUUUURRDR RURRDRDDDULLDDLUDLURUULURR ' +   // 51~60
@@ -3888,7 +3888,7 @@ function slRouteOf(lv, o){ const s=sl5Of(lv); return (s && matFull(lv)>0)? s : (
 // 쓰면 길이 열리고 도토리도 같이 나온다(toolApply 가 자른 칸의 도토리를 꺼낸다).
 // 해시가 마침 그 칸을 고르고 있지만 못 박아 둔다 — 후보 목록이 한 칸만 달라져도
 // 교습이 조용히 어긋난다. 울타리 자리는 11판부터라 여기선 null 이다.
-const WALL_FIX={8:[[4,3],null], 10:[[3,4],null],   // 9는 재베이크(2026-09-26)로 소거 — 새 보드에선 일반 선택이 맞다
+const WALL_FIX={// 9는 재베이크(2026-09-26)로 소거 — 새 보드에선 일반 선택이 맞다
                 90:[[3,5],[6,3]], 200:[[1,2],[7,2]], 209:[[2,5],[0,1]]};
 // ── 도구를 반드시 써야 하는 판 (2026-09-22) ─────────────────────────────
 // 여기 적힌 판은 수풀 벽이 **통째로 막혀 있어** 가위 없이는 못 푼다. 값은 `C` 가
@@ -3905,7 +3905,12 @@ const WALL_FIX={8:[[4,3],null], 10:[[3,4],null],   // 9는 재베이크(2026-09-
 //
 // 교습판은 도구를 막 받은 직후 지급 재고로 한 번 써 본다. 도구 필수 판을 더 늘릴 때는
 // 재고가 0일 때의 길을 먼저 정해야 한다.
-const TOOL_CUT={8:[4,3]};
+// 할아버지 도구(밟아!·점프!·갖고와!)는 당분간 끈다(2026-10-02 사람) — 해금·확인 화면 줄·판 안 칩·해금 카드·
+// 코치가 전부 이 스위치를 본다(테스트 빌드의 FREEPLAY 도 못 연다). 도구를 반드시 써야 하던 8판 교습판도 같이 보류 —
+// TOOL_CUT 이 비고 8판은 수풀 줄에 틈이 있는 밀기 판(도구 넣기 전 판, 67350394 의 앞)으로 돌아갔다.
+// 다시 켤 때: 이 값을 true 로, TOOL_CUT 에 8:[4,3], 8판 행을 도구 판으로(그 커밋의 + 줄).
+const TOOLS_ON=false;
+const TOOL_CUT=TOOLS_ON? {8:[4,3]} : {};   // 도구를 끄면 자를 칸도 없다 — 8판은 밀기 판으로 돌아갔다(TOOLS_ON 주석)
 function toolCutKey(lv){ const t=TOOL_CUT[lv|0]; return t? cutKey(t[0],t[1]) : null; }
 function wallMatCells(lv, L){
   const bush=[], edge=[];
@@ -3997,36 +4002,36 @@ function matCellsTaken(lv){
   const n=Math.min(ECON.acornMax, pawMap[lv]|0); return (1<<n)-1;
 }
 const BAKED=[
-{T:'0000000001110000011110000001100000111000011110000111100000000000',h:[[11,0]],p:[],b:[[5,3,0,0]],d:[6,4],par:5,sl:'LUUUU'},
-{T:'0000000001111300011101000111110000110100011111000110110000000000',h:[[13,0]],p:[],b:[[5,2,0,0]],d:[6,2],par:9},
-{T:'0000000001110130011111100011011000011110011111100110111000000000',h:[[14,0]],p:[],b:[[5,2,0,0]],d:[5,1],par:10},
-{T:'0000000001110130011111100010111000111010011111100111011000000000',h:[[14,0]],p:[],b:[[5,2,0,0]],d:[5,1],par:10},
-{T:'0000000001111100031111000101130001111000011111000111110000000000',h:[[17,0],[29,0]],p:[],b:[[4,3,0,0],[5,3,0,0]],d:[4,2],par:14},
-{T:'0000000000000000001131000131111001011110010111100111111000000000',h:[[26,0],[20,0]],p:[],b:[[5,5,0,0],[4,5,0,0]],d:[4,6],par:14},
-{T:'0000000001311110011111300001101001111110011111100000000000000000',h:[[10,0],[22,0]],p:[],b:[[4,3,0,0],[3,3,0,0]],d:[4,2],par:14},
-{T:'0000000001111110011111100111111000000000011111100113111000000000',h:[[51,0]],p:[],b:[[2,3,0,0]],d:[5,3],par:11,sl:'CUULUURDDDD'},
-{T:'0000000000000000011101100111311001001110011311000000000000000000',h:[[43,0],[28,0]],p:[],b:[[3,5,0,0],[4,5,0,0]],d:[3,6],par:17},
-{T:'0000000000000000000000000311011001111110011111100310111000000000',h:[[49,0],[25,0]],p:[],b:[[4,4,0,0],[4,3,0,0]],d:[3,3],par:20},
+{T:'0000000001110100011111000111101003111110010111100111101000000000',h:[[33,0]],p:[],b:[[4,3,0,0]],d:[1,2],par:7,sl:'DDRRDLL'},
+{T:'0000000001110110010101000031111001011310011111100111101000000000',h:[[26,0],[37,0]],p:[],b:[[4,4,0,0],[4,3,0,0]],d:[3,6],par:9,sl:'DDLLLURUL'},
+{T:'0000000001111000001100100111011001111110011311100131101000000000',h:[[50,0],[43,0]],p:[],b:[[4,4,0,0],[6,3,0,0]],d:[5,5],par:11,sl:'ULDDLULUURD'},
+{T:'0000000001111100001011100113111001101110011111300111101000000000',h:[[46,0],[27,0]],p:[],b:[[4,5,0,0],[2,5,0,0]],d:[1,4],par:11,sl:'RDRDLDULDDR'},
+{T:'0000000001111100001313100111101001111100011010100011111000000000',h:[[19,0],[21,0]],p:[],b:[[4,2,0,0],[2,4,0,0]],d:[4,5],par:17,sl:'LDDLLUULURURRDDLU'},
+{T:'0000000001311110011111100311111001101110011111100011100000000000',h:[[25,0],[10,0]],p:[],b:[[2,3,0,0],[4,2,0,0]],d:[4,1],par:13,sl:'DRUDRRUUULDLU'},
+{T:'0000000001111110011111000311111001111110010111100111313000000000',h:[[52,0],[25,0],[54,0]],p:[],b:[[5,6,0,0],[3,3,0,0],[5,4,0,0]],d:[1,5],par:13,sl:'DDDRDULLDUULL'},
+{T:'0000000001111110011101100131111001103110011111000111111000000000',h:[[36,0],[26,0]],p:[],b:[[4,2,0,0],[5,2,0,0]],d:[1,5],par:15,sl:'DDLLLLDDRUDRDRU'},
+{T:'0000000001101110031111100111111001111130031111100111101000000000',h:[[41,0],[17,0],[38,0]],p:[],b:[[3,4,0,0],[2,2,0,0],[4,3,0,0]],d:[1,5],par:15,sl:'DDLLULDDRDLURRR'},
+{T:'0000000001131130011111100111111001011010010111300111111000000000',h:[[14,0],[46,0],[11,0]],p:[],b:[[5,5,0,0],[1,2,0,0],[1,4,0,0]],d:[3,1],par:20,sl:'URRURRDLLLLURDDRDDRR'},
 {T:'0000000001111310011111100111111000000t10011110100111111000000000',h:[[13,0]],p:[],b:[[1,3,0,0]],d:[6,6],par:11,sl:'UUUULLLLURR',dr:[[37,1]]},
 {T:'00000000031111100111131000001t0000111110011111100101111000000000',h:[[9,0],[21,0]],p:[],b:[[1,3,0,0],[2,3,0,0]],d:[4,5],par:15,sl:'LUUURRDLULLLDRR',dr:[[29,3]]},
 {T:'000000000110111001111010011110100111111000t113100101111000000000',h:[[45,0]],p:[],b:[[4,3,0,0]],d:[1,2],par:14,sl:'DDDRURDRDDLLUR',dr:[[42,1]]},
 {T:'000000000111113001111t100111011001111110000101100111111000000000',h:[[14,0]],p:[],b:[[4,4,0,0]],d:[3,3],par:14,sl:'DRRURUDLDDRUUU',dr:[[21,1]]},
 {T:'0000000001130110011131100111t11001111100010011000011111000000000',h:[[11,0],[20,0]],p:[],b:[[5,5,0,0],[3,3,0,0]],d:[4,5],par:18,sl:'LLUURRDDLDDRUUURUL',dr:[[28,1]]},
-{T:'0000000001131110010113100111111001101130000000000000000000000000',h:[[11,0],[21,0],[38,0]],p:[],b:[[3,4,0,0],[3,2,0,0],[2,5,0,0]],d:[3,3],par:24},
-{T:'0000000000111110003011100011110000311110001110100011311000000000',h:[[34,0],[18,0],[52,0]],p:[],b:[[2,5,0,0],[4,3,0,0],[3,5,0,0]],d:[2,6],par:25},
-{T:'0000000000113000001311000011010000111100001113000000000000000000',h:[[45,0],[12,0],[19,0]],p:[],b:[[4,4,0,0],[2,3,0,0],[4,3,0,0]],d:[2,2],par:24},
-{T:'0000000001111110011331100011110001110110011103100000000000000000',h:[[45,0],[19,0],[20,0]],p:[],b:[[2,5,0,0],[4,2,0,0],[4,3,0,0]],d:[5,2],par:24},
-{T:'0000000001111000010110000111110001111300013111000031110000000000',h:[[42,0],[37,0],[50,0]],p:[],b:[[2,4,0,0],[4,3,0,0],[3,4,0,0]],d:[4,4],par:28},
-{T:'0000000000011110001111100011101000111110000000000000000000000000',h:[[14,0],[35,0],[19,0]],p:[],b:[[1,5,0,0],[4,4,0,0],[3,4,0,0]],d:[4,2],par:16,sl:'RRULUURRDLRRDDLL'},
-{T:'0000000000000000001110000111111001111110001111100000000000000000',h:[[34,0],[20,0],[19,0]],p:[],b:[[4,4,0,0],[3,4,0,0],[4,5,0,0]],d:[4,1],par:17,sl:'RDRRRULUDRRULLDLU'},
-{T:'0000000000111100001111100001111000111010001111100011111000000000',h:[[43,0],[46,0],[44,0]],p:[],b:[[3,4,0,0],[3,5,0,0],[3,6,0,0]],d:[1,3],par:17,sl:'DRDURRDDULLDUULDD'},
-{T:'0000000000111100001111000011100000111100001111000001110000000000',h:[[13,0],[10,0],[18,0]],p:[],b:[[3,4,0,0],[2,3,0,0],[4,4,0,0]],d:[6,5],par:18,sl:'UULUDLDLUUUDRRULUR'},
-{T:'0000000000000000011111000101110001111000011111000111110000000000',h:[[33,0],[43,0],[17,0]],p:[],b:[[4,3,0,0],[3,3,0,0],[5,4,0,0]],d:[2,4],par:18,sl:'DDLUDLDDRRRULUUULL'},
-{T:'0000000000011000011111000111111001111110000000000000000000000000',h:[[12,0],[38,0],[17,0]],p:[],b:[[3,5,0,0],[4,2,0,0],[3,2,0,0]],d:[3,6],par:19,sl:'LULLLLDDRUDRRRLUULL'},
-{T:'0000000000000000011111100111111001111110010111100111100000000000',h:[[49,0],[38,0],[18,0]],p:[],b:[[4,3,0,0],[4,4,0,0],[3,5,0,0]],d:[2,5],par:19,sl:'DLDLDDRUURULLDLULDD'},
-{T:'0000000000000000011111100111111001011100011111100111011000000000',h:[[22,0],[29,0],[37,0]],p:[],b:[[5,2,0,0],[3,4,0,0],[4,4,0,0]],d:[4,3],par:20,sl:'ULLDDRDRUURLURLLURRR'},
-{T:'0000000000000000011111000111110001111000011110000000000000000000',h:[[25,0],[35,0],[44,0]],p:[],b:[[4,2,0,0],[3,4,0,0],[5,2,0,0]],d:[2,5],par:20,sl:'DLULDLLDDRUDRURUULDL'},
-{T:'0000000000011100000111100001111000011010000111100000000000000000',h:[[35,0],[12,0],[38,0]],p:[],b:[[3,4,0,0],[2,5,0,0],[3,5,0,0]],d:[2,4],par:20,sl:'LDDRURLLUURRDRDLLULD'},
+{T:'0000000000111110011t11100111111001101100010311000111111000000000',h:[[43,0]],p:[],b:[[3,3,0,0]],d:[4,4],par:15,sl:'UUULLDURRDDDRDL',dr:[[19,1]]},
+{T:'0000000001111110001011100111111001011110011t11100131111000000000',h:[[50,0]],p:[],b:[[6,4,0,0]],d:[3,3],par:15,sl:'LLDDDRRRURRDLLL',dr:[[43,2]]},
+{T:'000000000111110001113110011111100111111001t101100111130000000000',h:[[53,0],[20,0]],p:[],b:[[4,2,0,0],[6,3,0,0]],d:[1,1],par:17,sl:'DDDRLDDRRRLUUULUR',dr:[[42,2]]},
+{T:'00000000010111300111111001101t1001111110011111100101113000000000',h:[[54,0],[14,0]],p:[],b:[[2,3,0,0],[5,5,0,0]],d:[5,4],par:18,sl:'RULLLUURRRLDDRRUDD',dr:[[29,3]]},
+{T:'00000000011111100111t1100311110001111130011t01000111011000000000',h:[[25,0],[38,0]],p:[],b:[[3,2,0,0],[4,1,0,0]],d:[2,6],par:21,sl:'LDDLLUULDLDRDDLUURRRR',dr:[[43,0],[20,3]]},
+{T:'00000000001111100110111001111t1001111110011011300111111000000000',h:[[46,0]],p:[],b:[[4,3,0,0]],d:[6,4],par:15,sl:'UURLULLDRRRLUUR',dr:[[29,1,2]]},
+{T:'0000000001111310011111300110111001111t10010111100110111000000000',h:[[13,0],[22,0]],p:[],b:[[3,4,0,0],[2,3,0,0]],d:[4,6],par:17,sl:'DLLUUULURLLLDRRRR',dr:[[37,2,2]]},
+{T:'000000000011100001111110010111300111111001101t100113111000000000',h:[[30,0],[51,0]],p:[],b:[[4,2,0,0],[5,4,0,0]],d:[6,1],par:17,sl:'UURRRDUURRDDDLRUU',dr:[[45,1,2]]},
+{T:'0000000001111110011101000011111001111t10011111300111011000000000',h:[[46,0]],p:[],b:[[5,4,0,0]],d:[1,2],par:17,sl:'DDRRRRDDLLULLDRRR',dr:[[37,1,2]]},
+{T:'0000000000311130011111100011111000111110011t10100111110000000000',h:[[14,0],[10,0]],p:[],b:[[1,3,0,0],[5,4,0,0]],d:[4,5],par:21,sl:'LLLDDRLUUURRDRUULULRR',dr:[[43,3,2]]},
+{T:'0000000001111110011111100110110001111110011t10100011131000000000',h:[[53,0]],p:[],b:[[4,5,0,0]],d:[4,1],par:16,sl:'RRRDDRRUULULDDUL',dr:[[43,1,1]]},
+{T:'0000000001101310011111000111111001t11110011113100111111000000000',h:[[13,0],[45,0]],p:[],b:[[4,3,0,0],[2,4,0,0]],d:[1,6],par:18,sl:'LLDLDDULRRLDDRURUU',dr:[[34,0,1]]},
+{T:'0000000001111130011t1110011111100111111001031t100111111000000000',h:[[14,0],[43,0]],p:[],b:[[5,6,0,0],[5,4,0,0]],d:[4,2],par:19,sl:'RDDRUDRRUUUUDDLULLD',dr:[[19,0,1],[45,2]]},
+{T:'0000000001111110010111100111t1100111111003311t100111111000000000',h:[[42,0],[41,0]],p:[],b:[[4,4,0,0],[3,2,0,0]],d:[6,4],par:19,sl:'RRUULLLULDURUULLDDD',dr:[[28,3,2],[45,1,1]]},
+{T:'000000000111111001t111100111101003111110011t11100131111000000000',h:[[50,0],[33,0]],p:[],b:[[3,1,0,0],[4,2,0,0]],d:[1,5],par:25,sl:'LLLLDDDRDDLUDRRRRUULULLDD',dr:[[43,2,2],[18,0]]},
 {T:'0000000001110000021211100111111000211100000000000000000000000000',h:[[22,0]],p:[],b:[[3,3,0,0]],d:[3,6],par:12,sl:'LLLDLULURRRR'},
 {T:'0000000000011100011112000122110000110000021111000211210000000000',h:[[34,0]],p:[],b:[[2,3,0,0]],d:[1,3],par:13,sl:'DDDLDDRRULDLU'},
 {T:'0000000000111110002121100011100000221210001101100000000000000000',h:[[38,0]],p:[],b:[[2,5,0,0]],d:[2,6],par:14,sl:'LULLDLDRURDLDR'},
@@ -6435,7 +6440,7 @@ const MAX_SKIN_SHEETS={
   hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
   // 8동네 공작 · 9동네 생쥐 — 첫 17장 최종 검토(2026-10-02)에서 15장씩 받았다. 남은 둘씩은 다시 뽑는 중이라
   // 아직 "완성"이 아니다(skinComplete 거짓) — 보상으로 안 나가고 ?maxskin= 로만 본다.
-  peacock:['walk-down','walk-left','walk-up','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 밀기 앞·옆 다시
+  peacock:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 17/17 (2026-10-02)
   mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','sit-left','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 벽쿵 뒤·앉기 뒤 다시
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
@@ -7702,7 +7707,7 @@ const HINTS=[
   {k:'dest',  lv:13, nameKey:'hint.dest.name', descriptionKey:'hint.dest.description'},
   {k:'order', lv:18, nameKey:'hint.order.name', descriptionKey:'hint.order.description'},
 ].map(it=>({...it,
-  get at(){ return this.lv-1; },                       // 깬 판 수 게이트 — 화면엔 절대 안 쓴다
+  get at(){ return TOOLS_ON? this.lv-1 : Infinity; },                       // 깬 판 수 게이트 — 화면엔 절대 안 쓴다
   get nm(){return I18N.t(this.nameKey);},
   get full(){return I18N.t(this.nameKey);},
   // 설명은 두 줄 — "무엇을 한다" + "무엇은 안 된다". 셋이 같은 틀이다.
@@ -7821,7 +7826,7 @@ function firstDistrictRetriesFree(lv){
   return !menuMode && !tutMode && !moonMode && !tsMode && !lunchMode && lv>=1 && lv<=30;
 }
 function freeToolBadge(){ return '<b class="numbadge free">'+I18N.t('common.free')+'</b>'; }
-function hintUnlocked(k){ const h=HINTS.find(x=>x.k===k); return !!h && (FREEPLAY || clearedCount()>=h.at); }
+function hintUnlocked(k){ const h=HINTS.find(x=>x.k===k); return TOOLS_ON && !!h && (FREEPLAY || clearedCount()>=h.at); }
 // 입장 전 확인 화면 — 판을 누르면 뜬다. 힌트를 켜고 "산책 가기" 를 눌러야 들어간다.
 let lcLv=0;
 const CHAPTER_STORIES=[
@@ -7979,7 +7984,7 @@ function lvCardOpen(lv,skipChapterStory){
 // 사람에게 자물쇠 셋부터 해석시킬 이유가 없다 — 안 배운 건 숨긴다. 첫 표가 열린
 // 뒤부터는 나머지를 자물쇠로 예고한다(예고는 그 개념을 이미 아는 사람에게만 한다).
 // 탭바가 이미 쓰는 규칙과 같다: 20번 걷기 전엔 통째로 숨기고, 생긴 뒤에 잠긴 탭을 보여준다.
-function hintsShown(){ return HINTS.some(it=>FREEPLAY || clearedCount()>=it.at); }
+function hintsShown(){ return TOOLS_ON && HINTS.some(it=>FREEPLAY || clearedCount()>=it.at); }
 const LVCARD_TOOLS_ON=false;
 function lvCardBoost(){
   const o=BAKED[lcLv-1];
@@ -7991,7 +7996,7 @@ function lvCardBoost(){
   // 잠긴 표도 자리를 지킨다 — 슬롯 수가 안 변하고, 앞으로 뭐가 열리는지도 보인다.
   // 자물쇠 아래에 해금 판수를 적어 언제 열리는지까지 알린다.
   for(const it of HINTS){
-    const open = FREEPLAY || clearedCount()>=it.at;
+    const open = TOOLS_ON && (FREEPLAY || clearedCount()>=it.at);
     if(!open){
       // 자물쇠 아래엔 해금 지점을 판 이름(`1-15`)으로 적는다. 조건 자체는 클리어한
       // 판 수지만 곧게 걸으면 그 판과 같고, 화면 어디서나 판은 `1-15` 꼴로 불린다 —
@@ -8184,7 +8189,7 @@ function syncHintAct(){
   // 판 안에서도 보인다. 확인 화면의 잠금 타일과 같은 규칙.
   document.body.classList.toggle("hasboost", hintsShown() && !menuMode && !yardMode && !tutMode);
   box.innerHTML = HINTS.map(it=>{
-    const open = FREEPLAY || clearedCount()>=it.at;
+    const open = TOOLS_ON && (FREEPLAY || clearedCount()>=it.at);
     if(!open) return '<button class="lk" data-hk="'+it.k+'" title="'+I18N.t('common.unlockAfter',{stage:lvLabel(it.lv)})+'">'
       +LOCK_ICO+'<span class="hint-label">'+HINT_SHORT[it.k]+'</span></button>';
     // 남은 수를 칩에 적는다 — 안 적으면 몇 장 남았는지 모른 채 누르게 되고,
@@ -9373,7 +9378,19 @@ function drawAcorns(){
 }
 // Two drawing passes: the front rim occludes only the bottom of a settled ball.
 // Both passes share their deformation; the ball itself keeps its original radius.
+// 목표 공통 표식(2026-10-02) — 동네마다 받침 모양이 달라 기믹 타일과 헷갈렸다(토끼 받침 ↔ 트램펄린,
+// 오리 물그릇 ↔ 비눗물). 받침 밑에 금색 점선 테와 별 하나를 늘 깔아 "목표는 이 표식"을 한 번만 배우게 한다.
+function drawGoalMark(x,y){
+  const s=cell, g=ctx; g.save();
+  g.fillStyle='rgba(232,177,76,.26)'; g.beginPath(); g.ellipse(x,y+s*.14,s*.47,s*.33,0,0,7); g.fill();
+  g.strokeStyle='#D99A36'; g.lineWidth=Math.max(2,s*.06); g.setLineDash([s*.10,s*.06]); g.lineCap='round';
+  g.beginPath(); g.ellipse(x,y+s*.14,s*.45,s*.31,0,0,7); g.stroke(); g.setLineDash([]);
+  const sx=x, sy=y+s*.45, R=s*.09; g.fillStyle='#F2C14E'; g.strokeStyle='#B97E2A'; g.lineWidth=Math.max(1,s*.018); g.beginPath();
+  for(let i=0;i<10;i++){ const a=-Math.PI/2+i*Math.PI/5, r=i%2? R*.45 : R; g.lineTo(sx+Math.cos(a)*r, sy+Math.sin(a)*r); }
+  g.closePath(); g.fill(); g.stroke(); g.restore();
+}
 function drawGoalFeelCushion(x,y,color,press,front,mergeSeconds=0){
+  if(!front) drawGoalMark(x,y);
   if(goalFeelToyKind()){
     drawGoalFeelBed(x,y,press,front,goalFeelToyKind(),mergeSeconds,color);
     if(goalFeelToyKind()!=='puppy')drawToyColorMark(x,y+cell*.34,cell,color);return;
