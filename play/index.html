@@ -53,6 +53,11 @@
 <audio id="sfxSelected-guide" preload="none" src="sound/guide-paper7.mp3"></audio>
 <audio id="sfxSelected-pit" preload="auto" src="sound/pit-whistle12.mp3"></audio>
 <audio id="sfxSelected-stream" preload="auto" src="sound/stream-splash9.mp3"></audio>
+<audio id="sfxSelected-treatPop" preload="auto" src="sound/treat-pop2.mp3"></audio>
+<audio id="sfxSelected-treat1" preload="auto" src="sound/treat-xylophone-1.mp3"></audio>
+<audio id="sfxSelected-treat2" preload="auto" src="sound/treat-xylophone-2.mp3"></audio>
+<audio id="sfxSelected-treat3" preload="auto" src="sound/treat-xylophone-3.mp3"></audio>
+<audio id="sfxSelected-ballChew" preload="auto" src="sound/ball-chew2.mp3"></audio>
 <div id="rotateNotice" role="status" aria-live="polite">
   <span>🐾</span><b data-i18n="rotate.title">휴대폰을 세로로 돌려주세요</b><i data-i18n="rotate.body">맥스의 산책길은 세로 화면에 가장 잘 보여요</i>
 </div>
@@ -1045,7 +1050,8 @@ function duckGameBgm(){                                // 마지막 착지와 �
 // A synchronous action can emit its own sound; do not layer a UI click over it.
 let uiSoundSerial=0;
 const uiSoundEvents=new WeakSet();
-const SELECTED_SFX_VOLUME={grass:.25,boxPush:.45,boxOpen:.45,bath:.35,pour:.4,dirt:.42,guide:.26,pit:.55,stream:.45};
+const SELECTED_SFX_VOLUME={grass:.25,boxPush:.45,boxOpen:.45,bath:.35,pour:.4,dirt:.42,guide:.26,pit:.55,stream:.45,
+  treatPop:.10,treat1:.22,treat2:.22,treat3:.22,ballChew:.14};
 function sfxSelected(key){
   if(!optSnd || document.hidden || bgmSuspended || !(key in SELECTED_SFX_VOLUME)) return;
   const a=el('sfxSelected-'+key); if(!a) return;
@@ -1131,7 +1137,7 @@ function stopBallRollSound(){
   const a=el('sfxBallRoll');
   if(a) try{ a.pause(); a.currentTime=0; }catch(e){}
 }
-function sfxBallPush(){
+function sfxBallRoll(){
   if(!optSnd||document.hidden||bgmSuspended) return;
   uiSoundSerial++;
   const a=el('sfxBallRoll'); if(!a) return;
@@ -1142,10 +1148,19 @@ function sfxBallPush(){
     const p=a.play(); return p&&p.catch?p.catch(()=>{}):p;
   }catch(e){} // 음원 로드/자동재생 실패가 게임 이동을 막지 않도록 한다.
 }
+function sfxBallPush(){
+  sfxSelected('ballChew');
+  return sfxBallRoll();
+}
 function sfxCollision(step){
   // 접촉음도 밀기·쿵과 같은 실제 공 음원을 쓴다. 그래야 음소거와 접촉 시점이
   // 한 경로로 관리되고, 연속 충돌 때도 재생기가 겹쳐 커지지 않는다.
   return sfxBallPush();
+}
+function sfxTreatPickup(index){
+  const step=Math.max(1,Math.min(3,index|0));
+  sfxSelected('treatPop');
+  sfxSelected('treat'+step);
 }
 function completedGoals(){ let n=0; for(const [k] of holes) if(filled.has(k)) n++; return n; }
 function rippleAllGoals(){
@@ -1175,7 +1190,7 @@ function sfxUndo(){ tone(420,0.08,"sine",0.04,300); }
 function sfxHeavy(){                                   // 상자 낑낑 미는 소리 (긁힘 + 저역)
   tone(70,0.34,"sawtooth",0.05,52); tone(140,0.3,"square",0.028,96); tone(320,0.16,"triangle",0.02,210);
 }
-function sfxThud(){ return sfxBallPush(); }
+function sfxThud(){ return sfxBallRoll(); }
 function sfxBlocked(){ tone(170,0.1,"sine",0.05,120); } // 막힘(둔탁)
 function stopWallBlockSound(){
   const a=el('sfxWallBlock');
@@ -6442,10 +6457,14 @@ const MAX_SKIN_SHEETS={
   bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
   pig:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 6동네 — 한 벌 완성(2026-10-01). 장난감 색 #F4A486 로 맞춤
   hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
-  // 8동네 공작 · 9동네 생쥐 — 첫 17장 최종 검토(2026-10-02)에서 15장씩 받았다. 남은 둘씩은 다시 뽑는 중이라
-  // 아직 "완성"이 아니다(skinComplete 거짓) — 보상으로 안 나가고 ?maxskin= 로만 본다.
+  // 8동네 공작은 17/17. 9동네 생쥐는 15장 — 벽쿵 뒤·앉기 뒤 둘은 다시 뽑는 중이라
+  // 생쥐만 아직 "완성"이 아니다(skinComplete 거짓) — 보상으로 안 나가고 ?maxskin= 로만 본다.
   peacock:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 17/17 (2026-10-02)
-  mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','sit-left','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']   // 벽쿵 뒤·앉기 뒤 다시
+  mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','sit-left','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 벽쿵 뒤·앉기 뒤 다시
+  // 7동네 비버 · 10동네 양 — 17/17 (2026-10-02). 밀기 앞 웅크린 칸(양 f4·f5, 비버 f4)도 v2 로 받았다.
+  // 비버는 꼬리 없이 맥스 솜꼬리 그대로(사람 결정). 검사기의 "뒷모습에 얼굴"은 흰 솜꼬리를 얼굴로 읽은 것이다.
+  beaver:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
+  sheep:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
 // 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
@@ -21621,7 +21640,7 @@ function tryMove(dr,dc){
   // — 그래서 개만 줍는다. 안 주워도 클리어에 지장이 없다(선택).
   for(const a of acornSt) if(!a.got && a.r===dog.r && a.c===dog.c){
     a.got=1; a.t=1; spark(a.r,a.c,MAT_SPARK[a.k]||"#C98A4B",14,2.6); spark(a.r,a.c,"#FFF3D6",8,2.0);
-    audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); buzz(6);
+    audio(); sfxTreatPickup(acornGot()); buzz(6);
     matEatStart(a, false);                                        // 밟는 순간 입에 — 냠부터
     treatPickFx(a);
     if(!tutMode && !moonMode && a.k!=='acorn') tipOnce('matFirst', I18N.html('tutorial.matFirst'), 3200);   // 6판 — 처음 줍는 재료
@@ -22018,7 +22037,7 @@ function toolApply(k, a, b){
     const m=acornSt.find(x=>!x.got && x.w==='bush' && x.r===a.r && x.c===a.c);
     if(m){ before.trainingUse.material={r:m.r,c:m.c,w:m.w,got:m.got,t:m.t};
            m.got=1; m.t=1; spark(a.r,a.c, MAT_SPARK[m.k]||"#C98A4B", 16, 2.8);
-           audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); treatPickFx(m); }
+           audio(); sfxTreatPickup(acornGot()); treatPickFx(m); }
     // 잎은 **앞발이 닿는 순간**에 튄다(프레임 루프). 여기서 바로 튀기면 밟기 전에
     // 잎이 먼저 날아가 순서가 뒤집힌다. 맥스는 판에선 제자리다 — 그리는 자리만 그
     // 수풀로 뛰어갔다 밟고 돌아온다(cutPose). er/ec 가 돌아올 칸이다.
@@ -26464,7 +26483,7 @@ function matWallHitFx(bm, tr, tc){
   matHitFx={r:tr, c:tc, w:bm.w, t:0.5};      // t=1: 제자리 팝 대신 먹는 연출이 그린다
   spark(tr,tc, MAT_SPARK[bm.k]||"#C98A4B", 16, 2.8);
   spark(tr,tc, bm.w==='bush'? "#6B9A4E" : "#D9B27E", 10, 2.2);
-  audio(); tone(660+acornGot()*90,0.07,"triangle",0.05,980); buzz(10);
+  audio(); sfxTreatPickup(acornGot()); buzz(10);
   matEatStart(bm, true);
   treatPickFx(bm);
   const peeked=!!critterPeek[tr+','+tc]; delete critterPeek[tr+','+tc];   // 옆에서 엿보던 동물도 놀라 달아난다
