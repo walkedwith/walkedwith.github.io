@@ -131,6 +131,7 @@
   <div id="coach">
     <div class="chole" id="cHole"></div>
     <div class="cring" id="cRing"></div>
+    <div class="cring cring2" id="cRing2" hidden></div>
     <div class="ctip" id="cTip"><span class="cstep" id="cStep"></span><div id="cTxt"></div>
       <button class="okbtn cbtn" id="cOk">다음</button></div>
   </div>
@@ -2847,7 +2848,8 @@ function closeGintro(){
   // 표지판을 닫은 뒤 코치마크 한 개.
   // 1판의 걸음 막대 코치는 여기서 안 띄운다 — 한 걸음도 안 걸었는데 페널티부터
   // 배우게 된다. 걸음 안내는 머리글의 카운트다운이 진다 — 코치마크는 없앴다.
-  if(!menuMode && giKey!=='base' && !tipSeen['coachHelp']) setTimeout(coachHelp, 260);
+  // "⚙ 안의 ? 로 다시 볼 수 있어요" 코치도 걷었다(2026-10-02 사람) — 표지판을 막 읽은 사람을
+  // 판 앞에서 한 번 더 세우고, 아직 눌러 본 적 없는 기어를 미리 설명한다.
   giSeen[seenKey]=1; LS.set('roll_gintro', JSON.stringify(giSeen));
   HCELL=34; showHint(level);                            // 하단 픽토그램 원래 크기로
   if(giQueue.length){ const next=giQueue.shift(); showGintro(next); }
@@ -4963,7 +4965,7 @@ const ECON = {
   // 첫 무료 충전(아래 tipSeen['meal1'])이 가르치는 자리다.
   // 집 앞 밥때(하루 3번)도 이 값에 묶인다 — 다만 개집이 마당 보상이라 30 판 뒤에
   // 놓이므로, 실제로 밥때가 도는 건 개집을 놓은 다음부터다.
-  mealAfter  : 22,       // 몇 판을 깬 뒤부터 밥그릇이 도나 — 20이면 4단계 도면의 첫 "철 모자람"과 같은 판이라 22로
+  mealAfter  : 30,       // 몇 판을 깬 뒤부터 밥그릇이 도나 — 1동네(30판)는 통째로 무료, 31판부터 한 끼(2026-10-02 사람). 재도전 무료 구간(firstDistrictRetriesFree)과 같은 경계다
   mealRefillMs : 15*60*1000,
   mealAdMax  : 3,        // 광고로 채우는 하루 한도
   // 첫 무료 충전은 판 번호로 안 잡는다. 재시작·재도전·깬 판 재입장이 전부 무료라
@@ -5162,9 +5164,14 @@ const STAMP_WEEK=[
   {k:'hint', h:'dest'},                             // 힌트 2
   {k:'box',  n:10, h:'order'},                      // 택배 상자 — 사료 + 힌트 3 + 도토리 10
 ];
+// 도장판은 잠시 끈다(2026-10-02 사람). 4·6·7칸 보상이 꺼진 도구(TOOLS_ON=false) 표라 영영 못 쓰고,
+// 가게가 열리기 전(40판)부터 칸이 넘어가 첫 칸을 못 보고 지나간다. 걸은 날 기록(streak·days)은 그대로 남긴다.
+// 되살릴 땐 이 한 줄 — 카드·가게 줄·빨간 점·칸 넘김이 다 이것을 본다.
+const STAMP_ON=false;
 function checkWalkCal(){                                   // 세션 첫 진입에 한 번 — 오늘 도장
   const w=walkCal(), today=todayKey();
   if(w.last===today){
+    if(!STAMP_ON) return null;
     // 도장판이 생기기 전 저장 — 오늘 도장은 옛 코드가 이미 찍었고 칸은 없다. 그대로 두면
     // 판을 올린 날 하루가 빈다(실측). 첫 칸을 열어 준다.
     if(w.card==null){ w.card=1; w.pend=1; walkCalSave(w); return { streak:w.streak|0, day:1 }; }
@@ -5175,13 +5182,15 @@ function checkWalkCal(){                                   // 세션 첫 진입�
   w.last=today; w.lastDays=localDays();
   w.days=w.days||{}; w.days[today]=1;
   w.best=Math.max(w.best||0, w.streak);
-  w.card=((w.card|0)%STAMP_WEEK.length)+1;              // 다음 칸. 7 다음은 1 — 새 판
-  w.pend=1;                                             // 받기를 누를 때까지 보류
+  if(STAMP_ON){
+    w.card=((w.card|0)%STAMP_WEEK.length)+1;            // 다음 칸. 7 다음은 1 — 새 판
+    w.pend=1;                                           // 받기를 누를 때까지 보류
+  }
   walkCalSave(w); persist();
-  return { streak:w.streak, day:w.card };
+  return { streak:w.streak, day:w.card|0 };
 }
 function stampDay(){ return walkCal().card|0; }
-function stampPending(){ return !!walkCal().pend; }
+function stampPending(){ return STAMP_ON && !!walkCal().pend; }
 // 보상 하나를 손에 쥐여 준다. 아직 안 열린 힌트·아직 안 도는 밥그릇도 그냥 받아 둔다 —
 // 소지는 숫자라 열리는 날 확인 화면에 "×1" 로 나타난다. 도토리로 바꿔 주지 않는다.
 function stampGrant(r, showFx=true){
@@ -5309,6 +5318,7 @@ function refreshStampCopy(){
   el("stGo").textContent = I18N.t(w.pend? (last? 'stamp.open' : 'common.receive') : 'common.close');
 }
 function stampCardShow(){
+  if(!STAMP_ON) return;
   const w=walkCal(), day=(w.card|0)||1;
   // 상점 줄의 peekDay 와 같은 규칙이다 — 오늘 것을 받았으면 내일 칸 하나만 연다.
   // 예전엔 첫날(day===1)에만 2일 칸을 열어서 카드와 상점이 서로 다른 걸 보여 줬다.
@@ -6235,6 +6245,12 @@ function loadSave(){
 // 실력에 따라 사람마다 3배 차이가 나서 "몇 판 걸으면 열린다"는 약속을 못 하기 때문이다.
 // 건너뛴 판은 starMap 에 안 남으므로 여기 안 잡힌다(스킵으로 해금을 앞당길 수 없다).
 function clearedCount(){ let n=0; for(const k in starMap) if(starMap[k]>0) n++; return n; }
+// 간식을 만나 본 사람인가 — 첫 간식(2판)을 줍기 전엔 간식 칩·카드의 뼈 줄을 안 보여 준다(안 배운 건 숨긴다).
+function treatKnown(){
+  if(pawBal>0 || tipSeen['acornFirst']) return true;
+  for(const k in pawMap) if(pawMap[k]>0) return true;
+  return false;
+}
 function persist(){
   try{
     economyReconcile('game');
@@ -6455,10 +6471,9 @@ const MAX_SKIN_SHEETS={
   bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
   pig:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 6동네 — 한 벌 완성(2026-10-01). 장난감 색 #F4A486 로 맞춤
   hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
-  // 8동네 공작은 17/17. 9동네 생쥐는 15장 — 벽쿵 뒤·앉기 뒤 둘은 다시 뽑는 중이라
-  // 생쥐만 아직 "완성"이 아니다(skinComplete 거짓) — 보상으로 안 나가고 ?maxskin= 로만 본다.
+  // 8동네 공작 · 9동네 생쥐 — 둘 다 17/17. 생쥐 뒷모습 둘(벽쿵 뒤·앉기 뒤)은 8칸 시트로 다시 받았다(2026-10-02).
   peacock:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 17/17 (2026-10-02)
-  mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','sit-left','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 벽쿵 뒤·앉기 뒤 다시
+  mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 17/17 (2026-10-02)
   // 7동네 비버 · 10동네 양 — 17/17 (2026-10-02). 밀기 앞 웅크린 칸(양 f4·f5, 비버 f4)도 v2 로 받았다.
   // 비버는 꼬리 없이 맥스 솜꼬리 그대로(사람 결정). 검사기의 "뒷모습에 얼굴"은 흰 솜꼬리를 얼굴로 읽은 것이다.
   beaver:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
@@ -7939,7 +7954,7 @@ function lvCardOpen(lv,skipChapterStory){
   // 머리는 "22번째 산책" — 아래 줄들은 같은 왼쪽 라벨(재료·챌린지·꾸러미·힌트)로 줄을 맞춘다.
   // 1판만 "첫 산책" — "1번째" 는 한국어에서 어색하다(22번째는 자연스럽다).
   el("lcTitle").innerHTML = I18N.t(lv===1? 'lvcard.titleFirst' : 'lvcard.title',{lv:lvLabel(lv)})
-    + (isHardLv(lv)? ' <span class="lchard">'+I18N.t('map.hardWalk')+'</span>' : '');
+    + (isHardLv(lv)? ' <span class="lchard"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M3 21 L6 6 L14 13 L20 3 L26 13 L34 6 L37 21 Z" fill="#F2C24E" stroke="#B9812A" stroke-width="2" stroke-linejoin="round"/></svg>'+I18N.t('map.hardWalk')+'</span>' : '');
   // 기본 줄 — 처음 깰 때 들어오는 도토리. 재료 줄과 같은 문법(라벨 + 값)으로 적는다.
   // 다녀온 길이면 안 적는다: 두 번째부터는 안 주는 몫이라 약속이 거짓이 된다.
   // 꾸러미 줄은 걷었다 — 지도 머리 바의 상자가 그걸 말하고, 여는 자리도 거기다.
@@ -7962,7 +7977,8 @@ function lvCardOpen(lv,skipChapterStory){
   // 간소화(2026-09-27): 확인 화면은 제목 · 간식 다섯 칸 · 산책 가기(밥 값) 셋뿐이다. 칸은 판 안
   // 걸음 카드 밑 칸과 같은 그림이라, 다시 걷는 길이면 지난번에 주운 만큼 차 있어 남은 몫이 보인다.
   // 다 주운 길도 칸을 그린다(다섯이 다 차 있다) — 줄이 판마다 있다 없다 하면 카드 높이가 흔들린다.
-  el("lcPar").innerHTML = (o && matFull(lv)>0)
+  // 간식을 한 번도 안 주워 봤으면 줄을 안 그린다 — 2판 카드의 회색 뼈 셋은 뜻 모를 빈칸이다(안 배운 건 숨긴다).
+  el("lcPar").innerHTML = (o && matFull(lv)>0 && treatKnown())
     ? ('<div class="lcgs">'+matDots(Math.min(matFull(lv), pawMap[lv]|0), matsOfLv(lv), matFull(lv))+'</div>') : '';
   // 꾸러미 줄 — 험한 판만. 안 연 상자는 파란 상자 + 그 동네 몇 번째인지(안에 든 건 열 때 본다 — 지도 줄과 같은 규칙).
   // 이미 받았으면 받은 가구 그림 + 이름.
@@ -7971,7 +7987,8 @@ function lvCardOpen(lv,skipChapterStory){
       if(isHardLv(lv)){
         const dn=districtOfLv(lv), lvs=HARD_LV.filter(x=>districtOfLv(x)===dn), idx=lvs.indexOf(lv)+1;
         const got=giftOpenedSet().has(lv), it=got? furnAtLv(lv) : null;
-        h='<span class="lclb">'+I18N.t('lvcard.rowGift')+'</span><span class="lcbv lcgv"><canvas id="lcGiftIco" width="44" height="44"></canvas>'
+        // 라벨("꾸러미")은 뺐다 — 상자 그림이 이미 선물이라고 말한다(2026-10-02 글자 줄이기).
+        h='<span class="lcbv lcgv"><canvas id="lcGiftIco" width="44" height="44"></canvas>'
           +(got? '<b>'+escAttr(it? furnName(it) : '')+'</b><i>'+I18N.t('lvcard.giftGot')+'</i>'
                 : '<b>'+escAttr(I18N.t('lvcard.giftNth',{district:I18N.t(DISTRICTS[dn-1].nameKey), n:idx, t:lvs.length}))+'</b>')+'</span>';
       }
@@ -10756,7 +10773,10 @@ function loadLevel(lv, moon, keepTries){
       if(level!==1 || menuMode || tutMode || state!=='play' || unlockCB || coachSteps || gintroOn) return;
       const bar=el('mvbar'); if(!bar || !bar.getBoundingClientRect().width) return;
       tipSeen['stepCoach']=1; LS.set('roll_tips', JSON.stringify(tipSeen));
-      coachWhenStill(bar, ()=>showUnlockSpotlight(bar, 'tutorial.stepLimit', 'common.ok', ()=>{}));
+      // 막대만 짚으면 "어디에" 가 빠진다 — 방석에도 링을 하나 더 건다(2026-10-02 사람).
+      coachWhenStill(bar, ()=>{ showUnlockSpotlight(bar, 'tutorial.stepLimit', 'common.ok', ()=>{});
+        const g=[...holes.keys()].find(k=>!filled.has(k));
+        if(g!=null) coachRing2(matCellRect((g/GN)|0, g%GN, false)); });
     }, 700);
   if(!moonMode&&!menuMode&&!tutMode)
     telemetry.track("level_start", {level:lv, chapter:Math.ceil(lv/30)});
@@ -11825,6 +11845,7 @@ function kibbleBagSVG(full){
 // 상점을 열면 제일 먼저 보이는 게 공짜라, 상점이 "사는 곳"이 아니라 "받으러 오는 곳"으로
 // 시작된다. 20판 전엔 상점이 없어 카드로만 만난다.
 function shopRenderStamp(body){
+  if(!STAMP_ON) return;
   const w=walkCal(), day=(w.card|0)||1, r=STAMP_WEEK[day-1], pend=!!w.pend;
   const peekDay=(!pend && day<STAMP_WEEK.length)?day+1:0;
   const sec=document.createElement('div'); sec.className='shsec stshop';
@@ -16177,6 +16198,9 @@ function syncHud(){
   const inPlay=!tutMode && !menuMode && !onSel && !document.body.classList.contains("inmenu");
   h.classList.toggle("on", onSel || inPlay);
   document.body.classList.toggle("hudinplay", inPlay && !onSel);
+  // 간식 칩은 첫 간식을 주운 뒤부터, + 는 쓸 가게가 열린 뒤부터(안 배운 건 숨긴다).
+  document.body.classList.toggle("nopaw", !treatKnown());
+  document.body.classList.toggle("nopawshop", !shopUnlocked());
   syncMealHud();
 }
 // 카탈로그 카드 — 썸네일은 미니 캔버스에 drawYardItem 을 그대로 그린다 (ctx/cell 잠시 바꿔치기)
@@ -19314,6 +19338,7 @@ function housePathTo(tr,tc){                                       // 맥스 →
 }
 function houseTap(x,y){
   if(!houseMode || state!=='play') return false;
+  if(housePlacePending()){ housePlaceGo(); return true; }      // 선물이 떠 있다 — 어디를 눌러도 놓는다(링은 갈 곳을 보여 줄 뿐, 막힌 손이 없게)
   if(houseIn && houseDecoIsOpen() && !houseCarry){ const h=houseDecoHit(x,y); if(h){ houseDecoJump(h); return true; } }   // 꾸미는 중 — 짚은 물건의 종류로
   const p=houseCellAt(x,y);
   if(houseCarry){
@@ -19438,8 +19463,12 @@ let houseUnwrapFx=null;
 const HOUSE_UNWRAP_DUR=3.2;
 function drawHouseUnwrapFx(){
   drawHouseSparks();
-  const fx=houseUnwrapFx; if(!fx) return; const age=animT-fx.t0; if(age>HOUSE_UNWRAP_DUR){ houseUnwrapFx=null; return; }
+  const fx=houseUnwrapFx; if(!fx) return;
+  // 시계가 둘이다 — real 은 그냥 흐르고(색종이), age 는 HOLD 에서 멈춰 손을 기다렸다가 누른 뒤에 다시 간다.
+  const real=animT-fx.t0, age=fx.placeT!=null? HOUSE_UNWRAP_HOLD+(animT-fx.placeT) : Math.min(real, HOUSE_UNWRAP_HOLD);
+  if(age>HOUSE_UNWRAP_DUR){ houseUnwrapFx=null; housePlaceApply(fx); return; }
   const g=ctx, s=cell, x=cx(fx.c), y=cy(fx.r), POP=0.75, END=HOUSE_UNWRAP_DUR, OUT=0.6;
+  const waiting=fx.placeT==null && real>=HOUSE_UNWRAP_HOLD, fly=fx.placeT!=null? Math.min(1,(age-HOUSE_UNWRAP_HOLD)/(END-HOUSE_UNWRAP_HOLD)) : 0;
   const cl=v=>Math.max(0,Math.min(1,v)), back=t=>{ const u=t-1; return 1+2.7*u*u*u+1.7*u*u; };
   const out=cl((END-age)/OUT);                                   // 1 → 0, 마지막 0.6초
   // 어둠 — 상자 둘레만 비워 두고 방을 낮춘다. 눈이 상자 한 곳으로 모인다
@@ -19493,10 +19522,32 @@ function drawHouseUnwrapFx(){
       g.fillStyle='#FFF3B0';                                                                       // 반짝이
       for(let i=0;i<6;i++){ const an=i*1.047+animT*0.9, rr=R*1.25, px=x+Math.cos(an)*rr, py=iy+Math.sin(an)*rr, q=s*(0.06+0.035*Math.sin(animT*7+i*2))*disc;
         g.beginPath(); g.moveTo(px,py-q); g.lineTo(px+q*0.35,py); g.lineTo(px,py+q); g.lineTo(px-q*0.35,py); g.closePath(); g.fill(); } } }
+  // 놓을 자리 — 물건이 다 떠오르면 점선 링이 숨 쉬고, 물건에서 자리까지 점이 이어지고, 손이 한 번씩 누른다.
+  // 누른 뒤엔 날아가는 동안 링만 남았다 걷힌다.
+  if(fx.it && (waiting || fx.placeT!=null)){
+    const to=fx.to || housePlaceTarget(fx), al=waiting? 1 : 1-fly, pu=0.5+0.5*Math.sin(animT*4.2), R=s*(0.56+0.04*pu);
+    g.save(); g.globalAlpha=al;
+    g.fillStyle='rgba(255,226,150,'+(0.22+0.14*pu).toFixed(3)+')'; g.beginPath(); g.arc(to.x,to.y,R,0,7); g.fill();
+    g.strokeStyle='#FFC66B'; g.lineWidth=Math.max(2,s*0.06); g.lineCap='round'; g.setLineDash([s*0.16,s*0.13]); g.lineDashOffset=-animT*s*0.5;
+    g.beginPath(); g.arc(to.x,to.y,R,0,7); g.stroke(); g.setLineDash([]);
+    if(waiting){
+      const dx=to.x-x, dy=to.y-iy, far=Math.hypot(dx,dy)>s*0.9;
+      if(far){ g.fillStyle='rgba(255,246,220,.9)';
+        for(let i=1;i<7;i++){ const t=i/7, ph=(t+animT*0.5)%1, px=x+dx*ph, py=iy+dy*ph-Math.sin(ph*Math.PI)*s*0.7;
+          g.beginPath(); g.arc(px,py,s*0.045*(0.6+0.4*Math.sin(ph*Math.PI)),0,7); g.fill(); } }
+      const tap=Math.max(0,Math.sin(animT*3.2));                 // 손 — 자리 오른쪽 아래에서 톡톡
+      g.restore(); drawHand(to.x+s*(0.34-0.06*tap), to.y+s*(0.46-0.06*tap), -0.55, 0.62, 0.95); g.save(); }
+    g.restore();
+  }
   if(fx.it){ const sc=(fx.it.kind==='rug'? 0.8 : 1.05)*(0.4+0.6*rise)*(0.8+0.2*out);
-    g.save(); g.globalAlpha=Math.min(1,a/0.12)*Math.min(1,out*1.6); try{ drawFurn(fx.it, x, iy, s*sc); }catch(e){} g.restore(); }
-  // 색종이 — 위로 터졌다가 팔랑이며 떨어진다(앞뒤로 뒤집히는 종이)
-  { const cols=['#F07C8A','#F2C24E','#8CC063','#6FB3D9','#E8A94C','#FFF3B0'], ca=a-0.05, LIFE=2.1;
+    // 기다리는 동안엔 살짝 둥실거리고, 누르면 자리까지 포물선으로 날아간다(내려앉을 때 제 크기로).
+    let ix=x, iyy=iy+(waiting? Math.sin(animT*3)*s*0.05 : 0), al=Math.min(1,a/0.12)*Math.min(1,out*1.6), k2=sc;
+    if(fx.to){ const e=fly*fly*(3-2*fly), hold=y-s*(0.2+0.95);   // HOLD 때 떠 있던 높이에서 출발
+      ix=x+(fx.to.x-x)*e; iyy=hold+(fx.to.y-hold)*e-Math.sin(fly*Math.PI)*s*0.75; al=1;
+      k2=(fx.it.kind==='rug'? 0.8 : 1.05)*(1-0.05*e); }
+    g.save(); g.globalAlpha=al; try{ drawFurn(fx.it, ix, iyy, s*k2); }catch(e){} g.restore(); }
+  // 색종이 — 위로 터졌다가 팔랑이며 떨어진다(앞뒤로 뒤집히는 종이). 멈춘 시계(age)를 타면 공중에 얼어붙으므로 real 을 탄다.
+  { const cols=['#F07C8A','#F2C24E','#8CC063','#6FB3D9','#E8A94C','#FFF3B0'], ca=(real-POP)-0.05, LIFE=2.1;
     if(ca>0 && ca<LIFE) for(let i=0;i<40;i++){ const r1=((i*37)%17)/16, r2=((i*53)%13)/12, an=-Math.PI/2+(r1-0.5)*2.6, v=s*(2.2+1.6*r2), t=ca*(0.85+0.3*r2);
         const px=x+Math.cos(an)*v*t*0.9+Math.sin(ca*5+i)*s*0.12, py=y-s*0.3+Math.sin(an)*v*t+s*2.6*t*t;
         g.save(); g.globalAlpha=cl((LIFE-ca)/0.5); g.translate(px,py); g.rotate(i+ca*(4+r2*4)); g.scale(Math.cos(ca*(8+i%5)),1);
@@ -19529,32 +19580,64 @@ function drawHouseSparks(){
       g.beginPath(); g.moveTo(px,py-q); g.lineTo(px+q*0.35,py); g.lineTo(px,py+q); g.lineTo(px-q*0.35,py); g.closePath(); g.fill(); }
     g.restore(); }
 }
+// 상자를 밀면 **열리기만** 한다. 물건은 떠서 기다리고 놓일 자리가 반짝인다 — 누르면 날아가 앉는다
+// (2026-10-02 사람: 저절로 놓이면 "받았다"만 있고 "내가 놓았다"가 없다). 자리는 지금처럼 정해져 있다.
+// 놓기 전에는 아무것도 저장하지 않는다(seen 도 안 찍는다) — 그 사이 앱이 꺼지면 상자가 그대로 다시 온다.
 function houseGiftUnwrap(){
-  let did=false;
   for(let i=boxes.length-1;i>=0;i--){
     const nm=houseToys[i]; if(!nm || !nm.startsWith('g:')) continue;
     const k=nm.slice(2), b=boxes[i], g0=houseGiftAt[k]; if(!g0 || (b.r===g0[0] && b.c===g0[1])) continue;
-    const it=HOUSE_FURN_BY[k], f=houseFurnState(); if(!it) continue;
-    if(!f.seen.includes(k)) f.seen.push(k);
-    houseUnwrapFx={r:b.r, c:b.c, t0:animT, it};               // 흔들림 → 뚜껑이 튀고 → 물건이 떠올라 잠깐 머문다(drawHouseUnwrapFx)
-    let where='house.furnRoom';
-    if(it.kind==='thing' && !it.shop){                        // 대표 가구 — 방에 하나. 먼저 서 있던 것은 방에서 빠진다(가진 건 그대로)
-      const old=f.on.thing; f.on.thing=k; houseToys[i]='f:'+k;
-      if(old && old!==k){ const j=houseToys.indexOf('f:'+old); if(j>=0){ boxes.splice(j,1); houseToys.splice(j,1); } } }
-    else {
-      boxes.splice(i,1); houseToys.splice(i,1);
-      if(it.kind==='bed'||it.kind==='rug'||it.kind==='paper'||it.kind==='floor') f.on[it.kind]=k;
-      else if(it.kind==='thing') houseDecoPut('thing',k);     // 가게 가구 — 바닥 소품 자리로
-      else if(it.kind==='wall') houseDecoPut('wall',k);
-      else if(it.kind==='yard'){ if(!f.yard.includes(k)) f.yard.push(k); where='house.furnYard'; }
-      else if(it.kind==='fence'){ houseTheme.fence='paint'; houseTheme.fences={}; tileKey=''; where='house.furnYard'; }
-    }
+    const it=HOUSE_FURN_BY[k]; if(!it) continue;
+    housePlaceFlush();                                        // 앞 것이 아직 떠 있으면 먼저 앉힌다
+    boxes.splice(i,1); houseToys.splice(i,1);                 // 상자는 열렸다 — 물건이 앉을 때까지 연출이 그 자리를 진다
+    houseUnwrapFx={r:b.r, c:b.c, t0:animT, it, k};            // 흔들림 → 뚜껑이 튀고 → 물건이 떠올라 기다린다(drawHouseUnwrapFx)
     tone(520,0.05,'triangle',0.03,620); buzz(8); dog.wagBoost=1;   // 여는 소리는 뚜껑이 튈 때(연출 안) — 글자는 뺐다, 물건이 떠올라 보인다
-    void where; did=true;
+    return true;                                              // 한 번에 하나 — 떠 있는 동안엔 걸음이 안 먹는다(tryMove)
   }
-  if(did){ houseGiftRefill(); houseToysSave(); }
-  return did;
+  return false;
 }
+const HOUSE_UNWRAP_HOLD=2.4;                                   // 연출이 여기서 멈춰 손을 기다린다 — 빛기둥·상자·불꽃이 걷힌 뒤, 물건이 내려앉기 전
+function housePlacePending(){ return !!(houseUnwrapFx && houseUnwrapFx.it); }
+function housePlaceWaiting(){ const fx=houseUnwrapFx; return !!(fx && fx.it && fx.placeT==null && animT-fx.t0>=HOUSE_UNWRAP_HOLD); }
+// 놓일 자리(캔버스 좌표) — 종류가 정한다. 대표 가구는 상자가 있던 그 칸, 마당 것은 문으로 나간다.
+function housePlaceTarget(fx){
+  const it=fx.it, c=cell, T=-houseTop, f=houseFurnState(), slot=a=>{ const i=a.indexOf(null); return i<0? 0 : i; };
+  if(it.kind==='bed') return {x:cx(HOUSE_BED[1]), y:cy(HOUSE_BED[0])};
+  if(it.kind==='rug' || it.kind==='floor') return {x:c*4, y:c*3.5};
+  if(it.kind==='paper') return {x:c*4, y:(T+c)/2};
+  if(it.kind==='wall'){ const sp=HOUSE_WALL_SPOTS[slot(f.wall)]; return {x:sp[0]*c, y:sp[1]*c}; }
+  if(it.kind==='thing' && it.shop){ const sp=HOUSE_DECO_SPOTS[slot(f.deco)]; return {x:cx(sp[1]), y:cy(sp[0])}; }
+  if(it.kind==='yard' || it.kind==='fence') return {x:c*4, y:cy(GN-2)};
+  if(it.kind==='hood') return {x:cx(dog.cc), y:cy(dog.rr)-c*0.2};
+  return {x:cx(fx.c), y:cy(fx.r)};
+}
+// 누른 순간 — 날아가기 시작한다. 아직 여는 중이면(HOLD 전) 못 누른다: 물건을 보기도 전에 사라진다.
+function housePlaceGo(){
+  const fx=houseUnwrapFx; if(!housePlaceWaiting()) return false;
+  fx.placeT=animT; fx.to=housePlaceTarget(fx);
+  tone(700,0.05,'triangle',0.04,940); buzz(8);
+  return true;
+}
+// 앉는 순간 — 여기서 비로소 방이 바뀌고 저장된다.
+function housePlaceApply(fx){
+  const it=fx.it, k=fx.k, f=houseFurnState(); if(!it) return;
+  if(!f.seen.includes(k)) f.seen.push(k);
+  if(it.kind==='thing' && !it.shop){                          // 대표 가구 — 방에 하나. 먼저 서 있던 것은 방에서 빠진다(가진 건 그대로)
+    const old=f.on.thing; f.on.thing=k;
+    if(old && old!==k){ const j=houseToys.indexOf('f:'+old); if(j>=0){ boxes.splice(j,1); houseToys.splice(j,1); } }
+    boxes.push({r:fx.r,c:fx.c,color:0,kind:'ball',rr:fx.r,cc:fx.c,roll:0,sqT:0,sdr:0,sdc:0,landT:1,sink:0,carried:false,buried:false});
+    houseToys.push('f:'+k); }
+  else if(it.kind==='bed'||it.kind==='rug'||it.kind==='paper'||it.kind==='floor') f.on[it.kind]=k;
+  else if(it.kind==='thing') houseDecoPut('thing',k);         // 가게 가구 — 바닥 소품 자리로
+  else if(it.kind==='wall') houseDecoPut('wall',k);
+  else if(it.kind==='yard'){ if(!f.yard.includes(k)) f.yard.push(k); }
+  else if(it.kind==='fence'){ houseTheme.fence='paint'; houseTheme.fences={}; tileKey=''; }
+  if(fx.to && houseIn){ houseSpark(fx.to.x, fx.to.y, true); tone(880,0.08,'sine',0.04,1320); buzz([8,24,10]); }
+  dog.wagBoost=1;
+  houseGiftRefill(); houseToysSave();
+}
+// 떠 있는 채로 방을 나가거나 다른 상자를 열면 — 기다리지 않고 바로 앉힌다(받은 걸 잃지 않는다).
+function housePlaceFlush(){ const fx=houseUnwrapFx; if(!fx || !fx.it) return; houseUnwrapFx=null; housePlaceApply(fx); }
 // 상자 놓을 칸 — 정해 둔 셋이 먼저, 가구가 막고 있으면 방 가운데 빈칸(서로 떨어진 칸만). 셋까지.
 function houseGiftSpot(free){
   // 러그 가운데(3,4) 옆·위 칸은 안 쓴다 — 거기 서면 가운데 상자를 못 민다.
@@ -19565,6 +19648,7 @@ function houseGiftRefill(){
   if(!houseIn) return;
   const shown=new Set(houseToys.filter(t=>t.startsWith('g:')).map(t=>t.slice(2)));
   for(const it of houseGiftOrder()){
+    if(houseUnwrapFx && houseUnwrapFx.k===it.k) continue;     // 방금 열어 떠 있는 것 — 상자로 다시 내놓지 않는다
     if(shown.has(it.k)) continue; if(shown.size>=3) break;
     const sp=houseGiftSpot((r,c)=>!boxes.some(b=>b.r===r&&b.c===c) && !(dog.r===r&&dog.c===c) && tileAt(L,filled,r,c)!==WALL); if(!sp) break;
     boxes.push({r:sp[0],c:sp[1],color:0,kind:'ball',rr:sp[0],cc:sp[1],roll:0,sqT:0,sdr:0,sdc:0,landT:1,sink:0,carried:false,buried:false});
@@ -19946,9 +20030,14 @@ function houseDecoRender(){
   const got=kind=>{ let n=0; for(let i=1;i<=10;i++){ const it=kind==='hood'? null : houseSlotItem(kind,i);
     if(kind==='hood'? hoods.includes(STAGE_TOYS[i-1]) : (it && own.has(it.k) && F.seen.includes(it.k))) n++; } return n; };
   const onK=kind=>kind==='hood'? cur : kind==='thing'? (houseThingOn()[0]||{}).k : F.on[kind];
+  // 소품(사는 탭)은 가게가 열린 뒤부터 — 방은 5판에 열리는데 가게는 40판이라, 그 사이엔 가게보다
+  // 35판 먼저 물건을 파는 셈이었다(2026-10-02 사람: 안 배운 건 숨긴다). 이미 산 게 있으면 그대로 보인다.
+  const decoOn=shopUnlocked() || F.deco.some(Boolean) || F.wall.some(Boolean);
+  if(!decoOn && hdTab==='deco') hdTab='rug';
+  el('hdBal').hidden=!decoOn;
   let h='';
   for(const kind of HOUSE_SLOT_TABS) h+='<button class="hdtab'+(hdTab===kind?' on':'')+'" data-tab="'+kind+'" aria-label="'+escAttr(lab(kind))+'"><u>'+got(kind)+'/10</u><canvas width="72" height="72" data-k="'+(onK(kind)||'')+'"'+(kind==='hood'? ' data-h="'+(cur||'')+'"' : '')+' data-kind="'+kind+'"></canvas><em>'+lab(kind)+'</em></button>';
-  h+='<i class="hddv"></i><button class="hdtab shop'+(hdTab==='deco'?' on':'')+'" data-tab="deco" aria-label="'+escAttr(lab('deco'))+'"><u class="bone"></u><canvas width="72" height="72" data-k="'+(F.deco[0]||F.deco[1]||F.wall[0]||F.wall[1]||'sunflower')+'"></canvas><em>'+lab('deco')+'</em></button>';
+  if(decoOn) h+='<i class="hddv"></i><button class="hdtab shop'+(hdTab==='deco'?' on':'')+'" data-tab="deco" aria-label="'+escAttr(lab('deco'))+'"><u class="bone"></u><canvas width="72" height="72" data-k="'+(F.deco[0]||F.deco[1]||F.wall[0]||F.wall[1]||'sunflower')+'"></canvas><em>'+lab('deco')+'</em></button>';
   el('hdTabs').innerHTML=h;
   const sp=el('hdSpots'), grid=el('hdGrid'), clr=el('hdClear');
   if(hdTab==='deco'){
@@ -20041,7 +20130,7 @@ function houseDecoTap(t){
     hoodieWear(k); houseDecoRender(); return; }
   if(t.dataset.slot!=null){ const it=HOUSE_FURN_BY[t.dataset.slot]; if(!it) return;
     if(t.classList.contains('no')){ sfxBlocked(); showToast(I18N.t('house.deco.lockTip',{n:it.n}), 1500); return; }
-    if(t.classList.contains('boxed')){ showToast(I18N.t('victory.giftRoomSub'), 1600); return; }
+    if(t.classList.contains('boxed')){ showToast(I18N.t('house.giftPush'), 1600); return; }
     if(it.kind==='thing') houseThingSwap(it.k); else F.on[it.kind]=it.k;
     done(it.kind); return; }
   if(t.dataset.deco!=null){ const it=HOUSE_FURN_BY[t.dataset.deco]; if(!it) return;
@@ -20085,6 +20174,7 @@ function openHouse(lot, opts){
   syncMoves(); bgmSync();
 }
 function houseEnd(){
+  housePlaceFlush();                                          // 선물을 띄워 둔 채 나가면 그 자리에서 앉힌다
   houseSeenMark(); houseWakeAt=0;
   tutClearTO(); tutSlide=0;
   tutMode=false; houseMode=false; houseIn=false; hoodRowHide(); houseDecoClose();
@@ -21256,7 +21346,7 @@ function mealNextMs(){                              // 다음 밥때까지 남�
   return Math.max(0, MEAL_REFILL_MS-(Date.now()-mealTs));
 }
 function mmss(ms){ const t=Math.ceil(ms/1000); return Math.floor(t/60)+":"+String(t%60).padStart(2,'0'); }
-function mealOn(){ return !FREEPLAY && clearedCount()>=MEAL_AFTER; }   // 20판을 깨기 전엔 아예 안 돈다
+function mealOn(){ return !FREEPLAY && clearedCount()>=MEAL_AFTER; }   // 1동네(30판)를 다 깨기 전엔 아예 안 돈다
 
 // 차감은 loadLevel 이 아니라 여기서 한다 — 재시작·다시 도전·중단 재개가 전부
 // loadLevel 을 지나가므로 거기 걸면 실수 한 번에 밥이 두 번 준다.
@@ -21291,7 +21381,7 @@ function hardIntroShow(lv){
   if(!isHardLv(lv) || tutMode || moonMode || lunchMode) return;
   el('hiT').textContent=I18N.t('hard.title');
   const gift=!(starMap[lv]|0);                       // 이미 깬 판이면 꾸러미 줄은 안 쓴다
-  el('hiS').hidden=!gift; if(gift) el('hiSt').textContent=I18N.t('hard.gift');
+  el('hiS').hidden=!gift; el('hiSt').textContent='';   // 상자 그림만 — "깨면 꾸러미" 글자는 뺐다(2026-10-02)
   // 판 전환 와이프(.62s)가 걷힌 뒤에 선다 — 같이 뜨면 와이프 밑에 깔려 절반이 안 보인다.
   hardIntroTO=setTimeout(()=>{ if(level!==lv || state!=="play") return;
     b.classList.add('show'); tone(392,0.12,'triangle',0.05,523); buzz([10,30,10]);
@@ -21308,12 +21398,28 @@ function enterLevel(lv, opts){
   // "밥그릇이 비었어요" 로 사정을 말하고, 첫 줄이 `무료` 라 벌로 읽히지도 않는다.
   // 카드는 한 번 더 누르게 할 뿐이었다. showStory 는 부팅 카드가 계속 쓴다.
   if(meal<=0){ mealSheetShow(lv); return false; }   // 목록에 남는다 — 뒤로 갈 데가 있어야 한다
+  if(mealSpendCoach(lv, opts)) return false;        // 첫 한 끼 — 나가기 직전에 한 번 말하고, 확인하면 다시 들어온다
   meal--; setTimeout(()=>spendFx("meal",1), 420);   // 판이 뜬 뒤에 — 칩이 아직 안 보일 때 띄우면 놓친다
   if(meal===MEAL_MAX-1) mealTs=Date.now();          // 가득에서 한 끼 뺀 순간부터 회복 시작
   else if(!mealTs) mealTs=Date.now();
   mealSpent=true;                                   // 승리 카드가 "한 끼 썼다"를 보여줄 근거
   persist(); syncHud();
   enterLevelGo(lv);
+  return true;
+}
+// 처음 한 끼가 나가는 순간에 한 번 — 밥그릇 칩을 짚고 "산책 한 번에 한 끼" 를 말한다(2026-10-02 사람).
+// 칩의 숫자가 조용히 하나 줄 뿐이라, 말해 주지 않으면 무엇이 왜 줄었는지 모른 채 빈 그릇을 만난다.
+// 판 **안**에서는 못 한다 — 판 HUD 엔 밥그릇 칩이 없다(실측: hudCur 가 display:none). 칩이 보이는
+// 목록에서, 산책 가기를 누른 그 자리에서 위쪽 밥그릇 칩(줄어드는 바로 그 숫자)을 짚는다.
+// 확인 화면의 버튼을 짚어 봤더니 말풍선이 버튼을 덮었다(실측) — 칩은 카드 밖이라 둘 다 보인다.
+// 확인을 누르면 그대로 들어간다(한 번만 한 번 더 누른다).
+function mealSpendCoach(lv, opts){
+  if(tipSeen['mealSpend'] || unlockCB || coachSteps) return false;
+  const seen=e=>!!(e && e.getBoundingClientRect && e.getBoundingClientRect().width);
+  const tgt=el('hudMeal');
+  if(!seen(tgt)) return false;
+  tipSeen['mealSpend']=1; LS.set('roll_tips', JSON.stringify(tipSeen));
+  showUnlockSpotlight(tgt, 'tutorial.mealSpend', 'common.ok', ()=>enterLevel(lv, opts));
   return true;
 }
 let mealSpent=false, mealPendLv=0, mealTick=0;
@@ -21449,6 +21555,7 @@ function restoreSnap(s){
 
 function tryMove(dr,dc){
   if(houseZooming) return false;                             // 문을 지나는 0.5초 — 걸음을 안 받는다
+  if(houseMode && housePlacePending()){ housePlaceGo(); return false; }   // 선물이 떠 있다 — 걸음 대신 놓는다(쓸어도·방향 버튼도 같은 뜻)
   if(document.hidden||bgmSuspended) return;
   if(state!=="play"||gintroOn||(coachSteps && !matCoach)||noteOn||failOn) return;
   if(aimOn()) return;                                         // 도구를 들고 있으면 걸음이 안 먹는다
@@ -23626,6 +23733,7 @@ function coachTarget(st){
 }
 function coachApply(){
   const st=coachSteps[coachI];
+  coachRing2(null);
   // 대상은 셋 중 하나다 — 아이디(DOM) / 요소 / rect 함수(캔버스 위 좌표).
   // 마당 밥그릇처럼 DOM 이 없는 것을 짚으려면 세 번째가 필요하다.
   let r;
@@ -23651,16 +23759,10 @@ function coachApply(){
   if(st.tipY!=null){ const tip=el("cTip"); tip.style.top=st.tipY; tip.style.bottom="auto"; }
   else coachTipPlace(y, h, r.wh, coachTarget(st));
 }
-// 1판은 표지판 3장(움직이기·밀기·방석)을 이미 봤다. 코치마크는 거기서 못 배우는
-// 남은 건 ? 버튼 안내 하나뿐이다. 1판의 이동 바 코치(coachStart)는 뺐다 —
-// 첫 수를 두기 전에 페널티를 배울 이유가 없고, tipOnce('par') 가 넘긴 순간에 말한다.
+// 표지판을 닫은 뒤 이어 붙던 코치마크는 다 걷었다 — 1판의 이동 바 코치(coachStart)는
+// 첫 수를 두기 전에 페널티를 배울 이유가 없어서(tipOnce('par') 가 넘긴 순간에 말한다),
+// ? 버튼 안내(coachHelp)는 아직 눌러 본 적 없는 기어를 미리 설명해서.
 let coachKey='coach';
-// ? 버튼은 첫 기믹 판(11판 비눗물)에서 안내한다 — 1판엔 아직 다시 볼 기믹이 없다.
-function coachHelp(){
-  coachKey='coachHelp';
-  coachSteps=[{ id:"setbtn", pad:8, txt:'tutorial.help' }];
-  coachI=0; el("coach").classList.add("show"); coachApply();
-}
 function coachNext(){
   if(coachI<coachSteps.length-1){ coachI++; coachApply(); tone(560,0.06,"sine",0.04,760); return; }
   el("coach").classList.remove("show"); coachSteps=null;
@@ -23794,7 +23896,7 @@ function mealTut(){
     { rect:ywBowlRect, pad:16, txt: first? 'tutorial.mealFirst' : 'tutorial.meal1' },
     { rect:ywBowlRect, pad:16, txt:'tutorial.meal2', action:()=>yardAct('house'), buttonKey:'yardStatus.feed' },
   ];
-  // 셋째 걸음은 위쪽 밥그릇 칩을 가리킨다 — 체력 밥그릇(22판)이 돌 때만. 그 전엔 칩이 없다.
+  // 셋째 걸음은 위쪽 밥그릇 칩을 가리킨다 — 체력 밥그릇(30판 뒤)이 돌 때만. 그 전엔 칩이 없다.
   if(mealOn()) coachSteps.push({ rect:()=>{ const e=el('hudMeal'); return e? e.getBoundingClientRect() : null; }, pad:8, tipY:"26%", txt:'tutorial.meal3' });
   // 그 전(첫 일)엔 먹인 뒤 한 줄로 끝낸다 — 매일 돌아오는 일이고 수첩 일과표에 적힌다는 것만.
   else if(first) coachSteps[1].action=()=>{ const ok=yardAct('house');
@@ -23809,6 +23911,16 @@ let unlockCB=null, unlockCopy=null;
 // 구멍·말풍선을 대상의 지금 사각형에 앉힌다. 따로 뺀 이유: 대상이 떨어져 들어오는
 // 카드 위 버튼처럼 **뜬 뒤에도 잠깐 움직이는** 경우가 있어, 한 번 재고 끝내면 구멍이
 // 옛 자리에 남는다. 스포트라이트가 뜬 뒤 1초 동안 몇 번 더 앉힌다.
+// 둘째 링 — 구멍은 하나뿐이라(그림자 한 겹으로 판다) 같이 짚을 곳엔 링만 하나 더 얹는다.
+// rect 는 화면 좌표(matCellRect). null 이면 걷는다.
+function coachRing2(rect){
+  const e=el('cRing2'); if(!e) return;
+  if(!rect){ e.hidden=true; return; }
+  const W=el('wrap').getBoundingClientRect(), pad=4;
+  e.style.left=(rect.left-W.left-pad)+'px'; e.style.top=(rect.top-W.top-pad)+'px';
+  e.style.width=(rect.width+pad*2)+'px'; e.style.height=(rect.height+pad*2)+'px';
+  e.hidden=false;
+}
 function coachPlaceHole(tgt){
   const r=coachRect(tgt), pad=10;
   const x=r.x-pad, y=r.y-pad, w=r.w+pad*2, h=r.h+pad*2;
@@ -23837,6 +23949,7 @@ function coachTipPlace(y, h, wh, tgt){
 let coachTrackTO=[], coachTrackIV=0;
 function showUnlockSpotlight(id, txt, btnLabel, onGo){
   const tgt=(typeof id==='string')? el(id) : id; if(!tgt) return;   // 아이디 없는 요소도 받는다
+  coachRing2(null);                                  // 둘째 링은 부르는 쪽이 띄운 뒤에 다시 건다
   coachPlaceHole(tgt);
   unlockCopy={txt,btnLabel};
   el("cStep").textContent=""; el("cTxt").innerHTML=tutorialCopy(txt);
@@ -23972,7 +24085,9 @@ function checkContentUnlocks(){
   // (마당·달빛·보물산책은 휴면 — 스포트라이트 없음)
   if(shopUnlocked() && !tipSeen['shopOpen']){
     tipSeen['shopOpen']=1; LS.set('roll_tips', JSON.stringify(tipSeen));
-    showUnlockSpotlight('tbShop', 'tutorial.shopOpen', 'tutorial.goShop', openGrandpaGiftUnlock);
+    // 도장판이 꺼져 있으면 "할아버지의 선물이 도착했어요" 는 없는 걸 약속한다 — 가게가 열렸다고만 말한다.
+    if(STAMP_ON) showUnlockSpotlight('tbShop', 'tutorial.shopOpen', 'tutorial.goShop', openGrandpaGiftUnlock);
+    else showUnlockSpotlight('tbShop', 'tutorial.shopOpenPlain', 'tutorial.goShop', openShop);
     return;
   }
   // 수첩(50)과 아침 심부름(90)도 같은 문법으로 알린다. 안 그러면 목록에 칩이 말없이
@@ -24069,7 +24184,7 @@ function winRoomReveal(){
   const g=giftReceive(level); if(!g || !g.furn) return;
   const it=g.furn, hood=it.kind==='hood';
   el('wrNm').textContent=I18N.t('victory.giftRoom');
-  el('wrSub').textContent=hood? I18N.t(skinComplete(it.m)? 'victory.hoodSub' : 'victory.hoodSew') : I18N.t('victory.giftRoomSub');
+  el('wrSub').textContent=hood? I18N.t(skinComplete(it.m)? 'victory.hoodSub' : 'victory.hoodSew') : '';   // 선물은 제목·버튼 둘이면 된다 — 여는 법은 방에서 상자가 말한다
   el('wrGo').textContent=I18N.t(hood? 'victory.furnGo' : 'victory.giftRoomGo');
   const cv=el('wrIco'); if(cv && cv.getContext){ const o=ctx, oc=cell; ctx=cv.getContext('2d'); cell=64;
     ctx.clearRect(0,0,cv.width,cv.height); try{ drawHouseGift(48,50); }catch(e){} ctx=o; cell=oc; }
@@ -25884,7 +25999,7 @@ document.addEventListener("pointerdown", (e)=>{
 }, true);
 for(const k of ['snd','mus','vib','pad']) onTap(el("sd_"+k), ()=>optToggle(k));
 // 도움말(기믹 표지판 재열람)은 상단 ? 버튼에서 설정 드롭으로 옮겼다 — H안: 상단은
-// 기어·나가기 둘만. 코치(coachHelp)도 setbtn 을 가리키게 같이 옮겼다.
+// 기어·나가기 둘만.
 onTap(el("sd_help"), ()=>{ setDropHide(); showBoardGuides(); });
 onTap(el("sd_more"), ()=>{ setDropHide(); resetArm=0; el("optReset").classList.remove("arm"); syncOpts(); el("setsel").classList.add("show"); });
 onTap(el("setClose"), ()=>{ el("setsel").classList.remove("show"); });

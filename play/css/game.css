@@ -667,6 +667,8 @@
      오른쪽 칸이 무엇인지를 맡는다. */
   #winStars { display:flex; align-items:center; gap:10px; margin:10px 0 0;
     background:#F6EEE0; border-radius:14px; padding:8px 10px; position:relative; }
+  /* 간식이 없는 판(1판)은 채울 칸이 없다 — 빈 알약이 "뭔가 못 받았다" 로 읽혔다(실측 2026-10-02). */
+  #winStars:empty { display:none; }
   #winStars .wsdl { font-style:normal; text-align:left; line-height:1.25; white-space:nowrap; }
   #winStars .wsdl b { display:block; font-weight:var(--w-reg); font-size:var(--s10);
     letter-spacing:var(--tr-wide); color:#A8937A; }
@@ -793,6 +795,9 @@
   body.hudinplay .hudcur { top:26px; }
   body.hudinplay #mvbar { margin-top:44px; }
   body.hudinplay .hudpaw .hpp { display:none; }
+  /* 안 배운 건 숨긴다 — 간식 칩은 첫 간식을 주운 뒤, + 는 쓸 가게가 열린 뒤(syncHud 가 건다). */
+  body.nopaw .hudpaw { display:none; }
+  body.nopawshop .hudpaw .hpp { display:none; }
   body.hudinplay .hudmeal .mcd { display:none; }
   /* 소비 표시 — 도토리·밥이 나가는 건 화면에서 숫자가 조용히 줄 뿐이라 안 보였다.
      칩 위로 -N 이 떠올랐다 사라진다. 받을 때(pawFly)와 방향이 반대라 헷갈리지 않는다. */
@@ -1570,8 +1575,12 @@
   /* 아직 설계도를 안 받았으면 만들기 버튼이 없다 — 백지 한 장과 한 줄뿐이다. */
   #glCard.wait .glmake { display:none; }
   /* 확인 화면 — 이름은 여기서만 진다. 지도엔 꼬리표를 안 띄운다(그림이 이미 말한다). */
-  .lchard { display:inline-block; vertical-align:middle; margin-left:6px;
-    background:#6E6156; color:#F6EEDF; font-size:var(--s9); border-radius:7px; padding:1px 8px; }
+  /* 험한 길 딱지 — 회색 꼬리표였는데 입장 연출(왕관·붉은 글씨)과 한 벌로 맞춰 돋운다(2026-10-02).
+     지도의 왕관, 판에 들어설 때의 왕관과 같은 그림이라 "그 판" 이 한 번에 이어진다. */
+  .lchard { display:inline-flex; align-items:center; gap:4px; vertical-align:middle; margin-left:8px;
+    background:#B5452F; color:#FFF4E2; font-size:var(--s8); border-radius:10px; padding:3px 10px 3px 7px;
+    box-shadow:0 2px 0 #8A3020; }
+  .lchard svg { width:17px; height:11px; flex:none; }
   .lcgift { display:none; }
   .lcgift.on { display:flex; align-items:center; gap:8px; margin:8px 14px 0;
     background:#FBF1DC; border-radius:12px; padding:8px 10px; font-size:var(--s8); color:#8A5A2C; }
@@ -3114,6 +3123,9 @@
     cursor:pointer; transition:left .3s, top .3s, width .3s, height .3s; }
   .cring { position:absolute; border-radius:14px; border:2.5px solid #FFC66B; pointer-events:none;
     box-shadow:0 0 16px rgba(255,198,107,.75); transition:left .3s, top .3s, width .3s, height .3s; }
+  /* 둘째 링 — 구멍 밖(어두운 쪽)에 서므로 안쪽을 살짝 밝혀 짚는 대상이 묻히지 않게 한다. */
+  .cring2 { background:rgba(255,226,150,.26); transition:none; }
+  .cring2[hidden] { display:none; }
   /* 폭은 실측으로 잡았다 — 20px 에서 가장 긴 코치마크 한 줄(킁킁 안내)이 354px 라
      좌우 13% + 패딩 32px 면 한 줄로 떨어진다. 6% 때는 상자가 화면을 거의 다 덮어
      구멍을 짚는 카드가 아니라 배너처럼 읽혔다. */
@@ -4223,6 +4235,7 @@ body.inhouse #boardWrap { transition:transform .26s ease-out; }
 #hdeco .hdbal { display:inline-flex; align-items:center; gap:4px; font-size:var(--s8); color:#8A5A18; background:#FFF0D4;
   border:2px solid #E8C98A; border-radius:14px; padding:2px 10px; }
 #hdeco .hdbal svg { width:18px; height:18px; }
+#hdeco .hdbal[hidden] { display:none; }   /* 살 게 없는 동안(가게 열리기 전)엔 잔액도 안 보인다 */
 #hdeco .hdtabs { display:grid; grid-template-columns:repeat(6,1fr) 2px 1.15fr; gap:5px; margin-bottom:8px; }
 #hdeco .hddv { background:#E3D3B6; border-radius:1px; margin:6px 0; }
 #hdeco .hdtab { position:relative; display:grid; justify-items:center; gap:1px; padding:5px 0; border-radius:12px;
