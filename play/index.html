@@ -754,6 +754,10 @@
   </div>
   <button class="tutskip" id="tutSkip" data-i18n="common.skip">건너뛰기</button>
   <div class="hoodrow" id="hoodRow" aria-label="갈아입기"></div>
+  <!-- 방의 길 버튼 — 산책 지도의 방 버튼(#lsRoom)과 같은 자리·같은 모양. 숫자는 다음에 걸을 산책. -->
+  <button class="lsbuild hswalk" id="hsWalk" aria-label="산책 가기" data-i18n-aria="accessibility.walk"><canvas class="lbico" width="84" height="84"></canvas><i class="hswn" id="hsWalkN"></i></button>
+  <!-- 판 아래 할아버지 게시판 — 광고 자리(320×50). 광고가 없으면 같은 자리에 쪽지가 붙는다. -->
+  <div id="gboard" aria-hidden="true"><div class="gbroof"></div><i class="gbpost l"></i><i class="gbpost r"></i><div class="gbwood"><div class="gbslot" id="gbSlot"><div class="gbnote" id="gbNote"></div></div></div></div>
   <div id="dock">
     <!-- HUD 시안(1-1) — 도크가 다섯 칸이 된다: 힌트 셋 + 무르기 + 다시하기.
          힌트는 평소 입장 전 확인 화면에서 켜지만(Phase 7), 이 시안에서는 판 안에서
@@ -16203,6 +16207,7 @@ function syncHud(){
   // 간식 칩은 첫 간식을 주운 뒤부터, + 는 쓸 가게가 열린 뒤부터(안 배운 건 숨긴다).
   document.body.classList.toggle("nopaw", !treatKnown());
   document.body.classList.toggle("nopawshop", !shopUnlocked());
+  gboardSync(); syncWalkFab();                              // 화면이 바뀌는 자리 — 판 밑 게시판과 방의 길 버튼도 같이 맞춘다
   syncMealHud();
 }
 // 카탈로그 카드 — 썸네일은 미니 캔버스에 drawYardItem 을 그대로 그린다 (ctx/cell 잠시 바꿔치기)
@@ -20179,7 +20184,7 @@ function houseEnd(){
   housePlaceFlush();                                          // 선물을 띄워 둔 채 나가면 그 자리에서 앉힌다
   houseSeenMark(); houseWakeAt=0;
   tutClearTO(); tutSlide=0;
-  tutMode=false; houseMode=false; houseIn=false; hoodRowHide(); houseDecoClose();
+  tutMode=false; houseMode=false; houseIn=false; hoodRowHide(); houseDecoClose(); syncWalkFab();
   document.body.classList.remove("intut","inhouse");
   el("win").classList.remove("show");
   openLvlSel();
@@ -20214,6 +20219,7 @@ function houseZoom(toRoom, go){
   }, HOUSE_ZOOM_IN+20);
 }
 function houseTick(){
+  syncWalkFab();
   if(houseZooming) return;
   if(houseMode && houseWakeAt && animT>=houseWakeAt){ houseWakeAt=0;          // 깨어 반긴다
     if(dog.maxEvent==='sitSleep'){ dog.maxEvent='victory'; dog.maxEventT=0; dog.wagBoost=1; tone(740,0.06,'triangle',0.04,1100); buzz([8,20,8]); } }
@@ -24265,14 +24271,45 @@ function scheduleWinReveal(st){
     }, WIN_BEAT.buttons+700);
   }
 }
-// 승리 카드 위 맥스 얼굴 — 판 그림과 같은 맥스(입은 옷 포함)를 작은 캔버스에 한 번 그린다.
+// 승리 카드 위 맥스 — 한 장 그림이던 것을 **결과에 따라 다른 동작**으로 움직인다(2026-10-02 사람).
+//   간식을 다 주웠으면 폴짝폴짝(victory) · 걸음을 아슬아슬하게 남겼으면 털썩 앉는다(sit — 한 번 앉고 앉은 채) · 그 밖엔 대기(idle — 숨·깜빡임).
+// 시트는 판에서 쓰는 것 그대로다 — 입은 옷으로 이미 갈아 끼워져 있다(chapterMaxSkinAtlasSync). 못 읽었으면 예전 한 장으로 돌아간다.
+let winFaceMotion='idle', winFaceT0=0, winFaceLive=false;
+function winFacePick(){
+  if(moonMode || lunchMode || tsMode) return 'idle';
+  const left=stepLimit()-moves, full=matFull(level)>0 && (SNACKS_ON? snacksLeftNow() : acornGot())>=matFull(level);
+  if(full) return 'victory';
+  if(left>=0 && left<=CLOSE_CALL) return 'sit';
+  return 'idle';
+}
+function winFaceFrame(m, t){
+  if(m==='victory') return chapterMaxMasterVictoryV1Frame(t);
+  if(m==='sit') return Math.max(0, Math.min(7, Math.floor(t/chapterMaxEventDuration('masterSit')*8)));   // 한 번 앉고 마지막 칸에 머문다
+  return chapterMaxMasterIdleV1Frame(t);
+}
 function winFaceDraw(){
   const c=el("winFace"); if(!c || !c.getContext) return;
+  if(!winFaceLive){ winFaceLive=true; winFaceMotion=winFacePick(); winFaceT0=animT; }
   const g=c.getContext('2d'); if(!g) return; g.clearRect(0,0,c.width,c.height);
-  const oc=ctx, ocell=cell; ctx=g; cell=Math.round(c.width*0.86);
-  try{ const x=c.width/2, y=c.height*0.6; if(!drawMaxStaticUi(x, y+cell*.36, cell, 'front')) drawDog(x, y, cell, 1, 1, 1); }catch(e){ }
-  finally{ ctx=oc; cell=ocell; }
+  const at=winFaceMotion==='victory'? maxChapterMasterVictoryV1Atlas : winFaceMotion==='sit'? maxChapterMasterSitV1Atlas : maxChapterMasterIdleV1Atlas;
+  const x=c.width/2, size=Math.round(c.width*0.86), ground=c.height*0.6+size*.36;
+  if(chapterMaxAtlasReady(at) && at.width>=2048){
+    const t=Math.max(0, animT-winFaceT0), f=winFaceFrame(winFaceMotion, t), k=maxSkinDrawScale(), s=size*k;
+    const hop=winFaceMotion==='victory'? chapterMaxMasterVictoryV1LoopOffset(t)*size : 0;   // 첫 점프 뒤 되풀이는 살짝 낮게 — 판과 같은 보정
+    g.save(); g.imageSmoothingEnabled=true;
+    g.drawImage(at, f*256, 0, 256, 256, x-s*.5, ground-s*(MAX_MASTER_FRAME_GROUND_Y/256)+hop, s, s);
+    g.restore();
+  } else {
+    const oc=ctx, ocell=cell; ctx=g; cell=size;
+    try{ if(!drawMaxStaticUi(x, ground, cell, 'front')) drawDog(x, c.height*0.6, cell, 1, 1, 1); }catch(e){ }
+    finally{ ctx=oc; cell=ocell; }
+  }
   const lv=el("winLvl"); if(lv) lv.textContent = (moonMode||lunchMode||tsMode)? '' : I18N.t('lvcard.title',{lv:lvLabel(level)});
+}
+// 카드가 떠 있는 동안 매 프레임 다시 그린다. 판을 떠나면(state 가 win 이 아니면) 다음 승리를 위해 고른 동작을 버린다.
+function winFaceTick(){
+  if(state!=="win"){ winFaceLive=false; return; }
+  if(winFaceLive) winFaceDraw();
 }
 function win(){
   if(TRAINING_PRACTICE){ state='win'; pendingWin=false; winT=0; sfxWin();
@@ -25137,6 +25174,7 @@ onTap(el("tbShop"),  ()=>{
 });
 onTap(el("lsYard"), ()=>{ if(yardUnlocked()) openHomeTab(); });
 onTap(el("lsRoom"), ()=>{ openHouse(HOUSE_LOT,{room:true}); tone(620,0.05,'triangle',0.03,840); });
+onTap(el("hsWalk"), ()=>{ if(!houseMode || houseZooming) return; housePlaceFlush(); houseWalkGo(); });   // 띄워 둔 선물이 있으면 앉히고 간다
 onTap(el("tbYard"), ()=>{
   if(HOUSE_ON){ if(yardUnlocked()) openHouse(); else tabToast(yardLockedMsg()); return; }
   if(yardUnlocked()) openYard();
@@ -26203,6 +26241,67 @@ function fit(){
   if(wrap.classList) wrap.classList.toggle("trimmed", !!half);
   boardTrim=!!half;
   ctx.setTransform(dpr,0,0,dpr,0,0); ox=0; oy=0;
+  gboardSync();                                           // 판 자리가 정해졌다 — 그 밑 게시판·버튼 자리를 다시 잰다
+}
+// ── 판 아래 — 그 동네 풍경 + 할아버지 게시판(2026-10-02 사람: 시안 3) ───────────────
+// 판 아래 4분의 1이 비어 있었다. 그 동네 그림을 깔고, 맨 아래에 지붕 달린 게시판을 세운다.
+// 게시판은 **광고 자리**다(표준 배너 320×50). 광고가 없을 때(지금은 늘)는 같은 자리에 할아버지 쪽지가 붙는다 —
+// 광고가 있든 없든 자리가 비지 않고 판·버튼이 밀리지 않는다. 광고 옆에 버튼을 두면 오탭을 부르므로(정책)
+// 게시판이 서면 무르기·다시하기는 판 바로 밑으로 올라간다(--gbdock).
+// 양보 둘: 방향 버튼을 켠 사람은 그 자리에 방향 버튼이 온다. 화면이 낮아 자리가 안 나도 게시판은 안 선다(풍경만).
+const GBOARD_ON=true, GBOARD_NEED=176;                      // 판 밑에 이만큼(px)은 있어야 선다 — 버튼 50 + 틈 + 게시판
+const DISTRICT_SCENE_ART={
+  1:'art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp',
+  2:'art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp',
+  3:'art/chapter-concepts/optimized/stage-select-03-stream-v1.webp',
+  4:'art/chapter-concepts/optimized/stage-select-04-acorn-hill-v1.webp',
+  5:'art/chapter-concepts/optimized/stage-select-05-play-lot-v2.webp',
+  6:'art/chapter-concepts/optimized/stage-select-06-vegetable-field-v1.webp',
+  7:'art/chapter-concepts/optimized/stage-select-07-warehouse-v1.webp',
+  8:'art/chapter-concepts/optimized/stage-select-08-fence-lane-v1.webp',
+  9:'art/chapter-concepts/optimized/stage-select-09-cat-alley-v1.webp',
+  10:'art/chapter-concepts/optimized/stage-select-10-pinwheel-field-v1.webp',
+};
+// 쪽지 — 그 판까지 배운 것만 말한다(안 배운 건 숨긴다). 판 번호로 고르므로 같은 판은 늘 같은 쪽지다.
+const GBOARD_NOTES=[{k:'gboard.pull',from:1},{k:'gboard.undo',from:1},{k:'gboard.corner',from:3},{k:'gboard.treat',from:3},{k:'gboard.gate',from:12},{k:'gboard.walk',from:6}];
+function gboardNote(lv){ const pool=GBOARD_NOTES.filter(n=>lv>=n.from); return pool[(lv*7)%pool.length].k; }
+function gboardSync(){
+  const b=el('gboard'), w=el('wrap'); if(!b || !w || !w.style || !w.style.setProperty) return;   // 헤드리스 로더의 가짜 화면엔 setProperty 가 없다
+  const play=GBOARD_ON && !menuMode && !tutMode && !houseMode && !yardMode && !moonMode && !tsMode && !lunchMode && !selMode && level>=1;   // 본편 판 안(승리·실패 카드가 떠 있어도 판은 그대로다)
+  document.body.classList.toggle('gscene', !!play);
+  let on=false;
+  if(play && !optPad && cv && cv.getBoundingClientRect){
+    const c=cv.getBoundingClientRect(), wr=w.getBoundingClientRect(), vis=c.bottom-(boardTrim? Math.round(cell/2) : 0);
+    if(c.width>1 && wr.bottom-vis>=GBOARD_NEED){ on=true; w.style.setProperty('--gbdock', Math.round(vis-wr.top+10)+'px'); } }
+  document.body.classList.toggle('gboard', on);
+  // 주소는 절대 경로로 넘긴다 — 변수 속 상대 주소는 그 변수를 쓰는 스타일시트(css/) 기준으로 풀려 그림이 안 떴다(실측).
+  if(play){ const art=DISTRICT_SCENE_ART[districtOfLv(level)]||DISTRICT_SCENE_ART[1];
+    let href=art; try{ href=new URL(art, location.href).href; }catch(e){}
+    w.style.setProperty('--gbart', 'url("'+href+'")');
+    if(on) el('gbNote').innerHTML=I18N.html(gboardNote(level)); }
+}
+// ── 방의 길 버튼 — 지도에 방 버튼이 있듯 방엔 길 버튼(2026-10-02 사람). 누르면 다음 산책의 입장 카드로 바로 간다.
+// 전엔 방에서 나가는 길이 목록뿐이라 선물을 받고 다음 판까지 탭이 넷이었다.
+function drawWalkIcon(g, W, H){
+  g.clearRect(0,0,W,H); const u=W/84;
+  g.fillStyle='#BFE08A'; g.beginPath(); g.roundRect(8*u,8*u,68*u,68*u,16*u); g.fill();
+  g.strokeStyle='#F6EFD9'; g.lineWidth=17*u; g.lineCap='round';
+  g.beginPath(); g.moveTo(58*u,78*u); g.bezierCurveTo(70*u,52*u,16*u,48*u,30*u,24*u); g.bezierCurveTo(34*u,16*u,44*u,10*u,50*u,6*u); g.stroke();
+  g.fillStyle='#8A5A2C';
+  const paw=(x,y,s)=>{ g.beginPath(); g.ellipse(x,y+s*0.5,s*0.9,s*0.75,0,0,7); g.fill();
+    for(const [dx,dy] of [[-1,-0.6],[-0.35,-1.15],[0.35,-1.15],[1,-0.6]]){ g.beginPath(); g.arc(x+dx*s,y+dy*s,s*0.36,0,7); g.fill(); } };
+  paw(52*u,60*u,6.5*u); paw(30*u,34*u,5.2*u);
+  g.strokeStyle='#8A6844'; g.lineWidth=3*u; g.beginPath(); g.roundRect(8*u,8*u,68*u,68*u,16*u); g.stroke();
+}
+let walkFabKey='';
+function syncWalkFab(){
+  const b=el('hsWalk'); if(!b || !b.classList) return;
+  const on=houseMode && houseIn && !houseZooming, lv=Math.max(1, Math.min(maxLevel, BAKED.length)), key=on+':'+lv;
+  if(key===walkFabKey) return; walkFabKey=key;
+  b.classList.toggle('on', on); if(!on) return;
+  el('hsWalkN').textContent=lvLabel(lv);
+  const ic=b.querySelector && b.querySelector('.lbico');
+  if(ic && ic.getContext && !(ic.dataset && ic.dataset.nb)){ if(ic.dataset) ic.dataset.nb='1'; drawWalkIcon(ic.getContext('2d'), ic.width, ic.height); }
 }
 function cx(c){ return c*cell+cell/2; } function cy(r){ return r*cell+cell/2; }
 // ---- 색종이 (승리 연출) ----
@@ -35083,6 +35182,7 @@ function frameInner(ts){
   if(tutMode && moves>0 && tutDimT<0.4) tutDimT+=dt;
   if(tutSlide){ tutSlide += dt/0.35; if(tutSlide>=2) tutSlide=0; }
   if(houseMode) houseTick(); else if(obStage) obTick();
+  winFaceTick();
   if(tut===2){ tutWinT+=dt; if(tutWinT>=1.5){ tut=0; if(!tutMode){ tutDone=true; persist(); } el("hint").classList.remove("tuthi"); } }   // 성공 연출 후 종료
     if(state==="play" && !tut){                                  // 유휴 동작: 튜토리얼 중엔 멈춰 집중
     const idle=animT-lastMoveT;

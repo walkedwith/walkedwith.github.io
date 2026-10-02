@@ -428,6 +428,33 @@
     bottom:max(9px, env(safe-area-inset-bottom)); z-index:20;
     width:162px; justify-content:center; gap:6px; padding:0;
   }
+  /* ── 판 아래 — 그 동네 풍경 + 할아버지 게시판(gboardSync 가 body.gscene / body.gboard 를 건다) ──
+     풍경은 지도에 쓰는 동네 그림의 아랫부분이다(새 다운로드 없음). 위로 갈수록 투명해져 하늘 그라데이션에 녹는다.
+     게시판이 서면 무르기·다시하기는 판 바로 밑으로 올라간다 — 광고 자리 옆에 버튼을 두지 않는다. */
+  body.gscene #wrap::after { content:""; position:absolute; left:0; right:0; bottom:0; height:30%; z-index:0; pointer-events:none;
+    background:var(--gbart) center 78% / cover no-repeat; opacity:.95;
+    -webkit-mask-image:linear-gradient(to top,#000 45%,transparent); mask-image:linear-gradient(to top,#000 45%,transparent); }
+  body.hud-pilot.gboard:not(.dpad) #dock { bottom:auto; top:var(--gbdock); }
+  #gboard { display:none; position:absolute; left:50%; bottom:max(14px, env(safe-area-inset-bottom)); transform:translateX(-50%);
+    z-index:3; width:min(338px, calc(100% - 14px)); pointer-events:none; }
+  body.gboard:not(.dpad) #gboard { display:block; }
+  #gboard .gbroof { height:24px; margin:0 -5px -2px; background:#B4604C; clip-path:polygon(50% 0, 100% 100%, 0 100%);
+    filter:drop-shadow(0 3px 0 #8C4636); }
+  #gboard .gbpost { position:absolute; bottom:-10px; width:9px; height:92px; background:#8A5E36; border-radius:3px; }
+  #gboard .gbpost.l { left:14px; } #gboard .gbpost.r { right:14px; }
+  #gboard .gbwood { position:relative; background:linear-gradient(#D1A068,#BD8A52); border:3px solid #8A5E36; border-radius:10px;
+    box-shadow:0 4px 0 #7A5230, inset 0 2px 0 rgba(255,255,255,.25); padding:6px; box-sizing:border-box; }
+  #gboard .gbslot { position:relative; height:50px; background:#C99A62; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  #gboard .gbslot::before { content:""; position:absolute; left:50%; top:1px; width:10px; height:10px; margin-left:-5px; border-radius:50%;
+    background:#D65C50; z-index:1; }
+  #gboard .gbnote { background:#FFFAEC; transform:rotate(-1.5deg); padding:7px 18px 6px; font-size:var(--s7); color:#5E4630;
+    box-shadow:0 2px 0 rgba(90,60,30,.25); white-space:nowrap; }
+  /* 방의 길 버튼 — .lsbuild(지도의 방 버튼)와 같은 틀. 방에서만 뜨고(syncWalkFab), 꾸미기 시트가 열리면 비킨다. */
+  .hswalk { z-index:40; }
+  body.hdeco .hswalk { display:none !important; }
+  .hswalk .hswn { position:absolute; right:-7px; top:-9px; min-width:22px; height:22px; padding:0 5px; box-sizing:border-box;
+    border-radius:11px; background:#C9584A; color:#fff; font-style:normal; font-size:var(--s9); line-height:22px; text-align:center;
+    box-shadow:0 2px 0 rgba(74,53,36,.25); }
   body.hud-pilot:not(.dpad) #dock .dbtn {
     width:50px; height:50px; background:#FFF8E9; border:2px solid #E5C987;
     border-radius:14px; box-shadow:0 4px 0 rgba(173,126,55,.26), 0 7px 13px rgba(75,54,31,.08);
