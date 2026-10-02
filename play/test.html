@@ -21635,8 +21635,16 @@ function tryMove(dr,dc){
       const byBall=doorLegs(L, filled, lf.i).some(w=>{ const w2=(w+ds)&3;
         return [[dd.r+DOOR_CV[w][0]+DOOR_CV[w2][0], dd.c+DOOR_CV[w][1]+DOOR_CV[w2][1]], [dd.r+DOOR_CV[w2][0], dd.c+DOOR_CV[w2][1]]]
           .some(([r2,c2])=>boxes.some(x=>x.sink===0 && !x.carried && x.kind==='ball' && x.r===r2 && x.c===c2)); });
-      doorFx={i:lf.i, from:doorRot(L, filled, lf.i), s:ds, t:0, fail:true, ball:byBall};
-      fxAfter(tHit, ()=>{ tone(180,0.06,"square",0.04,120); buzz([10,18,10]); });
+      // 팔은 **막은 것에 닿을 때까지** 돌고(amp), 닿는 순간 그것이 반응한다 — 맥스면 맞고 별이 뜨고,
+      // 울타리·화단이면 부르르 떤다. 글자 없이 "무엇 때문에 안 도는지"가 보인다.
+      const blk=doorBlockAt(lf, ds);
+      doorFx={i:lf.i, from:doorRot(L, filled, lf.i), s:ds, t:0, fail:true, ball:byBall, amp:blk? blk.amp : 0.3};
+      fxAfter(tHit, ()=>{ tone(180,0.06,"square",0.04,120); buzz([10,18,10]);
+        if(!blk || blk.kind==='ball') return;
+        spark(blk.r, blk.c, "#FFF4C2", 6, 1.6);
+        if(blk.kind==='dog'){ bonkStart(); shake=Math.min(1,(shake||0)+0.3); }          // 다른 팔이 맥스를 쳤다
+        else if(blk.kind==='box'){ const b=boxes.find(x=>x.sink===0 && !x.carried && x.r===blk.r && x.c===blk.c); if(b){ b.bump=1; b.bumpK=0.35; b.bumpR=0; b.bumpC=0; } }
+        else if(L.T[blk.r] && L.T[blk.r][blk.c]===WALL && !(matHitFx && matHitFx.r===blk.r && matHitFx.c===blk.c)) matHitFx={r:blk.r, c:blk.c, w:null, t:0.3}; });
       if(byBall) fxAfter(tBack, ()=>{ bonkStart(); buzz(8); });
       return;
     }
@@ -23377,10 +23385,33 @@ function rebOffset(u){
   const q=(u-BLOCK_BACK_U)/(1-BLOCK_BACK_U); return -0.24*(1-q)*(1-q);
 }
 // 못 도는 문 — 미는 쪽으로 조금 돌다(→.35) 막혀 되돌아오고(→.66) 살짝 넘쳤다 선다. 90° 의 비율.
-function doorFailAngle(u, over){
-  if(u<BLOCK_HIT_U) return Math.sin(u/BLOCK_HIT_U*Math.PI/2)*0.3;
-  if(u<BLOCK_BACK_U) return 0.3*Math.cos((u-BLOCK_HIT_U)/(BLOCK_BACK_U-BLOCK_HIT_U)*Math.PI/2);
+// amp 는 **막은 것에 닿는 각**이다(doorBlockAt) — 늘 같은 만큼 흔들리면 무엇이 막았는지가 안 읽힌다.
+function doorFailAngle(u, over, amp){
+  const A=amp||0.3;
+  if(u<BLOCK_HIT_U) return Math.sin(u/BLOCK_HIT_U*Math.PI/2)*A;
+  if(u<BLOCK_BACK_U) return A*Math.cos((u-BLOCK_HIT_U)/(BLOCK_BACK_U-BLOCK_HIT_U)*Math.PI/2);
   return over? -0.05*Math.sin((u-BLOCK_BACK_U)/(1-BLOCK_BACK_U)*Math.PI) : 0;   // 공에 막혔을 때만 맥스 쪽으로 살짝 넘친다
+}
+// 못 도는 문 — **무엇이** 막았나(연출용. 규칙은 doorSwing 이 진다 — 여기선 그 검사 순서를 따라 첫 막힘만 찾는다).
+// 안 될 때의 피드백은 글자가 아니라 그림으로 준다(2026-10-02 사람): 팔이 막은 것까지 가서 닿고, 그것이 반응한다.
+// ㄱ자 문 안쪽 모서리에 맥스가 서 있으면 어느 팔을 밀어도 다른 팔이 맥스를 친다 — 그걸 팔이 직접 보여 준다.
+// 돌려주는 값: {kind:'dog'|'wall'|'box'|'ball', r, c, at:'corner'|'end', amp} — amp 는 팔이 거기 닿을 때까지 도는 비율.
+function doorBlockAt(lf, s){
+  const d=L.doors[lf.i], legs=doorLegs(L, filled, lf.i), own=new Set(legs.map(w=>kk(d.r+DOOR_CV[w][0], d.c+DOOR_CV[w][1])));
+  const what=(r,c)=>{
+    if(r===dog.r && c===dog.c) return 'dog';
+    if(r<1||c<1||r>GN-2||c>GN-2) return 'wall';
+    const t=tileAt(L, filled, r, c);
+    if(!(t===GRASS || t===MAT || (t===WALL && own.has(kk(r,c))))) return 'wall';
+    const b=boxes.find(x=>x.sink===0 && !x.carried && x.r===r && x.c===c);
+    return b? (b.kind==='ball'? 'ball' : 'box') : null; };
+  let ball=null;
+  for(const w of legs){ const w2=(w+s)&3;
+    const spots=[[d.r+DOOR_CV[w][0]+DOOR_CV[w2][0], d.c+DOOR_CV[w][1]+DOOR_CV[w2][1], 'corner'], [d.r+DOOR_CV[w2][0], d.c+DOOR_CV[w2][1], 'end']];
+    for(const [r,c,at] of spots){ const k=what(r,c); if(!k) continue;
+      if(k==='ball'){ if(!ball) ball={kind:k, r, c, at, amp:0.3}; continue; }   // 공은 밀릴 수도 있다 — 단단한 막힘이 따로 있으면 그쪽이 먼저다
+      return {kind:k, r, c, at, amp: at==='end'? 0.5 : (k==='dog'? 0.34 : 0.24)}; } }
+  return ball;
 }
 // 공 몸짓 — 출발할 때 진행 방향으로 늘어나고, 멈출 때 눌렸다 튀어 돌아온다.
 // 장난감 그림은 sx·sy 를 안 받아서(방석에 드는 순간 부풀지 말라고 1로 묶였다) 바깥에서 늘린다.
@@ -32088,7 +32119,7 @@ function drawDoors(){
   L.doors.forEach((d,i)=>{
     const fx=(doorFx && doorFx.i===i)? doorFx : null;
     let base=(doorRot(L, filled, i)-1)*H;                  // 나침반 → 화면 각(0 = 오른쪽)
-    if(fx && fx.fail) base=(fx.from-1)*H + (fx.s===1? H : -H)*doorFailAngle(Math.min(1,fx.t), fx.ball);
+    if(fx && fx.fail) base=(fx.from-1)*H + (fx.s===1? H : -H)*doorFailAngle(Math.min(1,fx.t), fx.ball, fx.amp);
     else if(fx){ const t=Math.min(1,fx.t), e=1-Math.pow(1-t,3);
       base=(fx.from-1)*H + (fx.s===1? H : -H)*e; }
     const px=cx(d.c), gy=cy(d.r)+s*.3, items=[];
