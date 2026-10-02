@@ -314,25 +314,30 @@
   .numbadge:empty { display:none; }
   .numbadge.bump { animation:pawbump .34s cubic-bezier(.3,1.7,.5,1); }
   #dock .dnum { right:-3px; top:-3px; }
+  /* D패드 버튼은 판 칸(폰에서 약 51px)보다 커야 한다 — 엄지로 안 보고 연타하는 버튼이다(2026-10-02, 58→64). */
   #dpad { display:none; position:absolute; right:6px; bottom:10px; z-index:45;
-    width:174px; height:174px; }
+    width:192px; height:192px; }
   body.dpadL #dpad { right:auto; left:6px; }
   body.dpadL.dpad #dock { justify-content:end; padding-left:0; padding-right:16px; }
   body.dpadL.dpad #hint { text-align:right; padding-left:0; padding-right:16px; }
   body.dpad #dpad { display:block; }
   body.inmenu #dpad, body.insel #dpad { display:none !important; }
-  body.dpad #dock { display:grid; grid-template-columns:52px 52px; gap:9px; justify-content:start;
+  /* 마당·방·꾸미기 시트(hdeco)에선 D패드가 화면과 시트를 가렸다 — 걸음을 세는 판이 아니므로 숨긴다(톡으로 걷는다). */
+  body.inyard #dpad, body.inhouse #dpad, body.hdeco #dpad { display:none !important; }   /* 방도 — 방 아래(문 매트)를 덮었다 */
+  /* D패드를 켜면 아래가 버튼으로 차므로 판을 위에 붙인다 — 가운데 두면 판과 D패드가 서로 가까워 답답했다. */
+  body.dpad:not(.inyard):not(.inhouse):not(.inmenu) #boardWrap { align-items:flex-start; padding-top:34px; box-sizing:border-box; }   /* 34 = 규칙 칩(여닫이 문 ?) 자리 */
+  body.dpad #dock { display:grid; grid-template-columns:56px 56px; gap:10px; justify-content:start;
     padding-left:16px; padding-bottom:10px; }
-  body.dpad #dock .dbtn { width:52px; height:52px; border-radius:16px; }
+  body.dpad #dock .dbtn { width:56px; height:56px; border-radius:17px; }
   body.dpad #dock .dbtn.home { margin-right:0; }
   body.dpad #hint { text-align:left; padding-left:16px; }
-  .dpb { position:absolute; width:58px; height:58px; border:none; border-radius:17px; cursor:pointer;
+  .dpb { position:absolute; width:64px; height:64px; border:none; border-radius:19px; cursor:pointer;
     background:rgba(74,53,36,.14); display:flex; align-items:center; justify-content:center; padding:0;
     -webkit-tap-highlight-color:transparent; touch-action:none; }
-  .dpb svg { width:25px; height:25px; fill:rgba(74,53,36,.7); }
+  .dpb svg { width:28px; height:28px; fill:rgba(74,53,36,.7); }
   .dpb:active { background:#FFC66B; }
-  .dpb.up{ left:58px; top:0; } .dpb.down{ left:58px; bottom:0; }
-  .dpb.left{ left:0; top:58px; } .dpb.right{ right:0; top:58px; }
+  .dpb.up{ left:64px; top:0; } .dpb.down{ left:64px; bottom:0; }
+  .dpb.left{ left:0; top:64px; } .dpb.right{ right:0; top:64px; }
   .dbtn.home { margin-right:6px; }
   .dbtn { background:rgba(74,53,36,.1); border:none; padding:0; display:flex; align-items:center; justify-content:center;
     width:62px; height:62px; border-radius:19px; cursor:pointer; }
@@ -3056,6 +3061,8 @@
     border:none; border-radius:14px; padding:6px 13px; font-family:var(--f-body); font-size:var(--s8);
     color:#8A6A4F; cursor:pointer; display:none; }
   body.intut .tutskip { display:block; }
+  /* 방 연습 — 실패가 없는 장면이라 무르기·다시하기·방향 버튼이 할 일이 없다(2026-10-02) */
+  body.obroom #dock, body.obroom #dpad { display:none !important; }
   body.inhouse .tutskip { display:none; }          /* 하우스는 연습이 아니다 — 건너뛸 게 없다 */
   body.inhouse #undo, body.inhouse #restart, body.inhouse .hintdock { display:none; }   /* 하우스엔 수가 없다 — 무르기·다시하기·훈련(힌트 셋)도 없다 */
   /* 갈아입기 줄 — 매트를 밟는 동안만 판 아래 한 줄. 마당 꾸미기 줄(.yedit)과 같은 값. */
@@ -4111,8 +4118,12 @@ body.hudinplay:not(.inhouse) #mvbar .mvfill { display:block; position:absolute; 
 body.hudinplay:not(.inhouse) #mvbar .mvtick, body.hudinplay:not(.inhouse) #mvbar .mvend, body.hudinplay:not(.inhouse) #mvbar .mvmk { display:none; }
 body.hudinplay:not(.inhouse) #mvbar .mvhead { position:absolute; top:50%; z-index:2; margin:0; padding:0;
   left:clamp(26px, calc(var(--fr,1) * 100%), calc(100% - 26px)); translate:-50% -50%;
-  width:52px; height:52px; border-radius:50%; background:#FFFDF8; border:4px solid var(--mvc,#4A6B27);
-  box-shadow:0 3px 8px rgba(74,53,36,.22); display:grid; place-items:center; transition:left .25s ease-out, border-color .25s; }
+  width:52px; height:52px; border-radius:50%; background:#FFFDF8; border:0; overflow:hidden;
+  box-shadow:0 3px 8px rgba(74,53,36,.22); display:grid; place-items:center; transition:left .25s ease-out; }
+/* 테는 숫자 **위**에 덧그린다 — iOS 사파리가 통통 튀는 숫자(#cdnum, transform 애니메이션)를 따로 칠하며
+   흰 사각형을 깔아 테 네 귀를 지웠다(2026-10-02 실기기 제보, 데스크톱 크롬은 재현 안 됨). 테가 위에 있으면 무엇이 깔려도 안 가린다. */
+body.hudinplay:not(.inhouse) #mvbar .mvhead::after { content:""; position:absolute; inset:0; z-index:1; pointer-events:none;
+  border-radius:50%; border:4px solid var(--mvc,#4A6B27); transition:border-color .25s; }
 body.hudinplay:not(.inhouse) #mvbar .mvhead .mvnum { font-size:var(--s3); line-height:1; color:var(--mvc,#4A6B27) !important; }
 body.hudinplay:not(.inhouse) #mvbar .mvhead .mvlim, body.hudinplay:not(.inhouse) #mvbar .mvhead .mvsep,
 body.hudinplay:not(.inhouse) #mvbar .mvhead .mvst, body.hudinplay:not(.inhouse) #mvbar .mvmats { display:none !important; }
@@ -4313,3 +4324,16 @@ body.hudinplay:not(.inhouse) #ruleChip { position:absolute; left:-2px; top:calc(
 /* 캡슐 밖으로 내려온 칩은 판(#boardWrap) 위에 걸친다. 판이 뒤에 그려지는 형제라 칩의 z-index 만으론 못 이겼다 —
    탭이 판으로 가서 눌러도 반응이 없었다(2026-10-01 사람 지적, elementFromPoint 실측). HUD 줄 전체를 판보다 한 층 올린다. */
 body.hudinplay:not(.inhouse) #hud { position:relative; z-index:6; }
+
+/* 승리 카드 — 맥스 얼굴 · 산책 끝! · N번째 산책 (2026-10-02 시안 승인). 카드가 떠 있는 동안
+   HUD·도크·D패드는 흐려진다 — 판 위 버튼이 카드 위로 비치면 누를 곳이 둘로 읽혔다. */
+#win .wface { width:108px; height:108px; margin:-76px auto 6px; border-radius:50%; background:#EAF4DD;
+  border:5px solid #FFF9F0; box-shadow:0 6px 16px rgba(90,64,38,.16); overflow:hidden; }
+#win .wface canvas { width:100%; height:100%; display:block; }
+#win .wtitle { font-size:var(--s3); font-weight:var(--w-bold); color:#4A3524; line-height:1.15; }
+#win .wlvl { font-size:var(--s9); color:#8A6A3E; margin-top:2px; }
+#win .wlvl:empty { display:none; }
+#win .card { margin-top:64px; }
+body:has(#win.show) #hud, body:has(#win.show) #dock, body:has(#win.show) #dpad,
+body:has(#win.show) #hint, body:has(#win.show) .hintact { opacity:.18; pointer-events:none; transition:opacity .2s; }
+
