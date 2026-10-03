@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css">
+<link rel="stylesheet" href="css/game.css?v=2d43c64bdcf2">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -774,10 +774,10 @@
 <script src="localization/ko.js"></script>
 <script src="localization/en.js"></script>
 <script src="localization/i18n.js"></script>
-<script src="billing/roll-economy.js"></script>
+<script src="billing/roll-economy.js?v=735da02bf8f4"></script>
 <script src="billing/cdv-purchase-adapter.js"></script>
 <script src="mechanics/feedback-profile.js"></script>
-<script src="mechanics/tap-gesture.js"></script>
+<script src="mechanics/tap-gesture.js?v=5aa08647f9c1"></script>
 <script src="mechanics/app-lifecycle.js"></script>
 <script src="mechanics/progress-recovery.js"></script>
 <script src="mechanics/telemetry.js"></script>
@@ -5014,6 +5014,49 @@ function economyReconcile(source){
   if(!op.ok){ pawBal=economyLedger.getBalance(); return false; }
   pawBal=economyLedger.getBalance(); return true;
 }
+// Commit the charge before granting food or ownership. persist() used to reset
+// a failed charge while leaving the already-granted item in other save keys.
+function economySpend(cost, source, grant){
+  if(!Number.isSafeInteger(cost) || cost<=0) return false;
+  if(!economyLedger || !economyReconcile(source)){
+    showToast(I18N.t('billing.storageUnavailable'), 2400); return false;
+  }
+  if(pawBal<cost){
+    sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return false;
+  }
+  const op=economyLedger.debit({amount:cost,type:'item_purchase',source:source||'shop',...(grant?{grant}:{})});
+  pawBal=economyLedger.getBalance();
+  if(!op.ok){ showToast(I18N.t('billing.storageUnavailable'), 2400); return false; }
+  if(grant) grant.value._economyRevision=economyLedger.getItemGrant(grant.key).revision;
+  return true;
+}
+// The ledger receipt survives an app stop or a failed item-key write. A mirror
+// with this revision (or newer) already includes the grant: do not replay it over
+// later consumption, free meals, or house-decoration changes.
+function economyItemRead(key){
+  // An unreadable key is not a missing key. Do not overwrite a newer mirror
+  // with an older receipt merely because the storage getter threw.
+  const raw=GOAL_FEEL_QA?LS.get(key):ECONOMY_STORAGE.getItem(key);
+  const receipt=economyLedger?.getItemGrant?.(key);
+  if(!receipt) return raw;
+  let saved; try{ saved=JSON.parse(raw||'null'); }catch(e){}
+  if(saved && Number.isSafeInteger(saved._economyRevision) && saved._economyRevision>=receipt.revision) return raw;
+  const recovered=JSON.stringify({...receipt.value,_economyRevision:receipt.revision});
+  LS.set(key,recovered);
+  return recovered;
+}
+function economyItemWrite(key,value){
+  const encoded=JSON.stringify(value);
+  LS.set(key,encoded);
+  if(LS.get(key)===encoded) return true;
+  // Only paid inventory has a ledger receipt. When its mirror remains full,
+  // keep later consumption/toggles there too, so recovery cannot undo them.
+  if(!economyLedger?.getItemGrant?.(key)) return false;
+  const saved=economyLedger.saveItemGrant({key,value});
+  if(!saved.ok) return false;
+  value._economyRevision=economyLedger.getItemGrant(key).revision;
+  return true;
+}
 // Legacy migrations are committed to the durable ledger before their source
 // keys are removed. The transaction key makes a crash between those two writes
 // safe to retry on the next boot.
@@ -6067,7 +6110,7 @@ const PAW_A_FIRST=ECON.clearFirst, PAW_B_FIRST=ECON.moonFirst, PAW_B_REPEAT=ECON
 // 저절로 차는 것도 밥이 더 맞는다 — 개는 밥때에 맞춰 먹는다.
 const MEAL_MAX=ECON.mealMax, MEAL_REFILL_MS=ECON.mealRefillMs, MEAL_AFTER=ECON.mealAfter;
 const KIBBLE_COST=ECON.kibble, KIBBLE_HALF_COST=ECON.kibbleHalf, MEAL_AD_MAX=ECON.mealAdMax;
-let meal=MEAL_MAX, mealTs=0;      // 남은 끼니 / 마지막 회복 기준 시각
+let meal=MEAL_MAX, mealTs=0, mealPurchaseRevision=0; // 남은 끼니 / 회복 시각 / 지급 영수증
 // 사료는 밥그릇을 직접 채운다. 반 봉지 +5, 한 봉지 +10 — 상품 그림과 실제 지급량이
 // 같은 말을 해야 한다. fullUntil 은 예전 시간제 사료를 이미 사용 중인 저장을 깨지 않기
 // 위한 호환값으로만 남긴다. 새 구매·선물은 모두 mealGrant 를 탄다.
@@ -6154,9 +6197,10 @@ function loadSave(){
     }
     // v5 이관: 이미 놀던 사람은 스토리·연습을 다시 안 본다. 밥그릇은 가득, 사료 한 봉지,
     // 부스터는 종류당 세 개로 시작한다 — 새 시스템을 만나자마자 벽부터 보면 안 된다.
-    const w=JSON.parse(LS.get(SK.wt)||'null');
-    if(w && typeof w.n==='number'){ meal=Math.min(MEAL_MAX,w.n|0); mealTs=+w.ts||0; mealAdDay=w.ad||''; mealAdN=w.adn|0; fullUntil=+w.fu||0; }
+    const w=JSON.parse(economyItemRead(SK.wt)||'null');
+    if(w && Number.isFinite(w.n)){ meal=Math.max(0,Math.min(Number.MAX_SAFE_INTEGER,Math.floor(w.n))); mealTs=+w.ts||0; mealAdDay=w.ad||''; mealAdN=w.adn|0; fullUntil=+w.fu||0; }
     else { meal=MEAL_MAX; mealTs=Date.now(); }
+    mealPurchaseRevision=w && Number.isSafeInteger(w._economyRevision)?w._economyRevision:0;
     const kb=JSON.parse(LS.get(SK.kb)||'null');
     if(kb && typeof kb.n==='number') kibble=Math.max(0,kb.n|0);
     else kibble=1;
@@ -6256,7 +6300,7 @@ function treatKnown(){
 }
 function persist(){
   try{
-    economyReconcile('game');
+    if(economyLedger && !economyReconcile('game')) return false;
     LS.set(SK.lv, level);
     LS.set(SK.mx, maxLevel);
     LS.set(SK.st, JSON.stringify(starMap));
@@ -6277,7 +6321,8 @@ function persist(){
     LS.set(SK.ys, JSON.stringify(yardStored));
     LS.set(SK.sk, JSON.stringify(dogWear));
     LS.set(SK.so, JSON.stringify(shopOwned));
-    LS.set(SK.wt, JSON.stringify({n:meal, ts:mealTs, ad:mealAdDay, adn:mealAdN, fu:fullUntil}));
+    const mealData=mealSaveData(), mealSaved=economyItemWrite(SK.wt,mealData);
+    mealPurchaseRevision=mealData._economyRevision;
     LS.set(SK.kb, JSON.stringify({n:kibble}));
     LS.set(SK.bo, JSON.stringify(boost));
     LS.set(SK.gb, JSON.stringify(builtMap));
@@ -6286,7 +6331,8 @@ function persist(){
     LS.set(SK.cp, JSON.stringify(colPot));
     if(storySeen) LS.set(SK.sy,'1');
     progressRecovery.save({level, maxLevel, stars:starMap, best:bestMap});
-  }catch(e){}
+    return mealSaved;
+  }catch(e){ return false; }
 }
 // ---- 챕터 게이트: 기믹 블록 경계마다 별을 요구한다 (직전 판들을 평균 ★1.4 로 깨면 통과) ----
 // 챕터 경계 — 1~10 은 튜토리얼 한 덩어리, 그 뒤로는 5판씩.
@@ -6656,7 +6702,8 @@ const MAX_MASTER_NATIVE_PNG_ONLY=new Set([
 ]);
 function chapterMaxRuntimeSheet(path){
   const native=typeof window!=='undefined' && !!window.Capacitor?.isNativePlatform?.();
-  if(native && MAX_MASTER_NATIVE_PNG_ONLY.has(path)) return path;
+  // 후디 시트는 승인된 PNG 그대로 패키지에 싣는다. 대응 AVIF는 내보내지 않았다.
+  if(native && (path.startsWith('art/max-master/motions/skins/') || MAX_MASTER_NATIVE_PNG_ONLY.has(path))) return path;
   return native ? path.replace(/\.png$/,'.avif') : path;
 }
 function chapterMaxMasterMirrorRight(dr,dc){ return Math.abs(dc)>Math.abs(dr)&&dc>0; }
@@ -7093,9 +7140,11 @@ if((MAX_CHAPTER_PROTO_ENABLED||MAX_MOTION_ONLY_PROTO_ENABLED||MAX_MASTER_WALK_V1
   maxChapterBackstepAtlas=new Image();
   maxChapterBackstepAtlas.decoding='async';
   maxChapterBackstepAtlas.src=chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png');
-  maxChapterBoardAtlas=new Image();
-  maxChapterBoardAtlas.decoding='async';
-  maxChapterBoardAtlas.src=chapterMaxBoardAtlasSource();
+  if(MAX_CHAPTER_BOARD_PROTO_ENABLED){
+    maxChapterBoardAtlas=new Image();
+    maxChapterBoardAtlas.decoding='async';
+    maxChapterBoardAtlas.src=chapterMaxBoardAtlasSource();
+  }
   if(MAX_SEQUENCE_PROTO_ENABLED || MAX_CHAPTER_HYBRID_ENABLED || MAX_MOTION_ONLY_PROTO_ENABLED){
     maxChapterPushAtlas=new Image();
     maxChapterPushAtlas.decoding='async';
@@ -7141,33 +7190,64 @@ if((MAX_CHAPTER_PROTO_ENABLED||MAX_MOTION_ONLY_PROTO_ENABLED||MAX_MASTER_WALK_V1
 // 위 블록은 부팅 때 한 번 돈다. 그때는 스킨이 쿼리로만 정해져서 그걸로 충분했는데, 이제 후디는
 // 세이브(dogWear.hood)라 판 중간에 바뀐다(완주 카드·갈아입기 매트). 이름이 바뀌면 스킨을 타는
 // 시트 17장만 새 Image 로 받아 **다 받은 뒤** 갈아 끼운다 — src 를 덮으면 받는 동안 그림이 빈다.
-let maxAtlasSkin=null;
+let maxAtlasSkin; // undefined는 부팅 시트가 아직 전부 준비되지 않았다는 뜻(null은 기본 맥스).
+let maxAtlasSkinPending=null;
 function chapterMaxSkinAtlasSync(){
   if(typeof Image==='undefined' || !MAX_MASTER_WALK_V1_ENABLED) return false;
   const name=maxSkinName();
+  if(maxAtlasSkinPending && maxAtlasSkinPending.name===name) return false;
+  maxAtlasSkinPending=null; // 다른 착용 요청은 이전 배치를 무효화한다(기본 옷으로 돌아가도 같다).
   if(name===maxAtlasSkin) return false;
-  maxAtlasSkin=name;
-  const swap=(get,set,src)=>{ const cur=get(); if(cur && cur.src && cur.src.endsWith(src)) return;
-    const im=new Image(); im.decoding='async'; im.onload=()=>{ if(maxAtlasSkin===name) set(im); }; im.src=src; };
-  swap(()=>maxChapterMasterWalkV1Atlas,      v=>maxChapterMasterWalkV1Atlas=v,      chapterMaxMasterWalkV1SheetSource());
-  swap(()=>maxChapterMasterWalkV1UpAtlas,    v=>maxChapterMasterWalkV1UpAtlas=v,    chapterMaxMasterWalkV1SheetSourceForDirection(-1,0));
-  swap(()=>maxChapterMasterWalkV1DownAtlas,  v=>maxChapterMasterWalkV1DownAtlas=v,  chapterMaxMasterWalkV1SheetSourceForDirection(1,0));
-  swap(()=>maxChapterMasterPushV1Atlas,      v=>maxChapterMasterPushV1Atlas=v,      chapterMaxMasterPushV1SheetSource());
-  swap(()=>maxChapterMasterPushV1UpAtlas,    v=>maxChapterMasterPushV1UpAtlas=v,    chapterMaxMasterPushV1SheetSourceForDirection(-1,0));
-  swap(()=>maxChapterMasterPushV1DownAtlas,  v=>maxChapterMasterPushV1DownAtlas=v,  chapterMaxMasterPushV1SheetSourceForDirection(1,0));
-  swap(()=>maxChapterMasterWallBumpV1Atlas,    v=>maxChapterMasterWallBumpV1Atlas=v,    chapterMaxMasterWallBumpV1SheetSource());
-  swap(()=>maxChapterMasterWallBumpV1UpAtlas,  v=>maxChapterMasterWallBumpV1UpAtlas=v,  chapterMaxMasterWallBumpV1SheetSourceForDirection(-1,0));
-  swap(()=>maxChapterMasterWallBumpV1DownAtlas,v=>maxChapterMasterWallBumpV1DownAtlas=v,chapterMaxMasterWallBumpV1SheetSourceForDirection(1,0));
-  swap(()=>maxChapterMasterSitV1Atlas,       v=>maxChapterMasterSitV1Atlas=v,       chapterMaxMasterSitV1SheetSource());
-  swap(()=>maxChapterMasterSitV1UpAtlas,     v=>maxChapterMasterSitV1UpAtlas=v,     chapterMaxMasterSitV1SheetSourceForDirection(-1,0));
-  swap(()=>maxChapterMasterSitV1LeftAtlas,   v=>maxChapterMasterSitV1LeftAtlas=v,   chapterMaxMasterSitV1SheetSourceForDirection(0,-1));
-  swap(()=>maxChapterMasterIdleV1Atlas,      v=>maxChapterMasterIdleV1Atlas=v,      chapterMaxMasterIdleV1SheetSource());
-  swap(()=>maxChapterMasterVictoryV1Atlas,   v=>maxChapterMasterVictoryV1Atlas=v,   chapterMaxMasterVictoryV1SheetSource());
-  swap(()=>maxChapterMasterSitSleepV2UpAtlas,  v=>maxChapterMasterSitSleepV2UpAtlas=v,  chapterMaxMasterSitSleepV2SheetSourceForDirection(-1,0));
-  swap(()=>maxChapterMasterSitSleepV2DownAtlas,v=>maxChapterMasterSitSleepV2DownAtlas=v,chapterMaxMasterSitSleepV2SheetSourceForDirection(1,0));
-  swap(()=>maxChapterMasterSitSleepV2LeftAtlas,v=>maxChapterMasterSitSleepV2LeftAtlas=v,chapterMaxMasterSitSleepV2SheetSourceForDirection(0,-1));
+  const ready=im=>!!(im && im.complete && (im.naturalWidth===undefined?im.width:im.naturalWidth)>0);
+  const specs=[
+    [maxChapterMasterWalkV1Atlas,      v=>maxChapterMasterWalkV1Atlas=v,      chapterMaxMasterWalkV1SheetSource()],
+    [maxChapterMasterWalkV1UpAtlas,    v=>maxChapterMasterWalkV1UpAtlas=v,    chapterMaxMasterWalkV1SheetSourceForDirection(-1,0)],
+    [maxChapterMasterWalkV1DownAtlas,  v=>maxChapterMasterWalkV1DownAtlas=v,  chapterMaxMasterWalkV1SheetSourceForDirection(1,0)],
+    [maxChapterMasterPushV1Atlas,      v=>maxChapterMasterPushV1Atlas=v,      chapterMaxMasterPushV1SheetSource()],
+    [maxChapterMasterPushV1UpAtlas,    v=>maxChapterMasterPushV1UpAtlas=v,    chapterMaxMasterPushV1SheetSourceForDirection(-1,0)],
+    [maxChapterMasterPushV1DownAtlas,  v=>maxChapterMasterPushV1DownAtlas=v,  chapterMaxMasterPushV1SheetSourceForDirection(1,0)],
+    [maxChapterMasterWallBumpV1Atlas,    v=>maxChapterMasterWallBumpV1Atlas=v,    chapterMaxMasterWallBumpV1SheetSource()],
+    [maxChapterMasterWallBumpV1UpAtlas,  v=>maxChapterMasterWallBumpV1UpAtlas=v,  chapterMaxMasterWallBumpV1SheetSourceForDirection(-1,0)],
+    [maxChapterMasterWallBumpV1DownAtlas,v=>maxChapterMasterWallBumpV1DownAtlas=v,chapterMaxMasterWallBumpV1SheetSourceForDirection(1,0)],
+    [maxChapterMasterSitV1Atlas,       v=>maxChapterMasterSitV1Atlas=v,       chapterMaxMasterSitV1SheetSource()],
+    [maxChapterMasterSitV1UpAtlas,     v=>maxChapterMasterSitV1UpAtlas=v,     chapterMaxMasterSitV1SheetSourceForDirection(-1,0)],
+    [maxChapterMasterSitV1LeftAtlas,   v=>maxChapterMasterSitV1LeftAtlas=v,   chapterMaxMasterSitV1SheetSourceForDirection(0,-1)],
+    [maxChapterMasterIdleV1Atlas,      v=>maxChapterMasterIdleV1Atlas=v,      chapterMaxMasterIdleV1SheetSource()],
+    [maxChapterMasterVictoryV1Atlas,   v=>maxChapterMasterVictoryV1Atlas=v,   chapterMaxMasterVictoryV1SheetSource()],
+    [maxChapterMasterSitSleepV2UpAtlas,  v=>maxChapterMasterSitSleepV2UpAtlas=v,  chapterMaxMasterSitSleepV2SheetSourceForDirection(-1,0)],
+    [maxChapterMasterSitSleepV2DownAtlas,v=>maxChapterMasterSitSleepV2DownAtlas=v,chapterMaxMasterSitSleepV2SheetSourceForDirection(1,0)],
+    [maxChapterMasterSitSleepV2LeftAtlas,v=>maxChapterMasterSitSleepV2LeftAtlas=v,chapterMaxMasterSitSleepV2SheetSourceForDirection(0,-1)]
+  ];
+  // 먼저 17칸을 전부 준비한다. src를 넣자마자 onload가 도는 캐시/테스트 Image도
+  // 마지막 칸이 만들어지기 전에 배치를 완료해 일부 시트만 갈아 끼우면 안 된다.
+  const items=specs.map(([cur,set,src])=>{
+    const reuse=cur && cur.src && cur.src.endsWith(src) && (!cur.complete || ready(cur));
+    return {im:reuse?cur:new Image(),set,src,reuse,done:false};
+  });
+  const batch={name,remaining:items.length};
+  maxAtlasSkinPending=batch;
+  const fail=()=>{ if(maxAtlasSkinPending===batch) maxAtlasSkinPending=null; };
+  const loaded=item=>{
+    if(maxAtlasSkinPending!==batch || item.done) return;
+    if(maxSkinName()!==name || !ready(item.im)){ fail(); return; }
+    item.done=true;
+    if(--batch.remaining) return;
+    for(const entry of items) entry.set(entry.im); // 한 프레임 안에서 전체 벌을 원자적으로 교체한다.
+    maxAtlasSkin=name;
+    maxAtlasSkinPending=null;
+  };
+  for(const item of items){
+    item.im.decoding='async';
+    item.im.onload=()=>loaded(item);
+    item.im.onerror=fail;
+  }
+  for(const item of items){
+    if(!item.reuse) item.im.src=item.src;
+    if(item.im.complete){ if(ready(item.im)) loaded(item); else fail(); }
+  }
   return true;
 }
+chapterMaxSkinAtlasSync(); // 부팅/쿼리로 이미 요청한 시트도 재요청 없이 같은 준비 상태로 추적한다.
 // 같은 시안 안에서 맥스만 새 그림이고 판은 옛 도형이면 합성한 스티커처럼 보인다.
 // 1-1 프로토타입에만 명도 단계와 외곽선 밀도를 맞춘 B 톤을 쓴다.
 const MAX_CHAPTER_BOARD_STYLE={
@@ -12023,14 +12103,15 @@ function shopRenderBag(body){
     sec.innerHTML='<div class="shsecname">'+I18N.t('shop.feed')+'</div>';
     const wrap=document.createElement('div'); wrap.className='kib2';
     const half=Math.ceil(MEAL_MAX/2);
-    const card=(nm, q, cost, sub, full, fn)=>{
+    const card=(nm, q, cost, sub, full)=>{
       const b=document.createElement('button'); b.className='kibc'+(full?' best':''); b.setAttribute('data-kib', full? 'full' : 'half');
       b.innerHTML='<span class="kibg">'+kibbleBagSVG(full)+'</span>'
         +'<span class="kibnm">'+nm()+'</span><i class="kibsb">'+sub()+'</i>'
         +'<b class="dchip bundle-price">'+acornPrice(cost,full?foodSeparatePrice():0)+'</b>';
       // 조사는 이름마다 다르다 — '반 봉지'는 를, '순서표 3장'은 을. 박아 두면 하나가 틀린다.
       onTap(b, ()=>buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', cost, ()=>{
-        pawBal-=cost; spendFx("paw",cost); fn(); shopRender();
+        if(!mealBuy(q,cost,undefined,'shop_feed')) return false;
+        shopRender();
         // 받는 연출 — 봉지가 튀어나와 위 밥그릇 칩으로 날아간다(할아버지의 선물 사료와 같은 길).
         const a=el('shBody') && el('shBody').querySelector('.kibc[data-kib="'+(full?'full':'half')+'"]');
         if(a) revealFx(a, { ico:kibbleBagSVG(full), label:nm(), qty:sub(), target:()=>el('hudMeal'),
@@ -12038,10 +12119,8 @@ function shopRenderBag(body){
       }));
       wrap.appendChild(b);
     };
-    card(()=>I18N.t('shop.half'), half, KIBBLE_HALF_COST, ()=>I18N.t('full.five'), false,
-         ()=>mealGrant(KIBBLE_HALF_MEALS));      // 토스트 없음 — 받는 연출이 이름·양을 보여 준다
-    card(()=>I18N.t('shop.full'), MEAL_MAX, KIBBLE_COST, ()=>I18N.t('full.ten'), true,
-         ()=>mealGrant(KIBBLE_MEALS));
+    card(()=>I18N.t('shop.half'), KIBBLE_HALF_MEALS, KIBBLE_HALF_COST, ()=>I18N.t('full.five'), false);
+    card(()=>I18N.t('shop.full'), KIBBLE_MEALS, KIBBLE_COST, ()=>I18N.t('full.ten'), true);
     sec.appendChild(wrap);
     body.appendChild(sec);
   }
@@ -18957,7 +19036,24 @@ function houseBuy(kind,k,label,cost){
 // 울타리는 한 칸씩 바꾼다 — houseTheme.fences['r,c'] 가 그 칸 모양. 없으면 기본(fence). 푯말에서 고르면 전체가 그 모양으로.
 function houseFenceAt(r,c){ const f=(houseTheme.fences||{})[r+','+c]; return HOUSE_FENCE[f]? f : houseTheme.fence; }
 function houseFenceSig(){ const o=houseTheme.fences||{}; return Object.keys(o).sort().map(k=>k+o[k]).join(''); }
-function houseThemeLoad(){ try{ const o=JSON.parse(LS.get('roll_house')||'null'); if(o&&o.grass&&HOUSE_GRASS[o.grass]) houseTheme.grass=o.grass; if(o&&o.fence&&HOUSE_FENCE[o.fence]) houseTheme.fence=o.fence; if(o&&o.toys&&typeof o.toys==='object') houseTheme.toys=o.toys; if(o&&o.fences&&typeof o.fences==='object') houseTheme.fences=o.fences; if(o&&o.furn&&typeof o.furn==='object') houseTheme.furn=o.furn; if(o&&Array.isArray(o.buy)) houseTheme.buy=o.buy; if(o&&HOUSE_ROOM_PAPER[o.paperC]) houseTheme.paperC=o.paperC; if(o&&HOUSE_ROOM_RUG[o.rugC]) houseTheme.rugC=o.rugC; if(o&&o.cash&&typeof o.cash==='object') houseTheme.cash=o.cash; if(o&&HOUSE_HOME.includes(o.home)) houseTheme.home=o.home; if(o&&Array.isArray(o.trim)) houseTheme.trim=o.trim.filter(k=>HOUSE_TRIM.includes(k)); }catch(e){}  houseFurnMigrate(); houseDecoMigrate(); }
+function houseThemeLoad(){
+  try{
+    const o=JSON.parse(economyItemRead('roll_house')||'null');
+    if(o&&Number.isSafeInteger(o._economyRevision)) houseTheme._economyRevision=o._economyRevision;
+    if(o&&o.grass&&HOUSE_GRASS[o.grass]) houseTheme.grass=o.grass;
+    if(o&&o.fence&&HOUSE_FENCE[o.fence]) houseTheme.fence=o.fence;
+    if(o&&o.toys&&typeof o.toys==='object') houseTheme.toys=o.toys;
+    if(o&&o.fences&&typeof o.fences==='object') houseTheme.fences=o.fences;
+    if(o&&o.furn&&typeof o.furn==='object') houseTheme.furn=o.furn;
+    if(o&&Array.isArray(o.buy)) houseTheme.buy=o.buy;
+    if(o&&HOUSE_ROOM_PAPER[o.paperC]) houseTheme.paperC=o.paperC;
+    if(o&&HOUSE_ROOM_RUG[o.rugC]) houseTheme.rugC=o.rugC;
+    if(o&&o.cash&&typeof o.cash==='object') houseTheme.cash=o.cash;
+    if(o&&HOUSE_HOME.includes(o.home)) houseTheme.home=o.home;
+    if(o&&Array.isArray(o.trim)) houseTheme.trim=o.trim.filter(k=>HOUSE_TRIM.includes(k));
+  }catch(e){ return; } // Do not migrate/write a house record we could not read.
+  houseFurnMigrate(); houseDecoMigrate();
+}
 function houseThemeSet(k,v){ if(k==='grass'&&!HOUSE_GRASS[v]) return; if(k==='fence'&&!HOUSE_FENCE[v]) return; if(k==='home'&&!HOUSE_HOME.includes(v)) return; houseTheme[k]=v; if(k==='fence') houseTheme.fences={}; LS.set('roll_house', JSON.stringify(houseTheme)); tileKey=''; }
 const HOUSE_SIGN=[6,1];                                // 꾸미기 푯말 — 마당 왼쪽 아래 구석. 밟으면 줄이 열린다.
 function houseGrid(){ const g=[]; for(let r=0;r<GN;r++){ const row=[]; for(let c=0;c<GN;c++) row.push(r===0||c===0||r===GN-1||c===GN-1? '0':'1'); g.push(row); } return g; }
@@ -19915,7 +20011,7 @@ let houseLightOff=false, houseCashFx=null, houseStillAt=0, houseStillKey='';
 let houseCurtain={to:1, from:1, t0:-9};                    // 통창 커튼 — 1 열림 · 0 닫힘. 창 앞([1,3]·[1,4])에서 위로 쿵 하면 여닫는다
 function houseCurtainK(){ const u=Math.max(0,Math.min(1,(animT-houseCurtain.t0)/0.5)), e=u<0.5? 2*u*u : 1-Math.pow(-2*u+2,2)/2; return houseCurtain.from+(houseCurtain.to-houseCurtain.from)*e; }
 function houseCashState(){ const cs=houseTheme.cash=houseTheme.cash||{}; if(!Array.isArray(cs.own)) cs.own=[]; if(!Array.isArray(cs.off)) cs.off=[]; if(!cs.tree||typeof cs.tree!=='object') cs.tree={kind:null,n:0,d:''}; return cs; }
-function houseCashSave(){ LS.set('roll_house', JSON.stringify(houseTheme)); }
+function houseCashSave(){ return economyItemWrite('roll_house',houseTheme); }
 function houseCashOwns(k){ return HOUSE_CASH_ON && houseCashState().own.includes(k); }
 function houseTreeKind(){ const dv=window.__houseCash; if(Array.isArray(dv)){ const t=dv.find(k=>k==='tree' || (HOUSE_CASH_BY[k]||{}).tree); return t? (t==='tree'? 'cherry' : t) : null; }
   const k=houseCashState().tree.kind; return (HOUSE_CASH_ON && k && houseCashOwns(k))? k : null; }
@@ -19934,8 +20030,11 @@ function houseTreeVisit(){                                  // 들른 날마다 
 function houseCashBuy(k){
   const it=HOUSE_CASH_BY[k], cs=houseCashState(); if(!it || cs.own.includes(k)) return false;
   if(pawBal<it.cost) return false;
-  pawBal-=it.cost; cs.own.push(k);
-  if(it.tree){ if(!cs.tree.kind || !cs.own.includes(cs.tree.kind)){ cs.tree.n=0; cs.tree.d=houseToday(); } cs.tree.kind=k; }
+  const next=JSON.parse(JSON.stringify(houseTheme)), cash=next.cash;
+  cash.own.push(k);
+  if(it.tree){ if(!cash.tree.kind || !cash.own.includes(cash.tree.kind)){ cash.tree.n=0; cash.tree.d=houseToday(); } cash.tree.kind=k; }
+  if(!economySpend(it.cost,'house:'+k,{key:'roll_house',value:next})) return false;
+  houseTheme=next;
   persist(); houseCashSave(); syncHud();
   return true;
 }
@@ -21958,6 +22057,16 @@ function refreshMealCopy(){
   // 둘로 읽힌다(표 충전 시트가 쓰는 규칙과 같다).
 }
 function mealSheetHide(){ el("mealCard").classList.remove("show"); el("lvcard").classList.remove("behind","meal"); mealPendLv=0; }
+function mealSaveData(n=meal, ts=mealTs){
+  return {n,ts,ad:mealAdDay,adn:mealAdN,fu:fullUntil,_economyRevision:mealPurchaseRevision};
+}
+function mealBuy(n,cost,why,source){
+  const grant={key:SK.wt,value:mealSaveData(meal+n,Date.now())};
+  if(!economySpend(cost,source||'meal',grant)) return false;
+  mealPurchaseRevision=grant.value._economyRevision;
+  spendFx('paw',cost); mealGrant(n,why);
+  return true;
+}
 function mealGrant(n, why){                          // 회복 공통 경로 — 채우고 나면 대기 중이던 판으로 바로 들어간다
   // 상한을 안 자른다 — 넘치면 11/10 로 그냥 보여준다. 자르면 도토리를 태운 것이
   // 되고, "몇 끼가 넘쳐 버려집니다"를 설명해야 하는 순간 밥그릇이 어려워진다.
@@ -26252,11 +26361,11 @@ onTap(el("mealKib"), ()=>{
     mealGrant(KIBBLE_MEALS, I18N.t('full.started')); return; }
   if(kibble>0){ kibble--; mealGrant(KIBBLE_MEALS, I18N.t('full.started')); return; }
   if(pawBal<KIBBLE_COST){ sfxBlocked(); showToast(I18N.t('notice.short',{count:KIBBLE_COST-pawBal}), 1800); return; }
-  pawBal-=KIBBLE_COST; spendFx("paw",KIBBLE_COST); mealGrant(KIBBLE_MEALS, I18N.t('full.bought'));
+  return mealBuy(KIBBLE_MEALS,KIBBLE_COST,I18N.t('full.bought'),'meal_full');
 });
 onTap(el("mealHalf"), ()=>{
   if(pawBal<KIBBLE_HALF_COST){ sfxBlocked(); showToast(I18N.t('notice.short',{count:KIBBLE_HALF_COST-pawBal}), 1800); return; }
-  pawBal-=KIBBLE_HALF_COST; spendFx("paw",KIBBLE_HALF_COST); mealGrant(KIBBLE_HALF_MEALS, I18N.t('full.halfStarted'));
+  return mealBuy(KIBBLE_HALF_MEALS,KIBBLE_HALF_COST,I18N.t('full.halfStarted'),'meal_half');
 });
 onTap(el("tutSkip"), ()=>{ if(labMode) labEnd(); else if(tutMode) tutEnd(); });
 labEntryMount();                                           // 실험 단추 — 테스트 빌드·로컬에서만

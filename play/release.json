@@ -5,7 +5,7 @@
   "testSha256": "fa11e26de37165c3a367ae070fdc6547164785aac9aab9e1822a830791c66dd9",
   "files": 270,
   "sourceCommit": "71a95561d51f5946464e9580aaabb169487e8c5d",
-  "kind": "test",
+  "kind": "live",
   "tests": {
     "total": 942,
     "passed": 887,

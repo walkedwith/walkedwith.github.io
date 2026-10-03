@@ -591,8 +591,8 @@
   @keyframes hintGlow { 0%,100%{box-shadow:0 0 0 0 rgba(255,198,107,.6)} 50%{box-shadow:0 0 0 7px rgba(255,198,107,0)} }
   #hintc { display:inline-block; border-radius:8px; opacity:.92; }
   #win { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    pointer-events:none; opacity:0; transition:opacity .25s; }
-  #win.show { opacity:1; pointer-events:auto; }
+    pointer-events:none; opacity:0; visibility:hidden; transition:opacity .25s; }
+  #win.show { opacity:1; visibility:visible; pointer-events:auto; }
   #cft { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:60; display:none; }
   #cft.on { display:block; }
   /* 위 여백 34 → 22: 별 줄이 카드 위로 걸치던 시절의 자리였다(지금은 줄이 카드 안에 있다). */
@@ -3257,15 +3257,15 @@
        깔려 흐릿해졌다. 화면 아래쪽에만 있어 위의 HUD(59)와 겹칠 일은 없다. */
     z-index:60; width:286px; max-width:86%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:15px 16px 13px; text-align:center; box-shadow:0 8px 26px rgba(43,32,54,.24);
-    opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-  #mealCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
+  #mealCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   /* 살까요? 카드 — 밥그릇 시트와 같은 자리·같은 모양. 상점 위(57)에 떠야 한다. */
   #buyCard { position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px);
     z-index:62; width:286px; max-width:86%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:15px 16px 13px; text-align:center;
     box-shadow:0 8px 26px rgba(43,32,54,.24),0 0 0 100vmax rgba(43,32,54,.28);
-    opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-  #buyCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
+  #buyCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   #buyCard .mct { margin:4px 0 20px; font-size:var(--s6); line-height:1.35; color:#4A3524; }
   #buyCard .mct b { font-weight:var(--w-bold); }
   #buyCard .mcsub { display:none; }
@@ -3357,8 +3357,8 @@
   #noteCard { position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px);
     z-index:56; width:262px; max-width:84%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:14px 16px 12px; text-align:center; box-shadow:0 8px 26px rgba(43,32,54,.24);
-    opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-  #noteCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
+  #noteCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   #noteCard .ntt { margin:0 0 11px; font-family:var(--f-body); font-size:var(--fs-note);
     line-height:1.55; color:#7A6248; }
   #noteCard .ntt b { color:#4A3524; font-weight:var(--w-bold); }
@@ -3382,8 +3382,8 @@
   #failCard { position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px);
     z-index:56; width:262px; max-width:84%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:14px 16px 12px; text-align:center; box-shadow:0 8px 26px rgba(43,32,54,.24);
-    opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-  #failCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
+  #failCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   /* 카드 안 줄 셋은 **한 문법**이다 — 그림 · 이름 · 값(오른끝). 상점 줄과 같은 자리라
      새로 배울 게 없고, 둘이 같은 크기·같은 모양이라 「이어 걷기 / 다시 걷기」가 한 쌍으로
      읽힌다. 예전엔 초록 큰 버튼 하나에 크림 버튼이 딸린 꼴이라 둘이 다른 층으로 보였다.
@@ -3415,8 +3415,8 @@
   #quitCard { position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px);
     z-index:56; width:262px; max-width:84%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:14px 16px 12px; text-align:center; box-shadow:0 8px 26px rgba(43,32,54,.24);
-    opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-  #quitCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
+  #quitCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   #quitCard .qtt { margin:0 0 11px; font-family:var(--f-body); font-size:var(--fs-note);
     line-height:1.55; color:#7A6248; }
   #quitCard .qtt b { display:block; font-size:var(--s5); color:#4A3524; font-weight:var(--w-bold);
@@ -3430,8 +3430,8 @@
   #skipCard { position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px);
     z-index:56; width:252px; max-width:82%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:14px 16px 12px; text-align:center; box-shadow:0 8px 26px rgba(43,32,54,.24);
-    opacity:0; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
-  #skipCard.show { opacity:1; transform:translateX(-50%); pointer-events:auto; }
+    opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
+  #skipCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   #skipCard .skt { margin:0 0 11px; font-size:var(--fs-note); line-height:1.5; color:#8A7458; }
   #skipCard .skt b { font-size:var(--s5); color:#4A3524; font-weight:var(--w-bold); }
   #skipCard .skgo { width:100%; border:none; border-radius:14px; padding:11px; cursor:pointer;
@@ -4410,4 +4410,3 @@ body.hudinplay:not(.inhouse) #hud { position:relative; z-index:6; }
 #win .card { margin-top:64px; }
 body:has(#win.show) #hud, body:has(#win.show) #dock, body:has(#win.show) #dpad,
 body:has(#win.show) #hint, body:has(#win.show) .hintact { opacity:.18; pointer-events:none; transition:opacity .2s; }
-

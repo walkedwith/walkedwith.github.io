@@ -27,6 +27,46 @@
   });
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
+  function plainObject(value) {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+    const proto = Object.getPrototypeOf(value);
+    if (proto === null) return true;
+    const ctor = Object.prototype.hasOwnProperty.call(proto, 'constructor') && proto.constructor;
+    // The game can supply an object from another realm (including headless VM
+    // tests), so comparing its prototype directly to ours would reject it.
+    return Object.getPrototypeOf(proto) === null && typeof ctor === 'function' &&
+      Function.prototype.toString.call(ctor) === Function.prototype.toString.call(Object);
+  }
+  function jsonSafe(value, parents) {
+    if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value !== 'object' || parents.has(value)) return false;
+    const array = Array.isArray(value);
+    if (!array && !plainObject(value)) return false;
+    let keys = Reflect.ownKeys(value);
+    if (array) {
+      if (keys.length !== value.length + 1) return false;
+      keys = keys.filter(key => key !== 'length');
+      if (keys.some(key => typeof key !== 'string' || String(Number(key)) !== key ||
+        !Number.isInteger(Number(key)) || Number(key) < 0 || Number(key) >= value.length)) return false;
+    }
+    parents.add(value);
+    const valid = keys.every(key => {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      return typeof key === 'string' && descriptor.enumerable &&
+        Object.prototype.hasOwnProperty.call(descriptor, 'value') && jsonSafe(descriptor.value, parents);
+    });
+    parents.delete(value);
+    return valid;
+  }
+  function validItemGrant(grant) {
+    try {
+      return plainObject(grant) && jsonSafe(grant, new Set()) &&
+        typeof grant.key === 'string' && grant.key.trim().length > 0 &&
+        ![STATE_KEY, LEGACY_KEY, '__proto__', 'constructor', 'prototype'].includes(grant.key) &&
+        plainObject(grant.value);
+    } catch (_) { return false; }
+  }
   function read(storage, key) { return storage.getItem(key); }
   function write(storage, key, value) { storage.setItem(key, String(value)); }
   function safeLegacyBalance(raw) {
@@ -77,10 +117,10 @@
     const now = typeof options.now === 'function' ? options.now : Date.now;
     let state = loadState(storage, now());
 
-    function commit(next) {
+    function commit(next, preserveTransactions) {
       const previous = state;
       next.revision = previous.revision + 1;
-      next.transactions = trimTransactions(next.transactions);
+      if (!preserveTransactions) next.transactions = trimTransactions(next.transactions);
       try {
         write(storage, STATE_KEY, JSON.stringify(next));
       } catch (_) {
@@ -98,11 +138,20 @@
       if (!Number.isFinite(amount) || amount <= 0 || Math.floor(amount) !== amount) {
         return { ok: false, reason: 'invalid_amount', balance: state.balance };
       }
+      const hasGrant = sign < 0 && Object.prototype.hasOwnProperty.call(entry, 'grant');
+      if (hasGrant && !validItemGrant(entry.grant)) {
+        return { ok: false, reason: 'invalid_grant', balance: state.balance };
+      }
       if (sign < 0 && state.balance < amount) {
         return { ok: false, reason: 'insufficient_balance', balance: state.balance };
       }
       const next = clone(state);
       next.balance += sign * amount;
+      // One latest snapshot per inventory key shares the balance's atomic
+      // ledger write. The game mirrors it separately and can recover after a
+      // crash or mirror-write failure; transaction history carries no payload.
+      if (hasGrant) next.itemGrants = { ...(next.itemGrants || {}),
+        [entry.grant.key]: { revision: state.revision + 1, value: clone(entry.grant.value) } };
       const createdAt = now();
       next.transactions.push({
         id: (entry.type || (sign > 0 ? 'credit' : 'debit')) + ':' + createdAt + ':' + next.revision,
@@ -111,6 +160,18 @@
         source: entry.source || 'game', metadata: entry.metadata || {}
       });
       return commit(next);
+    }
+    function saveItemGrant(grant) {
+      if (!validItemGrant(grant)) return { ok: false, reason: 'invalid_grant', balance: state.balance };
+      if (!state.itemGrants || !Object.prototype.hasOwnProperty.call(state.itemGrants, grant.key)) {
+        return { ok: false, reason: 'unknown_grant', balance: state.balance };
+      }
+      // Only keys already paid for can use this fallback when their normal
+      // inventory mirror fails. Later use/toggles remain durable without a
+      // second charge or adding anything to purchase/transaction history.
+      const next = clone(state);
+      next.itemGrants[grant.key] = { revision: state.revision + 1, value: clone(grant.value) };
+      return commit(next, true);
     }
     function fulfillPurchase(result, item) {
       if (!result || result.status !== 'purchased') return { ok: false, reason: 'not_purchased' };
@@ -148,8 +209,11 @@
     return Object.freeze({
       getBalance: () => state.balance,
       getState: () => clone(state),
+      getItemGrant: key => state.itemGrants && Object.prototype.hasOwnProperty.call(state.itemGrants, key)
+        ? clone(state.itemGrants[key]) : null,
       credit: entry => change(entry, 1),
       debit: entry => change(entry, -1),
+      saveItemGrant,
       fulfillPurchase
     });
   }
