@@ -438,6 +438,7 @@
   #gboard { display:none; position:absolute; left:50%; bottom:max(14px, env(safe-area-inset-bottom)); transform:translateX(-50%);
     z-index:3; width:min(338px, calc(100% - 14px)); pointer-events:none; }
   body.gboard:not(.dpad) #gboard { display:block; }
+  body.gbtop #boardWrap { align-items:flex-start; padding-top:34px; box-sizing:border-box; }   /* 폰 세로 — 판을 위로 붙여 게시판 자리를 낸다(fit 의 gboardReserveOn). 34 = 규칙 칩(여닫이 문 ?) 자리 */
   #gboard .gbroof { height:24px; margin:0 -5px -2px; background:#B4604C; clip-path:polygon(50% 0, 100% 100%, 0 100%);
     filter:drop-shadow(0 3px 0 #8C4636); }
   #gboard .gbpost { position:absolute; bottom:-10px; width:9px; height:92px; background:#8A5E36; border-radius:3px; }

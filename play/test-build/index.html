@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=2d43c64bdcf2">
+<link rel="stylesheet" href="css/game.css?v=5e6e1f628620">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -3791,7 +3791,7 @@ function matDots(n, ks, tot){
 // 그 판의 걸음 제한 안에 들어오는 게 300판 전수로 확인됐다(초과 0판).
 // BAKED 를 안 건드리는 이유: resolveAll 이 그 자리를 다시 쓰므로 충돌 창이 생긴다.
 const ACORN_PACK =
-  '623442416333512314412644156266655662435652633114644653265163'+   // 1~10
+  '623442416333512314412644515446655662435652633114644653265163'+   // 1~10
   '662545241322512612146126556612462663625142225246163621564221'+   // 11~20
   '513122361231354614236661325446416126564215212312656152266146'+   // 21~30
   '251311533215564523243162464125155652262142642211655612156451'+   // 31~40
@@ -3845,7 +3845,7 @@ function acornCells(lv){
 //     (tools/acorn-par5.js 머리 주석). 이제 '00' 인 판은 1판 하나뿐이다(칸이 없다).
 // tools/acorn-par5.js 가 구웠다.
 const PAR5_PACK =
-  '000h0j0j0p0j0n0k0k0q0n0l0p0q0t0m0r0p0n0r0m0q0n0p0x0s0s0m0r0u'+   // 1~30
+  '000h0j0j0r0j0n0k0k0q0n0l0p0q0t0m0r0p0n0r0m0q0n0p0x0s0s0m0r0u'+   // 1~30
   '0g0j0o0l0m0p0q0n0s0t0l0q0o0o0r0o0s0x0s0t0r0p0r0w0s100u0o0y0o'+   // 31~60
   '0o0p0k0o0m0l0m0m0o0v0h0i0q0p0r0l0l0u0n100i0k0v0r0s0p0r0u100v'+   // 61~90
   '0m0n0q0n0w0n0s0v0s0v0t0s0v0t0w0u0x0y0x0z0t100w0v110y0z0z0z0z'+   // 91~120
@@ -3856,7 +3856,7 @@ const PAR5_PACK =
   '0m0n0t0r0u0p0o0r0t120r0v100y0y1c181a171c0w1916191a1c16191c16'+   // 241~270
   '0k0i0f0m0m0j0r0l0l0l0n0l0p0s0i0n0o0q0p0o0o0s0u0m0w110t0y0p0w';  // 271~300
 const SL5_PACK =
-  ' LDDLDLLLUUDRRURUL ULDDLULLUURURURLDDD RDRDLDULDDLLULRDRRR LDDRRLLLLUULURURRURLDDDLU LULLLRRRRUUUULLLLURR DRLLLLUURRUUURRDLULLLDRR RDLDRDRURUUDDDRDDLLUR RDRRURUDDLLLDDRRRUUUU LLLLDURRUURRDDLDDLRRURUURUL ' +   // 1~10
+  ' LDDLDLLLUUDRRURUL ULDDLULLUURURURLDDD RDRDLDULDDLLULRDRRR URRURRDDRDDDLLURDLLLLUUUUUR LULLLRRRRUUUULLLLURR DRLLLLUURRUUURRDLULLLDRR RDLDRDRURUUDDDRDDLLUR RDRRURUDDLLLDDRRRUUUU LLLLDURRUURRDDLDDLRRURUURUL ' +   // 1~10
   'UUULLDURRRDLDDRRDDLDRRLUL URUULLDDLDDDRDRRURRDLLL DLDDRLDDRRRULUUURURRLULLLDR RLLLLDUUURRURRUDRLDDRRURUDDD DLDDDDRLUULLUUULDDLDRDDLULURRRR DLURUURLULLDRRDRRUUULRDD DLLUULUDDLLLDDRLUUUURRRLUURDR UUUURLDDRDRURRDUURRDDDDLRUU UDLDRRURRRLDDRDDLLULLDRRR LLLLDDRDLUUUULRRRULDDRRDRDUUU ' +   // 11~20
   'DUUURDDRRDRDRRRUULULDDUL DLULDLLUDLDRLDDRRRLUURDRURLU DRDDRUDRRUUURDLURULULDDLD RRDUULLLULUDLDDUUURRUULLDDD DDRDDDLLDLLLLUUURRUULLDURRRDDDDRDLL DURURRDRDDDDLLLLRUULRUUDRRRURD DRDRRUUURDDRDRDULLRDDLLULLDRRR LDUUDRRRRURUULLLLDDRULUR URULLDDDRDDRULLULDLDUUUUURRRR RDDLUDLLDLLDDRRRURLLUULURRDRRLUU ' +   // 21~30
   'LLLDLDULLUUDRURDRR RRLLDDDULDLDDRRDULDLU LDUULLDLDRDRRDRULLLUURDLDR ULULDLDULDDULDLDRDURDRU DRDDRULLLDLDUDLUURRUURRD DRDURULLDLLRUULULURRRDLLULD URURUURRDLDRDRLLLULUULDDDDRU RRRDURRDUURULLLULLRDDLDRR UUUDDRRRDDDURLLLDLLUULULRRRURD UUURRRDDDDDLDULDLULRUULULURDLDR ' +   // 31~40
@@ -4032,7 +4032,7 @@ const BAKED=[
 {T:'0000000001110110010101000031111001011310011111100111101000000000',h:[[26,0],[37,0]],p:[],b:[[4,4,0,0],[4,3,0,0]],d:[3,6],par:9,sl:'DDLLLURUL'},
 {T:'0000000001111000001100100111011001111110011311100131101000000000',h:[[50,0],[43,0]],p:[],b:[[4,4,0,0],[6,3,0,0]],d:[5,5],par:11,sl:'ULDDLULUURD'},
 {T:'0000000001111100001011100113111001101110011111300111101000000000',h:[[46,0],[27,0]],p:[],b:[[4,5,0,0],[2,5,0,0]],d:[1,4],par:11,sl:'RDRDLDULDDR'},
-{T:'0000000001111100001313100111101001111100011010100011111000000000',h:[[19,0],[21,0]],p:[],b:[[4,2,0,0],[2,4,0,0]],d:[4,5],par:17,sl:'LDDLLUULURURRDDLU'},
+{T:'0000000001131130011111100111111001011010010111300111111000000000',h:[[14,0],[46,0],[11,0]],p:[],b:[[5,5,0,0],[1,2,0,0],[1,4,0,0]],d:[3,1],par:20,sl:'URRURRDLLLLURDDRDDRR',dr:[]},
 {T:'0000000001111310011111100111111000000t10011110100111111000000000',h:[[13,0]],p:[],b:[[1,3,0,0]],d:[6,6],par:11,sl:'UUUULLLLURR',dr:[[37,1]]},
 {T:'00000000031111100111131000001t0000111110011111100101111000000000',h:[[9,0],[21,0]],p:[],b:[[1,3,0,0],[2,3,0,0]],d:[4,5],par:15,sl:'LUUURRDLULLLDRR',dr:[[29,3]]},
 {T:'000000000110111001111010011110100111111000t113100101111000000000',h:[[45,0]],p:[],b:[[4,3,0,0]],d:[1,2],par:14,sl:'DDDRURDRDDLLUR',dr:[[42,1]]},
@@ -6527,7 +6527,12 @@ const MAX_SKIN_SHEETS={
   // 7동네 비버 · 10동네 양 — 17/17 (2026-10-02). 밀기 앞 웅크린 칸(양 f4·f5, 비버 f4)도 v2 로 받았다.
   // 비버는 꼬리 없이 맥스 솜꼬리 그대로(사람 결정). 검사기의 "뒷모습에 얼굴"은 흰 솜꼬리를 얼굴로 읽은 것이다.
   beaver:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  sheep:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']
+  sheep:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
+  // 번외 넷(2026-10-03, 상점 「옷」에서 판다 — BONUS_SKINS). 같은 포즈가 되풀이되는 시트 몇 장은 다시 받는 중(qa/<skin>/next-request.md).
+  space:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
+  ranger:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
+  mail:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
+  rain:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']
 };
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
 // 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
@@ -6576,7 +6581,30 @@ function hoodLegacy(){
 }
 function hoodBundleOpened(n){ const t=STAGE_TOYS[n-1]; for(const lv of giftOpenedSet()){ const it=furnAtLv(lv); if(it && it.kind==='hood' && it.m===t) return true; } return false; }
 function hoodEarned(n){ if(FREEPLAY) return true; if(!HOUSE_ON) return districtCleared(n); return hoodBundleOpened(n) || hoodLegacy().includes(n); }
-function hoodOwned(){ return STAGE_TOYS.filter((t,i)=>skinComplete(t) && hoodEarned(i+1)); }
+// ── 번외 스킨(2026-10-03 사람: "가게로 넣자") — 동네 후디는 꾸러미로 받지만 이 넷은 상점 「옷」 구역에서 간식(pawBal)으로 산다.
+// 산 기록은 roll_house 의 skins — 집 물건과 같은 저장·같은 장부 영수증(economySpend grant)이라 따로 지키지 않아도 된다.
+// 값은 임시(통창 240·무드등 160 과 같은 처지). 시트가 다 갖춰진 것만 진열한다(skinComplete).
+const BONUS_SKINS=[{k:'space',cost:300},{k:'ranger',cost:300},{k:'mail',cost:300},{k:'rain',cost:300}];
+const BONUS_SKIN_BY=Object.fromEntries(BONUS_SKINS.map(s=>[s.k,s]));
+function bonusSkinOwns(k){ return FREEPLAY || (houseTheme.skins||[]).includes(k); }
+function bonusSkinBuy(k){
+  const s=BONUS_SKIN_BY[k]; if(!s || !skinComplete(k) || bonusSkinOwns(k)) return false;
+  if(pawBal<s.cost) return false;
+  const next=JSON.parse(JSON.stringify(houseTheme)); next.skins=(next.skins||[]).concat(k);
+  if(!economySpend(s.cost,'skin:'+k,{key:'roll_house',value:next})) return false;
+  houseTheme=next; persist(); houseCashSave(); syncHud();
+  return true;
+}
+// 가게 카드 그림 — 그 옷의 대기 시트 첫 칸(256×256). 그림이 늦게 오면 온 뒤에 그린다.
+const bonusSkinImg={};
+function bonusSkinThumb(cv,k){
+  if(!cv || !cv.getContext || typeof Image!=='function') return;   // 헤드리스 로더엔 Image 가 없을 수 있다
+  const draw=im=>{ try{ const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height); g.drawImage(im,0,0,256,256,0,0,cv.width,cv.height); }catch(e){} };
+  let im=bonusSkinImg[k];
+  if(!im){ im=bonusSkinImg[k]=new Image(); im.decoding='async'; im.src='art/max-master/motions/skins/max-'+k+'-idle-front-8f-runtime.png'; }   // 스킨 시트는 웹·네이티브 모두 PNG(chapterMaxRuntimeSheet 참고)
+  if(im.complete && (im.naturalWidth||im.width)) draw(im); else im.addEventListener && im.addEventListener('load', ()=>draw(im), {once:true});
+}
+function hoodOwned(){ return STAGE_TOYS.filter((t,i)=>skinComplete(t) && hoodEarned(i+1)).concat(BONUS_SKINS.filter(s=>skinComplete(s.k) && bonusSkinOwns(s.k)).map(s=>s.k)); }
 function hoodOwns(name){ return hoodOwned().includes(name); }
 // 입는다/벗는다(null). 시트는 경로별 지연 로드라 그 자리에서 다음 프레임부터 바뀐다.
 function wearHood(name){
@@ -12147,6 +12175,30 @@ function shopRenderBag(body){
     }
     body.appendChild(sec);
   }
+  // ── 옷 — 번외 스킨(2026-10-03 사람: 가게에서 판다). 산 옷은 누르면 입고, 입은 옷을 누르면 벗는다.
+  { const list=BONUS_SKINS.filter(s=>skinComplete(s.k));
+    if(HOUSE_ON && list.length){
+      const sec=document.createElement('div'); sec.className='shsec';
+      sec.innerHTML='<div class="shsecname">'+I18N.t('shop.outfit')+'</div><div class="shsecsub">'+I18N.t('shop.outfitSub')+'</div><div class="shgrid"></div>';
+      const grid=sec.querySelector('.shgrid'); if(!grid) return;   // 헤드리스 로더의 가짜 화면
+      for(const s of list){
+        const own=bonusSkinOwns(s.k), on=own && dogWear.hood===s.k, nm=()=>I18N.t('hood.name.'+s.k);
+        const card=document.createElement('button');
+        card.className='scard hg'+(on?' on':own?' haveit':'')+(!own && pawBal<s.cost?' lock':'');
+        card.innerHTML='<canvas width="128" height="128"></canvas><span class="sname">'+nm()+'</span>'
+          +'<span class="sprice">'+(own? I18N.t(on? 'shop.outfitOn' : 'shop.outfitWear') : acornPrice(s.cost))+'</span>';
+        bonusSkinThumb(card.querySelector('canvas'), s.k);
+        onTap(card, ()=>{
+          if(own){ wearHood(on? null : s.k); tone(660,0.06,'triangle',0.04,900); buzz([10,20,10]); shopRender(); return; }
+          buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', s.cost, ()=>{
+            if(!bonusSkinBuy(s.k)) return;
+            spendFx("paw",s.cost); tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]);
+            wearHood(s.k); shopRender(); });          // 산 옷은 바로 입는다 — 후디를 받는 순간 입는 것과 같다
+        });
+        grid.appendChild(card);
+      }
+      body.appendChild(sec);
+    } }
   // ── 도토리 (원화) ── 평소엔 한 줄로 접혀 있다. 이 가게에서 도토리로 살 것은 표와
   // 사료뿐이라 결제 카드가 늘 펼쳐져 있을 이유가 없다 — 모자랄 때만 열어 본다.
   { const sec=document.createElement('div'); sec.className='shsec';
@@ -19048,6 +19100,7 @@ function houseThemeLoad(){
     if(o&&o.cash&&typeof o.cash==='object') houseTheme.cash=o.cash;
     if(o&&HOUSE_HOME.includes(o.home)) houseTheme.home=o.home;
     if(o&&Array.isArray(o.trim)) houseTheme.trim=o.trim.filter(k=>HOUSE_TRIM.includes(k));
+    if(o&&Array.isArray(o.skins)) houseTheme.skins=o.skins.filter(k=>BONUS_SKIN_BY[k]);   // 상점에서 산 번외 스킨
   }catch(e){ return; } // Do not migrate/write a house record we could not read.
   houseFurnMigrate(); houseDecoMigrate();
 }
@@ -20220,6 +20273,7 @@ function houseDecoFit(){
 }
 function houseDecoThumb(cv,it,hood){
   if(!cv || !cv.getContext) return;
+  if(hood && BONUS_SKIN_BY[hood]){ bonusSkinThumb(cv, hood); return; }   // 번외 옷 — 장난감 머리가 없다, 입은 맥스 그림
   if(hood){ const o=ctx, c2=cv.getContext('2d'); c2.clearRect(0,0,cv.width,cv.height); ctx=c2; try{ furnHead(hood, cv.width/2, cv.height*0.56, cv.width*0.27); }catch(e){} ctx=o; return; }
   furnCanvasDraw(cv, it);
 }
@@ -20443,6 +20497,9 @@ function houseDecoRender(){
       g2+='<button class="hdit'+(on?' on':'')+(has? (seen?'':' boxed') : ' no')+'" data-slot="'+it.k+'"><canvas class="fc" width="32" height="32" data-h="'+STAGE_TOYS[i-1]+'"></canvas>'
         +'<canvas width="100" height="100" data-k="'+it.k+'"></canvas><em>'+(has? (seen? escAttr(furnName(it)) : I18N.t('house.deco.boxed')) : I18N.t('house.deco.dist',{n:i}))+'</em></button>';
     }
+    // 상점에서 산 번외 옷 — 산 것만 동네 후디 뒤에 건다(안 산 것은 가게에만 있다)
+    if(hdTab==='hood') for(const s of BONUS_SKINS) if(hoods.includes(s.k))
+      g2+='<button class="hdit'+(cur===s.k?' on':'')+'" data-hood="'+s.k+'"><canvas width="100" height="100" data-h="'+s.k+'"></canvas><em>'+I18N.t('hood.name.'+s.k)+'</em></button>';
     grid.innerHTML=g2;
   }
   d.querySelectorAll('canvas').forEach(cv=>{ const k=cv.dataset.k, hd=cv.dataset.h;
@@ -26942,6 +26999,23 @@ for(const b of document.querySelectorAll("#dpad .dpb")){
     b.addEventListener(ev,()=>{ clearTimeout(dpadTO); clearInterval(dpadIV); });
 }
 // 진행 초기화 — 지우는 것만. 다시 읽는 건 location.reload() 가 한다.
+// 간식으로 산 꾸미기·밥그릇(2026-10-03 사람): **출시 전까지만** 초기화가 같이 지운다(시험하며 처음부터 다시 보려고).
+// 출시 버전(false)은 산 것을 남긴다 — 간식은 장부가 지키는 값이라, 산 물건만 사라지면 돈 주고 산 걸 잃는 셈이다.
+// 둘 다 장부 영수증(economyItemRead)이 비어 있는 저장을 되살리므로, 지우는 쪽도 "영수증 판보다 새 빈 저장"을 써 둔다.
+const RESET_WIPES_BOUGHT=true;                     // 출시 전 true · 출시 버전 false (tools/release-game-gate.js 가 true 면 경고)
+function progressResetBought(){
+  const rev=k=>{ try{ const r=economyLedger && economyLedger.getItemGrant && economyLedger.getItemGrant(k); return r? r.revision : null; }catch(e){ return null; } };
+  if(RESET_WIPES_BOUGHT){
+    for(const k of ['roll_house', SK.wt]){ const r=rev(k); if(r!=null) LS.set(k, JSON.stringify({_economyRevision:r})); }   // 빈 저장 — 영수증보다 늦지 않다
+    return; }
+  // 출시 버전 — 밥그릇은 그대로, 집은 산 것만 남기고 선물로 받은 가구·놓은 자리는 비운다(다시 받으러 가야 한다).
+  if(SK.wt && typeof meal!=='undefined'){ try{ LS.set(SK.wt, JSON.stringify(mealSaveData())); }catch(e){} }
+  const h=houseTheme||{}, f=h.furn||{}, buy=Array.isArray(h.buy)? h.buy.slice() : [], bought=k=>buy.includes('furn:'+k);
+  const keep={grass:h.grass, fence:h.fence, fences:h.fences, paperC:h.paperC, rugC:h.rugC, home:h.home, trim:h.trim, buy, cash:h.cash, skins:h.skins, fv:h.fv,
+    furn:{on:{}, seen:(f.seen||[]).filter(bought), wall:(f.wall||[]).map(k=>k && bought(k)? k : null), deco:(f.deco||[]).map(k=>k && bought(k)? k : null), yard:(f.yard||[]).filter(bought)}};
+  if(Number.isSafeInteger(h._economyRevision)) keep._economyRevision=h._economyRevision;
+  LS.set('roll_house', JSON.stringify(keep));
+}
 function progressReset(){
   for(const k in SK) LS.del(SK[k]);
   LS.del('roll_snd'); LS.del('roll_mus'); LS.del('roll_vib');
@@ -26956,6 +27030,7 @@ function progressReset(){
   for(const k of ['roll_house','roll_house_seen','roll_hoodlegacy','roll_walk_nx','roll_deco','roll_decofirst','roll_decofirst_undo',
     'roll_quest','roll_mission','roll_yardgot','roll_yardlot','roll_setseen','roll_hint_coach',
     'roll_crop','roll_cropbag','roll_oak','roll_paint','roll_brook','roll_bath','roll_bathw','roll_box','roll_play','roll_pin','roll_portrait','roll_dig']) LS.del(k);
+  progressResetBought();
 }
 onTap(el("optReset"), ()=>{
   const n=performance.now();
@@ -27023,6 +27098,14 @@ function fit(){
   const s=Math.min(wrap.clientWidth, wrap.clientHeight/(1+band/GN)) * GN/(GN-trim);
   cell=Math.floor(s/GN);
   if(menuMode) cell=Math.floor(cell*0.74);        // 메뉴 데모는 위쪽, 아래 카드가 정보 담당
+  // 게시판 자리 — 폰 세로 화면에선 판을 위로 붙이고, 모자라면 판을 줄여서라도 늘 비워 둔다(2026-10-03 사람).
+  // 광고 자리는 늘 같은 데 있어야 한다. 줄여도 칸이 GBOARD_MIN_CELL 보다 작아지면 판이 먼저다(게시판 없이).
+  { let res=gboardReserveOn(); gboardFitWant=res;
+    if(res && document.body.classList) document.body.classList.add('gbtop');
+    if(res){ const w=el('wrap').getBoundingClientRect(), b=wrap.getBoundingClientRect(), pt=parseFloat(getComputedStyle(wrap).paddingTop)||0;
+      const cmax=Math.floor((w.bottom-(b.top+pt)-GBOARD_NEED)/(GN-trim));
+      if(cmax<GBOARD_MIN_CELL) res=false; else if(cell>cmax) cell=cmax; }
+    if(document.body.classList) document.body.classList.toggle('gbtop', res); }
   houseTop=Math.round(cell*band);
   const lift=trim? 0 : Math.round(cell*0.16);             // 보드 두께 (아래 립) — 잘라 낸 판은 그림자가 대신한다
   cv.width=GN*cell*dpr; cv.height=(houseTop+GN*cell+lift)*dpr; cv.style.width=(GN*cell)+"px"; cv.style.height=(houseTop+GN*cell+lift)+"px";
@@ -27041,6 +27124,12 @@ function fit(){
 // 게시판이 서면 무르기·다시하기는 판 바로 밑으로 올라간다(--gbdock).
 // 양보 둘: 방향 버튼을 켠 사람은 그 자리에 방향 버튼이 온다. 화면이 낮아 자리가 안 나도 게시판은 안 선다(풍경만).
 const GBOARD_ON=true, GBOARD_NEED=176;                      // 판 밑에 이만큼(px)은 있어야 선다 — 버튼 50 + 틈 + 게시판
+const GBOARD_MIN_CELL=38;                                    // 게시판 자리를 내려고 판을 줄여도 칸은 이보다 작게 안 한다
+function gboardPlay(){ return GBOARD_ON && !menuMode && !tutMode && !houseMode && !yardMode && !moonMode && !tsMode && !lunchMode && !selMode && level>=1; }
+// 판을 줄여서라도 게시판 자리를 비울 화면 — 본편 판 · 방향 버튼 꺼짐 · 세로로 긴 화면(폰 세로). 데스크톱·가로는 지금처럼 남는 자리에만.
+function gboardReserveOn(){ const w=el('wrap'); if(!gboardPlay() || optPad || !w || !w.getBoundingClientRect) return false;
+  const r=w.getBoundingClientRect(); return r.width>1 && r.height>=r.width*1.25; }
+let gboardFitBusy=false, gboardFitWant=false;   // 마지막 fit 이 게시판 자리를 원했나(칸이 너무 작아 포기했어도 원한 것으로 둔다 — 다시 재지 않게)
 const DISTRICT_SCENE_ART={
   1:'art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp',
   2:'art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp',
@@ -27058,7 +27147,10 @@ const GBOARD_NOTES=[{k:'gboard.pull',from:1},{k:'gboard.undo',from:1},{k:'gboard
 function gboardNote(lv){ const pool=GBOARD_NOTES.filter(n=>lv>=n.from); return pool[(lv*7)%pool.length].k; }
 function gboardSync(){
   const b=el('gboard'), w=el('wrap'); if(!b || !w || !w.style || !w.style.setProperty) return;   // 헤드리스 로더의 가짜 화면엔 setProperty 가 없다
-  const play=GBOARD_ON && !menuMode && !tutMode && !houseMode && !yardMode && !moonMode && !tsMode && !lunchMode && !selMode && level>=1;   // 본편 판 안(승리·실패 카드가 떠 있어도 판은 그대로다)
+  const play=gboardPlay();   // 본편 판 안(승리·실패 카드가 떠 있어도 판은 그대로다)
+  // 판 크기가 게시판 자리를 낼지 말지와 어긋나면(화면만 바뀌고 fit 이 안 돈 경우) 한 번 다시 맞춘다 — fit 이 끝에 여기로 돌아온다.
+  if(!gboardFitBusy && document.body.classList && gboardReserveOn()!==gboardFitWant){
+    gboardFitBusy=true; try{ fit(); }finally{ gboardFitBusy=false; } return; }
   document.body.classList.toggle('gscene', !!play);
   let on=false;
   if(play && !optPad && cv && cv.getBoundingClientRect){
@@ -30778,21 +30870,25 @@ function drawEdgeCornerFan(f, x, y, r, c){
 // 뾰족한 흰 말뚝 + 가로대 둘 + 옅은 갈색 테두리선. 위·아래는 가로대가 이어지고, 양옆은 말뚝만 한 줄로 선다.
 // 판에서는 테두리 칸의 **안쪽 반**만 보이므로(boardTrim) 울타리를 안쪽 반에 앉힌다 — 앞마당 치수 그대로면 위 가로대가 잘린다.
 function drawYardEdgeFence(x,y,r,c){
-  const F=HOUSE_FENCE.white, g=ctx, s=cell, lw=Math.max(1,s*.02);
+  // 1동네 판 테두리 — 맥스네 마당 울타리 A(가로대 둘 + 둥근 말뚝, 모서리·옆줄은 둥근 머리 기둥)와 같은 그림(2026-10-03 사람: "1동네에도").
+  // 판은 테두리를 반 칸만 보이므로(fit 의 trim) 마당보다 0.72배로 줄여 안쪽 반에 앉힌다.
+  const F=HOUSE_FENCE.white, g=ctx, s=cell, k=.72, sd=kk(r,c)*7.3+1.7;
   const top=r===0, bot=r===GN-1, left=c===0, right=c===GN-1;
-  const post=(px,base,h)=>{ const w=s*.18, tip=s*.09;
-    g.fillStyle='rgba(60,50,30,.14)'; g.fillRect(px-w/2+s*.03,base-h+s*.06,w,h-s*.04);
-    g.fillStyle=F.post; g.beginPath(); g.moveTo(px-w/2,base); g.lineTo(px-w/2,base-h+tip); g.lineTo(px,base-h);
-    g.lineTo(px+w/2,base-h+tip); g.lineTo(px+w/2,base); g.closePath(); g.fill();
-    g.strokeStyle=F.ink; g.lineWidth=lw; g.stroke(); };
-  const rail=(x0,x1,ry)=>{ g.fillStyle=F.rail; g.fillRect(x0,ry,x1-x0,s*.085); g.strokeStyle=F.ink; g.lineWidth=lw; g.strokeRect(x0,ry,x1-x0,s*.085); };
+  houseFencePicketSet(g, F, s*k);
   if(top||bot){
-    const base= top? y+s*.95 : y+s*.46, H=s*.42;
-    const x0= left? x+s*.70 : x-1, x1= right? x+s*.30 : x+s+1;
-    g.fillStyle='rgba(60,50,30,.10)'; g.fillRect(x0, base-s*.02, x1-x0, s*.05);            // 발밑 그늘
-    rail(x0,x1,base-H*.74); rail(x0,x1,base-H*.36);
-    post(left? x+s*.70 : right? x+s*.30 : x+s*.5, base, H);
-  } else post(left? x+s*.70 : x+s*.30, y+s*.80, s*.56);
+    const by= top? y+s*.95 : y+s*.47, corner=left||right, px= left? x+s*.70 : x+s*.30;
+    const x0= left? px : x-1, x1= right? px : x+s+1;
+    g.fillStyle='rgba(60,50,30,.10)'; g.fillRect(x0, by-s*.02, x1-x0, s*.05);                 // 발밑 그늘
+    houseFenceRail(x0, by-s*.5*k, x1-x0); houseFenceRail(x0, by-s*.24*k, x1-x0);
+    if(corner){ houseFencePicket(px, by, s*.26*k, s*.74*k, true); return; }
+    for(let i=0;i<4;i++) houseFencePicket(x+s*(.125+i*.25), by, s*.16*k, s*.58*k, false);
+    if(hsh(sd)<.6) houseFenceTuft(g, x+s*(.2+hsh(sd+1)*.6), by+s*.03, hsh(sd+1), s*k);
+    return;
+  }
+  const px= left? x+s*.70 : x+s*.30;
+  for(const ox of [-.1,.04]){ const xx=px+ox*s*k, q=g.createLinearGradient(xx,0,xx+s*.07*k,0); q.addColorStop(0,F.post); q.addColorStop(1,F.rail); g.fillStyle=q; g.fillRect(xx,y-1,s*.07*k,s+2); }
+  houseFencePicket(px, y+s*.80, s*.22*k, s*.6*k, true);
+  if(hsh(sd)<.5) houseFenceTuft(g, px+(left? s*.12 : -s*.24), y+s*.55, hsh(sd+1), s*k);
 }
 function drawEdgeTile(x, y, r, c){
   const d = districtOf(level), nm = d && d.nm;
