@@ -20207,9 +20207,12 @@ function houseDecoFit(){
   const d=el('hdeco'), bw=el('boardWrap'), hud=el('hud'); if(!houseDecoIsOpen() || !bw) return;
   // 재는 건 캔버스다 — 판 틀(boardWrap)은 화면 가운데 맞춤이라 위아래가 비어 있다.
   // 옮김 애니메이션(transition) 중에 재면 반쯤 옮겨 간 자리가 잡힌다 — 잴 때만 끈다.
+  // 재고 나면 옮겨 둔 자리를 **애니메이션 없이** 되돌린 뒤에 transition 을 켠다 — 안 그러면 재느라 풀어 둔 자리(원위치)에서
+  // 새 자리까지 매번 다시 미끄러져, 꾸미기 탭을 누를 때마다 방이 툭 떨어졌다 올라왔다(2026-10-03 사람: "흔들리고 떨린다").
+  const prev=bw.style.transform;
   bw.style.transition='none'; bw.style.transform=''; void bw.offsetWidth;
   const br=bw.getBoundingClientRect(), cr=cv.getBoundingClientRect(), top=(hud? hud.getBoundingClientRect().bottom : 0)+4, st=d.getBoundingClientRect().top-6;
-  bw.style.transition='';
+  bw.style.transform=prev; void bw.offsetWidth; bw.style.transition='';
   if(!cr.height) return;
   // 들어맞아도 늘 제목 줄 아래로 올린다 — 맞을 때만 그냥 두면 종류를 바꿀 때마다(시트 높이가 달라져) 방이 오르내린다.
   const k=Math.max(0.6, Math.min(1, (st-top)/cr.height)), ot=cr.top-br.top;
@@ -26938,16 +26941,26 @@ for(const b of document.querySelectorAll("#dpad .dpb")){
   for(const ev of ["pointerup","pointercancel","pointerleave"])
     b.addEventListener(ev,()=>{ clearTimeout(dpadTO); clearInterval(dpadIV); });
 }
+// 진행 초기화 — 지우는 것만. 다시 읽는 건 location.reload() 가 한다.
+function progressReset(){
+  for(const k in SK) LS.del(SK[k]);
+  LS.del('roll_snd'); LS.del('roll_mus'); LS.del('roll_vib');
+  LS.del('roll_gintro'); LS.del('roll_tips');            // 튜토리얼·안내도 처음부터
+  // SK 밖에 저장한 감상/수령 기록도 새 진행에 맞춘다. 남겨 두면 10·20판 카드,
+  // 완주 선물과 마당 첫 안내가 초기화 후에도 생략된다. 결제 레저는 건드리지 않는다.
+  for(const k of ['roll_yardmseen','roll_storymver','roll_dcdone','roll_colseen','roll_giftopen','roll_giftfix',
+    CHAPTER_STORY_KEY,'roll_hmeal','roll_progress_backup:current','roll_progress_backup:previous']) LS.del(k);
+  // 방·마당 꾸미기와 그날그날의 마당 일도 진행이다(2026-10-03 사람 제보). roll_house 가 남으면 받아 둔 가구가
+  // "이미 푼 것"으로 남아 처음부터 러그·흔들의자가 서 있고, 험한 판을 다시 깨도 상자가 안 온다.
+  // 남기는 것: 결제(roll_iap)·옛 재화 이전 표시(roll_matfix·roll_partfix — 지우면 이전이 다시 돈다)·방향 버튼 설정.
+  for(const k of ['roll_house','roll_house_seen','roll_hoodlegacy','roll_walk_nx','roll_deco','roll_decofirst','roll_decofirst_undo',
+    'roll_quest','roll_mission','roll_yardgot','roll_yardlot','roll_setseen','roll_hint_coach',
+    'roll_crop','roll_cropbag','roll_oak','roll_paint','roll_brook','roll_bath','roll_bathw','roll_box','roll_play','roll_pin','roll_portrait','roll_dig']) LS.del(k);
+}
 onTap(el("optReset"), ()=>{
   const n=performance.now();
   if(resetArm && n-resetArm<3000){                       // 두 번 눌러 확정
-    for(const k in SK) LS.del(SK[k]);
-    LS.del('roll_snd'); LS.del('roll_mus'); LS.del('roll_vib');
-    LS.del('roll_gintro'); LS.del('roll_tips');          // 튜토리얼·안내도 처음부터
-    // SK 밖에 저장한 감상/수령 기록도 새 진행에 맞춘다. 남겨 두면 10·20판 카드,
-    // 완주 선물과 마당 첫 안내가 초기화 후에도 생략된다. 결제 레저는 건드리지 않는다.
-    for(const k of ['roll_yardmseen','roll_storymver','roll_dcdone','roll_colseen','roll_giftopen','roll_giftfix',
-      CHAPTER_STORY_KEY,'roll_hmeal','roll_progress_backup:current','roll_progress_backup:previous']) LS.del(k);
+    progressReset();
     location.reload();
   } else { resetArm=n; el("optReset").classList.add("arm"); sfxBlocked();
     setTimeout(()=>{ if(performance.now()-resetArm>=2900){ resetArm=0; el("optReset").classList.remove("arm"); } },3000); }
