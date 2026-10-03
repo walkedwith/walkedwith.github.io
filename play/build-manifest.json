@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-10-03T03:33:29.954Z",
-  "totalBytes": 68550073,
+  "generatedAt": "2026-10-03T06:06:35.312Z",
+  "totalBytes": 88287448,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2735984
+      "bytes": 2745684
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 630717
+      "bytes": 630947
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 75746
+      "bytes": 76053
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 68860
+      "bytes": 69143
     },
     {
       "path": "localization/i18n.js",
@@ -478,6 +478,26 @@
       "bytes": 321856
     },
     {
+      "path": "art/max-master/motions/skins/max-space-walk-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-walk-left-8f-runtime.png",
+      "bytes": 299142
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-walk-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-walk-left-8f-runtime.png",
+      "bytes": 353631
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-walk-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-walk-left-8f-runtime.png",
+      "bytes": 326006
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-walk-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-walk-left-8f-runtime.png",
+      "bytes": 321440
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-walk-up-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-walk-up-8f-runtime.png",
       "bytes": 219562
@@ -526,6 +546,26 @@
       "path": "art/max-master/motions/skins/max-mouse-walk-up-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-walk-up-8f-runtime.png",
       "bytes": 275566
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-walk-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-walk-up-8f-runtime.png",
+      "bytes": 236372
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-walk-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-walk-up-8f-runtime.png",
+      "bytes": 265420
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-walk-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-walk-up-8f-runtime.png",
+      "bytes": 227302
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-walk-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-walk-up-8f-runtime.png",
+      "bytes": 252926
     },
     {
       "path": "art/max-master/motions/skins/max-duck-walk-down-8f-runtime.png",
@@ -578,6 +618,26 @@
       "bytes": 325206
     },
     {
+      "path": "art/max-master/motions/skins/max-space-walk-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-walk-down-8f-runtime.png",
+      "bytes": 284922
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-walk-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-walk-down-8f-runtime.png",
+      "bytes": 311726
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-walk-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-walk-down-8f-runtime.png",
+      "bytes": 257232
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-walk-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-walk-down-8f-runtime.png",
+      "bytes": 304568
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-push-left-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-push-left-8f-runtime.png",
       "bytes": 274298
@@ -626,6 +686,26 @@
       "path": "art/max-master/motions/skins/max-mouse-push-left-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-push-left-8f-runtime.png",
       "bytes": 320596
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-push-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-push-left-8f-runtime.png",
+      "bytes": 288027
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-push-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-push-left-8f-runtime.png",
+      "bytes": 345424
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-push-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-push-left-8f-runtime.png",
+      "bytes": 297451
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-push-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-push-left-8f-runtime.png",
+      "bytes": 314400
     },
     {
       "path": "art/max-master/motions/skins/max-duck-push-up-8f-runtime.png",
@@ -678,6 +758,26 @@
       "bytes": 289840
     },
     {
+      "path": "art/max-master/motions/skins/max-space-push-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-push-up-8f-runtime.png",
+      "bytes": 245720
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-push-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-push-up-8f-runtime.png",
+      "bytes": 292302
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-push-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-push-up-8f-runtime.png",
+      "bytes": 255095
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-push-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-push-up-8f-runtime.png",
+      "bytes": 265260
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-push-down-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-push-down-8f-runtime.png",
       "bytes": 263357
@@ -726,6 +826,26 @@
       "path": "art/max-master/motions/skins/max-mouse-push-down-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-push-down-8f-runtime.png",
       "bytes": 364467
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-push-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-push-down-8f-runtime.png",
+      "bytes": 307596
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-push-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-push-down-8f-runtime.png",
+      "bytes": 337171
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-push-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-push-down-8f-runtime.png",
+      "bytes": 299247
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-push-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-push-down-8f-runtime.png",
+      "bytes": 333506
     },
     {
       "path": "art/max-master/motions/skins/max-duck-wall-left-8f-runtime.png",
@@ -778,6 +898,26 @@
       "bytes": 311341
     },
     {
+      "path": "art/max-master/motions/skins/max-space-wall-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-wall-left-8f-runtime.png",
+      "bytes": 286759
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-wall-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-wall-left-8f-runtime.png",
+      "bytes": 352219
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-wall-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-wall-left-8f-runtime.png",
+      "bytes": 300454
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-wall-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-wall-left-8f-runtime.png",
+      "bytes": 303971
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-wall-up-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-wall-up-8f-runtime.png",
       "bytes": 227487
@@ -826,6 +966,26 @@
       "path": "art/max-master/motions/skins/max-mouse-wall-up-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-wall-up-8f-runtime.png",
       "bytes": 268974
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-wall-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-wall-up-8f-runtime.png",
+      "bytes": 245836
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-wall-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-wall-up-8f-runtime.png",
+      "bytes": 290165
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-wall-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-wall-up-8f-runtime.png",
+      "bytes": 245179
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-wall-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-wall-up-8f-runtime.png",
+      "bytes": 272742
     },
     {
       "path": "art/max-master/motions/skins/max-duck-wall-down-8f-runtime.png",
@@ -878,6 +1038,26 @@
       "bytes": 341882
     },
     {
+      "path": "art/max-master/motions/skins/max-space-wall-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-wall-down-8f-runtime.png",
+      "bytes": 279432
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-wall-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-wall-down-8f-runtime.png",
+      "bytes": 312148
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-wall-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-wall-down-8f-runtime.png",
+      "bytes": 274793
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-wall-down-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-wall-down-8f-runtime.png",
+      "bytes": 309771
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-sit-left-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-sit-left-8f-runtime.png",
       "bytes": 275335
@@ -926,6 +1106,26 @@
       "path": "art/max-master/motions/skins/max-mouse-sit-left-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-sit-left-8f-runtime.png",
       "bytes": 299684
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-sit-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-sit-left-8f-runtime.png",
+      "bytes": 286076
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-sit-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-sit-left-8f-runtime.png",
+      "bytes": 328917
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sit-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-sit-left-8f-runtime.png",
+      "bytes": 295815
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sit-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-sit-left-8f-runtime.png",
+      "bytes": 298100
     },
     {
       "path": "art/max-master/motions/skins/max-duck-sit-up-8f-runtime.png",
@@ -978,6 +1178,26 @@
       "bytes": 279094
     },
     {
+      "path": "art/max-master/motions/skins/max-space-sit-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-sit-up-8f-runtime.png",
+      "bytes": 241408
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-sit-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-sit-up-8f-runtime.png",
+      "bytes": 277583
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sit-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-sit-up-8f-runtime.png",
+      "bytes": 257369
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sit-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-sit-up-8f-runtime.png",
+      "bytes": 263832
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-sit-front-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-sit-front-8f-runtime.png",
       "bytes": 268926
@@ -1026,6 +1246,26 @@
       "path": "art/max-master/motions/skins/max-mouse-sit-front-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-sit-front-8f-runtime.png",
       "bytes": 361232
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-sit-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-sit-front-8f-runtime.png",
+      "bytes": 293949
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-sit-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-sit-front-8f-runtime.png",
+      "bytes": 338933
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sit-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-sit-front-8f-runtime.png",
+      "bytes": 290360
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sit-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-sit-front-8f-runtime.png",
+      "bytes": 300632
     },
     {
       "path": "art/max-master/motions/skins/max-duck-sleep-left-8f-runtime.png",
@@ -1078,6 +1318,26 @@
       "bytes": 329200
     },
     {
+      "path": "art/max-master/motions/skins/max-space-sleep-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-sleep-left-8f-runtime.png",
+      "bytes": 263908
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-sleep-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-sleep-left-8f-runtime.png",
+      "bytes": 313838
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sleep-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-sleep-left-8f-runtime.png",
+      "bytes": 255708
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sleep-left-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-sleep-left-8f-runtime.png",
+      "bytes": 255143
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-sleep-up-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-sleep-up-8f-runtime.png",
       "bytes": 236974
@@ -1126,6 +1386,26 @@
       "path": "art/max-master/motions/skins/max-mouse-sleep-up-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-sleep-up-8f-runtime.png",
       "bytes": 257270
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-sleep-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-sleep-up-8f-runtime.png",
+      "bytes": 257882
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-sleep-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-sleep-up-8f-runtime.png",
+      "bytes": 304502
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sleep-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-sleep-up-8f-runtime.png",
+      "bytes": 239208
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sleep-up-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-sleep-up-8f-runtime.png",
+      "bytes": 288350
     },
     {
       "path": "art/max-master/motions/skins/max-duck-sleep-front-8f-runtime.png",
@@ -1178,6 +1458,26 @@
       "bytes": 332756
     },
     {
+      "path": "art/max-master/motions/skins/max-space-sleep-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-sleep-front-8f-runtime.png",
+      "bytes": 293509
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-sleep-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-sleep-front-8f-runtime.png",
+      "bytes": 296327
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sleep-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-sleep-front-8f-runtime.png",
+      "bytes": 265576
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sleep-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-sleep-front-8f-runtime.png",
+      "bytes": 280337
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-idle-front-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-idle-front-8f-runtime.png",
       "bytes": 254563
@@ -1228,6 +1528,26 @@
       "bytes": 367898
     },
     {
+      "path": "art/max-master/motions/skins/max-space-idle-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-idle-front-8f-runtime.png",
+      "bytes": 319413
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-idle-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-idle-front-8f-runtime.png",
+      "bytes": 340801
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-idle-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-idle-front-8f-runtime.png",
+      "bytes": 288040
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-idle-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-idle-front-8f-runtime.png",
+      "bytes": 315267
+    },
+    {
       "path": "art/max-master/motions/skins/max-duck-victory-front-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-duck-victory-front-8f-runtime.png",
       "bytes": 264718
@@ -1276,6 +1596,26 @@
       "path": "art/max-master/motions/skins/max-mouse-victory-front-8f-runtime.png",
       "source": "art/max-master/motions/skins/max-mouse-victory-front-8f-runtime.png",
       "bytes": 334520
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-victory-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-space-victory-front-8f-runtime.png",
+      "bytes": 299647
+    },
+    {
+      "path": "art/max-master/motions/skins/max-ranger-victory-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-ranger-victory-front-8f-runtime.png",
+      "bytes": 301092
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-victory-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-mail-victory-front-8f-runtime.png",
+      "bytes": 280100
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-victory-front-8f-runtime.png",
+      "source": "art/max-master/motions/skins/max-rain-victory-front-8f-runtime.png",
+      "bytes": 299878
     },
     {
       "path": "art/max-master/motions/canonical/max-walk-v4-face-clean.png",
