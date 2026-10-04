@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=14570e135bf6">
+<link rel="stylesheet" href="css/game.css?v=d7950eaa39fd">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -766,7 +766,8 @@
   <button class="tutskip" id="tutSkip" data-i18n="common.skip">건너뛰기</button>
   <div class="hoodrow" id="hoodRow" aria-label="갈아입기"></div>
   <!-- 방의 길 버튼 — 산책 지도의 방 버튼(#lsRoom)과 같은 자리·같은 모양. 숫자는 다음에 걸을 산책. -->
-  <button class="lsbuild hswalk" id="hsWalk" aria-label="산책 가기" data-i18n-aria="accessibility.walk"><canvas class="lbico" width="84" height="84"></canvas><i class="hswn" id="hsWalkN"></i></button>
+  <button class="lsbuild hswalk" id="hsWalk" aria-label="산책 가기" data-i18n-aria="accessibility.walk"><canvas class="lbico" width="84" height="84"></canvas></button>
+  <button class="lsbuild hsdeco" id="hsDeco" aria-label="꾸미기" data-i18n-aria="house.decoSign"><canvas class="lbico" width="84" height="84"></canvas></button>
   <!-- 판 아래 할아버지 게시판 — 광고 자리(320×50). 광고가 없으면 같은 자리에 쪽지가 붙는다. -->
   <div id="gboard" aria-hidden="true"><div class="gbroof"></div><i class="gbpost l"></i><i class="gbpost r"></i><div class="gbwood"><div class="gbslot" id="gbSlot"><div class="gbnote" id="gbNote"></div></div></div></div>
   <div id="dock">
@@ -5033,7 +5034,8 @@ const FLOW_SPD=1.5;                 // 물결·나뭇잎 위상 속도 (칸/초)
 // 엇갈려 흐르니 체감 유속이 낱개 물결보다 빠르기 때문(실측 피드백). 공이 물결 하나를
 // 천천히 앞지르는 정도가 "같이 흘러간다"로 읽힌다.
 const FLOW_BALL=FLOW_SPD*1.5;       // 떠가는 공 (칸/초)
-const PER_CELL=1/(SLIDE_STEP*60);   // 한 칸 굴러가는 데 걸리는 시간(초)
+const PER_CELL=1/(SLIDE_STEP*60);
+const MOWER_K=0.55;                                   // 잔디깎이는 공보다 천천히 달린다(10-04 사람: 더 천천히) — 칸당 시간 1/0.55배   // 한 칸 굴러가는 데 걸리는 시간(초)
 const LOG_K=0.085;                  // 나무 상자는 무겁게 = 훨씬 느린 추종   // SLOPE_HOLD=경사 칸 멈칫 시간(초)
 // ---- 저장 (진행·별점·최소기록) ----
 const SK={lv:'roll_lv', st:'roll_stars', bm:'roll_best', mx:'roll_max', tut:'roll_tut', ver:'roll_ver', trm:'roll_treats', tk:'roll_tkbal', pw:'roll_paw', pwm:'roll_pawmap', yd:'roll_yard', mn:'roll_moon', dd:'roll_diary', sn:'roll_seen', wc:'roll_walkcal', pp:'roll_poop', ct:'roll_cleantot', yz:'roll_yardzones', sk:'roll_skin', so:'roll_shopown', yp:'roll_yardpos', yt:'roll_yardtiles', yf:'roll_yardface', ys:'roll_yardstore', sp:'roll_skip', wt:'roll_water', kb:'roll_kibble', bo:'roll_boost', sy:'roll_story', gb:'roll_built', mt:'roll_mats', pt:'roll_parts', gp:'roll_pot', cp:'roll_colpot', cf:'roll_chips', cr:'roll_care', mc:'roll_matcells', cg:'roll_chores_gf'};
@@ -8178,6 +8180,7 @@ function numBadge(n, buyable){
 }
 // 되돌리기·다시하기의 첫 동네 완충만 남긴다. 할아버지 도구 셋은 해금 카드가
 // 이미 세 번의 재고를 지급하므로, 첫 동네에서도 한 번 쓸 때마다 한 장씩 쓴다.
+const RESTART_ALWAYS_FREE=true;                       // 다시 하기 전 판 무료(2026-10-04) — 아래 사다리(공짜 → 한 끼 → 상한)는 끄면 되살아난다
 function firstDistrictRetriesFree(lv){
   return !menuMode && !tutMode && !moonMode && !tsMode && !lunchMode && lv>=1 && lv<=30;
 }
@@ -9112,6 +9115,15 @@ const LS_MAX_MOTION={
   turn:'art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.png',
   sit:chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png')
 };
+// 닭 후디 시안(2026-10-04) — 첫 동네 목록에서 닭 후디를 입고 있을 때만. 다른 동네·다른 옷·기본 맥스는 위 셋 그대로.
+// 재료는 승인된 닭 후디 런타임 시트뿐이다(scripts/prepare_max_map_chicken.py). 앉기는 기존 닭 후디 정면 앉기 시트.
+const LS_MAX_MOTION_CHICKEN={
+  walk:'art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.png',
+  turn:'art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.png',
+  sit:'art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.png'
+};
+let lsMaxSet=LS_MAX_MOTION;
+function lsMaxSetFor(lv){ return maxSkinName()==='chicken' && districtOfLv(lv)===1? LS_MAX_MOTION_CHICKEN : LS_MAX_MOTION; }
 function lsWalkStop(){
   lsWalkToken++;
   if(lsWalkRAF) cancelAnimationFrame(lsWalkRAF);
@@ -9122,15 +9134,17 @@ function lsWalkStop(){
   }
   lsWalkSprite=null;
 }
-function lsMaxMotionReady(){
-  if(lsMaxLoad) return lsMaxLoad;
-  lsMaxLoad=Promise.all(Object.values(LS_MAX_MOTION).map(src=>new Promise((resolve,reject)=>{
+const lsMaxLoads=new Map();                     // 묶음마다 따로 — 기본 맥스 묶음과 닭 후디 묶음이 서로의 로드를 덮지 않게
+function lsMaxMotionReady(set=LS_MAX_MOTION){
+  if(lsMaxLoads.has(set)) return lsMaxLoads.get(set);
+  const load=Promise.all(Object.values(set).map(src=>new Promise((resolve,reject)=>{
     const img=new Image();
     img.onload=()=>img.naturalWidth===2048 && img.naturalHeight===256?resolve(img):reject(new Error('Invalid map sprite size'));
     img.onerror=()=>reject(new Error('Map sprite unavailable'));
     img.src=src;
-  }))).catch(()=>{lsMaxLoad=null;return null;});
-  return lsMaxLoad;
+  }))).catch(()=>{lsMaxLoads.delete(set); if(set===LS_MAX_MOTION) lsMaxLoad=null; return null;});
+  lsMaxLoads.set(set,load); if(set===LS_MAX_MOTION) lsMaxLoad=load;
+  return load;
 }
 function lsMaxArrivalPose(elapsed,walkDuration,steps=1){
   const t=Math.max(0,elapsed);
@@ -9158,8 +9172,8 @@ function lsWalkPoint(points,progress){
   return [0,1].map(k=>.5*((2*b[k])+(-a[k]+c[k])*t+(2*a[k]-5*b[k]+4*c[k]-d[k])*t*t+(-a[k]+3*b[k]-3*c[k]+d[k])*t*t*t));
 }
 function lsMaxSpriteFrame(mx,phase,frame){
-  const src=LS_MAX_MOTION[phase==='idle'?'sit':phase==='land'?'walk':phase];
-  if(mx.dataset.motion!==phase){mx.style.backgroundImage='url("'+src+'")';mx.dataset.motion=phase;}
+  const src=lsMaxSet[phase==='idle'?'sit':phase==='land'?'walk':phase], key=phase+(lsMaxSet===LS_MAX_MOTION?'':':chicken');
+  if(mx.dataset.motion!==key){mx.style.backgroundImage='url("'+src+'")';mx.dataset.motion=key;}
   mx.dataset.frame=String(frame);
   mx.style.backgroundPosition=(frame/7*100)+'% 0';
 }
@@ -9172,8 +9186,11 @@ function lsWalkIn(want,animate=true){
   try{ reduced=!!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
   const to=+want.dataset.lv,last=+(LS.get('roll_walk_nx')||0);
   if(animate) LS.set('roll_walk_nx',String(to));
-  lsMaxMotionReady().then(ready=>{
+  let set=lsMaxSetFor(to);
+  // 닭 후디 시트가 없으면(패키지에 아직 안 실렸다) 기본 맥스 연출로 — 정적 마커로 떨어지지 않게.
+  lsMaxMotionReady(set).then(r=> r || set===LS_MAX_MOTION? r : lsMaxMotionReady(set=LS_MAX_MOTION)).then(ready=>{
     if(!ready || token!==lsWalkToken || !selMode || mx.isConnected===false) return;
+    lsMaxSet=set;
     lsWalkSprite=mx; mx.classList.add('sprite-motion');
     const finish=()=>{
       mx.style.transform=''; lsMaxSpriteFrame(mx,'idle',7); lsWalkRAF=0;
@@ -11119,6 +11136,7 @@ function hudPilotForLevel(lv){ return true; }
 function uiuxPolishForLevel(lv){ return lv>=1; }
 // keepTries: 같은 판을 다시 까는 것이라 시도 횟수를 이어 센다(재시작). 안 주면 새 입장이다.
 function loadLevel(lv, moon, keepTries){
+  mowDir={lv:0, m:new Map()};                                   // 깎은 결(그림)은 판을 다시 깔면 지운다
   teach=null;
   if(TRAINING_PRACTICE && typeof trainingPracticeStart==='function') return trainingPracticeStart();
   stopGameEffects();
@@ -19555,11 +19573,11 @@ const HOUSE_SHOP_FURN=[
   {k:'cloudCurtain',kind:'wall',tpl:'window',a:'#7FB8E0', b:'cloud', n:10},
   {k:'kiteFrame', kind:'wall',  tpl:'frame', m:'sheep', kite:1, n:10},
   {k:'pinwheel',  kind:'yard',  tpl:'pinwheelYard', n:10},
-  // 건드리면 움직이는 소품 넷(2026-10-03) — 벽 둘은 그 아래 칸에서 위로 쿵, 바닥 둘은 그 칸에 올라서면(houseActHit·houseActTick).
+  // 건드리면 움직이는 소품 셋(2026-10-03, 텐트는 10-04 방석 자리로 옮김) — 벽 둘은 그 아래 칸에서 위로 쿵, 바닥 둘은 그 칸에 올라서면(houseActHit·houseActTick).
   {k:'curtainWin',kind:'wall',  tpl:'curtainWin', act:1, n:1},
   {k:'cuckoo',    kind:'wall',  tpl:'cuckoo',     act:1, n:1},
   {k:'fishTable', kind:'thing', tpl:'fishTable',  act:1, n:1},
-  {k:'tent',      kind:'thing', tpl:'tent',       act:1, n:1},
+  // 꼬마 텐트는 가게에서 뺐다(2026-10-04 사람) — 방석 자리가 동네별 텐트가 되며 같은 물건이 둘이 됐다.
 ];
 const HOUSE_FURN_PRICE={thing:25, wall:20, yard:20};
 const HOUSE_FURN_ALL=HOUSE_FURN.flat();
@@ -19708,7 +19726,7 @@ function drawFurn(it, x, y, s){
   const shadow=(w)=>El(x,y+u(0.34),u(w),u(0.08),'rgba(120,70,40,.18)');
   switch(it.tpl){
     case 'sig': { const f=FURN_SIG[it.sig]; if(f){ const k=s/180; g.save(); g.translate(x,y+u(0.34)); g.scale(k,k); g.translate(-120,-198); f(g,animT); g.restore(); } break; }
-    case 'bed': shadow(0.44); Rr(x-u(.47),y-u(.33),u(.94),u(.72),u(.32),it.a); Rr(x-u(.35),y-u(.17),u(.7),u(.48),u(.22),it.b);
+    case 'bed': drawActTent(g, x, y+u(.14), u(1), it); break;   // 크기는 한 칸 그대로(10-04 사람: 1.4·1.75배 시안보다 지금이 좋다)   // 방석 자리 = 동네 텐트(2026-10-04 사람) — 들어가면 얼굴만 내밀고, 가만히 있으면 잔다
       if(it.m) furnHead(it.m,x,y+u(.06),u(.13)); break;
     case 'rug': { const rx=u(.44), ry=u(.3);
       if(it.shape==='lily'){ const pad=(k,col)=>{ g.fillStyle=col; g.beginPath(); g.moveTo(x,y); g.ellipse(x,y,rx*k,ry*k,0,-1.3,-1.84+Math.PI*2); g.closePath(); g.fill(); };   // 홈은 도려낸다 — 바닥이 바뀌어도 맞는다
@@ -19809,7 +19827,9 @@ function houseActHit(dr,dc){
   return false;
 }
 function houseActSpotItem(){ if(!houseMode || !houseIn) return null; const F=houseFurnState();
-  for(let i=0;i<HOUSE_DECO_SPOTS.length;i++){ const sp=HOUSE_DECO_SPOTS[i]; if(dog.r===sp[0] && dog.c===sp[1]) return F.deco[i]? {k:F.deco[i], sp} : null; }
+  for(let i=0;i<HOUSE_DECO_SPOTS.length;i++){ const sp=HOUSE_DECO_SPOTS[i]; if(dog.r===sp[0] && dog.c===sp[1]) return F.deco[i]? {k:F.deco[i], sp, oy:-0.16} : null; }
+  const bed=F.on.bed && HOUSE_FURN_BY[F.on.bed];                 // 방석 자리 텐트 — 같은 동작(들어가 얼굴 내밀기·잠)
+  if(bed && dog.r===HOUSE_BED[0] && dog.c===HOUSE_BED[1]) return {k:'tent', sp:HOUSE_BED, oy:0, it:bed};
   return null; }
 function houseTentIn(){ const a=houseActSpotItem(); return !!(a && a.k==='tent' && Math.abs(dog.rr-a.sp[0])<0.3 && Math.abs(dog.cc-a.sp[1])<0.3); }
 function houseActTick(){                                          // 방 — 바닥 소품에 올라섰나(한 번 올라설 때 한 번)
@@ -19822,8 +19842,8 @@ function houseActTick(){                                          // 방 — 바
 // 맥스 위에 덮는 층 — 텐트에 들어가는 맥스는 텐트 뒤로 가고, 다 들어가면 문 사이로 얼굴만 보인다.
 function drawHouseActTop(){
   const a=houseActSpotItem(); if(!a || a.k!=='tent') return;
-  const g=ctx, c=cell, q=c*0.92, x=cx(a.sp[1]), y=cy(a.sp[0])-c*0.16+q*0.14;
-  drawActTent(g, x, y, q);
+  const g=ctx, c=cell, q=a.it? c : c*0.92, x=cx(a.sp[1]), y=cy(a.sp[0])+c*a.oy+q*0.14;
+  drawActTent(g, x, y, q, a.it);
   if(!houseTentIn()) return;
   const sv={lr:dog.lungeR, lc:dog.lungeC, pb:dog.protoMoveBlend};
   g.save(); g.beginPath(); g.moveTo(x,y-q*.36); g.lineTo(x+q*.26,y+q*.42); g.lineTo(x-q*.26,y+q*.42); g.closePath(); g.clip();
@@ -19888,16 +19908,19 @@ function drawActFish(g,x,y,q,j){                                   // 금붕어 
   g.fillStyle='#33271C'; g.beginPath(); g.arc(q*.04,-q*.01,q*.012,0,7); g.fill(); g.restore();
   if(j>0.25){ g.fillStyle='rgba(191,235,255,.95)'; for(const [a,b] of [[-.1,-.36],[.14,-.34],[.2,-.42],[-.16,-.44]]){ g.beginPath(); g.ellipse(x+a*q,y+b*q-j*q*.06,q*.025,q*.035,0,0,7); g.fill(); } }
 }
-function drawActTent(g,x,y,q){                                     // 꼬마 텐트 — 문 사이가 어둡다. 맥스가 들어가면 drawHouseActTop 이 얼굴을 그린다
+function drawActTent(g,x,y,q,it){                                     // 꼬마 텐트 — 문 사이가 어둡다. 맥스가 들어가면 drawHouseActTop 이 얼굴을 그린다
   g.fillStyle='rgba(60,50,30,.16)'; g.beginPath(); g.ellipse(x,y+q*.42,q*.62,q*.09,0,0,7); g.fill();
   g.strokeStyle='#B9784B'; g.lineWidth=q*.035; g.lineCap='round'; g.beginPath(); g.moveTo(x-q*.1,y-q*.95); g.lineTo(x+q*.1,y-q*.7); g.moveTo(x+q*.1,y-q*.95); g.lineTo(x-q*.1,y-q*.7); g.stroke();
-  const tg=g.createLinearGradient(0,y-q*.8,0,y+q*.4); tg.addColorStop(0,'#BFE3D0'); tg.addColorStop(1,'#8CC7A8');
+  // 동네 텐트(방석 자리) — it.a 천 · it.b 물방울·문 자락. 없으면 옛 꼬마 텐트 색.
+  const ca=it&&it.a||'#8CC7A8', cb=it&&it.b||'#FFF3D6', fl=it&&it.b||'#F7A9B8';
+  const tg=g.createLinearGradient(0,y-q*.8,0,y+q*.4); tg.addColorStop(0,'#FFFFFF'); tg.addColorStop(0.18,ca); tg.addColorStop(1,ca);
   g.fillStyle=tg; g.beginPath(); g.moveTo(x,y-q*.82); g.lineTo(x+q*.6,y+q*.42); g.lineTo(x-q*.6,y+q*.42); g.closePath(); g.fill();
-  g.fillStyle='#FFF3D6'; for(const [a,b] of [[-.3,.1],[.32,.05],[-.14,-.3],[.2,-.28],[.42,.28],[-.44,.3]]){ g.beginPath(); g.arc(x+a*q,y+b*q,q*.035,0,7); g.fill(); }
+  g.fillStyle=cb; for(const [a,b] of [[-.3,.1],[.32,.05],[-.14,-.3],[.2,-.28],[.42,.28],[-.44,.3]]){ g.beginPath(); g.arc(x+a*q,y+b*q,q*.035,0,7); g.fill(); }
   g.fillStyle='#5E4A35'; g.beginPath(); g.moveTo(x,y-q*.36); g.lineTo(x+q*.26,y+q*.42); g.lineTo(x-q*.26,y+q*.42); g.closePath(); g.fill();
-  g.fillStyle='#F7A9B8';
+  g.fillStyle=fl;
   g.beginPath(); g.moveTo(x,y-q*.36); g.lineTo(x-q*.26,y+q*.42); g.lineTo(x-q*.36,y+q*.42); g.quadraticCurveTo(x-q*.2,y+q*.05,x,y-q*.36); g.closePath(); g.fill();
   g.beginPath(); g.moveTo(x,y-q*.36); g.lineTo(x+q*.26,y+q*.42); g.lineTo(x+q*.36,y+q*.42); g.quadraticCurveTo(x+q*.2,y+q*.05,x,y-q*.36); g.closePath(); g.fill();
+
 }
 
 // ── 가구 상태 — roll_house.furn = {on:{bed,rug,paper}, wall:[k,k], yard:[k..], seen:[k..]}
@@ -19987,7 +20010,7 @@ function houseBoxTidyAll(){
   houseToysSave(); return true;
 }
 function houseFurnState(){ const f=houseTheme.furn||(houseTheme.furn={}); f.on=f.on||{}; f.wall=f.wall||[]; f.seen=f.seen||[]; f.yard=f.yard||[];
-  f.deco=f.deco||[null,null]; while(f.wall.length<2) f.wall.push(null); return f; }
+  f.deco=(f.deco||[null,null]).map(k=>k && HOUSE_FURN_BY[k]? k : null); while(f.wall.length<2) f.wall.push(null); return f; }   // 가게에서 뺀 물건(꼬마 텐트)은 자리에서 걷는다
 // ── 방 꾸미기 여섯 자리 + 소품 넷 (2026-09-30) ─────────────────────────────
 // 꾸러미 여섯 칸(방석·러그·가구·벽지·바닥·후디) × 10동네 = 자리마다 10개. 방에는 자리마다 **하나**만 선다.
 // 간식 가게 물건은 따로 — 벽 두 자리(HOUSE_WALL_SPOTS) + 바닥 두 자리(HOUSE_DECO_SPOTS)에만 놓는다.
@@ -20563,8 +20586,11 @@ function houseDecoOpen(mode){
   hdMode=mode;
   d.classList.remove('full');                              // 늘 한 줄 띠로 연다 — 방이 줄지 않는다. 손잡이를 누르면 열 칸이 다 펼쳐진다
   d.classList.add('on'); d.setAttribute('aria-hidden','false'); document.body.classList.add('hdeco');
+  hdOpenAt=dog.r+','+dog.c;
   houseDecoRender(); requestAnimationFrame(houseDecoFit); setTimeout(houseDecoFit, 80);   // rAF 가 멈춘 탭에서도 한 번은 맞춘다
 }
+let hdOpenAt='';
+function houseDecoWalkAway(){ if(houseDecoIsOpen() && hdOpenAt!==dog.r+','+dog.c){ houseDecoClose(); houseRowHide(); } }
 function houseDecoClose(){
   const d=el('hdeco'); if(!d || !d.classList) return;
   if(d.classList.contains('on')){ d.classList.remove('on'); d.setAttribute('aria-hidden','true'); }
@@ -20973,14 +20999,14 @@ function houseTick(){
   if(houseToySig()!==houseToyKey) houseToysSave();
   if(houseIn){
     houseActTick();                                                // 바닥 소품(어항·텐트)에 올라섰나
-    if(houseRoomSignOn() && r===HOUSE_RSIGN[0] && c===HOUSE_RSIGN[1]) houseDecoOpen('room'); else { houseDecoClose(); houseRowHide(); }
+    houseDecoWalkAway();                                            // 꾸미기는 푯말 대신 왼쪽 아래 단추(10-04) — 걸어 나가면 시트가 닫힌다
     if(r===GN-2 && (c===3||c===4)){
       if(!yardUnlocked()){ if(!houseYardToastAt || animT-houseYardToastAt>2.5){ houseYardToastAt=animT; tabToast(yardLockedMsg()); sfxBlocked(); } }   // 마당은 30판 뒤 — 방 문밖으로 못 나간다
       else houseZoom(false, ()=>openHouse(HOUSE_LOT,{at:[1,c]})); }
     return;
   }
   if(r===0 && (c===3||c===4)){ houseZoom(true, ()=>openHouse(HOUSE_LOT,{room:true, at:[GN-3,c]})); return; }   // 대문 = 개집 문간
-  if(r===HOUSE_SIGN[0] && c===HOUSE_SIGN[1]) houseDecoOpen('yard'); else { houseDecoClose(); houseRowHide(); }   // 마당 꾸미기도 방과 같은 시트(2026-10-01)
+  houseDecoWalkAway();                                              // 마당도 같은 단추·같은 시트
 }
 // ── 마당 타일 — 게임 판과 갈라지는 자리. 격자선 없이 두 톤 체크, 잔디 결 대신 작은 장식, 둘레는 수풀이 아니라 울타리.
 // 마당 바닥 — 한 색 위에 큰 풀 얼룩 몇 개(칸을 넘어 앉는다) + 디딤돌 길 + 연못. 격자를 다시 그리지 않는다.
@@ -21154,12 +21180,7 @@ function drawHouseRoom(bare){                                    // bare — 첫
   if(hdPing){ const t=(animT-hdPing.t0)/0.45;                                   // 방에서 짚은 자리 — 퍼지는 고리 하나
     if(t>=1 || t<0 || !houseDecoIsOpen()) hdPing=null;
     else { g.save(); g.globalAlpha=1-t; g.lineWidth=Math.max(2,c*0.07); g.strokeStyle='#E7A72C'; g.beginPath(); g.arc(hdPing.fx*c, hdPing.fy*c, c*(0.22+0.5*t), 0, 7); g.stroke(); g.restore(); } }
-  if(!bare && houseRoomSignOn()){ const sx=cx(HOUSE_RSIGN[1]), sy=cy(HOUSE_RSIGN[0]), on=dog.r===HOUSE_RSIGN[0]&&dog.c===HOUSE_RSIGN[1];   // 방 꾸미기 푯말
-    g.fillStyle='rgba(60,50,30,.14)'; g.beginPath(); g.ellipse(sx,sy+c*.34,c*.22,c*.06,0,0,7); g.fill();
-    g.fillStyle='#8A6741'; g.fillRect(sx-c*.04,sy-c*.05,c*.08,c*.4);
-    g.fillStyle=on?'#FFF0D4':'#FFF9F0'; g.strokeStyle=on?'#E7A72C':'#8A6741'; g.lineWidth=Math.max(1,c*.025);
-    g.beginPath(); g.roundRect(sx-c*.3,sy-c*.36,c*.6,c*.34,c*.06); g.fill(); g.stroke();
-    g.fillStyle='#8A5A18'; g.font='700 '+(c*.16)+'px sans-serif'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(I18N.t('house.decoSign'), sx, sy-c*.19); g.textAlign='start'; g.textBaseline='alphabetic'; }
+  // 방 꾸미기 푯말은 걷었다(10-04) — 왼쪽 아래 단추(#hsDeco)가 연다.
   if(!bare && houseBoxOn()) drawHouseToyBox();
   if(!bare && houseNight()){                                                                 // 밤 — 어스름, 침대 위 벽등이 켜진다
     g.fillStyle='rgba(40,34,80,.22)'; g.fillRect(0,T,W,W-T);
@@ -21612,12 +21633,7 @@ function drawHouseOverlay(){
     ctx.beginPath(); ctx.roundRect(gx-c*.36,gy-c*.36-(near?pulse*c*0.04:0),c*.72,c*.3,c*.08); ctx.fill(); ctx.stroke();
     ctx.fillStyle='#8A5A18'; ctx.font='700 '+(c*.16)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(I18N.t('house.walkSign'), gx, gy-c*.21-(near?pulse*c*0.04:0)); ctx.textAlign='start'; ctx.textBaseline='alphabetic'; }
-  { const sx=cx(HOUSE_SIGN[1]), sy=cy(HOUSE_SIGN[0]), on=dog.r===HOUSE_SIGN[0]&&dog.c===HOUSE_SIGN[1];   // 꾸미기 푯말
-    ctx.fillStyle='rgba(60,50,30,.14)'; ctx.beginPath(); ctx.ellipse(sx,sy+cell*.34,cell*.22,cell*.06,0,0,7); ctx.fill();
-    ctx.fillStyle='#8A6741'; ctx.fillRect(sx-cell*.04,sy-cell*.05,cell*.08,cell*.4);
-    ctx.fillStyle=on?'#FFF0D4':'#FFF9F0'; ctx.strokeStyle=on?'#E7A72C':'#8A6741'; ctx.lineWidth=Math.max(1,cell*.025);
-    ctx.beginPath(); ctx.roundRect(sx-cell*.3,sy-cell*.36,cell*.6,cell*.34,cell*.06); ctx.fill(); ctx.stroke();
-    ctx.fillStyle='#8A5A18'; ctx.font='700 '+(cell*.16)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('꾸미기', sx, sy-cell*.19); ctx.textAlign='start'; ctx.textBaseline='alphabetic'; }
+  // 마당 꾸미기 푯말도 걷었다(10-04) — 같은 단추가 연다.
   // 개집 — 원화 art/yard-items/growth-01-house.html 의 ★75 단계(밝은 지붕 결·흰 트림·창)를 그대로 옮겼다.
   // 한 변 c 의 정사각 안에 그린다: 지붕 꼭짓점 .10c, 처마 .44~.50c, 벽 .40~.88c, 땅 그림자 .88c.
   // 발자국은 0~2행 2~5열이지만 그림은 그보다 작다(맥스 2.5마리 폭) — 집이 마당의 주인공이 되면 안 된다.
@@ -23113,7 +23129,10 @@ function tryMove(dr,dc){
   }
   if(res.kind==='mower' && res.mow){                    // 잔디깎이가 달린다 — 부릉. 깎은 결 방향을 기억해 둔다(그림만)
     if(mowDir.lv!==level) mowDir={lv:level, m:new Map()};
-    for(const k of res.mow.cut) mowDir.m.set(k, res.mow.dr!==0? 'v' : 'h');
+    // 지나간 칸은 전부 깎인 결로(10-04 사람) — 긴 풀만이 아니라 보통 잔디도. 깎이가 그 칸에 닿는 시각부터 보인다(그림만, 규칙과 무관).
+    { const v=res.mow.dr!==0, t0=animT, step=PER_CELL/MOWER_K; let i=0;
+      for(const p of (res.path||[])){ i++; const k=kk(p.r,p.c); if(!mowDir.m.has(k) || mowDir.m.get(k).v!==v) mowDir.m.set(k,{v, t:t0+step*(i-0.5)}); }
+      for(const k of res.mow.cut){ const o=mowDir.m.get(k); mowDir.m.set(k,{v, t:o? o.t : t0}); } }
     tone(110,0.22,'sawtooth',0.025,150); tone(160,0.18,'square',0.012,220); buzz([10,30,10]);
     if(res.door && doorFx) doorFx.t=-1e9;               // 문은 깎이가 닿는 순간에 돈다 — 도착(path 끝)에서 0 으로 푼다
   }
@@ -23174,12 +23193,12 @@ function tryMove(dr,dc){
   if(res.door && res.door.hit){                       // 문으로 친 공은 문짝이 닿는 순간 떠난다
     const hb=boxes.find(x=>x.path && x.r===res.door.hit.toR && x.c===res.door.hit.toC);
     if(hb){ const mw=res.kind==='mower'? boxes.find(x=>x.kind==='mower' && x.r===res.restR && x.c===res.restC) : null;
-      hb.delay=DOOR_DUR*DOOR_HIT_T+(mw? (mw.delay||0)+pathTimeOf(res.path) : 0); hb.startSfx=false; }
+      hb.delay=DOOR_DUR*DOOR_HIT_T+(mw? (mw.delay||0)+pathTimeOf(res.path, MOWER_K) : 0); hb.startSfx=false; }
   }
   if(res.kind==='mower' && res.mowHit && res.mowHit.ball && !res.mowHit.stuck){   // 깎이에 맞은 공은 깎이가 닿은 뒤에 떠난다
     const mw=boxes.find(x=>x.kind==='mower' && x.r===res.restR && x.c===res.restC), e0=(res.extra||[])[0];
     const hb=e0 && boxes.find(x=>x.kind==='ball' && x.path && x.r===e0.restR && x.c===e0.restC);
-    if(mw && hb){ hb.delay=(mw.delay||0)+pathTimeOf(res.path); hb.startSfx=true; }
+    if(mw && hb){ hb.delay=(mw.delay||0)+pathTimeOf(res.path, MOWER_K); hb.startSfx=true; }
   }
   prepareBallContacts(boxes);
   if(labMode) labAfterMove();                         // 실험 판 — 밟은 칸의 신발·삽을 줍는다
@@ -24593,7 +24612,7 @@ function finalStart(){
   // 같은 수에 공이 둘 이상 방석에 들 수 있다 — 제일 늦게 닿는 공이 판을 푼다.
   let best=null, bt=-1;
   for(const x of boxes){ if(!x.path || !x.pend || x.pend.land==null) continue;
-    const t=(x.delay||0)+pathTimeOf(x.path); if(t>bt){ bt=t; best=x; } }
+    const t=(x.delay||0)+pathTimeOf(x.path, x.kind==='mower'? MOWER_K : 1); if(t>bt){ bt=t; best=x; } }
   finalFx = best? {k:best.pend.land, z:0, hit:false, slow:!motionReduced()} : null;
 }
 function sfxSeatClick(){ tone(1850,0.025,"square",0.035,1500); setTimeout(()=>tone(2500,0.035,"triangle",0.03,2150), 40); }
@@ -26351,8 +26370,9 @@ function syncDockN(){
   if(!u||!r) return;
   if(tutMode || moonMode || tsMode){ u.textContent=''; r.textContent=''; return; }
   const free=firstDistrictRetriesFree(level);
-  u.classList.toggle('free',free); r.classList.toggle('free',free);
+  u.classList.toggle('free',free); r.classList.toggle('free',free||RESTART_ALWAYS_FREE);
   if(free){ u.textContent=I18N.t('common.free'); r.textContent=I18N.t('common.free'); return; }
+  if(RESTART_ALWAYS_FREE){ r.textContent=I18N.t('common.free'); r.classList.remove('last','out','plus','cost'); }
   const rl=Math.max(0, ECON.restartFree-restartN);
   // 둘 다 도토리로 더 산다 — 남은 횟수가 0 이 되면 값이 적힌 얼굴로 바뀐다.
   // 살 수 있는 몫까지 다 쓰면 끝난 얼굴(붉은 0)로 돌아간다 — ＋ 를 계속 보여 주면
@@ -26371,7 +26391,7 @@ function syncDockN(){
   u.classList.remove('last','out','plus','cost');
   // 재시작 값은 도토리가 아니라 **한 끼**다 — 실패 카드의 「다시 걷기」와 같은 값이라
   // 도크와 카드가 다른 말을 하지 않는다. 밥그릇이 안 도는 구간에선 값이 안 붙는다.
-  paint(r, rl, canBuy, mealCharged()? 1 : 0, ICON_BOWL);
+  if(!RESTART_ALWAYS_FREE) paint(r, rl, canBuy, mealCharged()? 1 : 0, ICON_BOWL);
 }
 onTap(el("restart"), ()=>{ if(giftBlocking()) return; doRestart(); });
 // 재시작 규칙은 **한 군데**다 — 도크의 ↻ 와 실패 카드의 「다시 걷기」가 같은 사다리를
@@ -26382,7 +26402,8 @@ function doRestart(){ if(tsMode){ startTreasure(); return; }
   if(houseMode){ openHouse(houseLot,{room:houseIn}); return; }
   if(labMode){ labPlay(labKey, labIdx); return; }           // 실험 판도 그 판을 다시 깐다
   if(tutMode){ playTut(tutIdx); return; }
-  const free=firstDistrictRetriesFree(level);
+  // 다시 하기는 전 판 무료(2026-10-04 사람). 체력(고기)은 판에 **들어갈 때만** 쓴다 — 깨지 않고 나갔다 다시 들어오면 그때 또 쓴다.
+  const free=RESTART_ALWAYS_FREE || firstDistrictRetriesFree(level);
   if(!free && !mealFull() && restartN>=ECON.restartFree){          // 배부른 동안은 공짜
     // 공짜분을 다 쓴 뒤로는 사서 쓴다. 사는 것도 판마다 상한이 있다 — 도토리로
     // 무한히 다시 깔 수 있으면 걸음 제한과 밥그릇을 둘 다 우회한다.
@@ -26446,6 +26467,7 @@ onTap(el("tbShop"),  ()=>{
 });
 onTap(el("lsYard"), ()=>{ if(yardUnlocked()) openHomeTab(); });
 onTap(el("lsRoom"), ()=>{ openHouse(HOUSE_LOT,{room:true}); tone(620,0.05,'triangle',0.03,840); });
+onTap(el("hsDeco"), ()=>{ if(!houseMode || houseZooming) return; if(houseDecoIsOpen()) houseDecoClose(); else houseDecoOpen(houseIn? 'room' : 'yard'); tone(620,0.05,'triangle',0.03,840); });
 onTap(el("hsWalk"), ()=>{ if(!houseMode || houseZooming) return; housePlaceFlush(); houseWalkGo(); });   // 띄워 둔 선물이 있으면 앉히고 간다
 onTap(el("tbYard"), ()=>{
   if(HOUSE_ON){ if(yardUnlocked()) openHouse(); else tabToast(yardLockedMsg()); return; }
@@ -27078,7 +27100,7 @@ function failSync(){
   { const rt=el("flRetry"), fr=firstDistrictRetriesFree(level);
     const left=Math.max(0, ECON.restartFree-restartN);
     const canBuy = mealFull() || restartN < ECON.restartFree + ECON.restartBuy;
-    const noCost = fr || mealFull() || left>0;
+    const noCost = RESTART_ALWAYS_FREE || fr || mealFull() || left>0;
     rt.style.display = (noCost || canBuy)? 'flex' : 'none';
     rt.innerHTML = row(FL_AGAIN, I18N.t('notice.retry'), noCost? free : meal1); }
   // 「다음 판」(간식 내고 건너뛰기)은 뺐다(2026-10-01 사람 지시) — 걸음을 다 쓴 자리에서 고를 건 더 걷기·다시 걷기·나중에 셋이면 된다.
@@ -27609,24 +27631,41 @@ function gboardSync(){
 }
 // ── 방의 길 버튼 — 지도에 방 버튼이 있듯 방엔 길 버튼(2026-10-02 사람). 누르면 다음 산책의 입장 카드로 바로 간다.
 // 전엔 방에서 나가는 길이 목록뿐이라 선물을 받고 다음 판까지 탭이 넷이었다.
-function drawWalkIcon(g, W, H){
+function drawWalkIcon(g, W, H){                                     // 산책 가기 — 문 + 나가는 화살표(10-04 사람 4안)
   g.clearRect(0,0,W,H); const u=W/84;
-  g.fillStyle='#BFE08A'; g.beginPath(); g.roundRect(8*u,8*u,68*u,68*u,16*u); g.fill();
-  g.strokeStyle='#F6EFD9'; g.lineWidth=17*u; g.lineCap='round';
-  g.beginPath(); g.moveTo(58*u,78*u); g.bezierCurveTo(70*u,52*u,16*u,48*u,30*u,24*u); g.bezierCurveTo(34*u,16*u,44*u,10*u,50*u,6*u); g.stroke();
-  g.fillStyle='#8A5A2C';
-  const paw=(x,y,s)=>{ g.beginPath(); g.ellipse(x,y+s*0.5,s*0.9,s*0.75,0,0,7); g.fill();
-    for(const [dx,dy] of [[-1,-0.6],[-0.35,-1.15],[0.35,-1.15],[1,-0.6]]){ g.beginPath(); g.arc(x+dx*s,y+dy*s,s*0.36,0,7); g.fill(); } };
-  paw(52*u,60*u,6.5*u); paw(30*u,34*u,5.2*u);
-  g.strokeStyle='#8A6844'; g.lineWidth=3*u; g.beginPath(); g.roundRect(8*u,8*u,68*u,68*u,16*u); g.stroke();
+  g.fillStyle='#C98A4B'; g.beginPath(); g.roundRect(12*u,10*u,36*u,64*u,6*u); g.fill();
+  g.fillStyle='#E0B66F'; g.beginPath(); g.roundRect(17*u,15*u,26*u,54*u,4*u); g.fill();
+  g.fillStyle='#7A5330'; g.beginPath(); g.arc(37*u,44*u,3*u,0,7); g.fill();
+  g.strokeStyle='#5E9A4A'; g.lineWidth=7*u; g.lineCap='round'; g.lineJoin='round';
+  g.beginPath(); g.moveTo(52*u,44*u); g.lineTo(76*u,44*u); g.moveTo(66*u,34*u); g.lineTo(76*u,44*u); g.lineTo(66*u,54*u); g.stroke();
+}
+
+// 꾸미기 단추 — 팔레트(10-04 사람 E안). 산책 단추와 같은 틀, 왼쪽 아래.
+function drawDecoIcon(g, W, H){
+  g.clearRect(0,0,W,H); const u=W/84;
+  g.fillStyle='#F6E7C8'; g.strokeStyle='#C98A4B'; g.lineWidth=3.5*u;
+  g.beginPath(); g.ellipse(38*u,44*u,26*u,22*u,-0.15,0,7); g.fill(); g.stroke();
+  g.fillStyle='#FFF9F0'; g.beginPath(); g.ellipse(48*u,56*u,5*u,4*u,0,0,7); g.fill(); g.stroke();   // 엄지 구멍
+  for(const [x,y,col] of [[24,40,'#E0573F'],[34,30,'#F2C655'],[47,32,'#7FB8F5'],[28,54,'#8CC77A']]){ g.fillStyle=col; g.beginPath(); g.arc(x*u,y*u,5.2*u,0,7); g.fill(); }
+  g.strokeStyle='#8A5E36'; g.lineWidth=5*u; g.lineCap='round'; g.beginPath(); g.moveTo(58*u,58*u); g.lineTo(74*u,74*u); g.stroke();
+  g.fillStyle='#E0573F'; g.beginPath(); g.ellipse(56*u,56*u,4.5*u,3*u,0.8,0,7); g.fill();
+}
+let decoFabKey='';
+function syncDecoFab(){
+  const b=el('hsDeco'); if(!b || !b.classList) return;
+  const on=houseMode && !houseZooming && (houseIn? houseRoomSignOn() : true), key=String(on);
+  if(key===decoFabKey) return; decoFabKey=key;
+  b.classList.toggle('on', on); if(!on) return;
+  const ic=b.querySelector && b.querySelector('.lbico');
+  if(ic && ic.getContext && !(ic.dataset && ic.dataset.nb)){ if(ic.dataset) ic.dataset.nb='1'; drawDecoIcon(ic.getContext('2d'), ic.width, ic.height); }
 }
 let walkFabKey='';
 function syncWalkFab(){
+  syncDecoFab();
   const b=el('hsWalk'); if(!b || !b.classList) return;
   const on=houseMode && houseIn && !houseZooming, lv=Math.max(1, Math.min(maxLevel, BAKED.length)), key=on+':'+lv;
   if(key===walkFabKey) return; walkFabKey=key;
   b.classList.toggle('on', on); if(!on){ b.classList.remove('nudge'); return; }
-  el('hsWalkN').textContent=lvLabel(lv);
   const ic=b.querySelector && b.querySelector('.lbico');
   if(ic && ic.getContext && !(ic.dataset && ic.dataset.nb)){ if(ic.dataset) ic.dataset.nb='1'; drawWalkIcon(ic.getContext('2d'), ic.width, ic.height); }
 }
@@ -33599,7 +33638,7 @@ function drawDoors(){
 // 빨간 몸통 + 회색 손잡이. 손잡이가 곧 미는 자리라 늘 보이게 그린다 — 옆(오른·왼)·뒤(위로 감)·앞(아래로 감).
 // 옆에서 밀어 돌 때는 **손잡이 끝이 문짝처럼 호를 그리며 쓸고** 흰 결이 남는다(시안 B, 사람 승인). 살짝 지나쳤다 딸깍.
 // 돈 뒤에는 달려 나갈 줄(겨눈 길)이 점선으로 잠깐 뜬다 — 모든 판에서(사람 지시).
-const MOWER_TURN=0.32, MOWER_AIM_LIFE=0.9;
+const MOWER_TURN=0.32, MOWER_AIM_LIFE=1.2;
 const MOWER_P={body:'#E8574E', deep:'#C9443D', hi:'rgba(255,255,255,.35)', bar:'#5A5F66', tire:'#3A3F46', hub:'#9AA3AD'};
 let mowerAim=null, mowDir={lv:0, m:new Map()};
 const MOWER_HANDLE=[Math.PI/2, Math.PI, -Math.PI/2, 0];                // 바라보는 쪽의 반대 — 손잡이 각(화면)
@@ -33652,12 +33691,19 @@ function drawMower(x,y,s,b){
     const u=Math.max(0,T.t), a0=MOWER_HANDLE[T.from];
     let d=MOWER_HANDLE[T.to]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
     const k=1.7, e=1+(k+1)*Math.pow(u-1,3)+k*Math.pow(u-1,2);       // 살짝 지나쳤다 돌아온다(back-out)
-    for(const [R,lw] of [[.5,.05],[.4,.04]]){                          // 손잡이 끝이 쓸고 간 흰 결
+    for(const [g,al] of [[.35,.22],[.7,.4]]){ const ue=Math.max(0,u-g*.35);   // 잔상 둘 — 지나온 각에 흐리게 남는다(10-04 사람 C안)
+      if(ue<=0) continue; const k2=1+(k+1)*Math.pow(ue-1,3)+k*Math.pow(ue-1,2);
+      ctx.save(); ctx.globalAlpha=al*(1-u); mowerTop(x,y,s,a0+d*k2*g); ctx.restore(); }
+    for(const [R,lw] of [[.5,.07],[.4,.055]]){                         // 손잡이 끝이 쓸고 간 흰 결 — 굵게(C안)
       ctx.strokeStyle=`rgba(255,255,255,${(0.85*(1-u*0.6)).toFixed(3)})`; ctx.lineWidth=Math.max(2,s*lw); ctx.lineCap='round';
       ctx.beginPath(); ctx.ellipse(x,y-s*.15,s*R,s*R*.75,0,a0,a0+d*Math.min(1,e),d<0); ctx.stroke(); }
     mowerTop(x,y,s,a0+d*e);
   } else if(f===1||f===3){ mowerSide(x,y,s,f===1?1:-1); }
   else if(f===0) mowerBack(x,y,s); else mowerFront(x,y,s);
+  if(b.clickT!=null && animT-b.clickT<0.55){                           // 다 돌면 "딸깍" — 멈춘 게 보이게(C안)
+    const q=(animT-b.clickT)/0.55; ctx.save(); ctx.globalAlpha=1-q; ctx.fillStyle='#FFF9F0'; ctx.strokeStyle='#7A5330'; ctx.lineWidth=Math.max(2,s*.05);
+    ctx.font='700 '+Math.round(s*.24)+'px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    const ty=y-s*(.62+.18*q); ctx.strokeText(I18N.t('mower.click'),x+s*.34,ty); ctx.fillText(I18N.t('mower.click'),x+s*.34,ty); ctx.restore(); }
   if(b.path && !motionReduced()){                                      // 달리는 중 — 깎인 풀 조각 + 결
     const v=DOOR_CV[f], bx=-v[1], by=-v[0];
     ctx.fillStyle='#7DBE5A'; for(let i=0;i<6;i++){ const q=((i*53+Math.floor(animT*20))%17)/17;
@@ -33677,13 +33723,31 @@ function drawMowerAim(){
   let r=b.r, c=b.c, n=0; while(n<GN && mowerFloor(L, filled, boxes, r+v[0], c+v[1], bi)){ r+=v[0]; c+=v[1]; n++; }
   if(!n) return;
   const a=Math.min(1, (MOWER_AIM_LIFE-mowerAim.age)/0.3)*0.85, s=cell;
-  const x0=cx(b.c)+v[1]*s*.45, y0=cy(b.r)+v[0]*s*.45, x1=cx(c), y1=cy(r);
+  const grow=Math.min(1, mowerAim.age/0.35);                       // 돈 뒤 앞으로 쭉 그려진다(C안)
+  const x0=cx(b.c)+v[1]*s*.45, y0=cy(b.r)+v[0]*s*.45, x1=x0+(cx(c)-x0)*grow, y1=y0+(cy(r)-y0)*grow;
   ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=Math.max(3,s*.06); ctx.lineCap='round'; ctx.setLineDash([s*.1,s*.09]);
   ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle='#FFFFFF';
-  for(let k=1;k<=n;k++){ const px=cx(b.c+v[1]*k), py=cy(b.r+v[0]*k), ang=Math.atan2(v[0],v[1]);
+  for(let k=1;k<=Math.floor(n*grow+1e-6);k++){ const px=cx(b.c+v[1]*k), py=cy(b.r+v[0]*k), ang=Math.atan2(v[0],v[1]);
     ctx.beginPath(); ctx.moveTo(px+Math.cos(ang)*s*.1,py+Math.sin(ang)*s*.1); ctx.lineTo(px+Math.cos(ang+2.4)*s*.1,py+Math.sin(ang+2.4)*s*.1); ctx.lineTo(px+Math.cos(ang-2.4)*s*.1,py+Math.sin(ang-2.4)*s*.1); ctx.closePath(); ctx.fill(); }
   ctx.restore();
+}
+// 돌 길 미리 보기(10-04 사람 A안) — 맥스가 깎이 **옆** 칸에 서 있으면, 밀었을 때 손잡이가 쓸고 갈 호를 점선으로 보여 준다.
+// 밀기 전에 "옆에서 밀면 돈다"가 보인다. 뒤·앞에 서 있으면 안 그린다(뒤는 달리고, 앞은 안 밀린다).
+function drawMowerTurnHint(){
+  if(state!=='play' || dog.moving || gintroOn) return;
+  for(const b of boxes){ if(b.kind!=='mower' || b.sink!==0 || b.path || b.turnFx) continue;
+    const dr=b.r-dog.r, dc=b.c-dog.c; if(Math.abs(dr)+Math.abs(dc)!==1) continue;
+    const f=mowerFace(b), m=doorCompass(dr,dc); if(m===f || m===((f+2)&3)) continue;
+    const s=cell, x=cx(b.c), y=cy(b.rr), a0=MOWER_HANDLE[f]; let d=MOWER_HANDLE[m]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
+    const pu=0.7+0.3*Math.sin(animT*4), R=s*.6, ry=R*.75, cy0=y-s*.15, a1=a0+d;
+    ctx.save(); ctx.globalAlpha=pu; ctx.strokeStyle='#F2A33A'; ctx.lineWidth=Math.max(3,s*.085); ctx.lineCap='round';
+    ctx.setLineDash([s*.1,s*.08]); ctx.lineDashOffset=-animT*s*.3;
+    ctx.beginPath(); ctx.ellipse(x,cy0,R,ry,0,a0,a1,d<0); ctx.stroke(); ctx.setLineDash([]);
+    const ex=x+Math.cos(a1)*R, ey=cy0+Math.sin(a1)*ry, tang=Math.atan2(Math.cos(a1)*ry*(d<0?-1:1), -Math.sin(a1)*R*(d<0?-1:1));
+    ctx.fillStyle='#F2B04E'; ctx.translate(ex,ey); ctx.rotate(tang);
+    ctx.beginPath(); ctx.moveTo(s*.17,0); ctx.lineTo(-s*.08,-s*.13); ctx.lineTo(-s*.08,s*.13); ctx.closePath(); ctx.fill();
+    ctx.restore(); }
 }
 // 1동네 긴 풀 — 엔진은 고랑길(FURROW, 맥스만 지나감)과 같다. 마당이라 키 작고 연한 가는 잎 다발로 그린다
 // (수풀 벽의 둥근 덤불과 갈리게). 깎이면 연한 줄무늬 잔디가 된다 — 잔디깎이가 지나간 결 방향으로.
@@ -33695,7 +33759,7 @@ function drawLongGrass(x,y,r,c){
     ctx.beginPath(); ctx.moveTo(bx,by); ctx.quadraticCurveTo(bx+s*.04,by-h*.6,bx+((i%3)-1)*s*.08,by-h); ctx.stroke(); }
 }
 function drawMownCell(x,y,k){
-  const s=cell, v=(mowDir.lv===level && mowDir.m.get(k)==='v');
+  const o=mowDir.lv===level && mowDir.m.get(k), s=cell, v=!!(o && o.v);
   ctx.fillStyle='rgba(225,248,180,.55)';
   if(v) ctx.fillRect(x+s*.16,y,s*.68,s); else ctx.fillRect(x,y+s*.16,s,s*.68);
   ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.5;
@@ -33910,10 +33974,10 @@ function fireBallContact(b,contact){
     fx.push({r:hr,c:hc,vx:Math.cos(a)*sp+contact.dc*.8,vy:Math.sin(a)*sp+contact.dr*.8-.6,t:.5,col:'#FFF6DC'});
   }
 }
-function pathTimeOf(path){ let t=0;
+function pathTimeOf(path, k=1){ let t=0;
   for(const p of (path||[])){ const tt=tileAt(L,filled,p.r,p.c);
     if(isSlope(tt)) t+=PER_CELL/0.45+SLOPE_HOLD; else if(isFlow(tt)) t+=PER_CELL*(SLIDE_STEP*60)/FLOW_BALL; else t+=PER_CELL; }
-  return t; }
+  return t/k; }
 // 공이 상자·통에 **닿는** 시각. 굴러간 공은 그 자리에서 멈추므로 경로 끝이 곧 접촉이다.
 function hitDelay(res){ return pathTimeOf(res && res.path); }
 function fxAfter(sec, fn){ if(!(sec>0)) fn(); else fxQueue.push({t:sec, fn}); }
@@ -34117,7 +34181,9 @@ function drawTile(r,c){
   // 바닥 베이스 — 농장 창고는 밝은 꿀색 판자, 나머지는 잔디.
   const floorArt=EDGE_ART.FLOOR[(districtOf(level)||{}).nm];
   drawFloorBase(x,y,r,c,floorArt);
-  if(t===GRASS && filled.has(kk(r,c)+MOW_OFF)) drawMownCell(x,y,kk(r,c));
+  if(t===GRASS){ const mo=mowDir.lv===level && mowDir.m.get(kk(r,c)), cutF=filled.has(kk(r,c)+MOW_OFF);   // 깎은 긴 풀 + 깎이가 지나간 칸
+    if(mo && mo.t>animT){ if(cutF && districtOfLv(level)===1) drawLongGrass(x,y,r,c); }      // 깎이가 아직 안 닿았다 — 긴 풀은 그대로 서 있다
+    else if(cutF || mo) drawMownCell(x,y,kk(r,c)); }
   if(t===GRASS && floorArt!=='창고 흙길' && floorArt!=='밭흙' && !_proto) drawGrassTuft(x,y,r,c);
   if(t===GRASS && windNow!=null && floorArt!=='밭흙') drawWindGrass(x,y,r,c);                   // 바람결 — 잔디가 바람 방향과 레인을 말한다
   if(t===GRASS || t===MAT){ for(const d of DIRS){ const r2=r-d[0], c2=c-d[1];        // 물가 — 물살이 흘러들어 공이 굴러 나오는 잔디
@@ -35684,6 +35750,7 @@ function render(){
   drawParkBoxes();
   drawCatBoxes();                                                        // 고양이 상자 — 바닥 층, 공·맥스보다 앞
   drawMowerAim();                                                        // 잔디깎이 겨눈 길 — 바닥 위, 물건 아래
+  drawMowerTurnHint();                                                   // 옆에 서면 돌 길 미리 보기
   drawDoors();                                                           // 여닫이 문 — 기둥·문짝, 공·맥스보다 앞
   drawCurious();                                                         // 통 + 방석에서 자는 고양이 — 바닥 층
   for(const b of boxes) if(b.covered) drawCrateCover(cx(b.c), cy(b.r), cell, b.coverT||0, b.wet);   // 구덩이·물줄기 덮개 (바닥 레벨)
@@ -35840,7 +35907,7 @@ function render(){
           const here=tileAt(L,filled,Math.round(b.rr),Math.round(b.cc));
           // 상자는 **가볍게** 나간다 — 바퀴 달린 것처럼 쑥. 흙더미(무겁게 버티다 놓임)와
           // 층을 갈라 두려고 일부러 공보다도 빠르다.
-          const kindK = (b.kind==='log')? 1.30 : 1;
+          const kindK = (b.kind==='log')? 1.30 : (b.kind==='mower')? MOWER_K : 1;
           let step=SLIDE_STEP*dtF*kindK*(isSlope(here)? 0.45 : isFlow(here)? FLOW_BALL/(SLIDE_STEP*60) : 1);
           if(jumping){
             // 공중에서는 바닥 속도를 쓰지 않는다. 준비 60ms + 비행 420ms.
@@ -36763,7 +36830,7 @@ function frameInner(ts){
   }
   if(doorWind){ doorWind.age+=dt; if(doorWind.age>=DOOR_WIND_FADE) doorWind=null; }
   for(const b of boxes) if(b.turnFx){ const was=b.turnFx.t; b.turnFx.t+=dt/MOWER_TURN;
-    if(was<1 && b.turnFx.t>=1){ tone(1250,0.035,'square',0.025,900); b.turnFx=null; } }   // 딸깍
+    if(was<1 && b.turnFx.t>=1){ tone(1250,0.035,'square',0.025,900); b.turnFx=null; b.clickT=animT; } }   // 딸깍
   if(mowerAim){ mowerAim.age+=dt; if(mowerAim.age>=MOWER_AIM_LIFE) mowerAim=null; }
   if(digFx){                                              // 흙더미 밀기 — 0.34초
     const was=digFx.t; digFx.t+=dt/DIG_DUR;
