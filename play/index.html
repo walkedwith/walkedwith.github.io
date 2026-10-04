@@ -1085,6 +1085,7 @@ function stopSelectedSounds(){
   }
 }
 function stopGameEffects(){
+  cancelRestartRun();
   effectEpoch++; // Delayed effects belong to the scene that scheduled them.
   lsWalkStop();
   stopBallRollSound(); stopWallBlockSound(); stopGoalSound(); stopSelectedSounds();
@@ -6714,16 +6715,16 @@ const MAX_GARDEN_KEEPER_SKIN_ENABLED=(()=>{
 // 시트가 새로 배치되면 tests/max-skin-sheets.test.cjs 가 이 목록과 디스크를 대조해 알려준다.
 // Shared JSON registry: the package builder reads this same declaration.
 const MAX_SKIN_ASSETS={
-  "duck":{"format":"webp","motions":["walk-left","walk-up","walk-down","push-left","push-up","push-down","wall-left","wall-up","wall-down","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
-  "frog":{"format":"png","motions":["walk-down","walk-up","walk-left","push-left","push-up","push-down","wall-left","wall-up","wall-down","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "duck":{"format":"webp","motions":["walk-left","walk-up","walk-down","push-left","push-up","push-down","wall-left","wall-up","wall-down","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"],"tone":"soft-v1"},
+  "frog":{"format":"png","motions":["walk-down","walk-up","walk-left","push-left","push-up","push-down","wall-left","wall-up","wall-down","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"],"tone":"soft-v1"},
   "chicken":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
-  "bunny":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "bunny":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"],"tone":"soft-v1"},
   "pig":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
   "hedgehog":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
   "peacock":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
-  "mouse":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "mouse":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"],"tone":"soft-v1"},
   "beaver":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
-  "sheep":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "sheep":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"],"tone":"soft-v1"},
   "space":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
   "ranger":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
   "mail":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
@@ -6924,7 +6925,10 @@ const MAX_MASTER_NATIVE_PNG_ONLY=new Set([
 function chapterMaxRuntimeSheet(path){
   const skinFile=path.match(/^art\/max-master\/motions\/skins\/max-([a-z]+)-(.+)-8f-runtime\.png$/);
   if(skinFile && MAX_SKIN_ASSETS[skinFile[1]]?.motions.includes(skinFile[2])){
-    return path.replace(/\.png$/,'.'+MAX_SKIN_ASSETS[skinFile[1]].format);
+    const asset=MAX_SKIN_ASSETS[skinFile[1]];
+    // Keep the sitting color reference unchanged; all other poses use its matched tone.
+    if(asset.tone && skinFile[2]!=='sit-front') path=path.replace('/skins/','/skins/'+asset.tone+'/');
+    return path.replace(/\.png$/,'.'+asset.format);
   }
   const native=typeof window!=='undefined' && !!window.Capacitor?.isNativePlatform?.();
   // 후디 시트는 승인된 PNG 그대로 패키지에 싣는다. 대응 AVIF는 내보내지 않았다.
@@ -9121,15 +9125,23 @@ const LS_MAX_MOTION={
   turn:'art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.png',
   sit:chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png')
 };
-// 닭 후디 시안(2026-10-04) — 첫 동네 목록에서 닭 후디를 입고 있을 때만. 다른 동네·다른 옷·기본 맥스는 위 셋 그대로.
-// 재료는 승인된 닭 후디 런타임 시트뿐이다(scripts/prepare_max_map_chicken.py). 앉기는 기존 닭 후디 정면 앉기 시트.
+// 동네별 도착 연출: 해당 동네의 후디를 입었을 때만 쓰며, 앉기는 기존 시트를 잇는다.
 const LS_MAX_MOTION_CHICKEN={
   walk:'art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.png',
   turn:'art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.png',
   sit:'art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.png'
 };
+const LS_MAX_MOTION_SKIN_VERSIONS={duck:'v2',frog:'v2',bunny:'v2',mouse:'v2',sheep:'v2'};
+const LS_MAX_MOTION_SKINS=Object.fromEntries(STAGE_TOYS.map(skin=>[skin,skin==='chicken'?LS_MAX_MOTION_CHICKEN:{
+  walk:'art/max-master/motions/map/'+skin+'-'+(LS_MAX_MOTION_SKIN_VERSIONS[skin]||'v1')+'/max-'+skin+'-map-hop-up-8f.png',
+  turn:'art/max-master/motions/map/'+skin+'-'+(LS_MAX_MOTION_SKIN_VERSIONS[skin]||'v1')+'/max-'+skin+'-map-turn-back-front-8f.png',
+  sit:'art/max-master/motions/skins/max-'+skin+'-sit-front-8f-runtime.'+(skin==='duck'?'webp':'png')
+}]));
 let lsMaxSet=LS_MAX_MOTION;
-function lsMaxSetFor(lv){ return maxSkinName()==='chicken' && districtOfLv(lv)===1? LS_MAX_MOTION_CHICKEN : LS_MAX_MOTION; }
+function lsMaxSetFor(lv){
+  const skin=maxSkinName();
+  return skin && STAGE_TOYS[districtOfLv(lv)-1]===skin?LS_MAX_MOTION_SKINS[skin] || LS_MAX_MOTION:LS_MAX_MOTION;
+}
 function lsWalkStop(){
   lsWalkToken++;
   if(lsWalkRAF) cancelAnimationFrame(lsWalkRAF);
@@ -9140,7 +9152,7 @@ function lsWalkStop(){
   }
   lsWalkSprite=null;
 }
-const lsMaxLoads=new Map();                     // 묶음마다 따로 — 기본 맥스 묶음과 닭 후디 묶음이 서로의 로드를 덮지 않게
+const lsMaxLoads=new Map();                     // 기본 맥스와 각 스킨의 로드 결과를 따로 보관한다.
 function lsMaxMotionReady(set=LS_MAX_MOTION){
   if(lsMaxLoads.has(set)) return lsMaxLoads.get(set);
   const load=Promise.all(Object.values(set).map(src=>new Promise((resolve,reject)=>{
@@ -9178,7 +9190,7 @@ function lsWalkPoint(points,progress){
   return [0,1].map(k=>.5*((2*b[k])+(-a[k]+c[k])*t+(2*a[k]-5*b[k]+4*c[k]-d[k])*t*t+(-a[k]+3*b[k]-3*c[k]+d[k])*t*t*t));
 }
 function lsMaxSpriteFrame(mx,phase,frame){
-  const src=lsMaxSet[phase==='idle'?'sit':phase==='land'?'walk':phase], key=phase+(lsMaxSet===LS_MAX_MOTION?'':':chicken');
+  const src=lsMaxSet[phase==='idle'?'sit':phase==='land'?'walk':phase], key=phase+(lsMaxSet===LS_MAX_MOTION?'':':'+lsMaxSet.walk);
   if(mx.dataset.motion!==key){mx.style.backgroundImage='url("'+src+'")';mx.dataset.motion=key;}
   mx.dataset.frame=String(frame);
   mx.style.backgroundPosition=(frame/7*100)+'% 0';
@@ -9193,7 +9205,7 @@ function lsWalkIn(want,animate=true){
   const to=+want.dataset.lv,last=+(LS.get('roll_walk_nx')||0);
   if(animate) LS.set('roll_walk_nx',String(to));
   let set=lsMaxSetFor(to);
-  // 닭 후디 시트가 없으면(패키지에 아직 안 실렸다) 기본 맥스 연출로 — 정적 마커로 떨어지지 않게.
+  // 스킨 시트를 못 불러오면 기본 맥스 연출로 대체한다.
   lsMaxMotionReady(set).then(r=> r || set===LS_MAX_MOTION? r : lsMaxMotionReady(set=LS_MAX_MOTION)).then(ready=>{
     if(!ready || token!==lsWalkToken || !selMode || mx.isConnected===false) return;
     lsMaxSet=set;
@@ -11086,6 +11098,7 @@ function renderHint(){
 
 // 판 하나를 화면에 올린다 (메뉴 씬도 같은 경로를 쓴다 — 진행 저장만 건드리지 않는다)
 function applyScene(g){
+  cancelRestartRun();
   L=g.L; holes=L.holes;
   L._dogR=g.start.dog.r; L._dogC=g.start.dog.c; L._house=null;   // 개집은 개 시작점 최근접 벽
   boxes=g.start.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,rr:b.r,cc:b.c,roll:0,sqT:0,sdr:0,sdc:0,landT:0,sink:0,carried:false,buried:!!b.buried}));
@@ -26743,10 +26756,57 @@ function syncDockN(){
   // 도크와 카드가 다른 말을 하지 않는다. 밥그릇이 안 도는 구간에선 값이 안 붙는다.
   if(!RESTART_ALWAYS_FREE) paint(r, rl, canBuy, mealCharged()? 1 : 0, ICON_BOWL);
 }
-onTap(el("restart"), ()=>{ if(giftBlocking()) return; doRestart(); });
+// Opt-in motion study. No new art or changes to the normal restart flow.
+var restartRun=null;
+function restartRunPath(){
+  const points=[{r:dog.rr,c:dog.cc}];
+  for(let i=undoStack.length-1;i>=0;i--){
+    const p=undoStack[i].d, last=points[points.length-1];
+    if(last.r===p.r && last.c===p.c) continue;
+    if(Math.abs(last.r-p.r)+Math.abs(last.c-p.c)!==1) return null;
+    // Changed doors, training jumps and occupied cells need a separate rewind design.
+    if(tileAt(L,filled,p.r,p.c)!==GRASS || boxes.some(b=>!b.gone&&!b.carried&&b.sink<1&&b.r===p.r&&b.c===p.c)) return null;
+    points.push({r:p.r,c:p.c});
+  }
+  const end=points[points.length-1];
+  return points.length>1 && end.r===L._dogR && end.c===L._dogC ? points : null;
+}
+function cancelRestartRun(){
+  if(!restartRun) return;
+  const run=restartRun;restartRun=null;
+  Object.assign(dog,run.savedDog);
+  if(state==='restart-run') state='play';
+}
+function startRestartRun(done){
+  if(new URLSearchParams(location.search).get('restartRun')!=='1' || motionReduced() ||
+     state!=='play' || menuMode || selMode || moonMode || lunchMode || failOn || gintroOn ||
+     dog.carry || isAnimating() || dog.moving || (dog.protoMoveT!=null&&dog.protoMoveT<1)) return false;
+  if(dog.r===L._dogR&&dog.c===L._dogC) return false;
+  const points=restartRunPath();if(!points) return false;
+  stopGameEffects();walkQueueClear();moveBuffer=null;dragReset();aimReset();hintCancel();hintFx=null;
+  restartRun={points,t:0,dur:Math.min(.8,Math.max(.4,(points.length-1)*.065)),done,savedDog:{...dog}};
+  state='restart-run';
+  Object.assign(dog,{maxEvent:null,maxEventNext:null,maxEventT:0,protoPush:0,protoMoveT:1,
+    moving:true,protoMoveBlend:1,walkT:0,lungeT:0,hop:0,undoing:false,masterIdleT:0});
+  stepRestartRun(0);
+  return true;
+}
+function stepRestartRun(delta){
+  const run=restartRun;if(!run) return;
+  run.t=Math.min(run.dur,run.t+Math.max(0,delta));
+  const progress=run.t/run.dur*(run.points.length-1);
+  const i=Math.min(run.points.length-2,Math.floor(progress)),f=progress-i;
+  const a=run.points[i],b=run.points[i+1];
+  dog.rr=a.r+(b.r-a.r)*f;dog.cc=a.c+(b.c-a.c)*f;
+  dog.lungeR=b.r-a.r;dog.lungeC=b.c-a.c;
+  if(dog.lungeC) dog.face=Math.sign(dog.lungeC);
+  dog.walkT=run.t*3;dog.moving=true;
+  if(run.t>=run.dur){restartRun=null;run.done();}
+}
+onTap(el("restart"), ()=>{ if(giftBlocking()) return; doRestart(true); });
 // 재시작 규칙은 **한 군데**다 — 도크의 ↻ 와 실패 카드의 「다시 걷기」가 같은 사다리를
 // 탄다(공짜 → 도토리 → 상한). 실패 카드에 규칙을 베껴 두면 값이 바뀔 때 한쪽만 옛말을 한다.
-function doRestart(){ if(tsMode){ startTreasure(); return; }
+function doRestart(animate=false){ if(restartRun) return; if(tsMode){ startTreasure(); return; }
   // 연습판은 그 연습판을 다시 깐다. level 은 본편 번호라 그냥 loadLevel 을 부르면
   // 연습 도중에 본편 1판으로 튄다(실제로 그랬다).
   if(houseMode){ openHouse(houseLot,{room:houseIn}); return; }
@@ -26765,9 +26825,11 @@ function doRestart(){ if(tsMode){ startTreasure(); return; }
   restartN++;
   // 무르기 횟수도 같이 이어 센다. 안 이으면 "공짜분 다 쓰고 재시작" 이 공짜 충전이 된다
   // (재시작에도 공짜분이 있으므로 판마다 무르기가 곱절이 됐다).
-  loadLevel(level, moonMode, true); syncDockN();
-  useFx(el("restartN"));
-  skipOffer(); }                                       // 다시 시작 3회째 — 판을 새로 깔자마자 권한다
+  const finish=()=>{
+    loadLevel(level, moonMode, true); syncDockN();
+    useFx(el("restartN"));skipOffer();
+  };
+  if(!animate || !startRestartRun(finish)) finish(); }
 onTap(el("lsClose"), ()=>{ closeLvlSel(true); });
 onTap(el("lsBuild"), ()=>{ openNotebook(); tone(620,0.05,'triangle',0.03,840); });
 onTap(el("dFoldWeek"), ()=>{ el("qWeek").classList.toggle("open");  el("dFoldWeek").classList.toggle("open"); });
@@ -36215,7 +36277,7 @@ function render(){
       ctx.globalAlpha=1; }
     if(t<0.5) drawBone(x,y-cell*0.03,cell*0.5,1,1);                      // 살짝 드러난 뼈
   }
-  const frozen=hitstop>0;
+  const frozen=hitstop>0 || !!restartRun;
   if(L.wind!=null && windCnt<=1){ const pulse=.5+.5*Math.sin(animT*7);
     ctx.save(); ctx.strokeStyle=`rgba(238,128,50,${.45+.4*pulse})`; ctx.lineWidth=cell*.055;
     for(const b of boxes){ if(b.sink||b.carried||b.kind!=='ball') continue;
@@ -36951,6 +37013,7 @@ function frameInner(ts){
   dt = lastFrameT? Math.max(0, Math.min(1/30, (now-lastFrameT)/1000)) : 1/60;
   lastFrameT=now; dtF=dt*60;
   animT+=dt;
+  if(restartRun){stepRestartRun(dt);render();return;}
   for(const a of acornSt) if(a.got && a.t<1) a.t=Math.min(1, a.t+dt*2.2);
   matEatTick();
   maxReactionTick();
