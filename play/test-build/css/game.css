@@ -464,6 +464,8 @@
     box-shadow:0 2px 0 rgba(90,60,30,.25); white-space:nowrap; }
   /* 방의 길 버튼 — .lsbuild(지도의 방 버튼)와 같은 틀. 방에서만 뜨고(syncWalkFab), 꾸미기 시트가 열리면 비킨다. */
   .hswalk { z-index:40; }
+  .hsdeco { z-index:40; right:auto; left:12px; }   /* 꾸미기 — 산책 단추와 마주 보는 왼쪽 아래(10-04) */
+  body.hdeco .hsdeco { border-color:#E7A72C; background:#FFF0D4; }   /* 시트가 열려 있으면 눌린 모양 — 한 번 더 누르면 닫힌다 */
   /* 선물을 다 놓은 뒤 — 산책으로 돌아가라는 숨 쉬는 금빛 고리(10-04) */
   .hswalk.nudge { animation:hsWalkNudge 1.3s ease-in-out infinite; }
   .hswalk.nudge::before { content:''; position:absolute; inset:-6px; border-radius:22px; border:3px solid #F2B04E; pointer-events:none;
@@ -472,9 +474,6 @@
   @keyframes hsWalkRing { 0%{ opacity:.95; transform:scale(.92) } 100%{ opacity:0; transform:scale(1.35) } }
   @media (prefers-reduced-motion:reduce){ .hswalk.nudge, .hswalk.nudge::before { animation:none; } .hswalk.nudge::before { opacity:.9; } }
   body.hdeco .hswalk { display:none !important; }
-  .hswalk .hswn { position:absolute; right:-7px; top:-9px; min-width:22px; height:22px; padding:0 5px; box-sizing:border-box;
-    border-radius:11px; background:#C9584A; color:#fff; font-style:normal; font-size:var(--s9); line-height:22px; text-align:center;
-    box-shadow:0 2px 0 rgba(74,53,36,.25); }
   body.hud-pilot:not(.dpad) #dock .dbtn {
     width:50px; height:50px; background:#FFF8E9; border:2px solid #E5C987;
     border-radius:14px; box-shadow:0 4px 0 rgba(173,126,55,.26), 0 7px 13px rgba(75,54,31,.08);
