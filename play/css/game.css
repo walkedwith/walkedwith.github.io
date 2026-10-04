@@ -464,6 +464,13 @@
     box-shadow:0 2px 0 rgba(90,60,30,.25); white-space:nowrap; }
   /* 방의 길 버튼 — .lsbuild(지도의 방 버튼)와 같은 틀. 방에서만 뜨고(syncWalkFab), 꾸미기 시트가 열리면 비킨다. */
   .hswalk { z-index:40; }
+  /* 선물을 다 놓은 뒤 — 산책으로 돌아가라는 숨 쉬는 금빛 고리(10-04) */
+  .hswalk.nudge { animation:hsWalkNudge 1.3s ease-in-out infinite; }
+  .hswalk.nudge::before { content:''; position:absolute; inset:-6px; border-radius:22px; border:3px solid #F2B04E; pointer-events:none;
+    animation:hsWalkRing 1.3s ease-out infinite; }
+  @keyframes hsWalkNudge { 0%,100%{ transform:scale(1) } 45%{ transform:scale(1.1) } 60%{ transform:scale(.97) } }
+  @keyframes hsWalkRing { 0%{ opacity:.95; transform:scale(.92) } 100%{ opacity:0; transform:scale(1.35) } }
+  @media (prefers-reduced-motion:reduce){ .hswalk.nudge, .hswalk.nudge::before { animation:none; } .hswalk.nudge::before { opacity:.9; } }
   body.hdeco .hswalk { display:none !important; }
   .hswalk .hswn { position:absolute; right:-7px; top:-9px; min-width:22px; height:22px; padding:0 5px; box-sizing:border-box;
     border-radius:11px; background:#C9584A; color:#fff; font-style:normal; font-size:var(--s9); line-height:22px; text-align:center;
@@ -609,7 +616,7 @@
   #cft { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:60; display:none; }
   #cft.on { display:block; }
   /* 위 여백 34 → 22: 별 줄이 카드 위로 걸치던 시절의 자리였다(지금은 줄이 카드 안에 있다). */
-  #win .card { position:relative; background:rgba(255,249,240,.95); color:#2B2036; border-radius:18px; padding:22px 34px 22px; text-align:center;
+  #win .card { position:relative; background:#FFF9F0; color:#2B2036; border-radius:18px; padding:22px 34px 22px; text-align:center;
     box-shadow:0 12px 30px rgba(0,0,0,.35); }
   #win.quicknext .card { cursor:pointer; }
   #win.quicknext .thresh { color:#7f9c48; }
@@ -1280,7 +1287,7 @@
     font-weight:var(--w-reg); border-radius:7px; padding:1px 7px; pointer-events:none; }
   /* 꾸러미 — 칸 밖. 받은 뒤엔 회색으로 가라앉아 "여긴 이미 챙겼다" 가 된다. 누르면 속을 보여 준다. */
   .lstrail .lsgift { position:absolute; transform:translate(-50%,-50%) rotate(7deg);
-    width:34px; height:30px; padding:0; border:0; background:none; cursor:pointer; z-index:3; pointer-events:auto;
+    width:49px; height:44px; padding:0; border:0; background:none; cursor:pointer; z-index:3; pointer-events:auto;   /* 34×30 → 1.45배(10-04 사람: 작아 보인다) */
     -webkit-tap-highlight-color:transparent; }
   .lstrail .lsgift:active { transform:translate(-50%,-50%) rotate(7deg) scale(.9); }
   .lstrail .lsgift.bounce { animation:lsGiftHop 1.8s ease-in-out infinite; }
@@ -3179,6 +3186,10 @@
   #gintro .gdemo canvas { display:block; border-radius:8px; }
   #gintro .gtext { font-family:var(--f-body); font-size:var(--s6); line-height:1.45; color:#7A5330; margin:6px 0 14px; }
   #gintro .gtext b { color:#B5483F; font-weight:var(--w-reg); }
+  #gintro .gtext.one { font-size:var(--s4); line-height:1.3; min-height:2.6em; display:grid; place-items:center; margin:8px 0 6px; }   /* 한 장에 한 줄 — 크게 */
+  #gintro .gidots { display:flex; justify-content:center; gap:7px; margin:0 0 12px; min-height:8px; }
+  #gintro .gidots i { width:8px; height:8px; border-radius:50%; background:#D8BF8E; }
+  #gintro .gidots i.on { background:#7A5330; }
   .okbtn { background:#FFC66B; border:none; border-radius:16px; padding:10px 34px;
     font-family:var(--f-body); font-size:var(--fs-btn); color:#4A3524; box-shadow:0 4px 0 #c99340; cursor:pointer; }
   .okbtn:active { transform:translateY(3px) scaleY(.985); box-shadow:0 1px 0 #c99340; }
@@ -4225,19 +4236,32 @@ body.inhouse #hud .lvlbl { display:none; }
 body.hardlv:not(.inhouse) #wrap { background:linear-gradient(180deg,#E99A6A 0%,#F2BC8A 28%,#F4D7B0 55%,#EEDFC4 100%); }
 body.hardlv:not(.inhouse) #boardWrap.trimmed { filter:drop-shadow(0 0 10px rgba(255,196,80,.95)) drop-shadow(0 0 22px rgba(240,150,50,.6)); }
 body.hardlv:not(.inhouse) #hud > .hgrp #lvl { background:#F2C24E; border-color:#B9812A; }
-#hardIntro { position:absolute; left:50%; top:44%; z-index:57; display:grid; justify-items:center; gap:4px;
-  padding:14px 34px; background:#FFF6E6; border:3px solid #E7A72C; border-radius:20px; pointer-events:none;
-  box-shadow:0 0 0 5px rgba(255,246,230,.7), 0 10px 24px rgba(74,53,36,.3); font-family:var(--f-hand);
-  opacity:0; visibility:hidden; transform:translate(-50%,-50%) scale(.7); transition:opacity .3s, transform .3s, visibility 0s .3s; }
-#hardIntro.show { opacity:1; visibility:visible; transform:translate(-50%,-50%) scale(1);
-  transition:opacity .25s, transform .4s cubic-bezier(.3,1.5,.5,1), visibility 0s; }
-#hardIntro svg { width:46px; height:28px; }
-#hardIntro b { font-weight:var(--w-reg); font-size:var(--s2); color:#B5452F; line-height:1; white-space:nowrap; }
-#hardIntro span { display:flex; align-items:center; gap:6px; font-family:var(--f-body); font-size:var(--s8); color:#8A5A18; white-space:nowrap; }
+/* 험한 판 입장 — 도장 쾅(2026-10-04 사람: B+C+선물). 붉은 겹테 원 인장이 위에서 내려와 판에 찍히고 먼지 고리가 퍼진다. */
+#hardIntro { position:absolute; left:50%; top:42%; z-index:57; display:grid; justify-items:center; align-content:center; gap:2px;
+  width:150px; height:150px; box-sizing:border-box; border-radius:50%; pointer-events:none;
+  background:rgba(255,246,236,.94); border:5px solid #C0392B; box-shadow:inset 0 0 0 3px #FFF6EC, inset 0 0 0 6px #C0392B, 0 10px 24px rgba(60,20,10,.35);
+  font-family:var(--f-hand); color:#C0392B;
+  opacity:0; visibility:hidden; transform:translate(-50%,-50%) rotate(-12deg) scale(2.3); transition:opacity .3s, visibility 0s .3s; }
+#hardIntro.show { opacity:1; visibility:visible; animation:hardSlam .42s cubic-bezier(.55,0,.75,.4) both, hardSlamSettle .3s .19s ease-out both; transition:visibility 0s; }
+#hardIntro::after { content:''; position:absolute; inset:-6px; border-radius:50%; border:3px solid rgba(160,120,90,.55); opacity:0; pointer-events:none; }
+#hardIntro.show::after { animation:hardDust .7s .19s ease-out both; }
+@keyframes hardSlam { 0%{ opacity:0; transform:translate(-50%,-50%) rotate(-20deg) scale(2.3) } 45%{ opacity:1; transform:translate(-50%,-50%) rotate(-12deg) scale(.9) } 100%{ opacity:1; transform:translate(-50%,-50%) rotate(-12deg) scale(.9) } }
+@keyframes hardSlamSettle { from{ transform:translate(-50%,-50%) rotate(-12deg) scale(.9) } to{ transform:translate(-50%,-50%) rotate(-12deg) scale(1) } }
+@keyframes hardDust { from{ opacity:.9; transform:scale(1) } to{ opacity:0; transform:scale(1.55) } }
+#hardIntro > svg { width:44px; height:26px; }
+#hardIntro > svg path { fill:#C0392B; stroke:#8E2219; }
+#hardIntro > svg circle { fill:#F2C24E; }
+#hardIntro b { font-weight:var(--w-reg); font-size:var(--s2); color:#C0392B; line-height:1; white-space:nowrap; }
+#hardIntro span { position:absolute; left:50%; bottom:-58px; transform:translateX(-50%) rotate(12deg); display:flex; }   /* 선물 상자 — 도장 아래, 기울지 않게 되돌린다 */
 #hardIntro span[hidden] { display:none; }
-#hardIntro em { font-style:normal; }
-#hardIntro .higift { width:20px; height:18px; border-radius:3px;
-  background:linear-gradient(90deg,transparent 42%,#F07C8A 42% 58%,transparent 58%),#9FC7E8; box-shadow:0 -5px 0 -1px #B7D6EF; }
+#hardIntro em { display:none; }
+#hardIntro .higift { width:44px; height:44px; display:block; animation:hardGiftHop .9s .5s ease-in-out infinite; }
+#hardIntro .higift svg { width:44px; height:44px; }
+@keyframes hardGiftHop { 0%,100%{ transform:translateY(0) } 40%{ transform:translateY(-7px) } }
+#hardVig { position:absolute; inset:0; z-index:56; pointer-events:none; opacity:0; transition:opacity .45s;
+  background:radial-gradient(ellipse at 50% 46%, rgba(60,10,10,0) 30%, rgba(90,16,12,.68) 100%); }
+#hardVig.show { opacity:1; }
+@media (prefers-reduced-motion:reduce){ #hardIntro.show, #hardIntro.show::after, #hardIntro .higift { animation:none; transform:translate(-50%,-50%) rotate(-12deg); } }
 
 /* ── 아슬아슬 도장 (2026-09-30) — 남은 걸음 셋 이하로 깼을 때 카드 오른쪽 위에 쿵 ─────── */
 #win .card { position:relative; }
@@ -4421,5 +4445,9 @@ body.hudinplay:not(.inhouse) #hud { position:relative; z-index:6; }
 #win .wlvl { font-size:var(--s9); color:#8A6A3E; margin-top:2px; }
 #win .wlvl:empty { display:none; }
 #win .card { margin-top:64px; }
+/* 승리 카드 뒤 — 흐리게 남기면 카드 위로 비쳐 겹친다(2026-10-04 A안). 완전히 걷고 판엔 어두운 막을 깐다. */
 body:has(#win.show) #hud, body:has(#win.show) #dock, body:has(#win.show) #dpad,
-body:has(#win.show) #hint, body:has(#win.show) .hintact { opacity:.18; pointer-events:none; transition:opacity .2s; }
+body:has(#win.show) #hint, body:has(#win.show) .hintact, body:has(#win.show) #gboard { opacity:0; pointer-events:none; transition:opacity .2s; }
+#win.show { background:rgba(40,28,20,.45); }
+/* 바닥 풍경(#wrap::after, z 0)이 카드 아래쪽을 덮었다 — #boardWrap 은 filter 때문에 제 쌓임 층이라 판째로 올린다 */
+body:has(#win.show) #boardWrap { z-index:1; }
