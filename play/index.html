@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=5e6e1f628620">
+<link rel="stylesheet" href="css/game.css?v=27ff5770b6bb">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -37,6 +37,15 @@
 </script>
 </head>
 <body class="hud-pilot booting">
+<div id="bootLoading" hidden aria-busy="true">
+  <div class="boot-scene" aria-hidden="true">
+    <canvas id="bootMax" width="512" height="448" hidden></canvas>
+    <span id="bootMaxFallback"></span>
+  </div>
+  <p id="bootStatus" role="status" data-i18n="loading.preparing">산책 준비 중…</p>
+  <button id="bootRetry" type="button" hidden data-i18n="loading.retry">다시 시도</button>
+</div>
+<script src="mechanics/boot-loading.js"></script>
 <audio id="bgmHub" loop preload="none" src="sound/bgm-hub-lite.mp3"></audio>
 <audio id="bgmGame" preload="none" src="sound/bgm-game-lite.mp3"></audio>
 <audio id="bgmGameAlt" preload="none" src="sound/bgm-game-9am.mp3"></audio>
@@ -181,13 +190,13 @@
     </div>
   </div>
   <div id="mealCard">
-    <div class="mcbowl"><svg viewBox="0 0 48 48"><ellipse cx="24" cy="40" rx="19" ry="4" fill="rgba(90,64,40,.16)"/><path d="M6 20h36l-3.4 14.6A6 6 0 0 1 32.8 39H15.2a6 6 0 0 1-5.8-4.4z" fill="#F0E2CC" stroke="#B99A72" stroke-width="2.4" stroke-linejoin="round"/><path class="mkib" d="M6 20c0-3.6 8-6.4 18-6.4S42 16.4 42 20c0 1.6-1.2 2.6-3 2.6H9c-1.8 0-3-1-3-2.6z" fill="#C98A4B" stroke="#8A5A2C" stroke-width="2.2" stroke-linejoin="round"/></svg></div>
-    <p class="mct" id="mealTitle">밥그릇이 비었어요<br><b>한 끼 채워 줄까요?</b></p>
-    <div class="mcsub" id="mealCd">다음 밥때까지 --:--</div>
+    <div class="mcbowl" id="mealArt"></div>
+    <p class="mct" id="mealTitle">고기가 다 떨어졌어요<br><b>채워 둘까요?</b></p>
+    <div class="mcsub" id="mealCd">고기 1개 충전까지 --:--</div>
     <div class="mcrows">
-      <button class="fsrow mcrow" id="mealAd"><span class="fsi">🎞️</span><span class="fsl"><span data-i18n="meal.ad">광고 보고 한 끼</span><i id="mealAdSub" data-i18n="meal.adLimit">하루 세 번까지</i></span></button>
-      <button class="fsrow mcrow mckib" id="mealHalf"><span class="fsi mcbag"></span><span class="fsl"><span class="fsn"><span data-i18n="meal.half">사료 반 봉지</span><b class="fsq" data-i18n="full.five">밥그릇 ×5</b></span></span><b class="dchip" id="mealHalfC"></b></button>
-      <button class="fsrow mcrow mckib" id="mealKib"><span class="fsi mcbagfull"></span><span class="fsl"><span class="fsn"><span data-i18n="meal.full">사료 한 봉지</span><b class="fsq" data-i18n="full.ten">밥그릇 ×10</b></span><i></i></span><b class="dchip" id="mealKibC"></b></button>
+      <button class="fsrow mcrow" id="mealAd"><span class="fsi">🎞️</span><span class="fsl"><span data-i18n="meal.ad">광고 보고 고기 1개</span><i id="mealAdSub" data-i18n="meal.adLimit">하루 세 번까지</i></span></button>
+      <button class="fsrow mcrow mckib" id="mealHalf"><span class="fsi mcbag" id="mealHalfArt"></span><span class="fsl"></span><b class="dchip" id="mealHalfC"></b></button>
+      <button class="fsrow mcrow mckib" id="mealKib"><span class="fsi mcbagfull" id="mealFullArt"></span><span class="fsl"><i></i></span><b class="dchip" id="mealKibC"></b></button>
     </div>
     <i class="mchint" data-i18n="meal.wait">기다렸다 와도 괜찮아요</i>
     <button class="mcx" id="mealClose" aria-label="close">✕</button>
@@ -325,8 +334,8 @@
            수집품까지 얼마인지는 동네 헤더의 `★N/M` 이 말한다. HUD 는 쓰는 자원 둘만.
            el() 은 브라우저에서 null 을 돌려주므로 갱신 코드도 같이 지운다 — 남겨 두면
            renderLvlMap 이 죽어 목록이 안 뜬다(실측). 헤드리스 로더는 스텁이라 안 걸린다. -->
-      <button class="hudpaw" id="hudPawBtn" aria-label="간식 쓰러 가기"><svg viewBox="0 0 48 48"><path d="M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z" fill="#B39A6E"/><path d="M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z" fill="#FFFDF8"/><path d="M14.92 29.75L34.65 22.57" fill="none" stroke="#E6DAC2" stroke-width="2.6" stroke-linecap="round"/><path d="M8.06 21.72Q7.66 18.88 10.6 17.6" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.0" stroke-linecap="round"/></svg><b id="hudPaw">0</b><i class="hpp">+</i></button>
-      <button class="hudmeal" id="hudMeal" aria-label="밥그릇"><svg viewBox="0 0 48 48"><ellipse cx="24" cy="40" rx="19" ry="4" fill="rgba(90,64,40,.16)"/><path d="M6 20h36l-3.4 14.6A6 6 0 0 1 32.8 39H15.2a6 6 0 0 1-5.8-4.4z" fill="#F0E2CC" stroke="#B99A72" stroke-width="2.4" stroke-linejoin="round"/><path class="mkib" d="M6 20c0-3.6 8-6.4 18-6.4S42 16.4 42 20c0 1.6-1.2 2.6-3 2.6H9c-1.8 0-3-1-3-2.6z" fill="#C98A4B" stroke="#8A5A2C" stroke-width="2.2" stroke-linejoin="round"/></svg><b id="hudMealN">0</b><i class="mslash" id="hudMealMax">/0</i><i class="mcd" id="hudMealCd"></i><i class="hpp" id="hudMealPlus">+</i></button>
+      <button class="hudpaw" id="hudPawBtn" aria-label="젬 상점 열기"><svg viewBox="0 0 48 48"><image class="ui-gem" x="0" y="0" width="48" height="48" preserveAspectRatio="xMidYMid meet"/></svg><b id="hudPaw">0</b><i class="hpp">+</i></button>
+      <button class="hudmeal" id="hudMeal" aria-label="남은 고기" data-i18n-aria="hud.meat"><svg viewBox="0 0 48 48" style="width:26px;height:26px;flex:none"><image class="ui-meal" x="0" y="0" width="48" height="48" preserveAspectRatio="xMidYMid meet"/></svg><b id="hudMealN">0</b><i class="mslash" id="hudMealMax">/0</i><i class="mcd" id="hudMealCd"></i><i class="hpp" id="hudMealPlus">+</i></button>
     </div>
     <div id="lvlsel">
       <!-- 장면 — 그 동네 원화 한 장이 배경으로 선다(고정, 길만 스크롤). 예전엔 하늘 그라데이션
@@ -564,7 +573,7 @@
            absolute 여도 칸과 같이 흘러내려 칸 위에 앉았다(실측). -->
       <div class="ygband" aria-hidden="true"></div>
       <!-- 가진 재료 — 짓기는 전부 마당에서 하므로 들르기에서 늘 보인다. 그림은 matSVG 그대로. -->
-      <div class="ymats" id="yMats" aria-label="가진 간식"></div>
+      <div class="ymats" id="yMats" aria-label="가진 젬"></div>
       <div class="farmmapsum" id="farmMapSum" role="button" tabindex="0" data-i18n="hood.mapHint">동네를 눌러 둘러보세요</div>
       <!-- 목욕 안내 줄 — 지금 뭘 하면 되는지 한 줄. 거품 막대는 승리 카드의 도토리 막대와
            같은 부품(.pbar)이라 새로 배울 그림이 아니다. -->
@@ -781,6 +790,7 @@
 <script src="mechanics/app-lifecycle.js"></script>
 <script src="mechanics/progress-recovery.js"></script>
 <script src="mechanics/telemetry.js"></script>
+<script src="mechanics/victory-card-motion.js"></script>
 <script>
 let cv=document.getElementById("c"), ctx=cv.getContext("2d");   // 힌트 데모 렌더 시 잠시 교체됨
 const el=id=>document.getElementById(id);
@@ -1073,6 +1083,7 @@ function stopSelectedSounds(){
 }
 function stopGameEffects(){
   effectEpoch++; // Delayed effects belong to the scene that scheduled them.
+  lsWalkStop();
   stopBallRollSound(); stopWallBlockSound(); stopGoalSound(); stopSelectedSounds();
   for(const o of activeToneVoices){ try{o.stop();}catch(e){} }
   activeToneVoices.clear();
@@ -1357,6 +1368,7 @@ function pathDir(path, fromR, fromC, restR, restC){          // 마지막 스텝
 // (+4096 작물이 든 자리, +16384/+32768 벽). filled 는 snapshot() 에 통째로 들어가므로
 // 무르기·되감기에 새 필드가 하나도 안 붙는다. GN=8 이라 칸 키는 0..63, 65536 은 안 겹친다.
 const CUT_OFF=65536;
+const MOW_OFF=131072;                                // 잔디깎이가 깎은 긴 풀(FURROW) — 평지가 된다
 function cutKey(r,c){ return kk(r,c)+CUT_OFF; }
 // 자를 수 있는 건 **안쪽 수풀**뿐이다 — 테두리(울타리)를 자르면 판이 열린다.
 // 원판(L.T)을 본다. tileAt 은 고양이·상자가 만든 임시 벽도 WALL 로 주는데 그건 못 자른다.
@@ -1364,7 +1376,7 @@ function isInnerWall(r,c){
   return r>0 && c>0 && r<GN-1 && c<GN-1
       && L.T[r][c]===WALL && !filled.has(cutKey(r,c));
 }
-function tileAt(L, filled, r, c){ if(r<0||c<0||r>=GN||c>=GN) return WALL; if(L._catB!=null && L._catB===kk(r,c)) return WALL; if(L._cbB!=null && L._cbB.has(kk(r,c))) return WALL; if(L._npB!=null && L._npB.has(kk(r,c))) return WALL; if(L._cqB!=null && L._cqB===kk(r,c)) return WALL; if(filled.has(kk(r,c))) return GRASS; if(filled.has(kk(r,c)+4096)) return GRASS; /* +4096 = 작물이 든 자리. 그림만 다르고 통행은 평지 */ if(filled.has(kk(r,c)+CUT_OFF)) return GRASS; /* 정원 가위가 자른 수풀 — L.T 보다 앞이어야 걸린다 */ if(filled.has(kk(r,c)+16384) || filled.has(kk(r,c)+32768)) return WALL; if(L.T[r][c]===DUREONG) return WALL; if(L.T[r][c]===DOOR) return WALL; if(L.doors && doorLeafAt(L, filled, r, c)) return WALL; return L.T[r][c]; }
+function tileAt(L, filled, r, c){ if(r<0||c<0||r>=GN||c>=GN) return WALL; if(L._catB!=null && L._catB===kk(r,c)) return WALL; if(L._cbB!=null && L._cbB.has(kk(r,c))) return WALL; if(L._npB!=null && L._npB.has(kk(r,c))) return WALL; if(L._cqB!=null && L._cqB===kk(r,c)) return WALL; if(filled.has(kk(r,c))) return GRASS; if(filled.has(kk(r,c)+4096)) return GRASS; /* +4096 = 작물이 든 자리. 그림만 다르고 통행은 평지 */ if(filled.has(kk(r,c)+CUT_OFF)) return GRASS; /* 정원 가위가 자른 수풀 — L.T 보다 앞이어야 걸린다 */ if(filled.has(kk(r,c)+MOW_OFF)) return GRASS; /* 잔디깎이가 깎은 긴 풀 */ if(filled.has(kk(r,c)+16384) || filled.has(kk(r,c)+32768)) return WALL; if(L.T[r][c]===DUREONG) return WALL; if(L.T[r][c]===DOOR) return WALL; if(L.doors && doorLeafAt(L, filled, r, c)) return WALL; return L.T[r][c]; }
 // ── 여닫이 문 ────────────────────────────────────────────────
 // 기둥(DOOR 타일) 하나에 문짝이 붙어 있다. 문짝 칸은 맥스도 공도 못 지난다(tileAt 이 WALL).
 // 맥스가 문짝을 **옆에서** 밀면 기둥을 축으로 미는 쪽으로 90° 돌고, 맥스는 비워진 칸으로 들어간다.
@@ -1560,7 +1572,7 @@ function trampKnockIdx(L, filled, boxes, i, tr, tc, dir, open){
   const j=boxIdxAt(boxes,lr,lc,i);
   if(j<0) return -1;
   const h=boxes[j];
-  if(!h || h.kind==='log' || h.kind==='bone' || h.kind==='crop' || h.kind==='cartV' || h.kind==='cartH') return -1;
+  if(!h || h.kind==='log' || h.kind==='bone' || h.kind==='crop' || h.kind==='cartV' || h.kind==='cartH' || h.kind==='mower') return -1;
   const ar=lr+dir[0], ac=lc+dir[1];                       // 튕겨난 공이 갈 자리 — 여기가 막히면 안 난다
   if(tileAt(L,filled,ar,ac)===WALL || tileAt(L,filled,ar,ac)===FURROW || tileAt(L,filled,ar,ac)===IRANG) return -1;
   if(boxIdxAt(boxes,ar,ac,j)>=0) return -1;
@@ -1739,7 +1751,7 @@ function resolveRoll(L, filled, boxes, i, pr, pc, dir, open, out, fromR, fromC, 
   const flowHit=R.path.some(p=>isFlow(tileAt(L,filled,p.r,p.c)) || isBridge(tileAt(L,filled,p.r,p.c)));
   if((L.billiard || flowHit) && !R.sunk && R.hit>=0 && depth<8){
     const j=R.hit, h=boxes[j];
-    if(h && h.kind!=='log' && h.kind!=='bone' && h.kind!=='cartV' && h.kind!=='cartH'){
+    if(h && h.kind!=='log' && h.kind!=='bone' && h.kind!=='cartV' && h.kind!=='cartH' && h.kind!=='mower'){
       // 물살 **위에** 서 있던 공은 물살이 데려간다 — 쿵은 붙잡고 있던 걸 떼 줄 뿐이다.
       // 부딪힌 방향으로 밀면 물가가 아닌 아무 둑으로 튕겨 나가, 방금 배운 "공은 물살을
       // 따라 흐른다" 와 정면으로 어긋난다(264판 실측: 물살← 위의 공이 위쪽 잔디로 튀었다).
@@ -1819,7 +1831,7 @@ function settleSlopes(L, filled, boxes, open, mainBox, mainPath, wet){
     for(let i=0;i<boxes.length;i++){
       const b=boxes[i];
       if(b.gone) continue;                                     // 이번 수에 사라진 공은 안 굴러감
-      if(b.kind==='log' || b.kind==='bone' || b.kind==='crop' || b.kind==='cartV' || b.kind==='cartH') continue; // 무거운 짐은 안 굴러감
+      if(b.kind==='log' || b.kind==='bone' || b.kind==='crop' || b.kind==='cartV' || b.kind==='cartH' || b.kind==='mower') continue; // 무거운 짐은 안 굴러감
       if(L._cqB!=null && L._cqB===kk(b.r,b.c)) continue;         // 고양이가 앉은 공은 그 자리에 선다
       const t0=tileAt(L,filled,b.r,b.c);
       if(!isRollT(t0)) continue;                               // 언덕·물살 위에 있는 공만
@@ -1923,6 +1935,65 @@ function catEscapePlan(L, res, from, chase){
   return {to:best,path};
 }
 function catEscapeTarget(L,res,from,chase){ return catEscapePlan(L,res,from,chase).to; }
+// ── 잔디깎이 (2026-10-04) ──────────────────────────────────────────
+// 손잡이 쪽(뒤)에서 밀면 바라보는 쪽으로 **막힐 때까지** 달리고, 옆에서 밀면 제자리에서 90° 돌아
+// 미는 쪽을 본다(여닫이 문의 "옆에서 밀면 돈다"와 같은 말). 앞에서 밀면 안 움직인다 — 당길 수 없다.
+//   · 붙어 있는 것(벽·공·문짝)엔 안 움직인다 — 달려야 친다. 한 칸도 못 가면 거부(null).
+//   · 달리다 공을 만나면 그 앞에서 서고 공을 한 칸 쳐 낸다. 맥스가 한 번 민 공과 같은 길(resolveRoll)을
+//     타서 비눗물이면 미끄러지고 구덩이면 빠진다. 쳐낼 자리가 막혔으면 깎이만 선다.
+//   · 문짝 옆을 치면 문이 돈다(E6) — doorSwing 을 그대로 쓰고 맥스는 안 들어간다.
+//   · 긴 풀(FURROW — 맥스만 지나가는 칸)은 깎으며 지나간다. 깎인 칸은 MOW_OFF 비트로 평지가 된다.
+//   · 방석 위에서도 선다(방석을 가린다 — 함정. 못 빼낼 때만 deadlockNow 가 붉은 테를 건다).
+// 방향은 color 에 싣는다(MOWER_C - 나침반 0위·1오른·2아래·3왼) — stKey·무르기·저장이 그대로 가른다.
+const MOWER_C=-20;
+function mowerFace(b){ return MOWER_C-b.color; }
+// 잔디깎이가 들어설 수 있는 바닥 — 엔진이 있어 언덕은 안 탄다. 물(물살·웅덩이·물줄기)엔 젖어 꺼진다.
+function mowerFloor(L, filled, boxes, r, c, self){
+  if(r<1||c<1||r>GN-2||c>GN-2) return false;
+  if(boxIdxAt(boxes, r, c, self)>=0) return false;
+  if(L.doors && doorLeafAt(L, filled, r, c)) return false;
+  const t=tileAt(L, filled, r, c);
+  return t===GRASS || t===MAT || t===FURROW || t===ICE || t===PAINT || t===TRAMP || t===PLATE || isSlope(t);
+}
+function mowerPush(L, st, filled, boxes, bi, nr, nc, dr, dc){
+  const b=boxes[bi], f=mowerFace(b), m=doorCompass(dr, dc);
+  if(m===((f+2)&3)) return null;                                   // 앞에서 — 당길 수 없다
+  if(m!==f){                                                       // 옆에서 — 제자리에서 돌아 미는 쪽을 본다
+    boxes[bi]={r:b.r, c:b.c, color:MOWER_C-m, kind:'mower'};
+    return { dog:{r:st.dog.r, c:st.dog.c}, boxes, filled, carry:false, pushed:false, slid:0, sunk:false, recolored:false,
+             mowTurn:{r:b.r, c:b.c, from:f, to:m} };
+  }
+  const path=[], cut=[]; let r=b.r, c=b.c;
+  while(mowerFloor(L, filled, boxes, r+dr, c+dc, bi)){
+    r+=dr; c+=dc; path.push({r, c});
+    if(tileAt(L, filled, r, c)===FURROW){ filled.add(kk(r,c)+MOW_OFF); cut.push(kk(r,c)); }
+  }
+  if(!path.length) return null;                                    // 붙어 있다 — 달려야 친다
+  boxes[bi]={r, c, color:b.color, kind:'mower'};
+  const res={ dog:{r:nr, c:nc}, boxes, filled, carry:false, pushed:true, slid:path.length, sunk:false, recolored:false,
+              restR:r, restC:c, landCell:null, path, kind:'mower', mow:{cut, dr, dc}, extra:[] };
+  const hr=r+dr, hc=c+dc, hi=boxIdxAt(boxes, hr, hc, bi);
+  if(hi>=0 && boxes[hi].kind==='ball'){                            // 공 — 한 칸 쳐 낸다
+    const pr=hr+dr, pc=hc+dc, t=tileAt(L, filled, pr, pc);
+    const solid = t===WALL || t===FURROW || binBlocksBall(L, kk(pr,pc)) || boxIdxAt(boxes, pr, pc, hi)>=0
+               || (L._catB!=null && L._catB===kk(pr,pc)) || (L._cbB && L._cbB.has(kk(pr,pc)));
+    if(!solid){
+      const recs=[], wet=!valveOpen(L, filled, boxes.filter((_,i)=>i!==hi));
+      resolveRoll(L, filled, boxes, hi, pr, pc, [dr,dc], true, recs, hr, hc, 0, wet);
+      res.mowHit={r:hr, c:hc, ball:true};
+      res.extra=foldRuns(res, -1, recs.filter(Boolean));
+    } else res.mowHit={r:hr, c:hc, ball:true, stuck:true};
+  } else if(L.doors){                                              // 문짝 — 옆을 치면 돈다(E6)
+    const lf=doorLeafAt(L, filled, hr, hc);
+    if(lf){
+      const ds=doorSwing(L, {...st, dog:{r:nr, c:nc}, boxes}, filled, lf, dr, dc);
+      if(ds){ res.boxes=ds.boxes; res.filled=ds.filled; res.door=ds.door; res.extra=ds.extra||[]; res.mowHit={r:hr, c:hc, door:true}; }
+      else res.mowHit={r:hr, c:hc, door:true, stuck:true};
+    }
+  }
+  res.extra=res.extra.concat(settleSlopes(L, res.filled, res.boxes, true, null, null, !valveOpen(L, res.filled, res.boxes)));
+  return res;
+}
 function applyMove(L, st, dr, dc){
   const res=applyMoveCore(L, st, dr, dc);
   // 고양이 상자 — 굴러온 공(경사·비눗물·물살·당구)이 정면으로 닿은 상자도 고양이를 옮긴다.
@@ -2163,6 +2234,7 @@ function applyMoveCore(L, st, dr, dc){
   const open = true;                                   // 방석 잠금 없음 (뼈는 순서를 강제하지 않는다)
   // 밀기: 첫 칸 검사
   let pr=nr+dr, pc=nc+dc;
+  if(boxes[bi].kind==='mower') return mowerPush(L, st, filled, boxes, bi, nr, nc, dr, dc);
   // 잠든 고양이에게 정면으로 민 공 — 규칙 문구가 약속한 대로 깨운다.
   //   "자는 고양이는 벽이다. 공이 정면으로 부딪히면 깨어나 비켜준다."
   // 그런데 깨우는 코드(catStop)가 굴림 처리(resolveRoll) 안에만 있어서, 굴러온 공만
@@ -2319,7 +2391,7 @@ function applyMoveCore(L, st, dr, dc){
   pr=m.restR; pc=m.restC;
   const res = { dog:{r:nr,c:nc}, boxes, filled, carry, pushed:true, slid, sunk, recolored, restR:pr, restC:pc, landCell, path, kind:'ball', catStop:m.catStop, bounced:m.bounced, rebound:m.rebound, trampBlock:m.trampBlock, trampKnocked:!!m.trampKnocked, cbHit:m.cbHit, binHit:m.binHit, pounceStop:m.pounceStop };
   // 밀린 공이 자리잡은 뒤, 경사 위에서 대기 중이던 공들이 연쇄적으로 굴러감
-  const mainBox = sunk? null : boxes.find(b=>!b.gone && b.r===pr && b.c===pc && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH');
+  const mainBox = sunk? null : boxes.find(b=>!b.gone && b.r===pr && b.c===pc && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower');
   const all = settleSlopes(L, filled, boxes, true, mainBox, path, wet);
   for(const e of all) if(e.main){                    // 밀린 공 본인이 더 굴러간 경우 결과 갱신
     res.restR=e.restR; res.restC=e.restC; res.slid+=e.slid; res.landCell=e.landCell;
@@ -2364,7 +2436,7 @@ function gustMovers(L, filled, boxes, v, dogCell){
   for(let i=0;i<boxes.length;i++){
     const b=boxes[i];
     if(b.gone||b.sink||b.buried||b.carried) continue;
-    if(b.kind==='log'||b.kind==='bone'||b.kind==='crop'||b.kind==='cartV'||b.kind==='cartH') continue; // 무거운 것은 안 밀린다
+    if(b.kind==='log'||b.kind==='bone'||b.kind==='crop'||b.kind==='cartV'||b.kind==='cartH'||b.kind==='mower') continue; // 무거운 것은 안 밀린다
     // 깃발 골목 — 바람은 깃발 꽂힌 줄(레인)에만 분다. 가로 바람이면 행, 세로면 열.
     // 깃발과 결이 곧 "어디가 위험한지"를 말한다. wl 이 없으면 전 칸.
     if(L.wl && !L.wl.includes(dc!==0? b.r : b.c)) continue;
@@ -2435,7 +2507,7 @@ function solve(L, start, cap){
         // 물고 있는 작물 색 — 안 실으면 묻을 때 색이 사라진다(뼈는 색이 하나뿐이라 없던 문제)
         const cc = (r.cropCol!==undefined)? r.cropCol : node.st.cropCol;
         if(cc!=null) nst.cropCol=cc;
-        let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='crop' && b.kind!=='cartV' && b.kind!=='cartH') bc++;
+        let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='crop' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower') bc++;
         if(bc < L.holes.size) continue;                  // 공 부족 = 사구. 통나무 침몰은 OK
         if(L.needBone && !r.carry && !r.boxes.some(b=>b.kind==='bone')) continue;   // 뼈 소실 = 사구
         const k=stKey(nst); if(parent.has(k)) continue; parent.set(k,{pk:node.k, mv:[dr,dc]});
@@ -2474,9 +2546,8 @@ function solve(L, start, cap){
   }
   return null;
 }
-// 공이 빠지는 칸. PIT 는 빠지면 메워져 길이 되고, DPIT·HPIT 는 빠져도 계속 막힌다.
+// 공이 빠지는 칸. 종류와 관계없이 메워져 맥스와 공이 지나는 길이 된다.
 function isSink(t){ return t===PIT || t===DPIT || t===HPIT; }
-// 빠진 자리가 길이 되나 — 밭두렁 구덩이 둘은 안 된다(공을 잃기만 한다).
 // 구덩이는 한 종류다 — 작물이든 뼈든 공이든 넣으면 메워지고, 메워진 칸은 맥스도 공도 지난다.
 function sinkFills(t){ return isSink(t); }
 function levelHasMech(T){ for(let r=0;r<GN;r++)for(let c=0;c<GN;c++){ const t=T[r][c]; if(t===ICE||isRollT(t)||t===FS||isSink(t)||t===PAINT) return true; } return false; }
@@ -2595,6 +2666,9 @@ const GI_MULTI={
   door:[
     { demo:'door', nameKey:'guide.door.name', textKey:'guide.door.text' },
   ],
+  mower:[
+    { demo:'mower', nameKey:'guide.mower.name', textKey:'guide.mower.text' },
+  ],
   cart:[
     { demo:'cartV', nameKey:'guide.cart.name', textKey:'guide.cart.text' },
   ],
@@ -2689,6 +2763,7 @@ const GI_TXT={
   crop:{nameKey:'guide.crop.name',textKey:'guide.crop.text'},
   dureong:{nameKey:'guide.dureong.name',textKey:'guide.dureong.text'},
   door:{nameKey:'guide.door.name',textKey:'guide.door.text'},
+  mower:{nameKey:'guide.mower.name',textKey:'guide.mower.text'},
   cart:{nameKey:'guide.cart.name',textKey:'guide.cart.text'},
   cartH:{nameKey:'guide.cartH.name',textKey:'guide.cartH.text'},
   color:{nameKey:'guide.color.name',textKey:'guide.color.text'},
@@ -2732,7 +2807,7 @@ function guideKeysForBoard(board){
 // 여닫이 문 판(11~15)을 심었다(2026-10-01) — 11판 문 안내·규칙 카드가 켜진다.
 const DOOR_LEVELS_ON=true;
 const GUIDE_TRACKS=[
-  {from:1,to:30,steps: DOOR_LEVELS_ON? [[1,'base'],[6,'door']] : [[1,'base']]},   // 여닫이 문(2026-10-01) — 6판부터(10-03 당김)
+  {from:1,to:30,steps: DOOR_LEVELS_ON? [[1,'base'],[6,'door'],[21,'mower']] : [[1,'base']]},   // 여닫이 문(2026-10-01) — 6판부터(10-03 당김) · 잔디깎이 21판(10-04)
   {from:31,to:60,steps:[[31,'ice'],[41,'billiard']]},
   {from:61,to:90,steps:[[61,'flow'],[71,'pool'],[81,'bridge']]},
   {from:91,to:120,steps:[[91,'slope'],[101,'slopebilliard'],[111,'slopeback']]},
@@ -2750,6 +2825,35 @@ function guideKeysForLevel(lv){
   if(!track) return [];
   const learned=track.steps.filter(x=>lv>=x[0]);
   return learned.length? [learned[learned.length-1][1]] : [];
+}
+// 학습 순서와 현재 판의 안내를 구분한다. 이미 소비한 페인트나 옮긴 상자 때문에
+// 안내가 도중에 바뀌지 않도록 입장 전 보드를 기준으로 고른다. 초반 30판은 유지한다.
+function guideKeysForStage(lv){
+  if(lv<=30) return guideKeysForLevel(lv);
+  const o=BAKED[lv-1], track=GUIDE_TRACKS.find(x=>lv>=x.from&&lv<=x.to);
+  if(!o || !track) return guideKeysForLevel(lv);
+  const present=new Set(mechsIn(o));
+  const has=k=>present.has(k);
+  const applicable=k=>{
+    switch(k){
+      case 'base': return true;
+      case 'pool': return mHasTile(o,[FS]);
+      case 'bridge': return mHasTile(o,[BH,BV]);
+      case 'slopeback': return has('slope');
+      case 'slopebilliard': return has('slope') && has('billiard');
+      case 'trampknock': case 'trampback': return has('tramp');
+      case 'dpit': return mHasTile(o,[PIT,DPIT,HPIT]);
+      case 'cartH': return mHasKind(o,4);
+      case 'logpit': return has('log') && mHasTile(o,[PIT,DPIT,HPIT]);
+      case 'logvalve': return has('log') && has('valve');
+      case 'twocats': return has('catbox') && has('greedy');
+      case 'windbox': return has('wind') && has('log');
+      case 'windpush': return has('wind');
+      default: return has(k);
+    }
+  };
+  const step=track.steps.slice().reverse().find(([at,key])=>lv>=at && applicable(key));
+  return [step?step[1]:'base'];
 }
 let gintroOn=false, giSeen={}, giStep=0, giQueue=[];
 let tipSeen={};                                        // 상황별 1회 안내 (별 잃음·실패)
@@ -2860,7 +2964,7 @@ function closeGintro(){
 function showBoardGuides(){
   const presentation=guidePresentationForLevel(level);
   if(presentation&&presentation.mode==='callout'){ showBoardTip(presentation.key); return; }
-  const learned=guideKeysForLevel(level);
+  const learned=guideKeysForStage(level);
   if(learned.length){ giQueue=learned.slice(1); showGintro(learned[0]); return; }
   const keys=guideKeysForBoard(L);
   if(!keys.length){ showGintro(chapterOf(level)===1? 'base' : (INTRO[chapterOf(level)]||'base')); return; }
@@ -2868,7 +2972,7 @@ function showBoardGuides(){
 }
 // 자동 안내는 실제 첫 학습판에 붙인다. 페인트와 색 맞추기는 181판의 두 장으로 묶고,
 // 상자 구덩이 메우기는 그 조합이 실제 등장하는 205판에서 따로 연다.
-const INTRO={...(DOOR_LEVELS_ON? {6:'door'} : {}),31:'ice',41:'billiard',61:'flow',71:'pool',81:'bridge',91:'slope',101:'slopebilliard',111:'slopeback',121:'tramp',126:'trampknock',136:'trampback',151:'dpit',156:'crop',166:'dureong',181:'log',191:'cart',211:'paint',220:'pit',221:'valve',235:'logpit',236:'logvalve',241:'catbox',251:'greedy',261:'twocats',271:'wind',281:'windbox',291:'windpush'};
+const INTRO={...(DOOR_LEVELS_ON? {6:'door', 21:'mower'} : {}),31:'ice',41:'billiard',61:'flow',71:'pool',81:'bridge',91:'slope',101:'slopebilliard',111:'slopeback',121:'tramp',126:'trampknock',136:'trampback',151:'dpit',156:'crop',166:'dureong',181:'log',191:'cart',211:'paint',220:'pit',221:'valve',235:'logpit',236:'logvalve',241:'catbox',251:'greedy',261:'twocats',271:'wind',281:'windbox',291:'windpush'};
 // 76 은 새 기믹이 아니라 뼈다귀 조합의 심화라 데모 힌트가 없다(56 '호스+박스', 26 '언덕 쿵' 과 같은 패턴).
 // 옛 76(순찰 고양이 테스트 1판) 시절의 항목은 제거했다. 실제 도입과 데모는 221판이다.
 const BILLIARD_FROM=41;   // 당구(공-공 전달) 해금 판 (재배열: 물리 4연속의 마지막)
@@ -3019,7 +3123,7 @@ function solStats(L, start, ml){
   let st={dog:{r:start.dog.r,c:start.dog.c}, boxes:start.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(start.filled), carry:false};
   // 카운터는 MECH 사전의 fired() 가 읽는다. 기믹을 추가하면 여기에 카운터를 하나 늘리고
   // 사전에 fired 를 연결한다 — 그래야 audit 이 "이 기믹이 최적해에서 실제로 작동했나"를 잰다.
-  const s={slides:0,sunk:0,recolor:0,chain:0,logPush:0,cartPush:0,furrowStep:0,logDam:0,valveToggles:0,pits:0,rinse:0,
+  const s={slides:0,sunk:0,recolor:0,chain:0,logPush:0,cartPush:0,mowerRun:0,mowerTurn:0,furrowStep:0,logDam:0,valveToggles:0,pits:0,rinse:0,
            catWake:0,catPass:0,boneBury:0,cropFill:0,cropPick:0,packed:0,dug:0,colorFit:0,bounce:0,tknock:0,rebound:0,tstall:0,gust:0,gustPush:0,cbJump:0,npDrop:0,npUp:0,pkJump:0,pkOut:0,fwOut:0,cqMove:0,cqPounce:0,cqBin:0,door:0,doorHit:0};
   st.wc=start.wc;                                           // 바람 박자를 안 이어받으면 영영 안 분다
   let vo=valveOpen(L,st.filled,st.boxes);
@@ -3034,6 +3138,8 @@ function solStats(L, start, ml){
   for(const mv of ml){ const prevCi=st.ci, r=applyMove(L,st,mv[0],mv[1]); if(!r) break;
     if(r.pushed&&r.kind==='log') s.logPush++;
     if(r.pushed&&(r.kind==='cartV'||r.kind==='cartH')) s.cartPush++;
+    if(r.pushed&&r.kind==='mower') s.mowerRun++;
+    if(r.mowTurn) s.mowerTurn++;
     if(tileAt(L,r.filled,r.dog.r,r.dog.c)===FURROW) s.furrowStep++;
     if(r.dam) s.logDam++;                                    // 상자가 물줄기를 막음
     if(r.ca && !st.ca) s.catWake++;                          // 잠든 고양이를 깨움
@@ -3632,6 +3738,31 @@ function bpMake(n){
   chipSave(); return k;
 }
 function matName(k){ return I18N.t('mat.'+k); }
+// 최종 경제 아이콘은 HTML 안에도 넣는다. 네이티브 패키지와 오프라인 빌드에서도
+// 별도 파일 경로 없이 HUD·보상·판 위 수집물이 한 그림을 공유한다.
+// 로컬 아트 검수용 색상 비교. 저장 데이터나 재화 수량에는 영향을 주지 않는다.
+const GEM_COLOR_PREVIEW=(()=>{
+  const local=location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';
+  const color=new URLSearchParams(location.search).get('gemcolor');
+  return local && (color==='red'||color==='blue')?color:'';
+})();
+const UI_GEM_ICON=GEM_COLOR_PREVIEW?'art/ui/economy/'+GEM_COLOR_PREVIEW+'-gem-board-v4-96.webp':'data:image/webp;base64,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';
+const UI_MEAL_ICON='data:image/webp;base64,UklGRmAWAABXRUJQVlA4TFQWAAAvX8AXEA04cttGkiA7qap0Vf7/4F5uM+eI/k8Af6ofJkR8s2EM2GN8s4GIq1Ij4oNt6oq1aow51nqrMnPGWmvlGCt8WoBurJQ05yx12w9Km2VLgNXd5wnp6Oybqe7up73CVZImUK0452GOgUsqXnhcMdmhqmLatvQUEYO9XcA3IgBs4Hz7zQM4tm0tTzb+V7iPgvmPJhUuB0+Ce0XvOJIkxckTjhjf6L8RMkIGMDPjA3Zt26qTFdyhFPr/pgBKWPHnb8c96f8EwP/PBEIYWw9+/hIu8WrxXN6O99vBeNF0CPqunh3UH38XvOvVes10s12ej4u7/ZkpYUVI/n9FQ4GITKg6Q4AQkd+s1v9W6yP80rhsPEsCIAEYbJwr59YRAAjeLX7feJYEQkjI/HAYI51Xs9MTADxjuVogPhNviLheLW88hSTJOekcauvC+jy7BwAoVusFyEklU+92lFLK9XqZJEnCGUCm945YufcAQI0olKlkWjEZjUUMI0mSAKDYE7J4P3+REoVDzMbvZr2jUF3/Ni9hhJAfmNpLbaw3HFgCgPl1CIXCoT7cH8wXQyHerbu8JPkJ4RkB2LAEAAjP98gIiPMhomcHACFkH+BH5ca/lxERpRyie713ISRjFIZfAL1/CC3deN+N910+YIwxxoA/cuMXxljFMe5wAPhHCY7bRnIkMf+we8zumX9ETIB/n9KbznfStQXuyPLMrDuqnWLTeleQllaV1dpJG3daQlp0qtDGcRPycP/Us23bqiPbtlVb632QZOZGzhMXMzMzMzN+xQqttL5hxVaYeUWZmZkZ3WQguWhIY/TeWl3sljT9A/zItu3atiRJbcx19jn3/69YOcQqq1oUrYQWAZGfUoxVS6C8VuXzCjlMPvzu23sN2pEku7aVql77nKueBvzBFHzR/OMFbmCF1sKAp99e03Rg2zZtW23s+2zbth1927ZtI/XPmNq2bdu2nv2+/5kTQDuSJEeyE1mzC845IANXBdJCFmjwOKcznfE5z95+A0Y3km3ZVpR1mEFEwyF0jMAODMFFkHruf8+iG9m2a6vqsdAWRQAESNTKxJVfnkm3tgYCYHa/2LZtlCy1QBbIEHYyRGaxU9lOKpu/+U0ABPw/QHxKc+9v/9dna+gf9jkAtS9qz+0Y5gwo//Tcr9ysYmap7fX7T77PCqBuMr/+/D71oz/+WhNXZpc6QxcT4uqwYtMrtJ11EBQnosZhG73+a2ZNSr/v5T2beX4xl1eB324WKM1jfvXn7GTL5dr84bb2Q5tSP1URBKWp2ClRminCOih5XujiKk2CNraQFla7Vicrkj6XcTP++f9TwL83gcf86f9h/uQexcx+VZy3tWhfVdrQRasYFCoOghHndBAdjJqpnmaJUdFXpVN0QixBufLCapMWFlur5RupXv6D/z+/59Ye+xtGyYPTYjm4eeqAghQV0wpTIRgGjVJCNHjGs6buDkXAiFE3GmV8aUZ6OlV7VPsUMpZVanjBwpukZVpo8eRfvq2+qQf8cXUzOViTQ+ojA4qimLZCoFMhkFFTDBtBAJi69BJvGEW1hhzlVB8h4y8mf/naEAEKYLDaWIAXJI98J3mRy9O6OW26oYf+hs2C7FYn/cMVgpYPmGJCU9qIUwUNi+GgAiEf3BY9XOylOOoyUqoPfkuTL0C2pAJ5QFiqacCKJFvYmpvtGEet/uDTh+E3gk9/b5o5F5erk6FWPVrXe2PRG1UQBpKRjW4WgVhp1HWxXXFQTfnE7JM4+QqOvoIaTE2M60oplA6LnCqoZ7wWFzCBgA1bJJ381n/hbYe7xBO+83NXXZ2q93buTmDH3Ytn73pTsbuWGDG1UsfBn+AP1SRAZFurMxg1VOxgtHpISbakUlAqYgkDQqYML4VhTGgUALCWgE35hdt/7gKP/jF9w3SAJSRpPSD1/NYzWg+qbt9wYCAAkIjBNMsvgqmtHSjZBRdVqxKohISwZdWSZZYcjlGOuokEhyxHIIEaVQJBRyJLv/lN/9q4J/6E3rh7f44O4BHRPY2qi4k+WC6liEFpNKpsMPJIEudmWQSjAcAbBmXUAKr+ivZa0tZyCkcXVhyRUChdFAQQot2Ougpzib2X4FOgNswO/8LuBqYOZrl1DlGwo4VTyxQ6aIkJPsAOXDL2wQrCuYkrt6t6pCkWudE1sGL6pPauvGIdDEsOnmRYAHcAEBXksz2+lkpYkc/8wcmbmwX8ifijtGoaDgwsGB/LiIwKBQUqCWAAumjcD7ahVEr1SFO4ZFcgSEucAIEAThBEAgAsCqOiJAZfLVUPuLSUWP1sffDRRuHyXT+jS8MIRRotljwYwB4MaayeAChpJUOVqGotB1EEgGpTfcGKQVcJiWBCIIkULgiwAGAANgi4xqBCMYG2YXgA2LRBT/zJbxO4s3KcyRo4YpADQFVdDQqS4hAe9DToxBQ1BIYy6KM1MTBgcJwPqPoz+iJTmEWIUw0iBwQEAwGCALBUUiKhmqmjJusPazWfuX1znvmjz78Jk9cnG6NnCSkIAAqlhSS01cLfFQQCUZKkTDOHoJE4QuAqeFSsWF6oU9eIpGJYHAoCXBALqMNIKMQVxcMdudEFiz7Amk0BWopb1q/it68SpEKqAhABCh0MZsVYJRWARCKHlIkUi9jwARgUiZ2ovwVA3IQQBbAoAGEoCgCAoiiDANnFd/DKRHR//X99pH93jp51Kbz8E/jjzAqvHuN5+exnn5HpGSqGJCopAwZ9darmAAVCqCBASUlQBCPNhxCwxA51ZKwLExVKwwIQTAQoAlEIBMOYYSgsBIwdYTXAqv/11f3fVtu3y1ElZ0vsbmFTv/f7c7kBeOxsgI0xXj36F375mcJgRxXUjnrFlqlOpVAsEBCgACUnKRRKwAAxy2V+uxU6NFGLZ+JQ7eIN8CiDkwwLglQQRgIogMVzGIiN0l7hdkz/6tmH/+09X/6v/UP1sgsPTzsfGnUlhU/l2Y7h9NzXnnyJU4A/zqJ9+/BZ3hk9kRwEgXKUSAJ6CKWTpC40HZJUoEqCUAJECGMZhClvbd9iKizKFyGTTgpIR2EouQSJBMXCqS51QSyAxSGhNHbltD+w9D+Af43/N+umaV9Q/b5vgRD5TDFTW1Q/uePOy/OKF/6FnEX9MT/ODwcIq6YY9VFHJjYzCLpoEEhVKwkCIZBpMDEFQTBaixIkkcQsYZdQZOR1rMSJpIMgSMWCCOCOxCIsCmOlgNcqH+fL4f/dFz7qCAAAOn1qcb79n0F2w/aKVySfDQGAe9mSoz719W5xFrbTcXSYbYq7CAZz1AQ2qLIFAAQIBSRACIWggCUqTlTTIUXgUE8cFX4Ns6pqCpBIFAUhiBZE2EGY2AEI8EEXgi1shScUkx4P+/8P/wGAZ8bdr+Zl+gXEuJOTKSbEwpEnBm0K3e8MHvVLhs/roEnNgKpdfSQhfTBnQagCRBAOBVBCVAAoYoCAYMiysQxKqkajxlrZNqyUWCyWEiYWgBCgDgiUOopSx2vSZbAlDa5dxUIpX7/jW5+NbvHyCSpPdeuUySMxxAWIA44yZMG5THvRX5obK8s2o0VnSauIYnWEFVcEiAgBADg5AgAJEBCQACCCoFAAKJmJXom40wi3ISmwx65mtCBAaUEoikKYWgLg0Q19YFpk8QUNVA8feLL/Qx/gTqsHwGoWavBAgqtcr/9T5Gj/rnybG7Nbt/5LmmqpKZholaM5Y4gYABw8sdPmsrHrAxgTceJKSBgBKMVCAAIoqSUJXBExkqme2NmXXU0FqHqigoDCQOykEFYIYn9QagxEOx8vs2XbSe38DLbQJLqDKWBIqSKJTUb/5wXqcqB1Q8/+xY9dGeb+7UyaaLBlVmIYCUInSGPUJQ8L7kFlIYEIp8l+695VRYYwIABCECQtjzpgsAvbU5JiCkrekEiKRYEAi6IoBDIy4k7LCqNooGgOlCt+fryvB2suehB65bbAUzSkIGbQ2/95yfR5wA2350fjgJGTjZqGhY9BBhEQsIAPzNNS+x29zQAgFHMo3Licxy5d5YqDhOBAEAAACkaD1H7EBQigtHTpArKTV4EARh1LJkzWLfvKMVhSIFBBsIVi6SQ1hDuPd2ze8QBgUUIT6STWZRqWrR83t99Yf2RKPGh/5WZBtQtQSBBJA9AqkSjLZilRAgAogGaJ0TCqL3QxDLxyovJCqr/CvOFRFHsNmSECQAAWq5ipDCJsKkEvjg7AVoYUCoRX/YBLtqJT99vwVQBGXPJpMkOWZNMI9n+v2Qevz4k9eXBgbynDakkog4JQhFZwWiAAIIpByJBAEqlAYEaxUO6xqCygcnJCqAynJMItDPYiRAmAQYKKqSWTLBGGIRgILSQxM1gU0KNskiOLPCHqHrvkBqYYOQEw0oRWZLp243p1Z8B5SUcPxTDIUZrQUBaChgLUr8FAAkA2vqbe+ecDr3iBq8cdkYgFwYpuq2ckQGAlSiHINBMWMToXxDkRAmAQRlVGRkiDAQwWwIHUEBVGpSJMBhegAHeAJpjiSAc6CqNCaEJYxS29Pp1jf9+POccycCDKlEMOnAIKheaQ9fsqAIowGhvfXofP5sb81UV16t3f05PuApAI/a712dTIbuoS7VUKS/gRtStQNUEYFAVQqDJxOFJlpa2UucLWTgAAgMEdB1vYcJuUALhla9et2Rh5AIUsGsUoUiQdsZf6/JUd//i86ZyHbjVth10WVVQBSICKuQhGOvpb3/nYoM8SriiOMRbvfa63P4AAShOluj1VNjLM4KnckZdIswRAsyIKhqODQcpwwgCgNNKVLAylYIuLpyICOOI1EuShuBMLLgUXA0ug1WJMjGggQVhi6gs3IOfN9lOv+tX3bWSnsooUkhgQgUBkADUCUPqNOl5LlWIgUQG/FDsbGgGgItH4m8P1wqLDIGOaJoIqVACjYtrIQDzqJAAKF4tiAgoGEIwwyiMnBJnxhom7FduzZfJIgxCUEMhIlE94X5o9a04df/OTcNMmEbAAIUgDW1SqOxyESFCzQbwrLoUbYID6LSohBgys+PNWsbQX1TCCIQUOXuhYEIVDpSMSeGBELA5AGiEYjCZQw0dYSCs8YmVJYUvhQUguTCGYoGgwzILCAhgr6Iad+lI+LcH/UCJDXMlltacM2kQihEJBOB81a9SPUT9G3rDosur3YgqUYUkIdjKc2A0rEMIBAcC3iiUOqyEIAN4EwLQUJacYwgIUVtYkjwiELKD23++2B822HGM1uVSbS0NHY4GTpzxYhzWfTwH/i/6VAgdAI+4uBP4spuTw13ywnyEEOLnwSQ/CAW7tfKI/f6IPqpJI5cLWws6lVwg4agDC0QEAEaHqZmGJR7ggQGHKBEglnuoVqYEEa+SGVWlFCKwySbVsGz77Hj7MZaeda6b4imsaCaQDRHBFA6Dkq5ArpwBM1rYZ1lGqOwDwe7EGBYFEF6oi8EDE3yK7DTXu/lWNPsbKQVOAYg5Ni5f2kgCVhgMABagc5KJSvI01ODgKacEkw1YmVhmKjcqBnfqGixTFKhUVIrUOpycA5wNHH4clU/N0EQgwYaCFL6HQmebZv739yP8Xz2H8rU31uyQog2u0QoUSDQiMoIYpD0gibsnhNcHL9lURiIWRTiEoL8whiZIIGCAQsSWqC3rRsDTeAETsKA4ME4yi2omXYkXTAuAsi6qWjcqDJl155E/u3wQAgFXr57eHRPTWANpQMaXbxJm0+GvcTnAeF18uVHtCYV1NSQDAAqgQzSJpaQSFlAeXB0oOiKAY2FXzIkdbAQHAYJRBtQtBm0q7HG0UnXVZ4sUbIGFjcDngUGUYQgU1HINBUXDR+OVPkvdnAQAAALAUHjB8Pt/84TdBrSnxfe51AXiHuPhkMZq8hyZ6MkhMgiTREAuK1p2trREipBwgJIBqC4FqI20ZgZRERCkWJpq9S7JqHHVdFKWwMBgKG4UA3ITWWFGkXERXWDjFKoQk/J5xNOC/A0uXwyWtOYoahuf5v97fgD/PQs53n6y59s8vbTQKBEgkUhJQDCzKV1OfGEIMQKRczVr/iHbvsZ9gDAILUBCAWpmVchejwyBfsiiNHjLcwSpRiExdALCiOHVhizDyKkos+aW79TDA/wl8Ad7xd3/09S/cfPC7l0it2tbAGyRSAhIiAoMVcx1OrnF4FnbMo/Gh+kl3P+qRcFDjiLBgCFHY+olR1Y/+YdhZLSyiwmBhY6AKoMJWSxTggpUrpAggVDrF9+e9gA0ESjaP/umFRm+XEO3BE/8DAJAQMJBAJLrQLp2sxUKhpphq6FrjNnoYDBFhsRhFiZOvjEST6FqQn7GgyhNXDVcYgKkJYWSxZAALA+vlRqBYdNSkPbBsEwAP+oljVrK4EtsUt+4CACWGAihAIgTWBHCEWEIhmBOmWCgYOCxjAjJALiH2gFvVlSoqDIsrbCwCJYNFFAUXFLINYwh+VUz2jY/7UYDNtO2Q2WHHC0LgKd4YRAEIQYJgpBiFBYOApGZAffGRsiCVktUFToK6FOhIjwlrLKJFYVhcMRiELgGD4cKQLb0AcNMKy77lNbsDNvT8d7/7YZ5M6Ksa1vIUh4OhjDEhEFIHCAAQJIuGtAVfeBSSAkhiKoQxF6L5Cg1IiA7DimAAJWAAAALAKyQSYiSRyrbHjg6bAvzuZ+ra3fYldSy8BtYAIIFAAABCCBIhqCuWzwAKiTGDQFs7D8smlRZ4ApWKC1e4AMLgKkAJICCSMRBw8I2AsXfHIMDGfvP10yQ8277yxi4BPGIEBECgUhJAwShACGC8xjkY1szTConVTUwQeXjJcYgIu1JSKIDhICLA1URITiiDy5JCkYBAdFWrH3iPef3PsnXM2N0IEUCDigRlZAQqokUEQABBvIXQnVPjYgsY5FiXgltTNsBFkAUJwGAAkIGAQSKvsslgGxkRBGQrlY6A93pjFrRDpj6SQGkbasaBUIBQYhQANJQBVVVcDYUSxlRwmfRosSkywgggDACCLJFIyjSDEUWY2HCzjON6wIb3Dmz+HtM1ZUKjneC8aHIoPYhAiQHiwCfkM0PlBJROY6OYQE1YjZ0SlEhpxAABZS4pg0gkSEEQk+PhyG1/xe+Aje/Lize+9Oo+vsfm7ymOqlaKVgcWdy1u0S3kJWgxRqG5cOnt1pzDs+hYAZmox7AQc4QJBAyCICZLghIwhHRDCoxND29fengch8Etbr9/PvF5cXHxNn//KPoMmp9n3OkwpFDisSywwAYCCgGgJPDEvPXj6svk4pKyHbaxyciMRCIjGwqGJRAGiBcZ33Qdf/X23VVwm/CJpzfy+XL35O1a/73ofHRndWfSutzYTTRBCCQi9KmFOjR+T78uTit+QP/HJWXK3EwZyU1AEBkgMyCHlnz6h9XXMm6dHzcPgNsF3urf31zId+sy3GZX3Ds93HeXcqqGOlWEKtLKUVes1Rp8S075M+yDpgwiEaEARpIQzvgqfThefG3uVSfYPgZ8AriL88OAX/xYsr2yYWZjzlazZ36OCTkGBQme8MQbniCJgABE4I3DB+dXeScvzG3yDbt4H/gFcHOE/Pjt1+TtTTPVPF6ZN/eZy5qKJg1jZoZZg9lK/Z3rT/OL+ma94+49eb3ysk+v77z3Hn4HN18I3w3ii4H8Uj77D/4F/1EK';
+const UI_GEM_SVG='<image href="'+UI_GEM_ICON+'" x="0" y="0" width="48" height="48" preserveAspectRatio="xMidYMid meet"/>';
+const UI_MEAL_SVG='<image href="'+UI_MEAL_ICON+'" x="0" y="0" width="48" height="48" preserveAspectRatio="xMidYMid meet"/>';
+const ECONOMY_ICON_QA=(()=>{
+  const local=location.protocol==='file:'||location.hostname==='localhost'||location.hostname==='127.0.0.1';
+  return local && new URLSearchParams(location.search).get('economyqa')==='1';
+})();
+for(const [sel,src] of [['#hudPawBtn .ui-gem',UI_GEM_ICON],['#hudMeal .ui-meal',UI_MEAL_ICON]]){
+  const img=document.querySelector(sel); if(img) img.setAttribute('href',src);
+}
+const UI_GEM_IMG=typeof Image==='function'?new Image():null;
+if(UI_GEM_IMG) UI_GEM_IMG.src=UI_GEM_ICON;
+// HUD와 보드 모두 둥근 2.5D 젬을 공유한다. 보드의 떠오름·그림자는 별도로 그린다.
+const BOARD_GEM_ICON=UI_GEM_ICON;
+const BOARD_GEM_IMG=typeof Image==='function'?new Image():null;
+if(BOARD_GEM_IMG) BOARD_GEM_IMG.src=BOARD_GEM_ICON;
 // 그림 한 벌을 SVG 와 캔버스가 같이 쓴다 — 목록 칸·재고 줄·설계도 칩은 SVG, 판 위는
 // 캔버스(Path2D). 같은 path 를 두 곳에서 그리므로 둘이 어긋날 수 없다. viewBox 48.
 const MAT_ART={
@@ -3696,7 +3827,8 @@ const MAT_ART={
     {d:'M12.5 13.5h23M12.5 38.5h16', st:'rgba(255,255,255,.85)', w:1.4, dash:[2.2,2.4], cap:'round'}],
 };
 function matSVG(k, mono){
-  if(k==='acorn') k='snack';   // 지갑이 간식이 된 뒤로 'acorn' 키의 화면 그림은 비스킷이다(판 위·칸·성장·설계도 칩)
+  if(k==='acorn') k='snack';
+  if(k==='snack') return '<svg viewBox="0 0 48 48" aria-hidden="true"><image href="'+UI_GEM_ICON+'" x="0" y="0" width="48" height="48" preserveAspectRatio="xMidYMid meet"'+(mono?' opacity=".24" style="filter:grayscale(1)"':'')+'/></svg>';
   const ops=MAT_ART[k]||MAT_ART.wood; let h='<svg viewBox="0 0 48 48" aria-hidden="true">';
   for(const o of ops){
     if(mono && o.f && /rgba\(255/.test(o.f)) continue;            // 하이라이트는 실루엣에 안 넣는다
@@ -3711,13 +3843,19 @@ function matSVG(k, mono){
 }
 const MAT_SPARK={wood:'#A8743F',stone:'#B9AA92',iron:'#7C8790',rubber:'#6B6B72',cloth:'#8FB4D9'};
 const MAT_P2D={};                         // Path2D 캐시 — 판마다 새로 만들지 않는다
-function drawMat(k, x, y, s, t){
-  if(k==='acorn') k='snack';                                // matSVG 와 같은 규칙 — 판 위에서도 비스킷
+function drawMat(k, x, y, s, t, hover=0){
+  if(k==='acorn') k='snack';
   const ops=MAT_ART[k]||MAT_ART.wood;
   const up = t>0? Math.sin(Math.min(1,t)*Math.PI)*s*0.9 : 0;
   const al = t>0? Math.max(0,1-t) : 1;
   ctx.save(); ctx.globalAlpha=al; ctx.translate(x, y-up);
-  groundShadow(0, s*0.3, s*0.78);                           // 한 벌 규칙(groundShadow)
+  const hoverRatio=Math.min(1,Math.max(0,hover/s));
+  groundShadow(0, s*(k==='snack'?0.37:0.3), s*(k==='snack'?0.7*(1-hoverRatio):0.78), k==='snack'?0.15-hoverRatio*0.2:0.18);
+  ctx.translate(0,-hover); // 그림자는 바닥에 두고 젬만 떠오른다.
+  const gem=BOARD_GEM_IMG && BOARD_GEM_IMG.complete && BOARD_GEM_IMG.naturalWidth?BOARD_GEM_IMG:UI_GEM_IMG;
+  if(k==='snack' && gem && gem.complete && gem.naturalWidth){
+    ctx.drawImage(gem,-s*0.5,-s*0.5,s,s); ctx.restore(); return;
+  }
   const sc=s/48; ctx.scale(sc,sc); ctx.translate(-24,-24);
   if(!MAT_P2D[k]) MAT_P2D[k]=ops.map(o=>new Path2D(o.d));
   ops.forEach((o,i)=>{ const P=MAT_P2D[k][i];
@@ -3792,8 +3930,8 @@ function matDots(n, ks, tot){
 // BAKED 를 안 건드리는 이유: resolveAll 이 그 자리를 다시 쓰므로 충돌 창이 생긴다.
 const ACORN_PACK =
   '623442416333512314412644515446655662435652633114644653265163'+   // 1~10
-  '662545241322512612146126556612462663625142225246163621564221'+   // 11~20
-  '513122361231354614236661325446416126564215212312656152266146'+   // 21~30
+  '513422611114143546212312556612462663625142225246561542266146'+   // 11~20
+  '166661466625361442426413626456425651263214226326616352224114'+   // 21~30
   '251311533215564523243162464125155652262142642211655612156451'+   // 31~40
   '212231164335121315636462365661133215552541342156511554123124'+   // 41~50
   '613542646251663544251421424515152612635113464435611144564452'+   // 51~60
@@ -3845,7 +3983,7 @@ function acornCells(lv){
 //     (tools/acorn-par5.js 머리 주석). 이제 '00' 인 판은 1판 하나뿐이다(칸이 없다).
 // tools/acorn-par5.js 가 구웠다.
 const PAR5_PACK =
-  '000h0j0j0r0j0n0k0k0q0n0l0p0q0t0m0r0p0n0r0m0q0n0p0x0s0s0m0r0u'+   // 1~30
+  '000h0j0j0r0j0n0k0k0q0m0q0n0m0t0m0r0p0s0u0m0j0j0g0o0m0l0q0n10'+   // 1~30
   '0g0j0o0l0m0p0q0n0s0t0l0q0o0o0r0o0s0x0s0t0r0p0r0w0s100u0o0y0o'+   // 31~60
   '0o0p0k0o0m0l0m0m0o0v0h0i0q0p0r0l0l0u0n100i0k0v0r0s0p0r0u100v'+   // 61~90
   '0m0n0q0n0w0n0s0v0s0v0t0s0v0t0w0u0x0y0x0z0t100w0v110y0z0z0z0z'+   // 91~120
@@ -3857,8 +3995,8 @@ const PAR5_PACK =
   '0k0i0f0m0m0j0r0l0l0l0n0l0p0s0i0n0o0q0p0o0o0s0u0m0w110t0y0p0w';  // 271~300
 const SL5_PACK =
   ' LDDLDLLLUUDRRURUL ULDDLULLUURURURLDDD RDRDLDULDDLLULRDRRR URRURRDDRDDDLLURDLLLLUUUUUR LULLLRRRRUUUULLLLURR DRLLLLUURRUUURRDLULLLDRR RDLDRDRURUUDDDRDDLLUR RDRRURUDDLLLDDRRRUUUU LLLLDURRUURRDDLDDLRRURUURUL ' +   // 1~10
-  'UUULLDURRRDLDDRRDDLDRRLUL URUULLDDLDDDRDRRURRDLLL DLDDRLDDRRRULUUURURRLULLLDR RLLLLDUUURRURRUDRLDDRRURUDDD DLDDDDRLUULLUUULDDLDRDDLULURRRR DLURUURLULLDRRDRRUUULRDD DLLUULUDDLLLDDRLUUUURRRLUURDR UUUURLDDRDRURRDUURRDDDDLRUU UDLDRRURRRLDDRDDLLULLDRRR LLLLDDRDLUUUULRRRULDDRRDRDUUU ' +   // 11~20
-  'DUUURDDRRDRDRRRUULULDDUL DLULDLLUDLDRLDDRRRLUURDRURLU DRDDRUDRRUUURDLURULULDDLD RRDUULLLULUDLDDUUURRUULLDDD DDRDDDLLDLLLLUUURRUULLDURRRDDDDRDLL DURURRDRDDDDLLLLRUULRUUDRRRURD DRDRRUUURDDRDRDULLRDDLLULLDRRR LDUUDRRRRURUULLLLDDRULUR URULLDDDRDDRULLULDLDUUUUURRRR RDDLUDLLDLLDDRRRURLLUULURRDRRLUU ' +   // 21~30
+  'LDUUURRDRDDDDRRUULULDDUL RDLLDLDRDRUULLLULDDRLDDDURRR DRDDRUDRRDUULRULRULULDDLD DUUDRRRRURUURLLLLDDRULUR DLDDDDRLUULLUUULDDLDRDDLULURRRR DLURUURLULLDRRDRRUUULRDD DLLUULUDDLLLDDRLUUUURRRLUURDR UUUURLDDRDRURRDUURRDDDDLRUU DRDURRUURRDDDLLRRDLDLLULLDLRRR DDDLUUDLLLLDDDRRRURDLLUULURRDRUU ' +   // 11~20
+  'DLLRRRRRURULRUUULDLDRDLL RUDRDRDRDDULULLURURDD DLUULDDRRRDLLULDDLDDR RRLDLDLDRRRDRDRRUU LDDRRRUURDRLDDRDLLULLDLUUU ULULRUDDRRDUUDDRRULDLUUU RDDDLULLDURRURRRDLULDDD UUUURURRDRRDDLLLURDDDLUDRRUU DRRDDLLRUUUUURUDRRDRUDDLL UUULLDLLDLRURURRDLDLLRUUULULDDURDDULDD ' +   // 21~30
   'LLLDLDULLUUDRURDRR RRLLDDDULDLDDRRDULDLU LDUULLDLDRDRRDRULLLUURDLDR ULULDLDULDDULDLDRDURDRU DRDDRULLLDLDUDLUURRUURRD DRDURULLDLLRUULULURRRDLLULD URURUURRDLDRDRLLLULUULDDDDRU RRRDURRDUURULLLULLRDDLDRR UUUDDRRRDDDURLLLDLLUULULRRRURD UUURRRDDDDDLDULDLULRUULULURDLDR ' +   // 31~40
   'RLUULRRDLDRURDURURRDDLL RUUUDDDDLUULLDRRDRUUDLLLDLRR DURLLULRDRDDRDLDLURULULRUL UDDLRRDRUULUURRDLDLULURRUL LDDDRRRUUUUUDRDURDDLLLRUULLDD UUUDLULULDDURRRDDLDLLLUURD DDUURUURRDULLDRURDRLLDRDRRDLLL URRRDDUUULULLLDLRRRLLDDLDRLDDRRURUU LUDRRUUDRRUULLDLULUURRUURRDDLU DULULDDDRDDDRULURUURLDLLUURRLDD ' +   // 41~50
   'LLDLDUDLURRRUURLLLUDDLDRUUULD URDDRLLLDURUUULURDDDRDUURUL RRLLDDDLRULUURRRDDRDUULLLULDD URUDLLLULDDRRDDRULULUURURLDDRLLDRR ULDURRDDDULULLDDRDULUURDDLDDRR LDRDRRULDLUUURUUDRLLLULRDDDDLDLRDURRUU RLDLLULRRURRUULDDRDLUUUULDLULDLD UURRDLUUURURDDUURRDDDULDLU RDRRRDLULLLDRRRDDLLULULDDLDUUUUURRDR RURRDRDDDULLDDLUDLURUULURR ' +   // 51~60
@@ -4038,26 +4176,26 @@ const BAKED=[
 {T:'000000000110111001111010011110100111111000t113100101111000000000',h:[[45,0]],p:[],b:[[4,3,0,0]],d:[1,2],par:14,sl:'DDDRURDRDDLLUR',dr:[[42,1]]},
 {T:'000000000111113001111t100111011001111110000101100111111000000000',h:[[14,0]],p:[],b:[[4,4,0,0]],d:[3,3],par:14,sl:'DRRURUDLDDRUUU',dr:[[21,1]]},
 {T:'0000000001130110011131100111t11001111100010011000011111000000000',h:[[11,0],[20,0]],p:[],b:[[5,5,0,0],[3,3,0,0]],d:[4,5],par:18,sl:'LLUURRDDLDDRUUURUL',dr:[[28,1]]},
-{T:'0000000000111110011t11100111111001101100010311000111111000000000',h:[[43,0]],p:[],b:[[3,3,0,0]],d:[4,4],par:15,sl:'UUULLDURRDDDRDL',dr:[[19,1]]},
-{T:'0000000001111110001011100111111001011110011t11100131111000000000',h:[[50,0]],p:[],b:[[6,4,0,0]],d:[3,3],par:15,sl:'LLDDDRRRURRDLLL',dr:[[43,2]]},
-{T:'000000000111110001113110011111100111111001t101100111130000000000',h:[[53,0],[20,0]],p:[],b:[[4,2,0,0],[6,3,0,0]],d:[1,1],par:17,sl:'DDDRLDDRRRLUUULUR',dr:[[42,2]]},
-{T:'00000000010111300111111001101t1001111110011111100101113000000000',h:[[54,0],[14,0]],p:[],b:[[2,3,0,0],[5,5,0,0]],d:[5,4],par:18,sl:'RULLLUURRRLDDRRUDD',dr:[[29,3]]},
+{T:'0000000001111110011111100110110001111110011t10100011131000000000',h:[[53,0]],p:[],b:[[4,5,0,0]],d:[4,1],par:16,sl:'RRRDDRRUULULDDUL',dr:[[43,1,1]]},
+{T:'0000000001101310011111000111111001t11110011113100111111000000000',h:[[13,0],[45,0]],p:[],b:[[4,3,0,0],[2,4,0,0]],d:[1,6],par:18,sl:'LLDLDDULRRLDDRURUU',dr:[[34,0,1]]},
+{T:'0000000001111130011t1110011111100111111001031t100111111000000000',h:[[14,0],[43,0]],p:[],b:[[5,6,0,0],[5,4,0,0]],d:[4,2],par:19,sl:'RDDRUDRRUUUUDDLULLD',dr:[[19,0,1],[45,2]]},
+{T:'0000000003113110011100100111111001t11t10011111100111111000000000',h:[[12,0],[9,0]],p:[],b:[[3,3,0,0],[1,5,0,0]],d:[3,1],par:20,sl:'DURRRRRUULLLLDDRULUR',dr:[[34,3,1],[37,2,1]]},
 {T:'00000000011111100111t1100311110001111130011t01000111011000000000',h:[[25,0],[38,0]],p:[],b:[[3,2,0,0],[4,1,0,0]],d:[2,6],par:21,sl:'LDDLLUULDLDRDDLUURRRR',dr:[[43,0],[20,3]]},
 {T:'00000000001111100110111001111t1001111110011011300111111000000000',h:[[46,0]],p:[],b:[[4,3,0,0]],d:[6,4],par:15,sl:'UURLULLDRRRLUUR',dr:[[29,1,2]]},
 {T:'0000000001111310011111300110111001111t10010111100110111000000000',h:[[13,0],[22,0]],p:[],b:[[3,4,0,0],[2,3,0,0]],d:[4,6],par:17,sl:'DLLUUULURLLLDRRRR',dr:[[37,2,2]]},
 {T:'000000000011100001111110010111300111111001101t100113111000000000',h:[[30,0],[51,0]],p:[],b:[[4,2,0,0],[5,4,0,0]],d:[6,1],par:17,sl:'UURRRDUURRDDDLRUU',dr:[[45,1,2]]},
-{T:'0000000001111110011101000011111001111t10011111300111011000000000',h:[[46,0]],p:[],b:[[5,4,0,0]],d:[1,2],par:17,sl:'DDRRRRDDLLULLDRRR',dr:[[37,1,2]]},
-{T:'0000000000311130011111100011111000111110011t10100111110000000000',h:[[14,0],[10,0]],p:[],b:[[1,3,0,0],[5,4,0,0]],d:[4,5],par:21,sl:'LLLDDRLUUURRDRUULULRR',dr:[[43,3,2]]},
-{T:'0000000001111110011111100110110001111110011t10100011131000000000',h:[[53,0]],p:[],b:[[4,5,0,0]],d:[4,1],par:16,sl:'RRRDDRRUULULDDUL',dr:[[43,1,1]]},
-{T:'0000000001101310011111000111111001t11110011113100111111000000000',h:[[13,0],[45,0]],p:[],b:[[4,3,0,0],[2,4,0,0]],d:[1,6],par:18,sl:'LLDLDDULRRLDDRURUU',dr:[[34,0,1]]},
-{T:'0000000001111130011t1110011111100111111001031t100111111000000000',h:[[14,0],[43,0]],p:[],b:[[5,6,0,0],[5,4,0,0]],d:[4,2],par:19,sl:'RDDRUDRRUUUUDDLULLD',dr:[[19,0,1],[45,2]]},
-{T:'0000000001111110010111100111t1100111111003311t100111111000000000',h:[[42,0],[41,0]],p:[],b:[[4,4,0,0],[3,2,0,0]],d:[6,4],par:19,sl:'RRUULLLULDURUULLDDD',dr:[[28,3,2],[45,1,1]]},
-{T:'000000000111111001t111100111101003111110011t11100131111000000000',h:[[50,0],[33,0]],p:[],b:[[3,1,0,0],[4,2,0,0]],d:[1,5],par:25,sl:'LLLLDDDRDDLUDRRRRUULULLDD',dr:[[43,2,2],[18,0]]},
-{T:'0000000001311100011t111000111110011111300011t1100111111000000000',h:[[10,0],[38,0]],p:[],b:[[2,4,0,0],[3,2,0,0]],d:[2,1],par:20,sl:'URRRDRDDLLLUUDRRRURD',dr:[[19,2],[44,0]]},
 {T:'000000000111111001t1111001131110001111100111t1100111131000000000',h:[[27,0],[53,0]],p:[],b:[[4,5,0,0],[6,2,0,0]],d:[3,1],par:20,sl:'RRRRRDLLRDDLLULLDRRR',dr:[[44,2,2],[18,1,2]]},
-{T:'0000000003113110011100100111111001t11t10011111100111111000000000',h:[[12,0],[9,0]],p:[],b:[[3,3,0,0],[1,5,0,0]],d:[3,1],par:20,sl:'DURRRRRUULLLLDDRULUR',dr:[[34,3,1],[37,2,1]]},
-{T:'000000000111113001t11t100111111001111110011111100131110000000000',h:[[50,0],[14,0]],p:[],b:[[5,3,0,0],[1,3,0,0]],d:[3,6],par:21,sl:'UULLDDDDLUULDDUURUURR',dr:[[21,0,2],[18,2,1]]},
 {T:'00000000011113100111t110011111100111111001t101100111113000000000',h:[[13,0],[54,0]],p:[],b:[[5,3,0,0],[6,5,0,0]],d:[1,6],par:28,sl:'DDLUULLDDDLLDDRRRRLLUUUULURR',dr:[[20,0,2],[42,2]]},
+{T:'000000000111o0100111o1100111o1100113o1100111o1100111o11000000000',h:[[35,0]],p:[],b:[[3,5,0,0],[4,5,-23,6]],d:[5,3],par:14,sl:'RRRULLUURDRDLL'},
+{T:'000000000111111001111110011111000oooooo0011103100111011000000000',h:[[45,0]],p:[],b:[[2,4,0,0],[3,5,-22,6],[5,1,-20,6]],d:[1,3],par:13,sl:'RDRDULLDRURDD'},
+{T:'000000000111111001011110011111100oooooo0001131100101110000000000',h:[[44,0]],p:[],b:[[2,5,0,0],[2,4,-23,6]],d:[1,5],par:13,sl:'DULDDRRDLULDD'},
+{T:'0000000001111130011011100101101001110110011111100111111000000000',h:[[14,0]],p:[],b:[[2,6,0,0],[4,6,-20,6]],d:[1,1],par:10,sl:'DDDDRRRRRU'},
+{T:'000000000011o1100311o1100111o1100111o1300111o1100111o11000000000',h:[[17,0],[38,0]],p:[],b:[[3,5,0,0],[5,3,0,0],[2,5,-23,6]],d:[1,2],par:20,sl:'DDDDDRUUURRUURDULLLL'},
+{T:'000000000111111001113110000t100000101010011011100111111000000000',h:[[20,0]],p:[],b:[[5,5,0,0],[5,4,-20,6]],d:[6,3],par:14,sl:'RUUDDRRULDLUUU',dr:[[27,1]]},
+{T:'0000000001111110001111100110101000001t00011131100111111000000000',h:[[44,0]],p:[],b:[[2,5,0,0],[2,4,-23,6]],d:[1,3],par:15,sl:'RDDDUURRDLULDDD',dr:[[37,3]]},
+{T:'000000000111o1100110o11001t0o3100113o1100111o1100111o11000000000',h:[[35,0],[29,0]],p:[],b:[[5,5,0,0],[5,3,0,0],[4,5,-23,6]],d:[6,1],par:16,sl:'RRUDRRRUULRDDLUU',dr:[[26,2]]},
+{T:'0000000001111130011111100oooooo0011311100011t1100111110000000000',h:[[35,0],[14,0]],p:[],b:[[2,4,0,0],[5,5,0,0],[2,3,-22,6]],d:[4,1],par:18,sl:'RRDUURULLURRDDRDLL',dr:[[44,2,2]]},
+{T:'000000000111111001111110001111100oooooo00113t1100131111000000000',h:[[43,0],[50,0]],p:[],b:[[3,4,0,0],[2,4,0,0],[3,3,-22,6]],d:[5,5],par:28,sl:'UUULLDURRDLDLLRUULDDUUULDDDD',dr:[[44,3]]},
 {T:'0000000001110000021211100111111000211100000000000000000000000000',h:[[22,0]],p:[],b:[[3,3,0,0]],d:[3,6],par:12,sl:'LLLDLULURRRR'},
 {T:'0000000000011100011112000122110000110000021111000211210000000000',h:[[34,0]],p:[],b:[[2,3,0,0]],d:[1,3],par:13,sl:'DDDLDDRRULDLU'},
 {T:'0000000000111110002121100011100000221210001101100000000000000000',h:[[38,0]],p:[],b:[[2,5,0,0]],d:[2,6],par:14,sl:'LULLDLDRURDLDR'},
@@ -4459,7 +4597,7 @@ const BAKED=[
 {T:'000000000138c110011100100001111001810030011111300000000000000000',h:[[10,0],[38,0],[46,0]],p:[],b:[[1,5,0,0],[2,6,0,0],[5,5,0,0]],bi:1,d:[1,6],par:11,sl:'LRDDLLLDDRR'},
 {T:'0000000000000000000000000013111001113110031101100111111000000000',h:[[27,0],[36,0],[41,0]],p:[],b:[[5,5,0,0],[4,3,0,0],[5,2,0,0]],bi:1,d:[4,4],par:17,sl:'ULLDRDLDRRRUURULL'},
 ];
-const KINDS=['ball','log','bone','cartV','cartH','crop'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
+const KINDS=['ball','log','bone','cartV','cartH','crop','mower'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
 function fromBaked(o, lv){
   // lv 를 넘기면 그 판이 도구 필수인지(L.tc)가 같이 실린다. 안 넘기면 null —
   // 기존 호출부 50여 곳은 한 인자로 부르므로 동작이 그대로다.
@@ -4679,6 +4817,14 @@ const MECH={
               has:o=>mHasKind(o,3)||mHasKind(o,4), off:o=>mDropKind(mDropKind(o,3),4),
               fired:s=>s.cartPush,
               pairs:{ log:'상자는 네 방향, 손수레는 한 축만 움직인다' } },
+  // 잔디깎이(2026-10-04) — 1동네 21~30. 긴 풀은 고랑길(FURROW)과 같은 칸이다(맥스만 지나감, 1동네 그림만 다르다).
+  mower:    { nm:'잔디깎이',     intro:21, kind:6, tiles:[FURROW], tags:['#Push','#Run','#Cut'],
+              rule:'뒤(손잡이 쪽)에서 밀면 막힐 때까지 달리며 긴 풀을 깎는다. 옆에서 밀면 제자리에서 돌아 미는 쪽을 본다. 달리다 공을 만나면 그 앞에서 서고 공을 한 칸 쳐 낸다. 문짝 옆을 치면 문이 돈다.',
+              fail:'방석 위에서 빠질 데 없이 서면 그 방석을 영영 못 쓴다.',
+              has:o=>mHasKind(o,6), off:o=>mDropKind(o,6),
+              strict:o=>({...o, b:o.b.map(b=>(b[3]|0)===6? [b[0],b[1],-9,1] : b)}),   // 달리지 않는 상자로 — 한 칸씩만 밀리면 같은가
+              fired:s=>s.mowerRun,
+              pairs:{ door:'달려온 깎이가 문짝 옆을 치면 문이 돈다', ice:'쳐 낸 공이 미끄러진다' } },
   // 잠든 고양이(ct)는 2026-08-21 에 걷어냈다 — 31판 전수 측정에서 20판이 기여 0,
   // 나머지도 최대 −2수, 필수인 판 0. 화단 고양이(np)가 그 자리를 받았다.
   napcat:   { nm:'지켜보는 고양이', intro:251, key:'np', tags:['#Cat','#Block','#Switch'],
@@ -5146,7 +5292,7 @@ window.addEventListener('maxbillingrecovery',()=>{ iapRestorePending(); });
 // 보상이 나가면 그건 광고가 아니라 공짜다.
 //
 // 전면광고는 없다. 네 자리 전부 리워드형이고, 플레이어가 먼저 눌러야 뜬다.
-const AD_SLOTS={ clear2x:'클리어 2배', hint:'도구 한 개', skip:'판 건너뛰기', daily:'데일리 한 번 더', meal:'밥 한 끼' };
+const AD_SLOTS={ clear2x:'클리어 2배', hint:'도구 한 개', skip:'판 건너뛰기', daily:'데일리 한 번 더', meal:'고기 1개' };
 const AD_STUB=true;      // SDK 붙이면 false. 참이면 광고 없이 즉시 보상(개발용)
 // 광고 자리를 통째로 끈다. 지우지 않고 감추는 이유: 자리마다 "광고를 본 사람"을
 // 전제로 한 분기가 딸려 있어(무료 입장 한 번, 하루 세 번 상한, 2배 지급) 걷어내면
@@ -6462,7 +6608,12 @@ const MAX_EVENT_PREVIEW=(()=>{
   const q=new URLSearchParams(location.search), k=q.get('maxevent') || (location.hash==='#sitSleep'?'sitSleep':null);
   const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
   if(local&&q.get('maxmastertest')==='1') return 'sitIdle';
-  return local && ['walk','arrive','discover','push','blocked','masterBlocked','sitTransition','sitIdle','masterSit','sitSleep','victory','sniff','fail','yawn','shake','wash','sniffIdle','lieYawn','backstep','stretch'].includes(k)?k:null;
+  return local && ['walk','arrive','discover','push','blocked','masterBlocked','sitTransition','sitIdle','masterSit','sitSleep','victory','sniff','fail','yawn','shake','wash','sniffIdle','lieYawn','backstep','stretch','affection'].includes(k)?k:null;
+})();
+const MAX_AFFECTION_INTERACTIVE_QA=(()=>{
+  const q=new URLSearchParams(location.search);
+  // 애교 QA는 기본적으로 탭 인터랙션 모드다. 자동 재생은 affectionInput=0으로만 끈다.
+  return MAX_EVENT_PREVIEW==='affection' && q.get('affectionInput')!=='0';
 })();
 const MAX_POSE_PREVIEW=(()=>{
   const q=new URLSearchParams(location.search), k=q.get('maxpose');
@@ -6516,27 +6667,24 @@ const MAX_GARDEN_KEEPER_SKIN_ENABLED=(()=>{
 // 모션은 기본 맥스로 떨어진다** — 만드는 중인 스킨도 그대로 판에서 볼 수 있다.
 // 스킨이 늘어도 분기를 늘리지 않는다. 여기 한 줄과 파일만 더한다.
 // 시트가 새로 배치되면 tests/max-skin-sheets.test.cjs 가 이 목록과 디스크를 대조해 알려준다.
-const MAX_SKIN_SHEETS={
-  duck:['walk-left','walk-up','walk-down','push-left','push-up','push-down','wall-left','wall-up','wall-down',
-        'sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  frog:['walk-down','walk-up','walk-left','push-left','push-up','push-down','wall-left','wall-up','wall-down','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 3동네 졸졸 냇가 — 칠부바지 + 흰 발, 어깨 팔 없음. 한 벌 완성(2026-10-01). 개구리발 17장은 archive/frog-frogfoot-20260930
-  chicken:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 1동네 — 한 벌 완성
-  bunny:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 5동네 — 한 벌 완성(2026-10-01). 장난감 연보라 #CEC0EF 로 맞춤(tools/recolor_cloth.py, 접수가 배치 때 자동)
-  pig:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 6동네 — 한 벌 완성(2026-10-01). 장난감 색 #F4A486 로 맞춤
-  hedgehog:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 4동네 도토리 갑옷 — 한 벌 완성(2026-10-01)
-  // 8동네 공작 · 9동네 생쥐 — 둘 다 17/17. 생쥐 뒷모습 둘(벽쿵 뒤·앉기 뒤)은 8칸 시트로 다시 받았다(2026-10-02).
-  peacock:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 17/17 (2026-10-02)
-  mouse:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],   // 17/17 (2026-10-02)
-  // 7동네 비버 · 10동네 양 — 17/17 (2026-10-02). 밀기 앞 웅크린 칸(양 f4·f5, 비버 f4)도 v2 로 받았다.
-  // 비버는 꼬리 없이 맥스 솜꼬리 그대로(사람 결정). 검사기의 "뒷모습에 얼굴"은 흰 솜꼬리를 얼굴로 읽은 것이다.
-  beaver:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  sheep:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  // 번외 넷(2026-10-03, 상점 「옷」에서 판다 — BONUS_SKINS). 같은 포즈가 되풀이되는 시트 몇 장은 다시 받는 중(qa/<skin>/next-request.md).
-  space:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  ranger:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  mail:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front'],
-  rain:['walk-down','walk-left','walk-up','push-down','push-left','push-up','wall-down','wall-left','wall-up','sit-left','sit-up','sit-front','sleep-left','sleep-up','sleep-front','idle-front','victory-front']
+// Shared JSON registry: the package builder reads this same declaration.
+const MAX_SKIN_ASSETS={
+  "duck":{"format":"webp","motions":["walk-left","walk-up","walk-down","push-left","push-up","push-down","wall-left","wall-up","wall-down","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "frog":{"format":"png","motions":["walk-down","walk-up","walk-left","push-left","push-up","push-down","wall-left","wall-up","wall-down","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "chicken":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "bunny":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "pig":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "hedgehog":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "peacock":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "mouse":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "beaver":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "sheep":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "space":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "ranger":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "mail":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "rain":{"format":"png","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]}
 };
+const MAX_SKIN_SHEETS=Object.fromEntries(Object.entries(MAX_SKIN_ASSETS).map(([id,asset])=>[id,asset.motions]));
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
 // 걷기·밀기·벽쿵은 'down'(네 발이 보이는 아래 방향), 앉기·수면·대기·승리는 'front'(마주 본다).
 const MAX_SKIN_FRONT={sit:'front',sleep:'front',idle:'front',victory:'front'};
@@ -6604,7 +6752,7 @@ function bonusSkinThumb(cv,k){
   if(!cv || !cv.getContext || typeof Image!=='function') return;   // 헤드리스 로더엔 Image 가 없을 수 있다
   const draw=im=>{ try{ const g=cv.getContext('2d'); g.clearRect(0,0,cv.width,cv.height); g.drawImage(im,0,0,256,256,0,0,cv.width,cv.height); }catch(e){} };
   let im=bonusSkinImg[k];
-  if(!im){ im=bonusSkinImg[k]=new Image(); im.decoding='async'; im.src='art/max-master/motions/skins/max-'+k+'-idle-front-8f-runtime.png'; }   // 스킨 시트는 웹·네이티브 모두 PNG(chapterMaxRuntimeSheet 참고)
+  if(!im){ im=bonusSkinImg[k]=new Image(); im.decoding='async'; im.src=chapterMaxRuntimeSheet('art/max-master/motions/skins/max-'+k+'-idle-front-8f-runtime.png'); }
   if(im.complete && (im.naturalWidth||im.width)) draw(im); else im.addEventListener && im.addEventListener('load', ()=>draw(im), {once:true});
 }
 function hoodOwned(){ return STAGE_TOYS.filter((t,i)=>skinComplete(t) && hoodEarned(i+1)).concat(BONUS_SKINS.filter(s=>skinComplete(s.k) && bonusSkinOwns(s.k)).map(s=>s.k)); }
@@ -6648,7 +6796,7 @@ const MAX_MASTER_SPRITES_ENABLED=(()=>{
     (MAX_CHAPTER_PROTO_ENABLED && Number(qs.get('v'))>=22)||
     // 수면 QA는 기존 프로토타입 플래그가 없어도 반드시 마스터 시트를 그린다.
     // 이전에는 시간·상태만 변하고 화면은 레거시 맥스로 남았다.
-    (local && ['stretch','sitSleep'].includes(preview))||MAX_MOTION_ONLY_PROTO_ENABLED;
+    (local && ['stretch','sitSleep','affection'].includes(preview))||MAX_MOTION_ONLY_PROTO_ENABLED;
 })();
 // 마스터 확정 전 실제 1-1 보드에서 후보 외형을 검증하는 로컬 비교 모드.
 const MAX_MASTER_COMPARE_ENABLED=(()=>{
@@ -6667,7 +6815,7 @@ const MAX_MASTER_D_ENABLED=(()=>{
 const MAX_MASTER_WALK_V1_ENABLED=(()=>{
   const q=new URLSearchParams(location.search);
   const local=location.protocol==='file:' || location.hostname==='localhost' || location.hostname==='127.0.0.1';
-  return MAX_DEFAULT_MASTER_STAGE1_ENABLED || (local && (q.get('masterwalk')==='1'||['stretch','sitSleep'].includes(q.get('maxevent') || (location.hash==='#sitSleep'?'sitSleep':null))));
+  return MAX_DEFAULT_MASTER_STAGE1_ENABLED || (local && (q.get('masterwalk')==='1'||['stretch','sitSleep','affection'].includes(q.get('maxevent') || (location.hash==='#sitSleep'?'sitSleep':null))));
 })();
 function chapterMaxWalkOnlyQaEnabled(){
   const q=new URLSearchParams(location.search);
@@ -6729,6 +6877,10 @@ const MAX_MASTER_NATIVE_PNG_ONLY=new Set([
   'art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png'
 ]);
 function chapterMaxRuntimeSheet(path){
+  const skinFile=path.match(/^art\/max-master\/motions\/skins\/max-([a-z]+)-(.+)-8f-runtime\.png$/);
+  if(skinFile && MAX_SKIN_ASSETS[skinFile[1]]?.motions.includes(skinFile[2])){
+    return path.replace(/\.png$/,'.'+MAX_SKIN_ASSETS[skinFile[1]].format);
+  }
   const native=typeof window!=='undefined' && !!window.Capacitor?.isNativePlatform?.();
   // 후디 시트는 승인된 PNG 그대로 패키지에 싣는다. 대응 AVIF는 내보내지 않았다.
   if(native && (path.startsWith('art/max-master/motions/skins/') || MAX_MASTER_NATIVE_PNG_ONLY.has(path))) return path;
@@ -6883,6 +7035,17 @@ function chapterMaxMasterVictoryV1Frame(eventTime){
   const q=((Number(eventTime)||0)%dur+dur)%dur/dur;
   return Math.max(0,Math.min(7,Math.floor(q*8)));
 }
+function chapterMaxMasterAffectionV1Frame(eventTime){
+  const dur=chapterMaxEventDuration('affection');
+  const q=((Number(eventTime)||0)%dur+dur)%dur/dur;
+  // 8fps timeline: 16f enter + 24f hold + 16f return.
+  // The 32-frame art sheet supplies the three sections; the hold uses its
+  // 8-frame breathing/pose loop three times without inventing a new silhouette.
+  const step=Math.max(0,Math.min(55,Math.floor(q*56)));
+  if(step<16) return Math.floor(step*12/16);          // source 0..11
+  if(step<40) return 12+Math.floor((step-16)*8/24);  // source 12..19 ×3
+  return 20+Math.floor((step-40)*12/16);             // source 20..31
+}
 function chapterMaxMasterVictoryV1LoopOffset(eventTime){
   // 첫 점프는 승리 순간을 또렷하게 읽히게 높게, 이후 루프는 같은 그림을
   // 아래로 살짝만 보정해 흥분한 반복이 과하게 튀지 않게 한다.
@@ -7008,6 +7171,7 @@ let maxChapterMasterSitV1UpAtlas=null;
 let maxChapterMasterSitV1LeftAtlas=null;
 let maxChapterMasterVictoryV1Atlas=null;
 let maxChapterMasterIdleV1Atlas=null;
+let maxChapterMasterAffectionV1Atlas=null;
 let maxChapterMasterStretchV1Atlas=null;
 let maxChapterMasterSitSleepV2UpAtlas=null;
 let maxChapterMasterSitSleepV2DownAtlas=null;
@@ -7107,6 +7271,11 @@ if((MAX_CHAPTER_PROTO_ENABLED||MAX_MOTION_ONLY_PROTO_ENABLED||MAX_MASTER_WALK_V1
     maxChapterMasterVictoryV1Atlas=new Image();
     maxChapterMasterVictoryV1Atlas.decoding='async';
     maxChapterMasterVictoryV1Atlas.src=chapterMaxMasterVictoryV1SheetSource();
+    if(MAX_EVENT_PREVIEW==='affection'){
+      maxChapterMasterAffectionV1Atlas=new Image();
+      maxChapterMasterAffectionV1Atlas.decoding='async';
+      maxChapterMasterAffectionV1Atlas.src='art/max-master/motions/work-in-progress/max-affection-front-32f-runtime-v3.png';
+    }
   }
   if(MAX_MASTER_WALK_V1_ENABLED){
     maxChapterMasterStaticV4Atlas=new Image();
@@ -7555,13 +7724,8 @@ el("mContinueMax").innerHTML=MAX_SVG;
 // 유료 재시작 값이 이걸 쓴다. 잔치의 변환 팝과 함께 지웠더니 31판부터(유료 구간) 실패 카드가 예외로 안 떴다.
 const ICON_ACORN=(el("hudPawBtn").querySelector("svg")||{outerHTML:''}).outerHTML;
 const ICON_BOWL =(el("hudMeal").querySelector("svg")||{outerHTML:''}).outerHTML;
-// 초록 버튼 위에 얹는 그릇 — HUD 것을 그대로 쓰면 흰 그릇이 초록과 붙어 형태가 죽는다.
-// 테두리를 버튼 그림자색(#6E9E38)으로 바꿔 초록 위에서 윤곽이 선다.
-// 사료 색(#C98A4B)은 HUD 와 같아야 한다 — 같은 물건이 자리마다 다른 색이면 다른
-// 물건으로 읽힌다. 초록 위에서 살릴 건 색이 아니라 윤곽이라, 테두리만 버튼
-// 그림자색으로 바꾸고 그릇 안쪽을 흰색으로 올린다.
-const ICON_BOWL_GO = ICON_BOWL.replace(/#B99A72/g,'#5F8F2E').replace(/#8A5A2C/g,'#5F8F2E')
-                              .replace(/#F0E2CC/g,'#FFF9F0');
+// 식사 아이콘은 이미지 자체의 대비가 충분해 초록 버튼에서도 같은 원화를 쓴다.
+const ICON_BOWL_GO = ICON_BOWL;
 const costTag=(svg,n,cls)=>'<i class="ccost'+(cls?' '+cls:'')+'">'+svg+'</i>'+n+' · ';
 const SIGN_SVG='<svg class="gsign" viewBox="0 0 150 88">'
   +'<rect x="69" y="30" width="12" height="52" rx="3" fill="#D2A468"/>'
@@ -7764,6 +7928,7 @@ function pickFace(moon){
   loadLevel(lv, moon);
 }
 function closeLvlSel(toHub){                            // 뒤로 = 허브로 복귀
+  lsWalkStop();
   selMode=false; document.body.classList.remove("insel");
   el("lvlsel").classList.remove("show");
   // The yard also uses menuMode: it does not prove the title is visible.
@@ -8896,32 +9061,118 @@ function lsLeftRender(n){
 }
 // ── 목록에 들어오면 맥스가 걸어 들어온다(2026-10-03 사람) — 지금 걸을 판이 어디인지 눈이 따라가게.
 // 지난번 목록에서 서 있던 판(roll_walk_nx)에서 지금 판까지 징검돌을 하나씩 밟고 온다. 같은 판이면 바로 앞 돌에서 한 칸.
-// 맥스 그림(.lsnx)을 옮기지 않고 transform 으로만 움직인다 — 끝나면 원래 자리 그대로라 눌림·스크롤을 안 건드린다.
-let lsWalkPend=false;
-function lsWalkIn(want){
-  if(!want || !want.querySelector || !want.animate) return;
-  const mx=want.querySelector('.lsnx'); if(!mx || !mx.animate) return;
-  try{ if(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; }catch(e){}
-  const to=+want.dataset.lv, last=+(LS.get('roll_walk_nx')||0);
-  LS.set('roll_walk_nx', String(to));
-  const from=(last>0 && last<to)? Math.max(last, to-5) : Math.max(1, to-1);
-  if(from>=to) return;
-  const map=el('lsMap'), at=lv=>{ const b=map.querySelector('.lstrail .lslv[data-lv="'+lv+'"]'); if(!b) return null; const r=b.getBoundingClientRect(); return [r.left+r.width/2, r.top+r.height/2]; };
-  const end=at(to); if(!end) return;
-  const pts=[]; for(let lv=from; lv<to; lv++){ const p=at(lv); if(p) pts.push(p); } if(!pts.length) return;
-  pts.push(end);
-  const frames=[], n=pts.length-1;
-  for(let i=0;i<=n;i++){ const [x,y]=pts[i], dx=x-end[0], dy=y-end[1];
-    const face=(i<n? pts[i+1][0]-x : x-pts[i-1][0])<-1? -1 : 1;            // 왼쪽으로 가면 돌아본다
-    frames.push({transform:'translate('+dx.toFixed(1)+'px,'+dy.toFixed(1)+'px) scaleX('+face+')', offset:i/n});
-    if(i<n){ const m=[(x+pts[i+1][0])/2-end[0], (y+pts[i+1][1])/2-end[1]-14];      // 돌과 돌 사이 — 폴짝
-      frames.push({transform:'translate('+m[0].toFixed(1)+'px,'+m[1].toFixed(1)+'px) scaleX('+face+')', offset:(i+0.5)/n}); } }
-  frames[frames.length-1].transform='translate(0px,0px) scaleX(1)';
-  const per=n>1? 420 : 560;
-  mx.animate(frames, {duration:per*n, easing:'linear', fill:'backwards', delay:180});
-  for(let i=1;i<=n;i++) setTimeout(()=>{ if(el('lvlsel').classList.contains('show')) tone(520+i*40,0.04,'triangle',0.025,700); }, 180+per*i-60);   // 돌을 딛는 소리
+// 폴짝 뛰는 이동과 착지 뒤에 뒤돌기 8칸과 착석 8칸을 한 번씩 재생한다.
+let lsWalkPend=false, lsWalkRAF=0, lsWalkToken=0, lsWalkSprite=null, lsMaxLoad=null;
+const LS_MAX_MOTION={
+  walk:'art/max-master/motions/map/max-map-hop-wag-v1-up-8f.png',
+  turn:'art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.png',
+  sit:chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png')
+};
+function lsWalkStop(){
+  lsWalkToken++;
+  if(lsWalkRAF) cancelAnimationFrame(lsWalkRAF);
+  lsWalkRAF=0;
+  if(lsWalkSprite){
+    if(lsWalkSprite.getAnimations) lsWalkSprite.getAnimations().forEach(a=>a.cancel());
+    lsWalkSprite.style.transform='';
+  }
+  lsWalkSprite=null;
+}
+function lsMaxMotionReady(){
+  if(lsMaxLoad) return lsMaxLoad;
+  lsMaxLoad=Promise.all(Object.values(LS_MAX_MOTION).map(src=>new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>img.naturalWidth===2048 && img.naturalHeight===256?resolve(img):reject(new Error('Invalid map sprite size'));
+    img.onerror=()=>reject(new Error('Map sprite unavailable'));
+    img.src=src;
+  }))).catch(()=>{lsMaxLoad=null;return null;});
+  return lsMaxLoad;
+}
+function lsMaxArrivalPose(elapsed,walkDuration,steps=1){
+  const t=Math.max(0,elapsed);
+  if(t<walkDuration) return {phase:'walk',frame:Math.floor(t/walkDuration*(steps+2)*8)%8};
+  if(t<walkDuration+120) return {phase:'land',frame:0};
+  if(t<walkDuration+760) return {phase:'turn',frame:Math.min(7,Math.floor((t-walkDuration-120)/80))};
+  if(t<walkDuration+1320) return {phase:'sit',frame:Math.min(7,Math.floor((t-walkDuration-760)/70))};
+  return {phase:'idle',frame:7};
+}
+function lsMaxHopTravel(elapsed,duration,steps=1){
+  const hops=steps+2,cycle=Math.max(0,Math.min(1,elapsed/duration))*hops;
+  const leg=Math.min(hops-1,Math.floor(cycle));
+  const flight=cycle===hops?1:Math.max(0,Math.min(1,((cycle%1)-.125)/.75));
+  const ease=flight*flight*(3-2*flight),arc=4*flight*(1-flight);
+  // Alternate landing positions; the final hop returns exactly to the stage node.
+  const side=i=>i===0 || i===hops?0:(i%2?-18:18);
+  const from=side(leg),to=side(leg+1);
+  return {progress:(leg+ease)/hops,lift:16*arc,
+    sway:from+(to-from)*ease,lean:(to-from)/36*6*arc};
+}
+function lsWalkPoint(points,progress){
+  const p=Math.max(0,Math.min(1,progress))*(points.length-1),i=Math.min(points.length-2,Math.floor(p)),t=p-i;
+  const a=points[Math.max(0,i-1)],b=points[i],c=points[i+1],d=points[Math.min(points.length-1,i+2)];
+  // Ground path follows the trail; hop height is applied separately.
+  return [0,1].map(k=>.5*((2*b[k])+(-a[k]+c[k])*t+(2*a[k]-5*b[k]+4*c[k]-d[k])*t*t+(-a[k]+3*b[k]-3*c[k]+d[k])*t*t*t));
+}
+function lsMaxSpriteFrame(mx,phase,frame){
+  const src=LS_MAX_MOTION[phase==='idle'?'sit':phase==='land'?'walk':phase];
+  if(mx.dataset.motion!==phase){mx.style.backgroundImage='url("'+src+'")';mx.dataset.motion=phase;}
+  mx.dataset.frame=String(frame);
+  mx.style.backgroundPosition=(frame/7*100)+'% 0';
+}
+function lsWalkIn(want,animate=true){
+  lsWalkStop();
+  if(!want || !want.querySelector) return;
+  const mx=want.querySelector('.lsnx'); if(!mx) return;
+  const token=lsWalkToken;
+  let reduced=false;
+  try{ reduced=!!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); }catch(e){}
+  const to=+want.dataset.lv,last=+(LS.get('roll_walk_nx')||0);
+  if(animate) LS.set('roll_walk_nx',String(to));
+  lsMaxMotionReady().then(ready=>{
+    if(!ready || token!==lsWalkToken || !selMode || mx.isConnected===false) return;
+    lsWalkSprite=mx; mx.classList.add('sprite-motion');
+    const finish=()=>{
+      mx.style.transform=''; lsMaxSpriteFrame(mx,'idle',7); lsWalkRAF=0;
+      if(!reduced && mx.animate) mx.animate([
+        {backgroundPosition:'100% 0',offset:0},
+        {backgroundPosition:'100% 0',offset:.965},
+        {backgroundPosition:(600/7)+'% 0',offset:.965},
+        {backgroundPosition:(600/7)+'% 0',offset:.99},
+        {backgroundPosition:'100% 0',offset:.99},
+        {backgroundPosition:'100% 0',offset:1}
+      ],{duration:4800,iterations:Infinity,easing:'steps(1,end)'});
+    };
+    if(reduced || !animate){finish();return;}
+    const map=el('lsMap'),at=lv=>{
+      const b=map.querySelector('.lstrail .lslv[data-lv="'+lv+'"]');if(!b)return null;
+      const r=b.getBoundingClientRect();return [r.left+r.width/2,r.top+r.height/2];
+    };
+    const end=at(to);if(!end){finish();return;}
+    const from=(last>0 && last<to)?Math.max(last,to-5):Math.max(1,to-1),points=[];
+    for(let lv=from;lv<to;lv++){const p=at(lv);if(p)points.push(p);}
+    if(!points.length) points.push([end[0],end[1]+48]);
+    points.push(end);
+    const steps=points.length-1,walkDuration=(steps+2)*420;
+    let start=null,lastStep=0;
+    const tick=now=>{
+      if(token!==lsWalkToken || !selMode || !el('lvlsel').classList.contains('show') || mx.isConnected===false){lsWalkStop();return;}
+      if(start===null)start=now;
+      const elapsed=Math.max(0,now-start-120),pose=lsMaxArrivalPose(elapsed,walkDuration,steps);
+      lsMaxSpriteFrame(mx,pose.phase,pose.frame);
+      if(pose.phase==='walk'){
+        const hop=lsMaxHopTravel(elapsed,walkDuration,steps),p=lsWalkPoint(points,hop.progress);
+        mx.style.transform='translate('+(p[0]-end[0]+hop.sway).toFixed(2)+'px,'+(p[1]-end[1]-hop.lift).toFixed(2)+'px) rotate('+hop.lean.toFixed(2)+'deg)';
+      }else mx.style.transform='';
+      const step=Math.min(steps,Math.floor(elapsed/walkDuration*steps));
+      if(step>lastStep){lastStep=step;tone(520+step*40,.04,'triangle',.025,700);}
+      if(pose.phase==='idle'){finish();return;}
+      lsWalkRAF=requestAnimationFrame(tick);
+    };
+    lsWalkRAF=requestAnimationFrame(tick);
+  });
 }
 function renderLvlMap(){
+  lsWalkStop();
   // 동네 아코디언 — 세로 오솔길은 110판에서 스크롤이 4000px 을 넘어 "내가 어디쯤인지"가
   // 안 잡혔고, 챕터(5판)로 접었더니 헤더가 21줄이라 여전히 안 잡혔다. 동네(20판)면 6줄이다.
   // 챕터는 화면에서 사라진다 — 대신 게이트를 판 카드 단위로 내려 잠금 규칙은 그대로 산다.
@@ -8994,7 +9245,7 @@ function renderLvlMap(){
         const tall=sc && sc.scrollHeight > sc.clientHeight+120;
         want.scrollIntoView({block: tall?'center':'nearest', behavior:'auto'});
       }catch(e){ }
-      if(lsWalkPend){ lsWalkPend=false; lsWalkIn(want); }
+      const walk=lsWalkPend; lsWalkPend=false; lsWalkIn(want,walk);
     }));
   }
   map.querySelectorAll(".lsgift[data-giftlv]").forEach(b=>{
@@ -9345,11 +9596,11 @@ const DEMOS={
   cartH:{ tiles:[GRASS,GRASS,GRASS,GRASS,GRASS], dur:4.8,
     act(p){ const a=seg(p,.08,.32), b=seg(p,.5,.74);
       return {dog:a+b,carts:[{c:1+a+b,vertical:false}]}; } },
-  // 구덩이 — 공이 빠지면 사라지고 칸은 **그대로 구덩이**다(fill 을 안 준다).
+  // 구덩이 — 공은 사라지고 그 칸이 메워져 맥스가 지나간다(실제 이동과 같은 결과).
   dpit:{ tiles:[GRASS,GRASS,HPIT,GRASS,GRASS], dur:4.0,
     act(p){ const s=seg(p,.40,.60);
-      return { dog:seg(p,.14,.34), balls:s>=1?[]:[{c:1+seg(p,.26,.40),color:0,scale:1-s}],
-               deny:(p>.68&&p<.94)?2:null, denyC:2 }; } },
+      return { dog:seg(p,.14,.34)+seg(p,.68,.90), balls:s>=1?[]:[{c:1+seg(p,.26,.40),color:0,scale:1-s}],
+               fill:s>=1?[2]:[] }; } },
   // 작물 — 구덩이에 넣으면 수확 구덩이가 된다. **메워지지 않는다** — 맥스만 밟고 지난다.
   crop:{ tiles:[GRASS,GRASS,HPIT,GRASS,GRASS], dur:5.4,
     act(p){ const a=seg(p,.08,.24), b=seg(p,.34,.50), c2=seg(p,.62,.84);
@@ -9362,6 +9613,10 @@ const DEMOS={
     act(p){ const a=seg(p,.06,.22), b=seg(p,.26,.42), c2=seg(p,.52,.70);
       const dogR = c2, dogC = a+b, face = c2>0? 'front' : 'right';
       return { dogR, dogC: Math.min(2,dogC), face, doorQ: 1 + c2 }; } },
+  // 잔디깎이 — 맥스가 손잡이 뒤에서 밀면 막힐 때까지 달리며 긴 풀을 깎는다. 깎인 칸은 공이 지나간다.
+  mower:{ tiles:[GRASS,GRASS,FURROW,GRASS,GRASS,GRASS], dur:4.6,
+    act(p){ const a=seg(p,.10,.26), r=seg(p,.30,.60), mc=1+r*4;
+      return { dog:a, mowers:[{c:mc, run:r>0&&r<1}], fill: mc>=2.4? [2+MOW_OFF] : [] }; } },
   // 흙더미 — 맥스가 걸어 들어가면 흙이 앞으로 밀려 그 너머 구덩이를 메운다. 두 칸이 같이 평지가 된다.
   dureong:{ tiles:[GRASS,DUREONG,GRASS,HPIT,GRASS], dur:6.0,
     act(p){ const a=seg(p,.10,.26), b=seg(p,.40,.56), c2=seg(p,.70,.86);
@@ -9549,20 +9804,33 @@ function wallTreatOff(a){
 // 판 위 도토리 전부 + 왼쪽 위 카운터. 카운터는 시범용이라 캔버스에 직접 그린다.
 function drawAcorns(){
   if(!acornSt.length) return;
-  const bob=Math.sin(animT*2.6)*cell*0.045;
   for(const a of acornSt){
     if(a.got && a.t>=1) continue;
+    const hover=a.got?0:cell*(0.065+Math.sin(animT*1.9+a.r*0.67+a.c*0.93)*0.035);
     // 수풀·울타리에 걸린 둘도 **처음부터 보인다**(2026-09-27) — 결정론 퍼즐이라 다섯이 다
     // 보여야 줍는 순서를 짤 수 있다. 벽 칸 한가운데가 아니라 맥스가 설 수 있는 쪽 가장자리에
     // 반쯤 걸쳐 그리고, 흰 테를 둘러 수풀 초록 위에서도 읽히게 한다. 줍는 법은 그대로 —
     // 옆에서 밀면 떨어진다(걸음 0).
     if(a.w && !a.got){
-      const o=wallTreatOff(a), x=cx(a.c)+o[0]*cell*0.36, y=cy(a.r)+o[1]*cell*0.36+bob*0.5;
+      const o=wallTreatOff(a), x=cx(a.c)+o[0]*cell*0.36, y=cy(a.r)+o[1]*cell*0.36;
       ctx.fillStyle='rgba(255,249,240,.85)'; ctx.beginPath(); ctx.arc(x, y, cell*0.29, 0, 7); ctx.fill();
-      drawMat(a.k, x, y, cell*0.56, 0);
+      drawMat(a.k, x, y, cell*0.58, 0, hover*0.5);
       continue;
     }
-    drawMat(a.k, cx(a.c), cy(a.r)+(a.got?0:bob), cell*0.66, a.got? a.t : 0);
+    // 여백 포함 58%: 실루엣은 칸의 약 절반, 3.3초 주기로 부드럽게 부유.
+    drawMat(a.k, cx(a.c), cy(a.r), cell*0.58, a.got? a.t : 0, hover);
+    if(!a.got){
+      const phase=(animT+a.r*0.79+a.c*1.31)%7;
+      if(phase<0.55){
+        const pulse=Math.sin(phase/0.55*Math.PI), q=cell*0.036*pulse;
+        const x=cx(a.c)-cell*0.1, y=cy(a.r)-hover-cell*0.13;
+        ctx.save(); ctx.globalAlpha*=0.65*pulse; ctx.fillStyle='#FFF5DA';
+        ctx.beginPath(); ctx.moveTo(x,y-q); ctx.lineTo(x+q*0.3,y-q*0.3);
+        ctx.lineTo(x+q,y); ctx.lineTo(x+q*0.3,y+q*0.3); ctx.lineTo(x,y+q);
+        ctx.lineTo(x-q*0.3,y+q*0.3); ctx.lineTo(x-q,y); ctx.lineTo(x-q*0.3,y-q*0.3);
+        ctx.closePath(); ctx.fill(); ctx.restore();
+      }
+    }
   }
   // 보드 왼쪽 위 '0 / 3' 칩은 뺐다 — 판에 묻힌 도토리가 눈에 보이고, 주우면 그 자리에서
   // 튀고 소리가 난다. 승리 카드가 몇 개 캤는지 다시 말한다. 세 번 말할 필요가 없다.
@@ -10692,6 +10960,7 @@ function renderHint(){
     else drawBall(x,y,cell,b.color,b.c*3.2,sc,sc); };
   for(const b of (st.balls||[])) if(b.layer!=='over') demoBall(b);
   for(const g of (st.logs||[])) drawLog(cx(g.c),cy(0),cell,1,1);
+  for(const m of (st.mowers||[])) drawMower(cx(m.c),cy(0),cell,{color:MOWER_C-1, path:m.run? [1] : null});   // 잔디깎이 데모 — 오른쪽으로 달린다
   for(const g of (st.carts||[])) d.vert? drawCart(cx(0),cy(g.c),cell,!!g.vertical,1,1,0)
                                        : drawCart(cx(g.c),cy(0),cell,!!g.vertical,1,1,0);
   for(const m of (st.mounds||[])) drawMovingMound(cx(m.c),cy(0),1,m.c*7.1+3);
@@ -11869,8 +12138,7 @@ function shopRenderYard(body){
 }
 // 도토리 무더기 → 작은 자루 → 큰 자루. 도토리 한 톨만 그리면 "많이 준다" 가 안 읽힌다.
 // 자루는 크림색 천이다 — 갈색 자루로 그렸더니 갈색 도토리가 자루에 먹혀 한 덩어리가 됐다(실측).
-const AC_PATHS=   // 병·통·상자 속 내용물 — 지갑 아이콘(PAW_SVG)과 같은 간식 비스킷. PAW_SVG 는 뒤에 선언되어(TDZ) 참조 대신 같은 문자열을 박는다
-  '<path d="M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z" fill="#B39A6E"/><path d="M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z" fill="#FFFDF8"/><path d="M14.92 29.75L34.65 22.57" fill="none" stroke="#E6DAC2" stroke-width="2.6" stroke-linecap="round"/><path d="M8.06 21.72Q7.66 18.88 10.6 17.6" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.0" stroke-linecap="round"/>';
+const AC_PATHS=UI_GEM_SVG;   // 병·통·상자 속 내용물도 지갑과 같은 보라 젬
 // id 는 티어마다 다르게 — 셋이 한 화면에 같이 있어서 같은 id 를 쓰면 <use> 가 전부
 // 첫 번째 것만 가리킨다(지금은 그림이 같아 티가 안 나지만, 하나만 고쳐도 셋이 다 바뀐다).
 // <g> 가 아니라 <symbol> 이어야 한다 — <use> 의 width/height 는 viewBox 를 가진 것에만
@@ -11965,32 +12233,15 @@ function shopScrollToPacks(){
     if(body.scrollTo) body.scrollTo({top, behavior:'smooth'}); else body.scrollTop=top;
   });
 }
-// 사료 카드의 밥그릇 — 반쯤 찬 것과 가득 찬 것. 마당·시트가 쓰는 그 그릇 그림이다.
+// 식사 재화 그림은 HUD·상점·충전·선물 모두 같은 고기를 쓴다.
+// 함수명/상품 키는 저장 및 결제 호환을 위해 유지한다.
 function kibBowlSVG(full){
-  return '<svg viewBox="0 0 72 46" width="72" height="46">'
-    +'<ellipse cx="36" cy="42" rx="26" ry="4" fill="rgba(90,64,40,.16)"/>'
-    +(full
-      ? '<path d="M8 19h56l-5 18a8 8 0 0 1-8 6H21a8 8 0 0 1-8-6z" fill="#F0E2CC" stroke="#B99A72" stroke-width="2.4" stroke-linejoin="round"/>'
-       +'<path d="M8 19c0-5 12-9.5 28-9.5S64 14 64 19c0 2.2-1.8 3.6-4.2 3.6H12.2C9.8 22.6 8 21.2 8 19z" fill="#C98A4B" stroke="#8A5A2C" stroke-width="2.2" stroke-linejoin="round"/>'
-      : '<path d="M8 19h56l-5 18a8 8 0 0 1-8 6H21a8 8 0 0 1-8-6z" fill="#F0E2CC" stroke="#B99A72" stroke-width="2.4" stroke-linejoin="round"/>'
-       +'<path d="M13.5 31h45l-2.5 6a8 8 0 0 1-7.6 6H23.6a8 8 0 0 1-7.6-6z" fill="#C98A4B"/>')
-    +'</svg>';
+  return kibbleBagSVG(full);
 }
-// 사료 상품은 그릇이 아니라 봉지 자체를 보여 준다. 반 봉지는 작고 뜯겨 사료가 보이며,
-// 한 봉지는 크고 밀봉된 채 빵빵하다. 실루엣만 봐도 두 상품이 갈려야 값 차이가 납득된다.
 function kibbleBagSVG(full){
+  const meat=(x,y,w,h)=>'<image href="'+UI_MEAL_ICON+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" preserveAspectRatio="xMidYMid meet"/>';
   return '<svg class="kibbag '+(full?'full':'half')+'" viewBox="0 0 72 60" role="img" aria-hidden="true">'
-    +'<ellipse cx="36" cy="55" rx="23" ry="4" fill="rgba(90,64,40,.15)"/>'
-    +(full
-      ? '<path d="M15 12h42l-3 35q-.6 7-8 7H26q-7.4 0-8-7z" fill="#E8B66F" stroke="#9B682F" stroke-width="2.4" stroke-linejoin="round"/>'
-       +'<path d="M15 12 20 5h32l5 7z" fill="#F2CC8F" stroke="#9B682F" stroke-width="2.4" stroke-linejoin="round"/>'
-       +'<path d="M20 5h32M19 16h34" stroke="#9B682F" stroke-width="2" stroke-linecap="round"/>'
-       +'<path d="M25 25h22v18H25z" rx="4" fill="#FFF1D1"/>'
-       +'<path d="M30 34c3-5 9-5 12 0-2 5-10 5-12 0z" fill="#C98A4B"/><circle cx="31" cy="29" r="2" fill="#C98A4B"/><circle cx="36" cy="27.5" r="2" fill="#C98A4B"/><circle cx="41" cy="29" r="2" fill="#C98A4B"/>'
-      : '<path d="M21 22h30l-2 25q-.5 6-6.5 6h-13Q23 53 22.5 47z" fill="#DCA35B" stroke="#9B682F" stroke-width="2.4" stroke-linejoin="round"/>'
-       +'<path d="M21 22c4-2 8-4 10-8 4 4 10 5 20 3l-1 8c-10 3-20 1-29-3z" fill="#F2CC8F" stroke="#9B682F" stroke-width="2.4" stroke-linejoin="round"/>'
-       +'<path d="M28 37h16" stroke="#FFF1D1" stroke-width="7" stroke-linecap="round"/>'
-       +'<g fill="#8A5A2C"><circle cx="28" cy="17" r="2.1"/><circle cx="34" cy="19" r="2"/><circle cx="40" cy="17" r="2.2"/><circle cx="46" cy="19" r="1.8"/></g>')
+    +(full?meat(14,0,46,42)+meat(0,20,46,40)+meat(30,21,42,39):meat(7,5,58,50))
     +'</svg>';
 }
 // 도장판 — 주머니 맨 위. 오늘 칸을 직접 눌러 받고, 같은 줄에서 다음 날 그림을 공개한다.
@@ -12133,8 +12384,8 @@ function shopRenderBag(body){
     const half=Math.ceil(MEAL_MAX/2);
     const card=(nm, q, cost, sub, full)=>{
       const b=document.createElement('button'); b.className='kibc'+(full?' best':''); b.setAttribute('data-kib', full? 'full' : 'half');
+      b.setAttribute('aria-label',nm()+' · '+I18N.t('stamp.acorns',{count:cost}));
       b.innerHTML='<span class="kibg">'+kibbleBagSVG(full)+'</span>'
-        +'<span class="kibnm">'+nm()+'</span><i class="kibsb">'+sub()+'</i>'
         +'<b class="dchip bundle-price">'+acornPrice(cost,full?foodSeparatePrice():0)+'</b>';
       // 조사는 이름마다 다르다 — '반 봉지'는 를, '순서표 3장'은 을. 박아 두면 하나가 틀린다.
       onTap(b, ()=>buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', cost, ()=>{
@@ -13407,7 +13658,7 @@ function bathRubOnce(){
     bathSync();
     LS.set('roll_bath', todayKey());
     heartBurst(dog.r, dog.c, 3);
-    mealGrant(BATH_MEALS, '뽀송해졌어요! 밥 '+BATH_MEALS+'끼');
+    mealGrant(BATH_MEALS, I18N.t('chore.rwMeal',{n:BATH_MEALS}));
     yardCards(); yardTodoSync();
     sfxWin(); buzz([12,40,12]);
   }
@@ -20153,6 +20404,12 @@ function houseFenceHit(dr,dc){
   const r=dog.r+dr, c=dog.c+dc;
   if(!(r===0||c===0||r===GN-1||c===GN-1) || (r===0&&(c===3||c===4))) return;
   if(houseIsWalkGate(r,c)){ houseWalkGo(); return; }
+  if(r===YARD_MOW_AT[0] && c===YARD_MOW_AT[1] && yardMowerOn()){       // 잔디깎이 — 들이받으면 다음 무늬로 깎는다
+    const ps=yardMowPats(), nx=ps[(ps.indexOf(houseTheme.mow||'')+1)%ps.length];
+    houseTheme.mow=nx; LS.set('roll_house', JSON.stringify(houseTheme)); tileKey='';
+    tone(110,0.22,'sawtooth',0.025,150); tone(160,0.18,'square',0.012,220); buzz([10,30,10]);
+    for(let i=0;i<10;i++) fx.push({r:r-0.4+Math.random()*0.2, c:c+(Math.random()-0.5)*0.8, vx:(Math.random()-0.5)*1.4, vy:-0.8-Math.random(), t:0.7, col:'#7DBE5A'});
+    return; }
   if((r===0||r===GN-1) && (c===0||c===GN-1)) return;
   if(tileAt(L,filled,r,c)!==WALL) return;
   const ks=houseFenceOwnedKeys(), cur=houseFenceAt(r,c), nx=ks[(ks.indexOf(cur)+1)%ks.length];
@@ -20691,12 +20948,29 @@ function houseGrassDeco(g, deco, dx, dy, r0){
   else if(deco==='heart'){ g.fillStyle='#FF9FB4'; g.beginPath(); g.arc(dx-r0*0.5,dy-r0*0.3,r0*0.55,0,7); g.arc(dx+r0*0.5,dy-r0*0.3,r0*0.55,0,7); g.fill(); g.beginPath(); g.moveTo(dx-r0*1.02,dy-r0*0.15); g.lineTo(dx,dy+r0*0.95); g.lineTo(dx+r0*1.02,dy-r0*0.15); g.closePath(); g.fill(); }
   else if(deco==='cloud'){ g.fillStyle='rgba(255,255,255,.85)'; for(const [ox,oy,rr0] of [[-0.8,0.1,0.7],[0,-0.2,0.9],[0.8,0.1,0.7]]){ g.beginPath(); g.arc(dx+ox*r0,dy+oy*r0,r0*rr0,0,7); g.fill(); } }
 }
+// 마당 잔디깎이(2026-10-04) — 21판(잔디깎이를 배운 판)을 깨면 산책 대문 오른쪽 울타리 가(아랫줄 (7,6))에 선다.
+// 마당 안쪽 칸은 막지 않는다. 맥스가 들이받으면 마당 잔디를 깎아 무늬를 바꾼다 — 줄무늬(21) · 체크(25) · 십자(30), 없음.
+const YARD_MOW_AT=[GN-1, GN-2], YARD_MOW_PAT=[['stripe',21],['check',25],['cross',30]];
+function yardMowerOn(){ return (starMap[21]|0)>0; }
+function yardMowPats(){ return ['', ...YARD_MOW_PAT.filter(([,lv])=>(starMap[lv]|0)>0).map(([k])=>k)]; }
+function yardMowCell(r,c,x,y,g){                                // 깎은 무늬 — 칸 위에 옅은 밝은 결
+  const k=houseTheme.mow||''; if(!k) return;
+  const on = k==='stripe'? (r&1) : k==='check'? ((r+c)&1) : (r===3||r===4||c===3||c===4);
+  if(!on) return;
+  g.fillStyle='rgba(255,255,255,.17)'; g.fillRect(x,y,cell,cell);
+  g.strokeStyle='rgba(255,255,255,.22)'; g.lineWidth=1;
+  for(const o of [.3,.7]){ g.beginPath(); if(k==='stripe'||((r+c)&1)){ g.moveTo(x,y+cell*o); g.lineTo(x+cell,y+cell*o); } else { g.moveTo(x+cell*o,y); g.lineTo(x+cell*o,y+cell); } g.stroke(); }
+}
 function drawHouseTile(r,c){
+  if(r===YARD_MOW_AT[0] && c===YARD_MOW_AT[1] && !drawHouseTile._mw && houseMode && !houseIn && yardMowerOn()){   // 울타리 그린 뒤 그 앞에 세운다
+    drawHouseTile._mw=1; const res=drawHouseTile(r,c); drawHouseTile._mw=0;
+    ctx.save(); mowerSide(c*cell+cell*.5, r*cell+cell*.42, cell*.82, -1); ctx.restore(); return res; }
   const t=L.T[r][c], x=c*cell, y=r*cell, g=ctx;
   const G=HOUSE_GRASS[houseTheme.grass]||HOUSE_GRASS.clover, FK=houseFenceAt(r,c), F=HOUSE_FENCE[FK]||HOUSE_FENCE.white;
   const edge=r===0||c===0||r===GN-1||c===GN-1;
   const sd=kk(r,c)*7.3+1.7, h1=hsh(sd), h2=hsh(sd+1), h3=hsh(sd+2);
   const prop=HOUSE_PROPS[r+','+c];
+  if(!edge && !houseIn) yardMowCell(r,c,x,y,g);
   if(!edge && !prop && h1<0.34){                                          // 장식 — 셋 중 하나 꼴, 자리도 흩는다
     houseGrassDeco(g, G.deco, x+cell*(0.25+h2*0.5), y+cell*(0.25+h3*0.5), cell*0.06);
   }
@@ -21736,7 +22010,7 @@ function chapterMaxPrototypeIsMoving(){
     dog.protoMoveT!=null && dog.protoMoveT<1) ||
     (MAX_EXPRESSIVE_PROTO_ENABLED && level===1 && maxChapterBlockedFx && maxChapterBlockedFx.t<maxChapterBlockedFx.dur));
 }
-function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!(doorFx && !doorFx.fail) || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
+function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!(doorFx && !doorFx.fail) || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||b.turnFx||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
 // 유효시간(at)은 **애니가 끝난 뒤부터** 잰다 — 프레임 루프가 애니 중엔 at 을 당겨 둔다.
@@ -22042,8 +22316,13 @@ let mealSpent=false, mealPendLv=0, mealTick=0;
 function mealAdLeft(){ return mealAdDay===todayKey()? Math.max(0, MEAL_AD_MAX-mealAdN) : MEAL_AD_MAX; }
 function syncMealHud(){
   const b=el("hudMeal"); if(!b) return;
-  b.classList.toggle("off", !mealOn());
-  if(!mealOn()) return;
+  b.classList.toggle("off", !mealOn() && !ECONOMY_ICON_QA);
+  if(!mealOn() && !ECONOMY_ICON_QA) return;
+  if(ECONOMY_ICON_QA && !mealOn()){
+    b.classList.remove("full","empty","canfill");
+    el("hudMealN").textContent=5; el("hudMealMax").textContent='/'+MEAL_MAX; el("hudMealCd").textContent='';
+    return;
+  }
   mealSync();
   const full=mealFull();
   b.classList.toggle("full", full);
@@ -22083,6 +22362,9 @@ function mealSheetShow(lv){
   el("lvcard").classList.add("behind","meal");
 }
 function refreshMealCopy(){
+  el("mealArt").innerHTML='<svg viewBox="0 0 48 48">'+UI_MEAL_SVG+'</svg>';
+  el("mealHalfArt").innerHTML=kibbleBagSVG(false);
+  el("mealFullArt").innerHTML=kibbleBagSVG(true);
   // 막혀서 열릴 때(lv 가 있다)와 HUD 의 + 로 미리 채우러 올 때는 사정이 다르다.
   // 첫 줄이 "밥그릇이 비었어요" 인데 넷이 남아 있으면 화면이 거짓말을 한다.
   const empty = meal<=0 && !mealFull();
@@ -22104,6 +22386,8 @@ function refreshMealCopy(){
   // 가르치려던 자리가 사라진다. 무료는 진짜로 비었을 때만.
   const firstFree = !tipSeen['meal1'] && empty;
   const kb=el("mealKib"), hf=el("mealHalf");
+  hf.setAttribute('aria-label',I18N.t('meal.half')+' · '+I18N.t('stamp.acorns',{count:KIBBLE_HALF_COST}));
+  kb.setAttribute('aria-label',I18N.t('meal.full')+' · '+(firstFree?I18N.t('common.free'):kibble>0?I18N.t('shop.owned'):I18N.t('stamp.acorns',{count:KIBBLE_COST})));
   hf.style.display = firstFree? "none" : "";           // 첫 번째엔 고르게 하지 않는다
   kb.classList.toggle("lock", !firstFree && kibble<=0 && pawBal<KIBBLE_COST);
   el("mealKibC").innerHTML = firstFree? '<b class="mcfree">'+I18N.t('common.free')+'</b>'
@@ -22702,6 +22986,7 @@ function tryMove(dr,dc){
   }
   if(treatK!=null && !treatEaten && kk(dog.r,dog.c)===treatK){          // 간식 냠
     treatEaten=true; treatT=1; dog.wagBoost=1;
+    maxReactionStart('eat');
     if(!treatMap[level]){ treatMap[level]=1; treatBal++; persist(); syncTreats(); }
     spark((treatK/GN)|0, treatK%GN, "#E8C27A", 12, 2.6);
     tone(720,0.07,"triangle",0.05,1050); tone(980,0.09,"sine",0.04,1400); buzz([8,20,8]);
@@ -22755,8 +23040,22 @@ function tryMove(dr,dc){
     doorFx={i:res.door.i, from:res.door.from, to:res.door.to, s:res.door.s, t:0, hit:!!res.door.hit};
     dog.wagBoost=1; tone(250,0.09,"triangle",0.035,185); buzz(8);
   }
+  if(res.mowTurn){                                      // 잔디깎이를 옆에서 밀었다 — 제자리에서 돈다(손잡이 쓸기)
+    const mt=res.mowTurn, mb=boxes.find(x=>x.kind==='mower' && x.sink===0 && x.r===mt.r && x.c===mt.c);
+    if(mb){ mb.color=MOWER_C-mt.to; mb.turnFx={from:mt.from, to:mt.to, t:0}; }
+    mowerAim={r:mt.r, c:mt.c, age:-MOWER_TURN};                // 다 돈 다음에 겨눈 길이 뜬다
+    dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=0.5;
+    tone(320,0.07,'triangle',0.03,260); buzz(8);
+  }
+  if(res.kind==='mower' && res.mow){                    // 잔디깎이가 달린다 — 부릉. 깎은 결 방향을 기억해 둔다(그림만)
+    if(mowDir.lv!==level) mowDir={lv:level, m:new Map()};
+    for(const k of res.mow.cut) mowDir.m.set(k, res.mow.dr!==0? 'v' : 'h');
+    tone(110,0.22,'sawtooth',0.025,150); tone(160,0.18,'square',0.012,220); buzz([10,30,10]);
+    if(res.door && doorFx) doorFx.t=-1e9;               // 문은 깎이가 닿는 순간에 돈다 — 도착(path 끝)에서 0 으로 푼다
+  }
   if(res.pushed){
-    if(res.kind==='log'||res.kind==='cartV'||res.kind==='cartH'){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } // 상자와 대차는 재질을 구분한다
+    if(res.kind==='mower'){ dog.lungeT=1.2; dog.hop=0; }
+    else if(res.kind==='log'||res.kind==='cartV'||res.kind==='cartH'){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } // 상자와 대차는 재질을 구분한다
     else if((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1){
       // 전용 밀기 포즈의 접촉 프레임(.42)에서 소리와 공이 함께 출발한다.
       fxAfter((dog.protoMoveDur||.34)*.42,()=>{sfxBallPush();feedbackPulse('push');});
@@ -22785,7 +23084,7 @@ function tryMove(dr,dc){
       filled=new Set(res.filled);              // 침몰·물감 소모 등 지형 변화 즉시 반영
       if(res.slid>1){ const m=chainStep(); tone(520*m,0.12,"sine",0.04,900*m); }
     }
-  } else if(!res.buriedNow && !res.packed && !res.dug && !res.picked && !res.door){ sfxStep(); }
+  } else if(!res.buriedNow && !res.packed && !res.dug && !res.picked && !res.door && !res.mowTurn){ sfxStep(); }
   const pathTime=pathTimeOf;                                   // 경로 소요 시간 (경사=멈칫+감속 반영)
   let acc = (res.kind==='log'||res.kind==='cartV'||res.kind==='cartH') ? 0.7 : pathTime(res.path); // 앞선 것이 멈출 때까지의 시간
   const assigned=new Set();                                    // 이미 경로 배정된 공 (밀린 공 포함 — 중복 배정 방지)
@@ -22810,7 +23109,13 @@ function tryMove(dr,dc){
   }
   if(res.door && res.door.hit){                       // 문으로 친 공은 문짝이 닿는 순간 떠난다
     const hb=boxes.find(x=>x.path && x.r===res.door.hit.toR && x.c===res.door.hit.toC);
-    if(hb){ hb.delay=DOOR_DUR*DOOR_HIT_T; hb.startSfx=false; }
+    if(hb){ const mw=res.kind==='mower'? boxes.find(x=>x.kind==='mower' && x.r===res.restR && x.c===res.restC) : null;
+      hb.delay=DOOR_DUR*DOOR_HIT_T+(mw? (mw.delay||0)+pathTimeOf(res.path) : 0); hb.startSfx=false; }
+  }
+  if(res.kind==='mower' && res.mowHit && res.mowHit.ball && !res.mowHit.stuck){   // 깎이에 맞은 공은 깎이가 닿은 뒤에 떠난다
+    const mw=boxes.find(x=>x.kind==='mower' && x.r===res.restR && x.c===res.restC), e0=(res.extra||[])[0];
+    const hb=e0 && boxes.find(x=>x.kind==='ball' && x.path && x.r===e0.restR && x.c===e0.restC);
+    if(mw && hb){ hb.delay=(mw.delay||0)+pathTimeOf(res.path); hb.startSfx=true; }
   }
   prepareBallContacts(boxes);
   if(labMode) labAfterMove();                         // 실험 판 — 밟은 칸의 신발·삽을 줍는다
@@ -23747,13 +24052,14 @@ function deadlockNow(){
   if(L.cb) L._cbB=cbCells(L,cbState);                            // 고양이 상자는 지금 자리가 벽
   if(L.np) L._npB=npCells(L,npState);                            // 화단 고양이도 지금 자리가 벽
   if(L.fw!=null) L._fwB = fcState;                              // 따라오는 고양이 — 공에게만 벽
-  const live=boxes.filter(b=>b.sink===0 && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH');
+  const live=boxes.filter(b=>b.sink===0 && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower');
   const need={}, have={}; let wild=0;
   for(const [,col] of holes) need[col]=(need[col]|0)+1;
   for(const b of live){ if(b.color<0) wild++; else have[b.color]=(have[b.color]|0)+1; }
   let short=0;
   for(const col in need) short += Math.max(0, need[col]-(have[col]|0));
   if(short>wild) return true;                                    // 공이 모자람 (구덩이에 잘못 빠뜨림 등)
+  if(deadMowerList().length) return true;                        // 방석을 가린 채 못 빠지는 잔디깎이
   if(levelPlainPush(L)){                                          // 죽은 칸 검사 (색별)
     const fk=[...filled].sort((a,b)=>a-b).join(',');
     if(!L._alive || L._aliveK!==fk){ L._alive=computeAlive(L,filled); L._aliveK=fk; }   // 구덩이가 메워지면 죽은 칸도 바뀐다 (내용 키 — 같은 개수·다른 구덩이 구분)
@@ -23818,7 +24124,7 @@ function waterExhausted(live){
     for(const st of frontier) for(const [dr,dc] of DIRS){
       const r=applyMove(L, st, dr, dc); if(!r) continue;
       const ns={dog:r.dog, boxes:r.boxes, filled:r.filled, carry:!!r.carry};
-      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH') bc++;
+      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower') bc++;
       if(bc < L.holes.size) continue;                        // 공 부족 가지는 더 안 본다
       const k=stKey(ns); if(seen.has(k)) continue; seen.add(k);
       if(isGoal(L,ns)) return false;
@@ -24002,6 +24308,32 @@ function matCellRect(r,c,withDog){
 }
 const EAT_TOSS=0.35, EAT_BITE=0.4, EAT_GULP=0.3;
 let matEat=null;                               // {k, a, ph:'toss'|'bite'|'gulp', t, fr:{x,y}, to:{x,y}}
+// 짧은 상호작용 반응. 마스터 모션 시트를 갈아끼우지 않고, 아이템을 먹거나
+// 방석에 장난감이 안착한 순간에만 맥스의 위치를 아주 작게 흔든다.
+// 그래서 스킨·방향·기존 프레임은 그대로 유지하면서 "내가 반응했다"만 읽힌다.
+let maxReactionFx=null;                         // {kind:'eat'|'toy', t}
+function maxReactionStart(kind){
+  const dur=kind==='toy'?0.92:0.72;
+  maxReactionFx={kind,t:0,dur};
+  dog.wagBoost=Math.max(dog.wagBoost||0,1);
+}
+function maxReactionTick(){
+  if(!maxReactionFx) return;
+  maxReactionFx.t+=dt;
+  if(maxReactionFx.t>=maxReactionFx.dur) maxReactionFx=null;
+}
+function maxReactionPose(){
+  const E=maxReactionFx;
+  if(!E) return {x:0,y:0,scale:1};
+  const p=Math.max(0,Math.min(1,E.t/E.dur));
+  // 먹기는 입을 향해 살짝 숙였다가 톡 올라오고, 장난감은 두 번의 작은
+  // 폴짝으로 기뻐한다. 모두 한 타일의 3% 안쪽이라 퍼즐 판독을 방해하지 않는다.
+  const wave=E.kind==='toy'?Math.sin(p*Math.PI*2.2):Math.sin(p*Math.PI);
+  const dip=E.kind==='toy' ? Math.sin(p*Math.PI*2)*cell*.018 : -Math.sin(p*Math.PI)*cell*.045;
+  const hop=E.kind==='toy' ? -Math.max(0,wave)*cell*.055 : Math.max(0,wave)*cell*.025;
+  return {x:E.kind==='toy'?Math.sin(p*Math.PI*2)*cell*.012:0,y:dip+hop,
+          scale:1+(E.kind==='toy'?Math.max(0,wave)*.018:-Math.sin(p*Math.PI)*.012)};
+}
 function matEatStart(a, wall){
   mvMatHold();                                                      // 칸은 조각이 앉을 때 찬다
   const reduce=typeof matchMedia==='function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -24018,11 +24350,12 @@ function matEatBite(){
   if(Math.abs(matEat.dr)+Math.abs(matEat.dc)===1){ dog.lungeR=matEat.dr; dog.lungeC=matEat.dc; }
   if(matEat.dc) dog.face = matEat.dc<0? -1 : 1;
   dog.wagBoost=1;
-  audio(); tone(520,0.05,'triangle',0.04,600); setTimeout(()=>tone(700,0.06,'triangle',0.04,820), 90); buzz(6);
+  audio(); buzz(6);
 }
 function matEatGulp(){
   if(!matEat) return;
   const E=matEat; E.ph='gulp'; E.t=0;
+  maxReactionStart('eat');
   joyT=1; heartBurst(dog.r, dog.c, 1);
   mvMatFly({r:dog.r, c:dog.c, k:E.k});                              // 입에서 HUD 칸으로
 }
@@ -24157,11 +24490,11 @@ function mvMatsSweep(){
 // 다섯 걸음 안에 다음 공을 앉히면 이어진 것으로 본다. 무르기로 걸음이 줄면 끊긴다.
 let seatCombo=0, seatLastMove=-99;
 const SEAT_COMBO_GAP=5;
-// 판 규칙 칩 — 이 구간에서 가장 최근에 배운 기믹. 1동네('base')와 연습·달빛·메뉴엔 없다.
+// 판 규칙 칩 — 배운 규칙 중 이 판에 실제로 있는 것. 연습·달빛·메뉴엔 없다.
 let ruleChipKey=null;
 function syncRuleChip(){
   const b=el('ruleChip'); if(!b) return;
-  const k=(tutMode||moonMode||menuMode||tsMode||lunchMode)? null : (guideKeysForLevel(level)[0]||null);
+  const k=(tutMode||moonMode||menuMode||tsMode||lunchMode)? null : (guideKeysForStage(level)[0]||null);
   const g=(k && k!=='base')? guideCopy(k) : null;
   ruleChipKey= g? k : null; b.hidden=!g;
   if(g) el('ruleChipT').textContent=g.name;
@@ -24263,6 +24596,22 @@ function toySquash(b){
   if(Math.abs(a)<0.004) return null;
   return (b.sdc||0)!==0? {sx:1+a, sy:1-a*0.7} : {sx:1-a*0.7, sy:1+a};
 }
+// 잔디깎이가 방석을 가린 채 영영 못 빠지는가. 깎이를 q 쪽으로 보내려면 맥스가 q 의 반대편 칸에 서야
+// 하고(옆이면 돌리고, 뒤면 달린다), 앞에서는 못 민다. 지금 방향에서 "돌려서 닿을 수 있는 방향" 중
+// 맥스가 설 뒤 칸과 달려 나갈 앞 칸이 같이 열린 곳이 하나도 없으면 갇혔다.
+// 벽만 본다 — 공·문짝·물은 나중에 비켜날 수 있으니 열린 셈 친다(덜 치는 쪽이 안전하다).
+function mowerTrapped(L, fil, b){
+  const open=(r,c)=>r>=1&&c>=1&&r<=GN-2&&c<=GN-2&&tileAt(L,fil,r,c)!==WALL;
+  const back=q=>open(b.r-DOOR_CV[q][0], b.c-DOOR_CV[q][1]), ahead=q=>open(b.r+DOOR_CV[q][0], b.c+DOOR_CV[q][1]);
+  const seen=new Set([mowerFace(b)]), todo=[mowerFace(b)];
+  while(todo.length){ const f=todo.pop();
+    if(back(f) && ahead(f)) return false;
+    for(const q of [(f+1)&3, (f+3)&3]) if(!seen.has(q) && back(q)){ seen.add(q); todo.push(q); } }
+  return true;
+}
+function deadMowerList(){
+  return boxes.filter(b=>b.kind==='mower' && b.sink===0 && holes.has(kk(b.r,b.c)) && mowerTrapped(L, filled, b));
+}
 function deadBallList(){
   if(!levelPlainPush(L) || !L._alive) return [];
   return boxes.filter(b=>b.sink===0 && !b.carried && b.kind==='ball' && b.color>=0 && !holes.has(kk(b.r,b.c))
@@ -24284,10 +24633,16 @@ function drawDeadBalls(){
     const x=cx(b.cc), y=cy(b.rr);
     ctx.save();
     // 맥박이 약한 순간에도 붉게 읽혀야 한다 — 0.45 까지 내리면 풀밭 위에서 흙색으로 보였다(실측).
+    const mw=b.kind==='mower', rr=mw? 0.46 : 0.40;            // 깎이는 몸이 넓다
     ctx.fillStyle="rgba(214,72,56,"+(0.10+beat*0.08).toFixed(2)+")";
-    ctx.beginPath(); ctx.arc(x, y+cell*0.02, cell*(0.40+beat*0.04), 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y+cell*0.02, cell*(rr+beat*0.04), 0, 7); ctx.fill();
     ctx.strokeStyle="rgba(214,64,50,"+(0.7+beat*0.3).toFixed(2)+")"; ctx.lineWidth=cell*0.065;
     ctx.stroke();
+    if(mw){                                                      // 시동 꺼진 연기 — 끊기듯 피어오른다(땀방울은 공의 것)
+      for(let k=0;k<3;k++){ const u=still? (k+1)/4 : ((animT*0.55+k/3)%1), sx=x-cell*0.12+u*cell*0.1, sy=y-cell*0.3-u*cell*0.42, sr=cell*(0.06+u*0.07);
+        ctx.globalAlpha=(still? 0.7 : (1-u))*0.85; ctx.fillStyle="#8A8A90"; ctx.beginPath(); ctx.arc(sx,sy,sr,0,7); ctx.fill(); }
+      ctx.restore(); continue;
+    }
     // 땀방울 — 오른쪽 위에서 흘러내린다
     const u=still? 0.3 : (animT*0.9)%1, s=cell*0.09;
     const dx=x+cell*0.30, dy=y-cell*0.34+u*cell*0.16;
@@ -24318,9 +24673,10 @@ function checkDeadlock(){
   // deadT 를 0 으로 두는 게 핵심이다 — 소리만 막고 두면 무르기 버튼이 계속 맥동한다(실측).
   if(tutMode && tutIdx!==2){ deadT=0; deadBalls=[]; return; }
   if(deadlockNow()){
-    deadBalls=deadBallList();                                    // 어느 공이 박혔나 — 그 공에 테를 두른다
+    deadBalls=deadBallList().concat(deadMowerList());            // 어느 공이 박혔나 — 그 공에 테를 두른다(방석을 가린 깎이도)
     if(deadT<=0){ tone(150,0.22,"sine",0.05,90); buzz([12,60,12]);
-      const knew=!!tipSeen['tutUndo']; tutStuck(); if(knew) stuckToast(); }
+      const onlyMower=deadBalls.length && deadBalls.every(b=>b.kind==='mower');   // 깎이만 갇혔으면 글자 없이 테·연기·무르기 반짝만(문구가 "공"이다)
+      if(!onlyMower){ const knew=!!tipSeen['tutUndo']; tutStuck(); if(knew) stuckToast(); } }
     deadT=1;
   }
   else { deadT=0; deadBalls=[]; }
@@ -24381,7 +24737,7 @@ function winGoalCopy(key,vars){
 function refreshWinCopy(){ if(state==='win') Object.values(winCopy).forEach(render=>render()); }
 // 간식 — 발도장 찍힌 강아지 비스킷(MAT_ART.snack 과 같은 그림). 색은 SVG 안에 박는다 —
 // 다색이라 CSS 한 줄로 못 칠한다.
-const PAW_SVG='<path d="M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z" fill="#B39A6E"/><path d="M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z" fill="#FFFDF8"/><path d="M14.92 29.75L34.65 22.57" fill="none" stroke="#E6DAC2" stroke-width="2.6" stroke-linecap="round"/><path d="M8.06 21.72Q7.66 18.88 10.6 17.6" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2.0" stroke-linecap="round"/>';
+const PAW_SVG=UI_GEM_SVG;
 // 간식 마크 — 이모지는 기기마다 그림이 달라 HUD·승리 카드와 딴 물건으로 보였다.
 // 화면의 모든 간식은 이 하나로.
 function pawIco(){ return '<svg class="pawi" viewBox="0 0 48 48">'+PAW_SVG+'</svg>'; }
@@ -25106,10 +25462,14 @@ function scheduleWinReveal(st){
     }, WIN_BEAT.buttons+700);
   }
 }
-// 승리 카드 위 맥스 — 한 장 그림이던 것을 **결과에 따라 다른 동작**으로 움직인다(2026-10-02 사람).
-//   간식을 다 주웠으면 폴짝폴짝(victory) · 걸음을 아슬아슬하게 남겼으면 털썩 앉는다(sit — 한 번 앉고 앉은 채) · 그 밖엔 대기(idle — 숨·깜빡임).
-// 시트는 판에서 쓰는 것 그대로다 — 입은 옷으로 이미 갈아 끼워져 있다(chapterMaxSkinAtlasSync). 못 읽었으면 예전 한 장으로 돌아간다.
-let winFaceMotion='idle', winFaceT0=0, winFaceLive=false;
+// 기본 맥스는 이번 판 간식 1/2/3개에 새 승리 시트를 쓴다. 지급 차액/보유량과 무관하다.
+// 스킨·특수 산책·0개·새 시트 실패는 기존 victory/sit/idle 연출을 유지한다.
+// 스킨 시트는 chapterMaxSkinAtlasSync의 원자적 교체를 그대로 따르며 옷을 벗기지 않는다.
+let winFaceMotion='idle', winFaceT0=0, winFaceLive=false, winFaceRewardTier=0;
+function winFaceRewardCount(){
+  if(moonMode || lunchMode || tsMode || tutMode) return 0;
+  return Math.min(3, Math.max(0, Math.min(matFull(level), SNACKS_ON? snacksLeftNow() : acornGot())));
+}
 function winFacePick(){
   if(moonMode || lunchMode || tsMode) return 'idle';
   const left=stepLimit()-moves, full=matFull(level)>0 && (SNACKS_ON? snacksLeftNow() : acornGot())>=matFull(level);
@@ -25124,12 +25484,16 @@ function winFaceFrame(m, t){
 }
 function winFaceDraw(){
   const c=el("winFace"); if(!c || !c.getContext) return;
-  if(!winFaceLive){ winFaceLive=true; winFaceMotion=winFacePick(); winFaceT0=animT; }
+  if(!winFaceLive){ winFaceLive=true; winFaceMotion=winFacePick(); winFaceRewardTier=winFaceRewardCount(); winFaceT0=animT; }
   const g=c.getContext('2d'); if(!g) return; g.clearRect(0,0,c.width,c.height);
+  const rewardDrawn=!maxSkinName() && !maxAtlasSkin && !maxAtlasSkinPending && window.MaxVictoryCard &&
+    window.MaxVictoryCard.draw(g,c,winFaceRewardTier,Math.max(0,animT-winFaceT0),motionReduced());
   const at=winFaceMotion==='victory'? maxChapterMasterVictoryV1Atlas : winFaceMotion==='sit'? maxChapterMasterSitV1Atlas : maxChapterMasterIdleV1Atlas;
   const x=c.width/2, size=Math.round(c.width*0.86), ground=c.height*0.6+size*.36;
-  if(chapterMaxAtlasReady(at) && at.width>=2048){
-    const t=Math.max(0, animT-winFaceT0), f=winFaceFrame(winFaceMotion, t), k=maxSkinDrawScale(), s=size*k;
+  if(rewardDrawn){
+    // The reward clip already includes its jump height; do not add another hop.
+  } else if(chapterMaxAtlasReady(at) && at.width>=2048){
+    const t=motionReduced()?0:Math.max(0, animT-winFaceT0), f=winFaceFrame(winFaceMotion, t), k=maxSkinDrawScale(), s=size*k;
     const hop=winFaceMotion==='victory'? chapterMaxMasterVictoryV1LoopOffset(t)*size : 0;   // 첫 점프 뒤 되풀이는 살짝 낮게 — 판과 같은 보정
     g.save(); g.imageSmoothingEnabled=true;
     g.drawImage(at, f*256, 0, 256, 256, x-s*.5, ground-s*(MAX_MASTER_FRAME_GROUND_Y/256)+hop, s, s);
@@ -25143,7 +25507,7 @@ function winFaceDraw(){
 }
 // 카드가 떠 있는 동안 매 프레임 다시 그린다. 판을 떠나면(state 가 win 이 아니면) 다음 승리를 위해 고른 동작을 버린다.
 function winFaceTick(){
-  if(state!=="win"){ winFaceLive=false; return; }
+  if(state!=="win"){ winFaceLive=false; winFaceRewardTier=0; return; }
   if(winFaceLive) winFaceDraw();
 }
 function win(){
@@ -25156,6 +25520,8 @@ function win(){
   winCopy={};
   if(tut){ tut=0; if(!tutMode) tutDone=true; }
   state="win"; winT=0; moveBuffer=null; walkQueueClear(); dragReset();
+  winFaceLive=false;
+  if(window.MaxVictoryCard && !maxSkinName()) window.MaxVictoryCard.prepare(winFaceRewardCount());
   dog.maxEvent='victory'; dog.maxEventT=0;
   // 마지막 방석의 ‘띵’을 먼저 들려준 뒤 팡파르가 답한다.
   duckGameBgm(); rippleAllGoals();
@@ -25609,6 +25975,12 @@ function firePend(b){
     // 판을 푸는 앉힘 — 글자 칭찬 대신 딸깍·금빛 테·먼저 앉은 공들의 폴짝이 맡는다.
     const fin = !!(finalFx && !finalFx.hit && p.land===finalFx.k);
     if(fin) finalLand(b);
+    // 장난감이 방석에 들어가는 순간은 맥스가 한 번 알아차리게 한다.
+    // goalFeel 전용 연출일 때만 켜서 일반 공 착지에는 중복 반응을 만들지 않는다.
+    if(goalFeelEnabled() && b.kind==='ball'){
+      maxReactionStart('toy');
+      spark(b.r,b.c,"#FFF4C2",8,1.8);
+    }
     rollPulse.push({r:b.r,c:b.c,t:0,kind:'goal'});
     if(!goalFeelPreviewEnabled()){
       dog.maxEvent='arrive'; dog.maxEventT=0;
@@ -26766,7 +27138,7 @@ function hintStep(){
       const nst={dog:r.dog, boxes:r.boxes, filled:r.filled, carry:!!r.carry};
       if(L.walk){ nst.ci=r.ci; nst.cd=r.cd; }
       if(L.cat!=null){ nst.ca=r.ca|0; if(nst.ca){ nst.ci=r.ci; nst.cd=r.cd; } }
-      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH') bc++;
+      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower') bc++;
       if(bc < L.holes.size) continue;                  // 공 부족 = 사구
       if(L.needBone && !r.carry && !r.boxes.some(b=>b.kind==='bone')) continue;
       const k=stKey(nst); if(J.parent.has(k)) continue;
@@ -27147,7 +27519,12 @@ const DISTRICT_SCENE_ART={
 };
 // 쪽지 — 그 판까지 배운 것만 말한다(안 배운 건 숨긴다). 판 번호로 고르므로 같은 판은 늘 같은 쪽지다.
 const GBOARD_NOTES=[{k:'gboard.pull',from:1},{k:'gboard.undo',from:1},{k:'gboard.corner',from:3},{k:'gboard.treat',from:3},{k:'gboard.gate',from:7},{k:'gboard.walk',from:6}];
-function gboardNote(lv){ const pool=GBOARD_NOTES.filter(n=>lv>=n.from); return pool[(lv*7)%pool.length].k; }
+function gboardNote(lv){
+  const o=BAKED[lv-1];
+  const pool=GBOARD_NOTES.filter(n=>lv>=n.from &&
+    (lv<=30 || n.k!=='gboard.gate' || !!(o && o.dr && o.dr.length)));
+  return pool[(lv*7)%pool.length].k;
+}
 function gboardSync(){
   const b=el('gboard'), w=el('wrap'); if(!b || !w || !w.style || !w.style.setProperty) return;   // 헤드리스 로더의 가짜 화면엔 setProperty 가 없다
   const play=gboardPlay();   // 본편 판 안(승리·실패 카드가 떠 있어도 판은 그대로다)
@@ -28175,7 +28552,7 @@ function chapterMaxEventDuration(kind){
   if(kind==='sitSleep'&&MAX_EVENT_PREVIEW==='sitSleep') return 3.2;
   const fullSheet=chapterMaxFullSheetSpec(kind);
   if(fullSheet) return fullSheet.duration;
-  return {arrive:1.05,discover:.78,push:.82,victory:.92,masterVictory:.84,masterIdle:.96,masterBlocked:.58,masterSit:.78,sitSleep:1.6,
+  return {arrive:1.05,discover:.78,push:.82,victory:.92,masterVictory:.84,masterIdle:.96,masterBlocked:.58,masterSit:.78,sitSleep:1.6,affection:7.0,
     sniff:1.05,turn:1.25,sit:.95,sitTransition:.42,sitIdle:.72,backstep:1.0}[kind]||.7;
 }
 function chapterMaxPreviewPushTime(kind,eventTime,duration){
@@ -28211,6 +28588,14 @@ function chapterMaxAdvanceEvent(dt){
   }
   if(kind==='sitIdle'&&!dog.moving){
     dog.maxEventT=((dog.maxEventT||0)+dt)%dur;
+    return;
+  }
+  if(kind==='affection'&&!dog.moving){
+    const dir=dog.affectionDir===-1?-1:1;
+    dog.maxEventT=(dog.maxEventT||0)+(dt*dir);
+    if(dog.maxEventT>=dur || dog.maxEventT<=0){
+      dog.maxEvent=null; dog.maxEventT=0; dog.affectionDir=1;
+    }
     return;
   }
   if(kind==='sit'&&!dog.moving){
@@ -28686,7 +29071,7 @@ function drawChapterMaxPrototype(x,y,s){
   if(MAX_NATIVE_RIG_ENABLED) return false;
   // 기존 비밀 프리뷰는 호환하되, push만은 렌더마다 재주입하지 않는다.
   // 그래야 1회 재생 뒤 멈추고 일반 게임에서 자동 밀기로 보이지 않는다.
-  if(MAX_MOTION_ONLY_PROTO_ENABLED&&MAX_EVENT_PREVIEW&&MAX_EVENT_PREVIEW!=='push') dog.maxEvent=MAX_EVENT_PREVIEW;
+  if((MAX_MOTION_ONLY_PROTO_ENABLED||MAX_EVENT_PREVIEW==='affection')&&MAX_EVENT_PREVIEW&&MAX_EVENT_PREVIEW!=='push'&&!MAX_AFFECTION_INTERACTIVE_QA) dog.maxEvent=MAX_EVENT_PREVIEW;
   const target=dog.moving?1:0;
   dog.protoMoveBlend=(dog.protoMoveBlend||0)+(target-(dog.protoMoveBlend||0))*decay(target?0.24:0.18);
   if(Math.abs(dog.protoMoveBlend-target)<0.002) dog.protoMoveBlend=target;
@@ -28730,6 +29115,7 @@ function drawChapterMaxPrototype(x,y,s){
   const masterBlockedActive=chapterMaxMasterMotionRuntimeEnabled() && dog.maxEvent==='masterBlocked';
   const masterSitActive=chapterMaxMasterMotionRuntimeEnabled() && dog.maxEvent==='masterSit';
   const masterVictoryActive=MAX_MASTER_SPRITES_ENABLED && dog.maxEvent==='victory';
+  const masterAffectionActive=MAX_MASTER_SPRITES_ENABLED && dog.maxEvent==='affection';
   const masterStretchActive=MAX_MASTER_SPRITES_ENABLED && dog.maxEvent==='stretch';
   const masterSitSleepActive=chapterMaxMasterMotionRuntimeEnabled() && dog.maxEvent==='sitSleep';
   // 움직임이 끝난 직후부터 착석 전까지는 걷기 시트의 첫 프레임을 억지로
@@ -28759,7 +29145,17 @@ function drawChapterMaxPrototype(x,y,s){
   const masterSitSleepAtlas=Math.abs(poseDirR)>Math.abs(poseDirC)
     ?(poseDirR<0?maxChapterMasterSitSleepV2UpAtlas:maxChapterMasterSitSleepV2DownAtlas)
     :maxChapterMasterSitSleepV2LeftAtlas;
-  const masterActionAtlas=masterVictoryActive?maxChapterMasterVictoryV1Atlas:(masterStretchActive?maxChapterMasterStretchV1Atlas:(masterSitSleepActive?masterSitSleepAtlas:(masterBlockedActive?masterBlockedAtlas:(masterSitActive?masterSitAtlas:(masterIdleActive?maxChapterMasterIdleV1Atlas:(masterPushActive?masterPushAtlas:masterWalkAtlas))))));
+  const masterActionAtlas=masterAffectionActive?maxChapterMasterAffectionV1Atlas:(masterVictoryActive?maxChapterMasterVictoryV1Atlas:(masterStretchActive?maxChapterMasterStretchV1Atlas:(masterSitSleepActive?masterSitSleepAtlas:(masterBlockedActive?masterBlockedAtlas:(masterSitActive?masterSitAtlas:(masterIdleActive?maxChapterMasterIdleV1Atlas:(masterPushActive?masterPushAtlas:masterWalkAtlas)))))));
+  if(masterAffectionActive && chapterMaxAtlasReady(masterActionAtlas)){
+    const frame=chapterMaxMasterAffectionV1Frame(dog.maxEventT), cols=8, rows=4;
+    const cellW=masterActionAtlas.width/cols, cellH=masterActionAtlas.height/rows;
+    const drawSize=s*chapterMaxMasterDrawScale(), groundY=y+s*chapterMaxMasterGroundOffset();
+    ctx.save(); ctx.imageSmoothingEnabled=true;
+    ctx.drawImage(masterActionAtlas,(frame%cols)*cellW,Math.floor(frame/cols)*cellH,cellW,cellH,
+      x-drawSize*.5,groundY-drawSize*.90,drawSize,drawSize);
+    ctx.restore();
+    return true;
+  }
   if((chapterMaxMasterMotionRuntimeEnabled()||masterVictoryActive) && chapterMaxAtlasReady(masterActionAtlas)){
     const frames=8, cellW=masterActionAtlas.width/frames;
     const frame=masterVictoryActive
@@ -33041,13 +33437,13 @@ let gustFx=[], gustT=0, gustDir=null;
 // 맥스가 흙더미에 올라서며 곧장 **구덩이를 등지고** 앞발로 긁고, 흙은 배 밑을 지나
 // 뒤(구덩이)로 날아간다. 흙더미은 위에서 깎이는 게 아니라 **긁히는 쪽부터 가루로** 파여 나간다.
 // ── 여닫이 문 그림 ─────────────────────────────────────────────
-// 문짝은 땅에 박힌 흰 울타리 살 셋 + 가로대 둘이다. 어느 방향이든 "땅 선 위에 선 살"로 그린다 —
-// 옆으로 누운 문짝은 정면 울타리가, 위아래로 선 문짝은 깊이로 물러나는 울타리가 된다.
-// 시안의 세로 문짝(가로로 눕힌 살 블록)이 흰 덩어리로 읽혔던 것을 이 한 문법으로 푼다.
-// 도는 중간 각도도 같은 식이라 연출이 따로 없다 — 땅 선이 기둥을 축으로 돈다.
-// 살의 넓은 면은 울타리 면을 따른다: 정면이면 넓게, 깊이로 물러나면 모서리만 보인다.
-const DOOR_P={hi:'#FFFFFF', base:'#F8F1E3', dark:'#D9CCB4', deep:'#BFAE92'};
-const DOOR_WD={top:'#EFCB93', light:'#E3B67C', base:'#D29C5E', dark:'#AD7840', deep:'#8E6034'};
+// 문짝은 마당 산책 대문과 같은 나무 문이다(2026-10-03) — 가로대 둘, 나무 살 넷, 진갈색 기둥에 분홍 공 머리.
+// 예전 흰 말뚝은 판 테두리 울타리와 같은 색이라 문이 테두리에 묻혔다. 대문 색(houseIsWalkGate 그림)을 그대로 쓴다.
+// 어느 방향이든 "땅 선 위에 선 살"로 그린다 — 도는 중간 각도도 같은 식이라 연출이 따로 없다.
+// 문짝은 막는 칸 안에서 끝난다: 가로 1.42칸, 세로 1.0칸. 땅 선이 칸 가운데보다 .3칸 아래라 세로로 1.42칸을
+// 뻗으면 아래로는 다음 칸까지 넘고 위로는 살 머리가 칸 밖으로 나왔다.
+// 세로 문짝은 살이 모서리만 보여 가는 줄로 읽혔다 — 가로대 둘을 옆으로 벌리고 살에 옆면을 붙여 두께를 준다.
+const DOOR_P={slat:'#E0A868', slatDk:'#B97A3E', rail:'#C98A4B', railDk:'#9A6634', post:'#8E5E36', postHi:'#A8714A', cap:'#F2A7A0'};
 const DOOR_DUR=0.28, DOOR_HIT_T=0.55;
 let doorFx=null;
 // 바람 결 (2026-10-02, 시안 A) — 문짝 끝이 쓸고 간 자리에 흰 결 셋이 남고 바깥 결 끝이 안으로 말린다.
@@ -33079,30 +33475,21 @@ function drawDoorWind(d, w, e, a){
   }
   g.restore();
 }
-function drawDoorPicket(g, x, y, s, wf, side){
-  // wf 1 = 정면(넓은 면), 0 = 깊이로 물러남. 물러날수록 앞면이 좁아지고 옆면(두께)이 보인다 —
-  // 앞면만 좁히면 살 셋이 한 줄로 겹쳐 막대 하나로 읽혔다(실측).
-  const pw=s*(.22+.0*wf), sw=s*.05*(1-wf), ph=s*.58, top=y-ph;
-  g.fillStyle='rgba(48,64,35,.16)'; g.beginPath(); g.ellipse(x, y+s*.015, pw*.75+s*.03, s*.045, 0, 0, 7); g.fill();
-  g.fillStyle=DOOR_P.deep; g.beginPath(); g.roundRect(x-pw/2+s*.02, top+s*.04, pw, ph-s*.02, s*.04); g.fill();
-  // 외곽 — 깊이로 늘어선 살은 서로 겹치므로, 앞 살 머리 둘레에 짙은 테가 있어야 셋으로 갈라 읽힌다
-  if(wf<0.7){ const o=s*.022; g.fillStyle=DOOR_P.deep; g.beginPath(); g.moveTo(x-pw/2-o, y); g.lineTo(x-pw/2-o, top+pw*.55);
-    g.quadraticCurveTo(x, top-pw*.3-o*1.6, x+pw/2+o, top+pw*.55); g.lineTo(x+pw/2+o, y); g.closePath(); g.fill(); }
-  if(sw>0.5){ const sx=side>=0? x+pw/2-s*.01 : x-pw/2-sw+s*.01;           // 옆면 — 바깥쪽으로
-    g.fillStyle=DOOR_P.dark; g.beginPath(); g.roundRect(sx, top+pw*.45, sw, ph-pw*.45, s*.025); g.fill(); }
-  const gr=g.createLinearGradient(x-pw/2,0,x+pw/2,0); gr.addColorStop(0,DOOR_P.hi); gr.addColorStop(.6,DOOR_P.base); gr.addColorStop(1,DOOR_P.dark);
-  g.fillStyle=gr; g.beginPath(); g.moveTo(x-pw/2, y); g.lineTo(x-pw/2, top+pw*.55);
-  g.quadraticCurveTo(x, top-pw*.3, x+pw/2, top+pw*.55); g.lineTo(x+pw/2, y); g.closePath(); g.fill();
-  g.fillStyle='rgba(255,255,255,.7)'; g.beginPath(); g.roundRect(x-pw*.32, top+pw*.6, pw*.22, ph*.55, s*.02); g.fill();   // 살 빛
+function drawDoorPicket(g, x, y, s, wf){
+  // wf 1 = 정면(넓은 면), 0 = 깊이로 물러남. 물러날수록 앞면이 좁아지고 오른쪽 옆면(두께)이 넓어진다.
+  const pw=s*(.15+.07*wf), sw=s*.06*(1-wf), ph=s*.46, top=y-ph;
+  g.fillStyle='rgba(60,50,30,.16)'; g.beginPath(); g.ellipse(x+sw*.5, y+s*.01, pw*.7+sw*.5+s*.02, s*.04, 0, 0, 7); g.fill();
+  g.fillStyle=DOOR_P.slatDk; g.beginPath(); g.roundRect(x-pw/2+s*.015, top+s*.02, pw+sw, ph, s*.04); g.fill();   // 그늘 + 옆면
+  g.fillStyle=DOOR_P.slat; g.beginPath(); g.roundRect(x-pw/2, top, pw, ph-s*.02, s*.04); g.fill();
+  g.fillStyle='rgba(255,255,255,.3)'; g.fillRect(x-pw*.3, top+s*.04, pw*.18, ph*.74);                       // 살 빛
 }
 function drawDoorPost(g, x, y, s){
-  g.fillStyle='rgba(48,64,35,.2)'; g.beginPath(); g.ellipse(x, y, s*.2, s*.065, 0, 0, 7); g.fill();
-  const top=y-s*.68, w=s*.22;
-  g.fillStyle=DOOR_WD.deep; g.beginPath(); g.roundRect(x-w/2+s*.02, top+s*.02, w, s*.68, s*.08); g.fill();
-  const gr=g.createLinearGradient(x-w/2,0,x+w/2,0); gr.addColorStop(0,DOOR_WD.light); gr.addColorStop(.6,DOOR_WD.base); gr.addColorStop(1,DOOR_WD.dark);
-  g.fillStyle=gr; g.beginPath(); g.roundRect(x-w/2, top, w, s*.66, s*.09); g.fill();
-  g.fillStyle=DOOR_WD.top; g.beginPath(); g.ellipse(x-s*.005, top+s*.03, w*.48, s*.04, 0, 0, 7); g.fill();
-  g.fillStyle='#C9A24A'; for(const u of [.2,.46]){ g.beginPath(); g.roundRect(x-w/2-s*.01, top+s*u, w+s*.02, s*.05, s*.02); g.fill(); }   // 경첩 띠
+  const w=s*.2, top=y-s*.62;
+  g.fillStyle='rgba(60,50,30,.18)'; g.beginPath(); g.ellipse(x, y, s*.17, s*.05, 0, 0, 7); g.fill();
+  g.fillStyle=DOOR_P.post; g.beginPath(); g.roundRect(x-w/2, top, w, s*.62, s*.05); g.fill();
+  g.fillStyle=DOOR_P.postHi; g.beginPath(); g.roundRect(x-w/2, top, w*.45, s*.6, s*.04); g.fill();
+  g.fillStyle=DOOR_P.cap; g.beginPath(); g.arc(x, top-s*.02, s*.1, 0, 7); g.fill();                         // 분홍 공 머리 — 대문 기둥과 같다
+  g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.arc(x-s*.03, top-s*.05, s*.03, 0, 7); g.fill();
 }
 function drawDoors(){
   if(!L || !L.doors) return;
@@ -33111,32 +33498,139 @@ function drawDoors(){
     const fx=(doorFx && doorFx.i===i)? doorFx : null;
     let base=(doorRot(L, filled, i)-1)*H;                  // 나침반 → 화면 각(0 = 오른쪽)
     if(fx && fx.fail) base=(fx.from-1)*H + (fx.s===1? H : -H)*doorFailAngle(Math.min(1,fx.t), fx.ball, fx.amp);
-    else if(fx){ const t=Math.min(1,fx.t), e=1-Math.pow(1-t,3);
+    else if(fx){ const t=Math.max(0,Math.min(1,fx.t)), e=1-Math.pow(1-t,3);
       base=(fx.from-1)*H + (fx.s===1? H : -H)*e; }
     const px=cx(d.c), gy=cy(d.r)+s*.3, items=[];
-    // 문짝은 막는 칸을 **끝까지** 덮는다(2026-10-02) — 예전엔 기둥에서 0.94칸까지라 막는 칸(0.5~1.5)의 반만
-    // 가려 어느 칸이 막혔는지 안 읽혔다. 서 있을 땐 그 칸 바닥도 옅게 눌러 둔다(도는 동안엔 안 그린다).
-    const LEAF=1.42;
+    // 문짝은 막는 칸을 끝까지 덮되 그 칸 안에서 끝난다(2026-10-03, 위 머리말). 서 있을 땐 그 칸 바닥도
+    // 옅게 눌러 둔다(도는 동안엔 안 그린다).
     for(const leg of DOOR_SHAPES[d.sh]){
-      const th=base+leg*H, ux=Math.cos(th), uy=Math.sin(th), wf=Math.abs(ux);
+      const th=base+leg*H, ux=Math.cos(th), uy=Math.sin(th), wf=Math.abs(ux), L0=.14, LEAF=1.0+.42*wf;
       if(!fx){ const w=(doorRot(L, filled, i)+leg)&3, lr=d.r+DOOR_CV[w][0], lc=d.c+DOOR_CV[w][1];
         g.fillStyle='rgba(48,64,35,.10)'; g.beginPath(); g.roundRect(cx(lc)-s*.44, cy(lr)-s*.44, s*.88, s*.88, s*.16); g.fill(); }
       // 땅 그림자 — 문짝이 어느 칸을 막는지 바닥에서도 읽히게
       g.lineCap='round'; g.strokeStyle='rgba(48,64,35,.13)'; g.lineWidth=s*.16;
-      g.beginPath(); g.moveTo(px+ux*s*.2, gy+uy*s*.2+s*.02); g.lineTo(px+ux*s*LEAF, gy+uy*s*LEAF+s*.02); g.stroke();
-      // 가로대 둘 — 살보다 뒤. 기둥에서 끝까지
-      for(const h of [.2,.42]){ const y0=gy-s*h, x1=px+ux*s*(LEAF+.02), y1=gy+uy*s*(LEAF+.02)-s*h;
-        g.lineCap='round'; g.strokeStyle=DOOR_P.deep; g.lineWidth=Math.max(2,s*.075); g.beginPath(); g.moveTo(px,y0+s*.02); g.lineTo(x1,y1+s*.02); g.stroke();
-        g.strokeStyle=DOOR_P.dark; g.lineWidth=Math.max(1.5,s*.06); g.beginPath(); g.moveTo(px,y0); g.lineTo(x1,y1); g.stroke(); }
-      const side=(Math.abs(ux)<0.3)? 1 : 0;                    // 세로 문짝은 오른쪽 옆면을 보인다(빛이 왼쪽 위)
-      for(const u of [.38,.62,.86,1.1,1.34]){ const bx=px+ux*s*u, by=gy+uy*s*u; items.push({y:by, f:()=>drawDoorPicket(g, bx, by, s, wf, side)}); }
+      g.beginPath(); g.moveTo(px+ux*s*L0, gy+uy*s*L0+s*.02); g.lineTo(px+ux*s*LEAF, gy+uy*s*LEAF+s*.02); g.stroke();
+      // 가로대 둘 — 살보다 뒤. 세로로 설수록 둘을 좌우로 벌려 문짝 두께로 읽히게 한다
+      [[.14,-1],[.36,1]].forEach(([h,sg])=>{ const o=sg*s*.13*(1-wf), x0=px+ux*s*L0+o, y0=gy+uy*s*L0-s*h, x1=px+ux*s*LEAF+o, y1=gy+uy*s*LEAF-s*h;
+        g.lineCap='round'; g.lineWidth=s*.09;
+        g.strokeStyle=DOOR_P.railDk; g.beginPath(); g.moveTo(x0,y0+s*.02); g.lineTo(x1,y1+s*.02); g.stroke();
+        g.strokeStyle=DOOR_P.rail; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); });
+      for(let k=0;k<4;k++){ const u=L0+(LEAF-L0)*(k+.5)/4, bx=px+ux*s*u, by=gy+uy*s*u; items.push({y:by, f:()=>drawDoorPicket(g, bx, by, s, wf)}); }
     }
     items.push({y:gy+.001, f:()=>drawDoorPost(g, px, gy, s)});
     items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
     // 결은 살 높이 가운데(땅 선 위 .3칸)에 그린다 — 살 위로 지나가야 바람으로 읽힌다
-    if(fx && !fx.fail) drawDoorWind(d, fx, 1-Math.pow(1-Math.min(1,fx.t),3), Math.min(1,fx.t*3));
+    if(fx && !fx.fail && fx.t>0) drawDoorWind(d, fx, 1-Math.pow(1-Math.min(1,fx.t),3), Math.min(1,fx.t*3));
     else if(doorWind && doorWind.i===i) drawDoorWind(d, doorWind, 1, 1-doorWind.age/DOOR_WIND_FADE);
   });
+}
+// ── 잔디깎이 그림 (2026-10-04) ─────────────────────────────────────
+// 빨간 몸통 + 회색 손잡이. 손잡이가 곧 미는 자리라 늘 보이게 그린다 — 옆(오른·왼)·뒤(위로 감)·앞(아래로 감).
+// 옆에서 밀어 돌 때는 **손잡이 끝이 문짝처럼 호를 그리며 쓸고** 흰 결이 남는다(시안 B, 사람 승인). 살짝 지나쳤다 딸깍.
+// 돈 뒤에는 달려 나갈 줄(겨눈 길)이 점선으로 잠깐 뜬다 — 모든 판에서(사람 지시).
+const MOWER_TURN=0.32, MOWER_AIM_LIFE=0.9;
+const MOWER_P={body:'#E8574E', deep:'#C9443D', hi:'rgba(255,255,255,.35)', bar:'#5A5F66', tire:'#3A3F46', hub:'#9AA3AD'};
+let mowerAim=null, mowDir={lv:0, m:new Map()};
+const MOWER_HANDLE=[Math.PI/2, Math.PI, -Math.PI/2, 0];                // 바라보는 쪽의 반대 — 손잡이 각(화면)
+function mowerRR(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r); }
+function mowerShadow(x,y,s,w){ ctx.fillStyle='rgba(48,64,35,.22)'; ctx.beginPath(); ctx.ellipse(x,y+s*.3,s*w,s*.08,0,0,7); ctx.fill(); }
+function mowerSide(x,y,s,dir){                                         // dir 1 오른쪽 / -1 왼쪽 — 손잡이는 뒤
+  mowerShadow(x,y,s,.38);
+  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+  ctx.beginPath(); ctx.moveTo(x-dir*s*.12,y-s*.05); ctx.lineTo(x-dir*s*.42,y-s*.5); ctx.stroke();
+  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-dir*s*.5,y-s*.52); ctx.lineTo(x-dir*s*.34,y-s*.5); ctx.stroke();
+  ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.3,y-s*.16,s*.6,s*.34,s*.1); ctx.fill();
+  ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.28,y-s*.2,s*.56,s*.26,s*.1); ctx.fill();
+  ctx.fillStyle=MOWER_P.hi; mowerRR(x-s*.22,y-s*.18,s*.3,s*.06,s*.03); ctx.fill();
+  for(const dx of [-.22,.22]){ ctx.fillStyle=MOWER_P.tire; ctx.beginPath(); ctx.arc(x+dx*s,y+s*.2,s*.09,0,7); ctx.fill();
+    ctx.fillStyle=MOWER_P.hub; ctx.beginPath(); ctx.arc(x+dx*s,y+s*.2,s*.04,0,7); ctx.fill(); }
+}
+function mowerBack(x,y,s){                                             // 위로 간다 — 손잡이가 맥스 쪽(아래)
+  mowerShadow(x,y,s,.34);
+  ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.28,y-s*.24,s*.56,s*.38,s*.12); ctx.fill();
+  ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.26,y-s*.28,s*.52,s*.28,s*.12); ctx.fill();
+  ctx.fillStyle=MOWER_P.tire; for(const dx of [-.3,.3]){ mowerRR(x+dx*s-s*.05,y-s*.02,s*.1,s*.18,s*.04); ctx.fill(); }
+  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+  for(const sg of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+sg*s*.16,y+s*.08); ctx.lineTo(x+sg*s*.15,y+s*.36); ctx.stroke(); }
+  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-s*.18,y+s*.38); ctx.lineTo(x+s*.18,y+s*.38); ctx.stroke();
+}
+function mowerFront(x,y,s){                                            // 아래로 간다 — 손잡이가 위로 선다
+  mowerShadow(x,y,s,.34);
+  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+  for(const sg of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+sg*s*.16,y-s*.1); ctx.lineTo(x+sg*s*.14,y-s*.58); ctx.stroke(); }
+  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-s*.18,y-s*.6); ctx.lineTo(x+s*.18,y-s*.6); ctx.stroke();
+  ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.28,y-s*.14,s*.56,s*.38,s*.12); ctx.fill();
+  ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.26,y-s*.18,s*.52,s*.28,s*.12); ctx.fill();
+  ctx.fillStyle=MOWER_P.hi; mowerRR(x-s*.18,y-s*.16,s*.24,s*.06,s*.03); ctx.fill();
+  ctx.fillStyle=MOWER_P.tire; for(const dx of [-.3,.3]){ mowerRR(x+dx*s-s*.05,y+s*.08,s*.1,s*.18,s*.04); ctx.fill(); }
+}
+function mowerTop(x,y,s,a){                                            // 도는 중 — 위에서 본 몸통 + 각 a 의 손잡이
+  mowerShadow(x,y,s,.34);
+  const hx=Math.cos(a), hy=Math.sin(a), gx=x+hx*s*.46, gy=y+hy*s*.46*.7-s*.28;
+  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+  ctx.beginPath(); ctx.moveTo(x+hx*s*.12,y+hy*s*.12-s*.04); ctx.lineTo(gx,gy); ctx.stroke();
+  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(gx-hy*s*.12,gy+hx*s*.12*.7); ctx.lineTo(gx+hy*s*.12,gy-hx*s*.12*.7); ctx.stroke();
+  ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.29,y-s*.18,s*.58,s*.38,s*.12); ctx.fill();
+  ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.27,y-s*.22,s*.54,s*.28,s*.12); ctx.fill();
+  ctx.fillStyle=MOWER_P.hi; mowerRR(x-s*.2,y-s*.2,s*.26,s*.06,s*.03); ctx.fill();
+}
+function drawMower(x,y,s,b){
+  const f=mowerFace(b), T=b.turnFx;
+  ctx.save();
+  if(T && T.t<1){
+    const u=Math.max(0,T.t), a0=MOWER_HANDLE[T.from];
+    let d=MOWER_HANDLE[T.to]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
+    const k=1.7, e=1+(k+1)*Math.pow(u-1,3)+k*Math.pow(u-1,2);       // 살짝 지나쳤다 돌아온다(back-out)
+    for(const [R,lw] of [[.5,.05],[.4,.04]]){                          // 손잡이 끝이 쓸고 간 흰 결
+      ctx.strokeStyle=`rgba(255,255,255,${(0.85*(1-u*0.6)).toFixed(3)})`; ctx.lineWidth=Math.max(2,s*lw); ctx.lineCap='round';
+      ctx.beginPath(); ctx.ellipse(x,y-s*.15,s*R,s*R*.75,0,a0,a0+d*Math.min(1,e),d<0); ctx.stroke(); }
+    mowerTop(x,y,s,a0+d*e);
+  } else if(f===1||f===3){ mowerSide(x,y,s,f===1?1:-1); }
+  else if(f===0) mowerBack(x,y,s); else mowerFront(x,y,s);
+  if(b.path && !motionReduced()){                                      // 달리는 중 — 깎인 풀 조각 + 결
+    const v=DOOR_CV[f], bx=-v[1], by=-v[0];
+    ctx.fillStyle='#7DBE5A'; for(let i=0;i<6;i++){ const q=((i*53+Math.floor(animT*20))%17)/17;
+      ctx.save(); ctx.translate(x+bx*s*(.4+q*.4)+by*s*(q-.5)*.4, y+by*s*(.4+q*.4)+bx*s*(q-.5)*.4-s*.05); ctx.rotate(q*6+animT*8); ctx.fillRect(-s*.03,-s*.01,s*.06,s*.02); ctx.restore(); }
+    ctx.strokeStyle='rgba(255,255,255,.85)'; ctx.lineWidth=Math.max(2,s*.035); ctx.lineCap='round';
+    for(const [o,l] of [[-.12,.26],[.02,.38],[.16,.26]]){ const ox=by*o*s, oy=-bx*o*s;
+      ctx.beginPath(); ctx.moveTo(x+bx*s*.45+ox, y+by*s*.45+oy); ctx.lineTo(x+bx*s*(.45+l)+ox, y+by*s*(.45+l)+oy); ctx.stroke(); }
+  }
+  ctx.restore();
+}
+// 겨눈 길 — 돈 직후 달려 나갈 줄을 점선으로 잠깐 보여 준다. mowerFloor(엔진)와 같은 판정이라 거짓말을 안 한다.
+function drawMowerAim(){
+  if(!mowerAim || mowerAim.age<0) return;
+  const b=boxes.find(x=>x.kind==='mower' && x.sink===0 && x.r===mowerAim.r && x.c===mowerAim.c);
+  if(!b || b.path) return;
+  const f=mowerFace(b), v=DOOR_CV[f], bi=boxes.indexOf(b);
+  let r=b.r, c=b.c, n=0; while(n<GN && mowerFloor(L, filled, boxes, r+v[0], c+v[1], bi)){ r+=v[0]; c+=v[1]; n++; }
+  if(!n) return;
+  const a=Math.min(1, (MOWER_AIM_LIFE-mowerAim.age)/0.3)*0.85, s=cell;
+  const x0=cx(b.c)+v[1]*s*.45, y0=cy(b.r)+v[0]*s*.45, x1=cx(c), y1=cy(r);
+  ctx.save(); ctx.globalAlpha=a; ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=Math.max(3,s*.06); ctx.lineCap='round'; ctx.setLineDash([s*.1,s*.09]);
+  ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle='#FFFFFF';
+  for(let k=1;k<=n;k++){ const px=cx(b.c+v[1]*k), py=cy(b.r+v[0]*k), ang=Math.atan2(v[0],v[1]);
+    ctx.beginPath(); ctx.moveTo(px+Math.cos(ang)*s*.1,py+Math.sin(ang)*s*.1); ctx.lineTo(px+Math.cos(ang+2.4)*s*.1,py+Math.sin(ang+2.4)*s*.1); ctx.lineTo(px+Math.cos(ang-2.4)*s*.1,py+Math.sin(ang-2.4)*s*.1); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+// 1동네 긴 풀 — 엔진은 고랑길(FURROW, 맥스만 지나감)과 같다. 마당이라 키 작고 연한 가는 잎 다발로 그린다
+// (수풀 벽의 둥근 덤불과 갈리게). 깎이면 연한 줄무늬 잔디가 된다 — 잔디깎이가 지나간 결 방향으로.
+function drawLongGrass(x,y,r,c){
+  const s=cell, cx0=x+s*.5, cy0=y+s*.5;
+  ctx.fillStyle='rgba(120,170,80,.28)'; ctx.beginPath(); ctx.roundRect(x+s*.04,y+s*.2,s*.92,s*.7,s*.18); ctx.fill();
+  for(let i=0;i<11;i++){ const bx=cx0-s*.4+(i%6)*s*.16+(i>5?s*.08:0), by=cy0+s*(i>5?.34:.14), h=s*(.42+((i*7+r*3+c)%3)*.08);
+    ctx.strokeStyle=i%3===0?'#5E9A3C':(i%3===1?'#73B04A':'#8CC85E'); ctx.lineWidth=s*.06; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(bx,by); ctx.quadraticCurveTo(bx+s*.04,by-h*.6,bx+((i%3)-1)*s*.08,by-h); ctx.stroke(); }
+}
+function drawMownCell(x,y,k){
+  const s=cell, v=(mowDir.lv===level && mowDir.m.get(k)==='v');
+  ctx.fillStyle='rgba(225,248,180,.55)';
+  if(v) ctx.fillRect(x+s*.16,y,s*.68,s); else ctx.fillRect(x,y+s*.16,s,s*.68);
+  ctx.strokeStyle='rgba(255,255,255,.45)'; ctx.lineWidth=1.5;
+  for(const o of [-.17,0,.17]){ ctx.beginPath();
+    if(v){ ctx.moveTo(x+s*(.5+o),y); ctx.lineTo(x+s*(.5+o),y+s); } else { ctx.moveTo(x,y+s*(.5+o)); ctx.lineTo(x+s,y+s*(.5+o)); }
+    ctx.stroke(); }
 }
 let digFx=null;
 // ── 정원 가위 — 자르는 그림 (2026-09-21)
@@ -33488,7 +33982,7 @@ function drawTile(r,c){
   const _tilled = _fl && (_raw===HPIT || _raw===DUREONG || _raw===DPIT || moundTrail.has(_k));
   const _sown   = !_fl && filled.has(_k+4096) && _raw===HPIT;
   const _mound  = !_fl && (filled.has(_k+16384) || filled.has(_k+32768));   // 밀려 온 흙더미
-  const _cut    = filled.has(_k+CUT_OFF);                                   // 정원 가위가 자른 수풀 — 길이 됐다
+  const _cut    = filled.has(_k+CUT_OFF) || filled.has(_k+MOW_OFF);        // 정원 가위가 자른 수풀·잔디깎이가 깎은 긴 풀 — 길이 됐다
   const _wear   = filled.has(_k+32768)? 1.00 : filled.has(_k+16384)? 0.60 : 0;
   const x=c*cell, y=r*cell,
         t = _packed? IRANG : _mound? DUREONG : _tilled? TILLED : _sown? SOWN : ((_fl||_cut||_raw===DOOR)? GRASS : _raw);   // 문 기둥은 잔디 위에 drawDoors 가 세운다
@@ -33552,6 +34046,7 @@ function drawTile(r,c){
   // 바닥 베이스 — 농장 창고는 밝은 꿀색 판자, 나머지는 잔디.
   const floorArt=EDGE_ART.FLOOR[(districtOf(level)||{}).nm];
   drawFloorBase(x,y,r,c,floorArt);
+  if(t===GRASS && filled.has(kk(r,c)+MOW_OFF)) drawMownCell(x,y,kk(r,c));
   if(t===GRASS && floorArt!=='창고 흙길' && floorArt!=='밭흙' && !_proto) drawGrassTuft(x,y,r,c);
   if(t===GRASS && windNow!=null && floorArt!=='밭흙') drawWindGrass(x,y,r,c);                   // 바람결 — 잔디가 바람 방향과 레인을 말한다
   if(t===GRASS || t===MAT){ for(const d of DIRS){ const r2=r-d[0], c2=c-d[1];        // 물가 — 물살이 흘러들어 공이 굴러 나오는 잔디
@@ -33601,6 +34096,7 @@ function drawTile(r,c){
       drawWaterCell(x,y,r,c,v,t===FS,conW);
       // 다리 상판은 여기서 안 그린다 — **공보다 뒤에** 그려야 공이 밑으로 지나간 게 된다(drawBridgeDecks).
       }
+  else if(t===FURROW && districtOfLv(level)===1) drawLongGrass(x,y,r,c);   // 1동네는 긴 풀(잔디깎이가 깎는다)
   else if(t===FURROW){                                                    // 작물 사이 좁은 길 — 맥스만 통과
       ctx.fillStyle=((r+c)&1)?'#B88950':'#C09358'; rr(x+1,y+1,cell-2,cell-2,6); ctx.fill();
       const sd=kk(r,c)*4.7+2;
@@ -35116,6 +35612,7 @@ function render(){
   drawBridgeDecks();                                                     // 기본 상판 — 다리 위 공·맥스보다 뒤
   drawParkBoxes();
   drawCatBoxes();                                                        // 고양이 상자 — 바닥 층, 공·맥스보다 앞
+  drawMowerAim();                                                        // 잔디깎이 겨눈 길 — 바닥 위, 물건 아래
   drawDoors();                                                           // 여닫이 문 — 기둥·문짝, 공·맥스보다 앞
   drawCurious();                                                         // 통 + 방석에서 자는 고양이 — 바닥 층
   for(const b of boxes) if(b.covered) drawCrateCover(cx(b.c), cy(b.r), cell, b.coverT||0, b.wet);   // 구덩이·물줄기 덮개 (바닥 레벨)
@@ -35299,7 +35796,8 @@ function render(){
             step*=0.35+0.65*Math.min(1,(Math.abs(b.r-b.rr)+Math.abs(b.c-b.cc))/1.5);
           if(dist<=step){ b.rr=tg.r; b.cc=tg.c; b.pathI++;
             if(tg.emitContact){b.air=0;fireBallContact(b,tg.emitContact);}
-            if(b.pathI>=b.path.length){ b.path=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
+            if(b.pathI>=b.path.length){ if(b.kind==='mower'){ if(doorFx && doorFx.t<-1) doorFx.t=0; sfxThud(); buzz([12,24,12]); }   // 깎이 도착 — 친 문이 이제 돈다
+              b.path=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
               if(b.kind==='ball' && !b.tramp){ b.stopT=1; tone(210,0.06,"sine",0.03,150); }   // 멈추며 통 — 방석에 들면 firePend 가 거둔다
               firePend(b); }
             else if(!tg.contactApproach && !tg.contactReturn){ const t=tileAt(L,filled,tg.r,tg.c); if(isSlope(t)){ b.holdT=SLOPE_HOLD; sfxSlide(); } }  // 접촉 반동에는 별도 멈칫을 넣지 않는다
@@ -35429,6 +35927,7 @@ function render(){
     if(L && L._pkCells && !b.path && L._pkCells.has(kk(b.r,b.c))) by-=cell*0.20;
     const hNm=houseMode? (houseToys[boxes.indexOf(b)]||'') : '';
     if(hNm.indexOf(':')>0) drawHouseThing(hNm,bx,by);                // 맥스네 방 — 가구·꾸러미 상자
+    else if(b.kind==='mower') drawMower(bx,by,cell,b);
     else if(b.kind==='log') drawLog(bx,by,cell,sx,sy,b.tilt||0);
     else if(b.kind==='cartV'||b.kind==='cartH') drawCart(bx,by,cell,b.kind==='cartV',sx,sy,b.tilt||0);
     else if(b.kind==='bone') drawBone(bx,by,cell*0.72,sx,sy);
@@ -35529,6 +36028,8 @@ function render(){
     const tunP=dogFxPose();
     let dogX=cx(dog.cc)+dog.lungeC*lg+shX+backX;
     let dogY=cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift+backY;
+    const maxReact=maxReactionPose();
+    dogX+=maxReact.x; dogY+=maxReact.y;
     if(labMode) dogY-=labJumpY();                          // 실험 판 — 스프링 신발로 공을 뛰어넘는 호
     if(tunP){
       dogX=cx(tunP.c); dogY=cy(tunP.r)-cell*tunP.air*0.95;
@@ -35536,8 +36037,8 @@ function render(){
       if(tunP.air>0.02){ syD*=1+tunP.air*0.12; sxD*=1-tunP.air*0.08; }
     }
     {
-      if(!drawChapterMaxPrototype(dogX,dogY,cell*dogScale))
-        drawDog(dogX,dogY,cell*dogScale,dogFaceV(),sxD,syD);
+      if(!drawChapterMaxPrototype(dogX,dogY,cell*dogScale*maxReact.scale))
+        drawDog(dogX,dogY,cell*dogScale*maxReact.scale,dogFaceV(),sxD,syD);
       if(!menuMode && !tutMode && !tunP) drawMud(cx(dog.cc)+dog.lungeC*lg+shX, cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift, cell, mudLevel());
     }
   }
@@ -35963,6 +36464,7 @@ function frameInner(ts){
   animT+=dt;
   for(const a of acornSt) if(a.got && a.t<1) a.t=Math.min(1, a.t+dt*2.2);
   matEatTick();
+  maxReactionTick();
   if(lampT>0) lampT=Math.max(0, lampT-dt);                         // 손전등 잔여 시간
   hintStep();                                                      // 힌트 분할 탐색 (프레임당 8ms)
   menuStep();                                                      // 메인 메뉴 데모 진행
@@ -36188,6 +36690,9 @@ function frameInner(ts){
     if(doorFx.t>=1){ tone(140,0.05,"sine",0.03,110); doorWind={i:doorFx.i, from:doorFx.from, s:doorFx.s, age:0}; doorFx=null; }
   }
   if(doorWind){ doorWind.age+=dt; if(doorWind.age>=DOOR_WIND_FADE) doorWind=null; }
+  for(const b of boxes) if(b.turnFx){ const was=b.turnFx.t; b.turnFx.t+=dt/MOWER_TURN;
+    if(was<1 && b.turnFx.t>=1){ tone(1250,0.035,'square',0.025,900); b.turnFx=null; } }   // 딸깍
+  if(mowerAim){ mowerAim.age+=dt; if(mowerAim.age>=MOWER_AIM_LIFE) mowerAim=null; }
   if(digFx){                                              // 흙더미 밀기 — 0.34초
     const was=digFx.t; digFx.t+=dt/DIG_DUR;
     if(was<DIG_B && digFx.t>=DIG_B){                                     // 도착
@@ -36313,7 +36818,7 @@ function soundCheckAllowed(){
     && new URLSearchParams(location.search).get('soundcheck')==='1';
 }
 function installSoundCheck(){
-  if(MAX_MOTION_ONLY_PROTO_ENABLED && MAX_EVENT_PREVIEW){
+  if(MAX_MOTION_ONLY_PROTO_ENABLED && MAX_EVENT_PREVIEW && !MAX_AFFECTION_INTERACTIVE_QA){
     setTimeout(()=>{ dog.maxEvent=MAX_EVENT_PREVIEW; dog.maxEventT=0; },1400);
   }
   if(!soundCheckAllowed()) return;
@@ -36332,11 +36837,11 @@ function installSoundCheck(){
   const stop=document.createElement('button');stop.textContent='효과음 멈추기';stop.style.cssText='min-height:40px;margin-top:8px';
   stop.onclick=()=>{stopSelectedSounds();stopGoalSound();stopBallRollSound();stopWallBlockSound();};panel.appendChild(stop);
   document.body.appendChild(panel);
-  if(MAX_MOTION_ONLY_PROTO_ENABLED && MAX_EVENT_PREVIEW){
+  if(MAX_MOTION_ONLY_PROTO_ENABLED && MAX_EVENT_PREVIEW && !MAX_AFFECTION_INTERACTIVE_QA){
     setTimeout(()=>{ dog.maxEvent=MAX_EVENT_PREVIEW; dog.maxEventT=0; },500);
   }
 }
-fit(); loadSave(); chapterStoryPreloadAround(Math.min(BAKED.length,clearedCount()+1)); hoodLegacy(); telemetry.track("app_open", {source:capacitorApp?'android':'web'}); economyReconcile('startup_migration'); iapLoad(); iapRestorePending(); iapRefreshProducts(); bathWalkLoad(); seedLoad(); digLoad(); colGrant(true); if(!TREATS_ON) document.body.classList.add('notreats'); syncTreats(); startMenu(); if(MAX_CHAPTER_PROTO_ENABLED||STREAM_ART_ENABLED||NORMAL_NO_OUTLINE_TEST) loadLevel(STREAM_ART_ENABLED?STREAM_ART_TARGET_LEVEL:(MAX_ALL_ART_ENABLED&&TEST_OPEN_TO>0?TEST_OPEN_TO:1)); if(new URLSearchParams(location.search).get('sitdemo')==='1' && MAX_CHAPTER_PROTO_ENABLED){ setTimeout(()=>{ const dirs={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]},d=dirs[MAX_SIT_DEMO_DIRECTION]; maxChapterBlockedFx={dr:d[0],dc:d[1],t:0,dur:chapterMaxBlockedDuration()}; dog.maxEvent='sit'; dog.maxEventT=0; },350); } if((MAX_EVENT_PREVIEW||MAX_POSE_PREVIEW)&&(MAX_CHAPTER_PROTO_ENABLED||MAX_MOTION_ONLY_PROTO_ENABLED)){ setTimeout(()=>{ const preview=MAX_POSE_PREVIEW||MAX_EVENT_PREVIEW; if(preview==='stretch'){ document.addEventListener('pointerdown',()=>{ dog.maxEvent='stretch'; dog.maxEventT=0; },{once:true,capture:true}); } else { dog.maxEvent=preview; dog.maxEventT=0; } },500); } installSoundCheck(); requestAnimationFrame(frame);
+fit(); loadSave(); chapterStoryPreloadAround(Math.min(BAKED.length,clearedCount()+1)); hoodLegacy(); telemetry.track("app_open", {source:capacitorApp?'android':'web'}); economyReconcile('startup_migration'); iapLoad(); iapRestorePending(); iapRefreshProducts(); bathWalkLoad(); seedLoad(); digLoad(); colGrant(true); if(!TREATS_ON) document.body.classList.add('notreats'); syncTreats(); startMenu(); if(MAX_CHAPTER_PROTO_ENABLED||STREAM_ART_ENABLED||NORMAL_NO_OUTLINE_TEST||MAX_EVENT_PREVIEW==='affection') loadLevel(STREAM_ART_ENABLED?STREAM_ART_TARGET_LEVEL:(MAX_ALL_ART_ENABLED&&TEST_OPEN_TO>0?TEST_OPEN_TO:1)); if(new URLSearchParams(location.search).get('sitdemo')==='1' && MAX_CHAPTER_PROTO_ENABLED){ setTimeout(()=>{ const dirs={up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]},d=dirs[MAX_SIT_DEMO_DIRECTION]; maxChapterBlockedFx={dr:d[0],dc:d[1],t:0,dur:chapterMaxBlockedDuration()}; dog.maxEvent='sit'; dog.maxEventT=0; },350); } if(MAX_AFFECTION_INTERACTIVE_QA){ document.addEventListener('pointerdown',e=>{ if(e.target!==cv) return; e.preventDefault(); e.stopPropagation(); if(dog.maxEvent==='affection'){ dog.affectionDir=dog.affectionDir===-1?1:-1; }else{ dog.maxEvent='affection'; dog.maxEventT=0; dog.affectionDir=1; } },true); } if((MAX_EVENT_PREVIEW||MAX_POSE_PREVIEW)&&(MAX_CHAPTER_PROTO_ENABLED||MAX_MOTION_ONLY_PROTO_ENABLED||MAX_EVENT_PREVIEW==='affection')){ setTimeout(()=>{ const preview=MAX_POSE_PREVIEW||MAX_EVENT_PREVIEW; if(preview==='stretch'){ document.addEventListener('pointerdown',()=>{ dog.maxEvent='stretch'; dog.maxEventT=0; },{once:true,capture:true}); } else if(preview!=='affection'||!MAX_AFFECTION_INTERACTIVE_QA){ dog.maxEvent=preview; dog.maxEventT=0; dog.affectionDir=1; } },500); } installSoundCheck(); requestAnimationFrame(frame);
 if((MAX_CHAPTER_PROTO_ENABLED||STREAM_ART_ENABLED) && TEST_OPEN_TO>0){ setTimeout(()=>loadLevel(STREAM_ART_ENABLED?STREAM_ART_TARGET_LEVEL:TEST_OPEN_TO),120); }
 if(MAX_EVENT_PREVIEW==='backstep' && MAX_CHAPTER_PROTO_ENABLED){
   setTimeout(()=>{ dog.lungeR=0; dog.lungeC=-1; dog.face=-1; },700);
@@ -36414,6 +36919,7 @@ if(MAX_EVENT_PREVIEW==='sitSleep'){
   if(atlas){atlas.onload=ready;atlas.onerror=()=>{status.textContent='수면 시트 로딩 실패';};if(atlas.complete) ready();}
   else status.textContent='수면 시트 초기화 실패';
 }
+if(window.MaxBootLoading) window.MaxBootLoading.ready();
 </script>
 <script src="mechanics/core-joy-levels.js"></script>
 <script src="mechanics/grandpa-tools.js"></script>
