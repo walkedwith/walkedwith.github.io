@@ -9122,7 +9122,7 @@ const LS_MAX_MOTION={
   turn:'art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.png',
   sit:chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png')
 };
-// 동네별 도착 연출: 해당 동네의 후디를 입었을 때만 쓰며, 앉기는 기존 시트를 잇는다.
+// 후디별 도착 연출: 입은 후디의 연출을 어느 동네 목록에서나 쓴다(10-04 사람: 옷을 바꿨는데 목록이 그대로면 고장으로 보인다). 앉기는 기존 시트를 잇는다.
 const LS_MAX_MOTION_CHICKEN={
   walk:'art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.png',
   turn:'art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.png',
@@ -9135,9 +9135,9 @@ const LS_MAX_MOTION_SKINS=Object.fromEntries(STAGE_TOYS.map(skin=>[skin,skin==='
   sit:'art/max-master/motions/skins/max-'+skin+'-sit-front-8f-runtime.'+(skin==='duck'?'webp':'png')
 }]));
 let lsMaxSet=LS_MAX_MOTION;
-function lsMaxSetFor(lv){
+function lsMaxSetFor(lv){                             // lv 는 옛 호출 모양 — 이제 동네와 상관없이 입은 옷만 본다
   const skin=maxSkinName();
-  return skin && STAGE_TOYS[districtOfLv(lv)-1]===skin?LS_MAX_MOTION_SKINS[skin] || LS_MAX_MOTION:LS_MAX_MOTION;
+  return (skin && LS_MAX_MOTION_SKINS[skin]) || LS_MAX_MOTION;
 }
 function lsWalkStop(){
   lsWalkToken++;
@@ -19852,7 +19852,7 @@ function houseActSpotItem(){ if(!houseMode || !houseIn) return null; const F=hou
 function houseTentIn(){ const a=houseActSpotItem(); return !!(a && a.k==='tent' && Math.abs(dog.rr-a.sp[0])<0.3 && Math.abs(dog.cc-a.sp[1])<0.3); }
 // 방석 자리 텐트의 자리 — 칸 가운데서 조금 왼쪽·아래, 한 칸보다 살짝 작게. 그래야 오른쪽 벽과 위 칸에 안 걸친다(10-04 사람: 벽에 올라가 있다).
 const TENT_BED={dx:-.08, dy:.22, k:.92};
-let TENT_ZZZ='a';                                              // 잠든 표시 시안(a 글자 z · b 달 말풍선 · c 꿈 거품) — 고르면 하나만 남긴다
+let TENT_ZZZ='c';                                              // 잠든 표시 — c 고기 꿈 거품(10-04 사람 선택). a 글자 z · b 달 말풍선은 시안으로 남긴 것
 function houseActTick(){                                          // 방 — 바닥 소품에 올라섰나(한 번 올라설 때 한 번)
   const a=houseActSpotItem(), key=(a? a.k : '')+':'+dog.r+','+dog.c;
   if(key!==houseAct.spotKey){ houseAct.spotKey=key; houseAct.stillAt=animT;
