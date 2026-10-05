@@ -7,13 +7,13 @@ window.MaxComicIntro = (function () {
   }
   async function run(){
   const root=document.createElement('section');root.id='comicIntro';root.classList.add('album-intro');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',I18N.t('comic.label'));
-  root.innerHTML='<canvas id="comicCanvas" aria-hidden="true"></canvas><div id="comicControls"><label id="comicSoundLabel"><input id="comicSound" type="checkbox"><span></span></label><button id="comicSkip" type="button"></button><button id="comicStart" type="button" disabled></button></div>';
+  root.innerHTML='<canvas id="comicCanvas" aria-hidden="true"></canvas><div id="comicControls"><button id="comicSkip" type="button"></button><button id="comicStart" type="button" disabled></button></div>';
   document.body.appendChild(root);
   const overlay = document.getElementById('comicIntro'), canvas = document.getElementById('comicCanvas'), g = canvas.getContext('2d');
   const wrap = document.getElementById('wrap'), startButton = document.getElementById('comicStart');
   const skip = document.getElementById('comicSkip');
-  const sound = document.getElementById('comicSound'), soundLabel = document.getElementById('comicSoundLabel');
-  sound.checked=!!optSnd;soundLabel.querySelector('span').textContent=I18N.t('comic.sound');skip.textContent=I18N.t('comic.skip');startButton.textContent=I18N.t('comic.loading');
+  const soundOn=!!optSnd;
+  skip.textContent=I18N.t('comic.skip');startButton.textContent=I18N.t('comic.loading');
   const listeners=new AbortController(),previousInert=wrap.inert;let frameId=null;
   storyHide();stopGameEffects();skip.focus();
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -33,11 +33,27 @@ window.MaxComicIntro = (function () {
     for (let i=0; i<14; i++) {u=(lo+hi)/2; const x=3*(1-u)*(1-u)*u*.77+3*(1-u)*u*u*.175+u*u*u; if(x<p)lo=u;else hi=u;}
     return 3*(1-u)*u*u+u*u*u;
   }
-  function load(src) {
+  function load(src, fallback) {
     return new Promise((resolve, reject) => {
-      const image = new Image(), timer = setTimeout(() => reject(Error('Image timeout')), 8000);
+      let triedFallback = false;
+      const image = new Image();
+      let timer;
+      const fail = error => {
+        clearTimeout(timer);
+        if (fallback && !triedFallback) {
+          triedFallback = true;
+          timer = setTimeout(() => reject(error), 8000);
+          image.onload = () => { clearTimeout(timer); resolve(image); };
+          image.onerror = () => reject(error);
+          image.src = new URL(fallback, document.baseURI).href;
+          return;
+        }
+        reject(error);
+      };
+      timer = setTimeout(() => fail(Error('Image timeout')), 8000);
       image.onload = () => {clearTimeout(timer); resolve(image);};
-      image.onerror = () => {clearTimeout(timer); reject(Error('Image unavailable'));}; image.src = src;
+      image.onerror = () => fail(Error('Image unavailable'));
+      image.src = new URL(src, document.baseURI).href;
     });
   }
   const audioBytes = Promise.all(['knock','light'].map(async key => {
@@ -46,7 +62,7 @@ window.MaxComicIntro = (function () {
   })).catch(() => []);
   function silence() {for(const source of sources) {try {source.stop();} catch (_) {}} sources.clear();}
   async function unlockAudio() {
-    if (!sound.checked) return;
+    if (!soundOn) return;
     try {
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -58,13 +74,12 @@ window.MaxComicIntro = (function () {
   function fireCue(cue, index) {
     if (fired.has(index)) return;
     fired.add(index); events.push({key:cue.event||cue.key, time:cue.t});
-    if (!sound.checked || !audioContext || !buffers[cue.key]) return;
+    if (!soundOn || !audioContext || !buffers[cue.key]) return;
     const source = audioContext.createBufferSource(), gain = audioContext.createGain();
     source.buffer = buffers[cue.key]; gain.gain.value = cue.volume ?? (cue.key === 'knock' ? .65 : .35);
     source.connect(gain); gain.connect(audioContext.destination); sources.add(source);
     source.onended = () => sources.delete(source); source.start();
   }
-  sound.onchange = () => {if(sound.checked) unlockAudio(); else silence();};
   // Resume on the title-button gesture, before asynchronous artwork loading.
   unlockAudio();
 
@@ -104,7 +119,7 @@ window.MaxComicIntro = (function () {
     if(audioContext)audioContext.close().catch(()=>{});
     const id=++token;
     playTut(0); render(); wrap.inert=previousInert;
-    skip.hidden=true; startButton.hidden=true; soundLabel.hidden=true;
+    skip.hidden=true; startButton.hidden=true;
     window.comicIntroPhase='tutorial';
     recover=null;
     const remove=()=>{if(token===id){
@@ -121,7 +136,7 @@ window.MaxComicIntro = (function () {
   function reset() {
     token++; for(const a of overlay.getAnimations())a.cancel(); silence();
     active=true; playing=false; manual=false; time=0; fired.clear(); events.length=0;
-    overlay.hidden=false; wrap.inert=true; skip.hidden=false; soundLabel.hidden=false;
+    overlay.hidden=false; wrap.inert=true; skip.hidden=false;
     startButton.hidden=false; installHooks(); resetRoom(); draw();
   }
   async function start() {
@@ -232,15 +247,20 @@ window.MaxComicIntro = (function () {
     status:()=>({ready,active,playing,time,reduced,events:[...events],hooksInstalled,audioReady:!!buffers.knock&&!!buffers.light,audioState:audioContext?.state||'unavailable'}),
     skip:enter
   };
+  const safeLoad=(src,fallback)=>load(src).catch(()=>load(fallback));
   images=await Promise.all([
-    load('art/onboarding-comic-v3/page-01.webp'),load('art/onboarding-comic-v3/page-02.webp'),load('art/onboarding-comic-v3/page-03.webp'),
-    load('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif'),load('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png'),
-    load('art/onboarding-comic-v3/page-04.webp'),
-    load('art/onboarding-comic-v4/door-01.webp'),load('art/onboarding-comic-v4/door-02.webp'),
-    load('art/onboarding-comic-v4/door-03.webp'),load('art/onboarding-comic-v4/door-04.webp')
+    safeLoad('art/onboarding-comic-v3/page-01.webp','art/onboarding-comic-v3/page-01.webp'),safeLoad('art/onboarding-comic-v3/page-02.webp','art/onboarding-comic-v3/page-01.webp'),safeLoad('art/onboarding-comic-v3/page-03.webp','art/onboarding-comic-v3/page-01.webp'),
+    load('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif','art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png'),load('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png'),
+    safeLoad('art/onboarding-comic-v3/page-04.webp','art/onboarding-comic-v3/page-01.webp'),
+    safeLoad('art/onboarding-comic-v4/door-01.webp','art/onboarding-comic-v4/door-01.webp'),safeLoad('art/onboarding-comic-v4/door-02.webp','art/onboarding-comic-v4/door-01.webp'),
+    safeLoad('art/onboarding-comic-v4/door-03.webp','art/onboarding-comic-v4/door-01.webp'),safeLoad('art/onboarding-comic-v4/door-04.webp','art/onboarding-comic-v4/door-01.webp')
   ]).catch(()=>null);
   if(!active){images=null;return;}
-  while(document.getElementById('bootLoading'))await new Promise(resolve=>setTimeout(resolve,50));
+  // A failed boot poster can leave the loading node in the DOM with a retry button.
+  // Do not let that unrelated failure hold the intro forever.
+  const bootWaitStart=performance.now();
+  while(document.getElementById('bootLoading') && !document.getElementById('bootLoading').hidden && performance.now()-bootWaitStart<5000)
+    await new Promise(resolve=>setTimeout(resolve,50));
   await document.fonts.ready;
   if(!active)return;
   ready=true;startButton.disabled=false;startButton.textContent=I18N.t('comic.start');
