@@ -10,6 +10,7 @@
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
 <link rel="stylesheet" href="css/game.css?v=e7b10250742c">
+<link rel="stylesheet" href="css/onboarding-comic.css">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -9223,7 +9224,8 @@ const LS_MAX_MOTION_CHICKEN={
   sit:'art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.'+MAX_SKIN_ASSETS.chicken.format
 };
 const LS_MAX_MOTION_SKIN_VERSIONS={duck:'v2',frog:'v2',bunny:'v2',mouse:'v2',sheep:'v2'};
-const LS_MAX_MOTION_SKINS=Object.fromEntries(STAGE_TOYS.map(skin=>[skin,skin==='chicken'?LS_MAX_MOTION_CHICKEN:{
+const LS_MAX_MOTION_BONUS_SKINS=['space','ranger','mail','rain'];
+const LS_MAX_MOTION_SKINS=Object.fromEntries([...STAGE_TOYS,...LS_MAX_MOTION_BONUS_SKINS].map(skin=>[skin,skin==='chicken'?LS_MAX_MOTION_CHICKEN:{
   walk:'art/max-master/motions/map/'+skin+'-'+(LS_MAX_MOTION_SKIN_VERSIONS[skin]||'v1')+'/max-'+skin+'-map-hop-up-8f.png',
   turn:'art/max-master/motions/map/'+skin+'-'+(LS_MAX_MOTION_SKIN_VERSIONS[skin]||'v1')+'/max-'+skin+'-map-turn-back-front-8f.png',
   sit:'art/max-master/motions/skins/max-'+skin+'-sit-front-8f-runtime.'+((MAX_SKIN_ASSETS[skin]||{}).format||'png')   // 등록 정보의 형식을 따른다(10-05 전부 무손실 WebP)
@@ -19283,6 +19285,7 @@ function showStory(mood, html, btn, onGo){
 }
 function storyHide(){ el("storysel").classList.remove("show"); document.body.classList.remove('instory'); }
 function startStory(){
+  if(window.MaxComicIntro){ window.MaxComicIntro.start(); return; }
   stopGameEffects(); document.body.classList.add('instory');
   storyStep=0; storyCB=null;
   el("menu").classList.remove("show"); document.body.classList.remove("inmenu");
@@ -20511,16 +20514,34 @@ function housePlaceApply(fx){
 // ── 할아버지 배달(10-04 사람) — 방에 들어서면 상자가 이미 놓여 있던 걸 바꿨다. 똑똑 → 할아버지가 상자를 안고 문간으로
 // 들어와 돌아서서 상자를 제자리로 하나씩 놓아 주고, 손을 흔든 뒤 나간다. 한 번 배달한 상자는 다음부터 그냥 놓여 있다(f.dlv).
 // 그동안 걸음은 안 받는다. 판을 한 번 누르면 바로 끝난다(상자는 제자리에).
-const GRAMPS_T={knock:0.75, inEnd:1.95, turn:2.2, drop:2.3, gap:0.3, fly:0.45};
-const GRAMPS_AT={x:3.4, y:6.62, y0:8.3};                   // 문간 발판 왼쪽 반(맥스는 [5,4]에 들어선다) — 칸 단위, 발끝
+const GRAMPS_T={knock:0.55, inEnd:1.75, turn:2.15, drop:2.6, gap:0.9, fly:0.55};
+const GRAMPS_AT={x:3.1, y:5.95, y0:8.1};                   // 승인된 농부 시안: 맥스와 발끝 기준선을 맞춘다.
+let houseGrampsAtlas=null;
+function houseGrampsLoad(){
+  if(!houseGrampsAtlas && typeof Image==='function'){
+    houseGrampsAtlas=new Image(); houseGrampsAtlas.decoding='async';
+    houseGrampsAtlas.src='art/grandpa-delivery-v1/grandpa-delivery.webp';
+  }
+}
+function houseGrampsFrame(t,gp){
+  if(t<GRAMPS_T.inEnd)return {row:0,frame:Math.floor(Math.max(0,t-GRAMPS_T.knock)*10)%8};
+  if(t<GRAMPS_T.turn)return {row:1,frame:Math.min(3,Math.floor((t-GRAMPS_T.inEnd)/0.1))};
+  if(t<gp.tw){
+    const elapsed=t-GRAMPS_T.turn, last=(gp.keys.length-1)*GRAMPS_T.gap;
+    return {row:2,frame:Math.min(5,Math.floor((elapsed>=last?elapsed-last:elapsed%GRAMPS_T.gap)/0.15))};
+  }
+  if(t<gp.to)return {row:3,frame:[0,1,2,3,4,3,4,5][Math.min(7,Math.floor((t-gp.tw)/0.15))]};
+  return {row:4,frame:Math.floor((t-gp.to)*10)%8};
+}
 let houseGramps=null;                                      // {t0, keys, tw 손 흔들기, to 나가기, te 끝, knocked, landed, waved}
 function houseGrampsStart(){
   houseGramps=null;
   if(!houseIn) return;
+  houseGrampsLoad();
   const f=houseFurnState(), keys=houseToys.filter(t=>t && t.startsWith('g:')).map(t=>t.slice(2)).filter(k=>!f.dlv.includes(k));
   if(!keys.length) return;
   const tw=GRAMPS_T.drop+(keys.length-1)*GRAMPS_T.gap+GRAMPS_T.fly+0.1;
-  houseGramps={t0:animT+0.35, keys, tw, to:tw+1.25, te:tw+2.3, knocked:0, landed:0, waved:false};
+  houseGramps={t0:animT+0.35, keys, tw, to:tw+1.2, te:tw+2.45, knocked:0, landed:0, waved:false, sprite:null};
 }
 function houseGrampsEnd(){
   const gp=houseGramps; if(!gp) return; houseGramps=null;
@@ -20544,8 +20565,9 @@ function houseGrampsHold(k,x,y){
   const i=gp.keys.indexOf(k); if(i<0) return false;
   const t=animT-gp.t0, st=GRAMPS_T.drop+i*GRAMPS_T.gap; if(t<st) return true;
   const p=(t-st)/GRAMPS_T.fly; if(p>=1) return false;
-  const c=cell, ax=c*GRAMPS_AT.x, ay=c*(GRAMPS_AT.y-0.5)-i*c*0.22, e=p*(2-p);
-  const px=ax+(x-ax)*e, py=ay+(y-ay)*e-Math.sin(Math.PI*p)*c*1.05, k2=0.42+0.58*p;
+  const c=cell, ax=c*GRAMPS_AT.x, ay=c*(GRAMPS_AT.y-(gp.sprite?0.65:0.5))-i*c*(gp.sprite?0.16:0.22), e=p*(2-p);
+  const initial=gp.sprite?0.5:0.42;
+  const px=ax+(x-ax)*e, py=ay+(y-ay)*e-Math.sin(Math.PI*p)*c*0.6, k2=initial+(1-initial)*p;
   const g=ctx; g.save(); g.translate(px,py); g.scale(k2,k2); g.rotate((1-p)*0.5); drawHouseGift(0,0,giftIsHood(k)); g.restore();
   return true;
 }
@@ -20596,6 +20618,8 @@ function drawHouseGramps(){
     for(const sd of [-1,1]) for(let j=0;j<2;j++){ const R=c*(0.32+j*0.17+u*0.2), a0=sd<0? Math.PI : 0;
       g.beginPath(); g.arc(c*4,c*6.95,R,a0-0.55,a0+0.55); g.stroke(); } }
   if(t<T.knock) return;
+  // Keep one renderer for the entire visit, even if the atlas arrives late.
+  if(gp.sprite==null)gp.sprite=!!(houseGrampsAtlas && houseGrampsAtlas.complete && houseGrampsAtlas.naturalWidth===2048 && houseGrampsAtlas.naturalHeight===1280);
   const carry=gp.keys.filter((k,i)=>t<T.drop+i*T.gap).map(k=>giftIsHood(k));
   let fy=GRAMPS_AT.y, back=false, walk=0, al=1, kx=1, wave=null;
   if(t<T.inEnd){ const u=(t-T.knock)/(T.inEnd-T.knock), e=1-(1-u)*(1-u); fy=GRAMPS_AT.y0+(GRAMPS_AT.y-GRAMPS_AT.y0)*e; back=true; walk=t; al=Math.min(1,u*3); }
@@ -20604,8 +20628,21 @@ function drawHouseGramps(){
   else { const u=Math.min(1,(t-gp.to)/(gp.te-gp.to)); fy=GRAMPS_AT.y+(GRAMPS_AT.y0-GRAMPS_AT.y)*u*u; walk=t; al=1-Math.max(0,(u-0.55)/0.45); }
   if(al<=0) return;
   const x=c*GRAMPS_AT.x, y=c*fy;
-  g.save(); g.globalAlpha*=al; g.translate(x,0); g.scale(kx,1); g.translate(-x,0);
-  drawGrampsFig(g,x,y,c,{back, walk, wave, carry});
+  g.save(); g.globalAlpha*=al;
+  if(gp.sprite){
+    const pose=houseGrampsFrame(t,gp), size=c*2.02;
+    const gifts=()=>gp.keys.forEach((k,i)=>{
+      if(t>=T.drop+i*T.gap)return;
+      const dx=pose.row===0?-0.34:pose.row===1?[-0.34,-0.3,-0.12,0][pose.frame]:0;
+      g.save();g.translate(x+c*dx,y-c*0.65-i*c*0.16);g.scale(0.5,0.5);drawHouseGift(0,0,giftIsHood(k));g.restore();
+    });
+    if(pose.row===0)gifts();
+    g.drawImage(houseGrampsAtlas,pose.frame*256,pose.row*256,256,256,x-size/2,y-size*240/256,size,size);
+    if(pose.row!==0)gifts();
+  }else{
+    g.translate(x,0);g.scale(kx,1);g.translate(-x,0);
+    drawGrampsFig(g,x,y,c,{back, walk, wave, carry});
+  }
   g.restore();
   if(wave!=null){ const u=Math.min(1,(t-gp.tw)/0.25), bx=x-c*0.62, by=y-c*1.95+Math.sin(t*4)*c*0.03;   // 말풍선 — 상자 하나 + 하트
     g.save(); g.translate(bx,by); g.scale(u,u);
@@ -27089,22 +27126,44 @@ function cancelRestartRun(){
   if(state==='restart-run') state='play';
 }
 function startRestartRun(done){
-  if(new URLSearchParams(location.search).get('restartRun')!=='1' || motionReduced() ||
+  const mode=new URLSearchParams(location.search).get('restartRun');
+  if(!['1','jump'].includes(mode) || motionReduced() ||
      state!=='play' || menuMode || selMode || moonMode || lunchMode || failOn || gintroOn ||
      dog.carry || isAnimating() || dog.moving || (dog.protoMoveT!=null&&dog.protoMoveT<1)) return false;
   if(dog.r===L._dogR&&dog.c===L._dogC) return false;
-  const points=restartRunPath();if(!points) return false;
+  const points=mode==='jump'?[{r:dog.rr,c:dog.cc},{r:L._dogR,c:L._dogC}]:restartRunPath();
+  if(!points) return false;
   stopGameEffects();walkQueueClear();moveBuffer=null;dragReset();aimReset();hintCancel();hintFx=null;
-  restartRun={points,t:0,dur:Math.min(.8,Math.max(.4,(points.length-1)*.065)),done,savedDog:{...dog}};
+  restartRun={kind:mode==='jump'?'jump':'run',points,t:0,dur:mode==='jump'?.5:Math.min(.8,Math.max(.4,(points.length-1)*.065)),done,savedDog:{...dog}};
   state='restart-run';
   Object.assign(dog,{maxEvent:null,maxEventNext:null,maxEventT:0,protoPush:0,protoMoveT:1,
     moving:true,protoMoveBlend:1,walkT:0,lungeT:0,hop:0,undoing:false,masterIdleT:0});
   stepRestartRun(0);
   return true;
 }
+function restartJumpPose(t){
+  const flight=Math.max(0,Math.min(1,(t-.1)/.32));
+  const crouch=t<.1?Math.sin(t/.1*Math.PI/2):t>=.42?Math.sin(Math.min(1,(t-.42)/.08)*Math.PI):0;
+  return {progress:flight,air:4*flight*(1-flight),sx:1+crouch*.06,sy:1-crouch*.10};
+}
 function stepRestartRun(delta){
   const run=restartRun;if(!run) return;
   run.t=Math.min(run.dur,run.t+Math.max(0,delta));
+  if(run.kind==='jump'){
+    const a=run.points[0],b=run.points[1],pose=restartJumpPose(run.t);
+    // Commit the existing reset once at touchdown, then finish the landing pose.
+    if(run.t>=.42&&!run.landed){
+      run.done();run.landed=true;run.savedDog={...dog};restartRun=run;state='restart-run';
+    }
+    dog.rr=a.r+(b.r-a.r)*pose.progress;dog.cc=a.c+(b.c-a.c)*pose.progress;
+    dog.lungeR=Math.sign(b.r-a.r);dog.lungeC=Math.sign(b.c-a.c);
+    if(Math.abs(b.c-a.c)>=Math.abs(b.r-a.r))dog.lungeR=0;else dog.lungeC=0;
+    if(dog.lungeC)dog.face=dog.lungeC;
+    dog.maxEvent=null;dog.protoMoveT=1;dog.protoPush=0;dog.lungeT=0;dog.hop=0;
+    dog.walkT=pose.air>0?.375:0;dog.moving=pose.air>0;dog.protoMoveBlend=dog.moving?1:0;
+    if(run.t>=run.dur)cancelRestartRun();
+    return;
+  }
   const progress=run.t/run.dur*(run.points.length-1);
   const i=Math.min(run.points.length-2,Math.floor(progress)),f=progress-i;
   const a=run.points[i],b=run.points[i+1];
@@ -30024,7 +30083,9 @@ function drawChapterMaxPrototype(x,y,s){
     ctx.save();
     ctx.imageSmoothingEnabled=true;
     ctx.fillStyle='rgba(55,70,42,.15)';
-    ctx.beginPath(); ctx.ellipse(x+wallBumpOffsetC,groundY+wallBumpOffsetR+s*.015,s*.25,s*.06,0,0,7); ctx.fill();
+    if(restartRun?.kind!=='jump'){
+      ctx.beginPath(); ctx.ellipse(x+wallBumpOffsetC,groundY+wallBumpOffsetR+s*.015,s*.25,s*.06,0,0,7); ctx.fill();
+    }
     ctx.translate(x+wallBumpOffsetC,wallBumpOffsetR+victoryLoopOffset);
     { const ks=maxSkinDrawScale(); if(ks!==1){ ctx.translate(0,groundY); ctx.scale(ks,ks); ctx.translate(0,-groundY); } }   // 스킨별 키 보정 — 발바닥을 붙박고 키운다
     if((masterSitSleepActive&&chapterMaxMasterSitSleepV2MirrorsRight(poseDirR,poseDirC))||(!masterSitSleepActive&&((masterSitActive&&masterSitMirrorRight)||(!masterSitActive && (masterBlockedActive ? poseDirC>0 : masterWalkMirrorRight))))) ctx.scale(-1,1);
@@ -37181,9 +37242,17 @@ function render(){
       if(tunP.air>0.02){ syD*=1+tunP.air*0.12; sxD*=1-tunP.air*0.08; }
     }
     {
+      const jump=restartRun?.kind==='jump'?restartJumpPose(restartRun.t):null;
+      if(jump){
+        const topRow=Math.min(restartRun.points[0].r,restartRun.points[1].r);
+        dogY-=jump.air*cell*Math.min(1.6,Math.max(.2,topRow-.25));
+        const feet=dogY+cell*dogScale*maxReact.scale*chapterMaxMasterGroundOffset();
+        ctx.save();ctx.translate(dogX,feet);ctx.scale(jump.sx,jump.sy);ctx.translate(-dogX,-feet);
+      }
       if(!drawChapterMaxPrototype(dogX,dogY,cell*dogScale*maxReact.scale))
         drawDog(dogX,dogY,cell*dogScale*maxReact.scale,dogFaceV(),sxD,syD);
-      if(!menuMode && !tutMode && !tunP) drawMud(cx(dog.cc)+dog.lungeC*lg+shX, cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift, cell, mudLevel());
+      if(jump)ctx.restore();
+      if(!menuMode && !tutMode && !tunP && !jump) drawMud(cx(dog.cc)+dog.lungeC*lg+shX, cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift, cell, mudLevel());
     }
   }
   if(labMode) drawLabTop();                                                        // 실험 판 — 신은 신발·입에 문 삽
@@ -37920,6 +37989,7 @@ if(typeof ResizeObserver!=='undefined'){
 // Android 뒤로가기는 화면을 건너뛰지 않는다: 가장 위 카드 → 하위 화면 → 플레이 중
 // 나가기 확인 → 타이틀에서 앱 종료 순서다. 웹에서는 같은 함수가 등록만 안 된다.
 function closeTopOverlayForBack(){
+  if(window.MaxComicIntro?.status().active){ window.MaxComicIntro.skip(); return true; }
   if(acornReceiptActive){ collectAcornReceipt(false); return true; }
   const shown=(id,cls)=>{ const n=el(id); return !!(n&&n.classList.contains(cls||'show')); };
   const click=id=>{ const n=el(id); if(n){ n.click(); return true; } return false; };
@@ -38090,5 +38160,6 @@ if(window.MaxBootLoading) window.MaxBootLoading.ready();
 <script src="mechanics/grandpa-tools.js"></script>
 <script src="mechanics/core-joy-qa.js"></script>
 <script src="mechanics/training-practice.js"></script>
+<script src="mechanics/onboarding-comic.js"></script>
 </body>
 </html>

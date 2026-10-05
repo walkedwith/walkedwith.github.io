@@ -4,6 +4,21 @@
   else (root.WWM_LOCALES || (root.WWM_LOCALES = {})).en = value;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   return {
+    "comic.label": "Grandpa and Max's farm story",
+    "comic.sound": "Sound",
+    "comic.skip": "Skip",
+    "comic.loading": "Loading",
+    "comic.start": "Start story",
+    "comic.page1": "A farm shared by Grandpa and Max.",
+    "comic.page2": "Keeping a faithful watch, as always…",
+    "comic.page3": "…or that was the plan.",
+    "comic.page4": "I'll guard the house from inside.",
+    "comic.page5": "First, let me get in…",
+    "comic.rest": "Time for a little rest.",
+    "comic.knock1": "Knock…",
+    "comic.knock2": "Knock knock!",
+    "comic.walk": "Max, let's go for a walk!",
+    "comic.toy": "Shall we grab a toy first?",
     "loading.preparing": "Getting ready for a walk…",
     "loading.failed": "Could not finish getting ready.",
     "loading.retry": "Try again",

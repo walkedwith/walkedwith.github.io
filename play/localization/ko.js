@@ -4,6 +4,21 @@
   else (root.WWM_LOCALES || (root.WWM_LOCALES = {})).ko = value;
 })(typeof globalThis !== 'undefined' ? globalThis : this, function() {
   return {
+    "comic.label": "할아버지와 맥스의 농장 이야기",
+    "comic.sound": "효과음",
+    "comic.skip": "건너뛰기",
+    "comic.loading": "불러오는 중",
+    "comic.start": "이야기 시작",
+    "comic.page1": "할아버지와 맥스가 함께 사는 농장.",
+    "comic.page2": "오늘도 든든하게 곁을 지키고…",
+    "comic.page3": "…있으려 했는데.",
+    "comic.page4": "집은 안에서 지킬게요.",
+    "comic.page5": "일단 들어가서…",
+    "comic.rest": "잠깐 쉬어 가는 시간.",
+    "comic.knock1": "똑…",
+    "comic.knock2": "똑똑!",
+    "comic.walk": "맥스야, 산책 가자!",
+    "comic.toy": "장난감부터 챙겨 볼까?",
     "loading.preparing": "산책 준비 중…",
     "loading.failed": "준비를 마치지 못했어요.",
     "loading.retry": "다시 시도",

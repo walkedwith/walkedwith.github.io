@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-05T01:43:26.510Z",
-  "totalBytes": 77333989,
+  "generatedAt": "2026-10-05T02:06:13.876Z",
+  "totalBytes": 82828200,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2903448
+      "bytes": 2907216
     },
     {
       "path": "css/game.css",
@@ -15,12 +15,12 @@
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 77557
+      "bytes": 78256
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 70524
+      "bytes": 71168
     },
     {
       "path": "localization/i18n.js",
@@ -96,6 +96,66 @@
       "path": "mechanics/training-practice.js",
       "source": "mechanics/training-practice.js",
       "bytes": 3542
+    },
+    {
+      "path": "mechanics/onboarding-comic.js",
+      "source": "mechanics/onboarding-comic.js",
+      "bytes": 15208
+    },
+    {
+      "path": "css/onboarding-comic.css",
+      "source": "css/onboarding-comic.css",
+      "bytes": 1273
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-01.webp",
+      "source": "art/onboarding-comic-v3/page-01.webp",
+      "bytes": 251634
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-02.webp",
+      "source": "art/onboarding-comic-v3/page-02.webp",
+      "bytes": 173900
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-03.webp",
+      "source": "art/onboarding-comic-v3/page-03.webp",
+      "bytes": 184590
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-04.webp",
+      "source": "art/onboarding-comic-v3/page-04.webp",
+      "bytes": 251484
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-01.webp",
+      "source": "art/onboarding-comic-v4/door-01.webp",
+      "bytes": 155396
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-02.webp",
+      "source": "art/onboarding-comic-v4/door-02.webp",
+      "bytes": 154904
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-03.webp",
+      "source": "art/onboarding-comic-v4/door-03.webp",
+      "bytes": 161472
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-04.webp",
+      "source": "art/onboarding-comic-v4/door-04.webp",
+      "bytes": 172104
+    },
+    {
+      "path": "art/onboarding-comic-v1/knock.wav",
+      "source": "art/onboarding-comic-v1/knock.wav",
+      "bytes": 65580
+    },
+    {
+      "path": "art/onboarding-comic-v1/light.wav",
+      "source": "art/onboarding-comic-v1/light.wav",
+      "bytes": 53292
     },
     {
       "path": "sound/bgm-hub-lite.mp3",
@@ -216,6 +276,11 @@
       "path": "art/daily-gift-grandpa-v1-960.webp",
       "source": "art/daily-gift-grandpa-v1-960.webp",
       "bytes": 36718
+    },
+    {
+      "path": "art/grandpa-delivery-v1/grandpa-delivery.webp",
+      "source": "art/grandpa-delivery-v1/grandpa-delivery.webp",
+      "bytes": 839894
     },
     {
       "path": "art/toy-world/onboarding-toys-v1-step1.webp",
@@ -551,6 +616,46 @@
       "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.png",
       "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.png",
       "bytes": 439945
+    },
+    {
+      "path": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.png",
+      "source": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.png",
+      "bytes": 313099
+    },
+    {
+      "path": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.png",
+      "source": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.png",
+      "bytes": 355089
+    },
+    {
+      "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.png",
+      "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.png",
+      "bytes": 393458
+    },
+    {
+      "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.png",
+      "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.png",
+      "bytes": 462381
+    },
+    {
+      "path": "art/max-master/motions/map/mail-v1/max-mail-map-hop-up-8f.png",
+      "source": "art/max-master/motions/map/mail-v1/max-mail-map-hop-up-8f.png",
+      "bytes": 309062
+    },
+    {
+      "path": "art/max-master/motions/map/mail-v1/max-mail-map-turn-back-front-8f.png",
+      "source": "art/max-master/motions/map/mail-v1/max-mail-map-turn-back-front-8f.png",
+      "bytes": 392435
+    },
+    {
+      "path": "art/max-master/motions/map/rain-v1/max-rain-map-hop-up-8f.png",
+      "source": "art/max-master/motions/map/rain-v1/max-rain-map-hop-up-8f.png",
+      "bytes": 366453
+    },
+    {
+      "path": "art/max-master/motions/map/rain-v1/max-rain-map-turn-back-front-8f.png",
+      "source": "art/max-master/motions/map/rain-v1/max-rain-map-turn-back-front-8f.png",
+      "bytes": 416392
     },
     {
       "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-left-8f-runtime.webp",
