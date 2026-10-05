@@ -3294,6 +3294,8 @@
   #buyCard .mct { margin:4px 0 20px; font-size:var(--s6); line-height:1.35; color:#4A3524; }
   #buyCard .mct b { font-weight:var(--w-bold); }
   #buyCard .mcsub { display:none; }
+  #buyCard .rsfirst { display:block; width:max-content; margin:0 auto 8px; padding:3px 10px; border-radius:6px; background:#E8604C; color:#fff; font-size:var(--s8); }   /* 첫 선물 띠 — 방 첫 거울(10-05) */
+  #buyCost s { opacity:.6; text-decoration-thickness:2px; text-decoration-color:#C0564A; }
   #buyCard .buyactions { display:grid; gap:9px; }
   #buyCard .buyok, #buyCard .buyback { width:100%; min-height:46px; border-radius:14px;
     font-family:var(--f); font-size:var(--s7); cursor:pointer; }

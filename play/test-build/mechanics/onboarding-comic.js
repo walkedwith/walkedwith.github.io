@@ -242,7 +242,7 @@ window.MaxComicIntro = (function () {
   installHooks();resetRoom();draw();
   document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden)silence();},{signal:listeners.signal});
   function tick(now) {
-    const dt=Math.min(.1,(now-last)/1000);last=now;
+    const dt=Math.max(0,Math.min(.1,(now-last)/1000));last=now;   // rAF time can trail performance.now() on the first frame — a negative step put time below 0 and asked for page -1
     if(active && playing && !document.hidden){time+=dt;cues.forEach((cue,i)=>{if(time>=cue.t)fireCue(cue,i);});if(time>=END)enter();}
     if(active){draw();frameId=requestAnimationFrame(tick);}
   }
