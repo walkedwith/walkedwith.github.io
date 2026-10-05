@@ -11290,6 +11290,7 @@ function hudPilotForLevel(lv){ return true; }
 function uiuxPolishForLevel(lv){ return lv>=1; }
 // keepTries: 같은 판을 다시 까는 것이라 시도 횟수를 이어 센다(재시작). 안 주면 새 입장이다.
 function loadLevel(lv, moon, keepTries){
+  perfFrom=performance.now()+2000; perfWin={t0:0,n:0,slow:0};   // 판 여는 2초(그림 불러오기)는 화질 판정에서 뺀다
   lvWasCleared=(starMap[lv]|0)>0; lsBackLv=0;                  // 다시 걷는 판인가 — 깨고 나가면 목록이 여기로 온다
   mowDir={lv:0, m:new Map()};                                   // 깎은 결(그림)은 판을 다시 깔면 지운다
   teach=null;
@@ -28396,7 +28397,7 @@ function fit(){
   gboardFitGen++;                                         // 판 자리가 다시 잡힌다 — 게시판 자리 측정을 새로 한다
   // DPR 상한 2 — 3x 기기(아이폰 등)에서 픽셀 수가 2.25배라 발열·배터리를 먹는데
   // 이 아트 스타일(면 채우기 위주)에선 2x 와 시각 차이가 거의 없다.
-  const wrap=el("boardWrap"); const dpr=Math.min(2, window.devicePixelRatio||1);
+  const wrap=el("boardWrap"); const dpr=boardDpr();
   // 캔버스가 격자 칸에 앉아 있는데 격자를 떠났으면 제자리로 — 판·메뉴·연습판 어디로
   // 나가든 fit 은 거친다. 나가는 길마다 돌려놓게 두면 하나를 빠뜨렸을 때 판이 안 보인다.
   if(!(yardMode && farmMapMode) && typeof ygUnmount==='function') ygUnmount();
@@ -32298,7 +32299,11 @@ function drawYardEdgeFence(x,y,r,c){
   houseFencePicket(px, y+s*.80, s*.22*k, s*.6*k, true);
   if(hsh(sd)<.5) houseFenceTuft(g, px+(left? s*.12 : -s*.24), y+s*.55, hsh(sd+1), s*k);
 }
-function drawEdgeTile(x, y, r, c){
+// 판 둘레는 멈춘 그림이다(10-05 사람: 둘레 장식은 움직이지 않아도 된다). 빨래·바람개비·풀이 흔들리면
+// 바닥 사본을 계속 다시 그려야 해서 2동네부터 폰이 버벅이고 뜨거웠다 — 둘레를 그릴 때만 시계를 한 자리에 세운다.
+const EDGE_STILL_T=0.8;
+function drawEdgeTile(x, y, r, c){ const t=animT; animT=EDGE_STILL_T; try{ drawEdgeTileArt(x, y, r, c); } finally{ animT=t; } }
+function drawEdgeTileArt(x, y, r, c){
   const d = districtOf(level), nm = d && d.nm;
   const f = EDGE_ART.E[EDGE_ART.PLAN[nm] || '말뚝 울타리'] || EDGE_ART.E['말뚝 울타리'];
   // 0.6px 물림 — 칸 경계에 딱 맞춰 자르면 이웃 칸과 반투명 픽셀이 겹쳐 밝은 실선이 남는다(냇물에서 실측)
@@ -33933,7 +33938,7 @@ function drawTilesCached(){
   // 0×0 캔버스에 drawImage 하면 InvalidStateError 로 던진다. 실제로 이 크래시가
   // frame() 을 한 번 죽여 게임 전체가 얼어붙는 사고로 이어졌다("마당이 안 나온다"로
   // 보고된 증상의 실제 원인 — 위 frame() try/catch 와는 별개로 근본 원인도 막는다).
-  const dpr=Math.min(2, window.devicePixelRatio||1);
+  const dpr=boardDpr();
   const w=GN*cell, h=GN*cell+Math.round(cell*0.16);
   const fk=[...filled].sort((a,b)=>a-b).join(',');
   // 바스락이 켜져 있으면 위상을 키에 넣는다 — 안 넣으면 50ms 캐시가 떨림을 20fps 로 얼린다.
@@ -37818,13 +37823,26 @@ const decay=(k)=>1-Math.pow(1-k,dtF);        // 프레임당 비율 감쇠(러�
 // 못 갱신되는 게, 게임 전체가 영구히 멈추는 것보다 훨씬 낫다.
 // 프레임 페이스(10-05 사람: 폰에서 버벅이고 뜨겁다) — 실측(폰 크기·CPU 4배 느림)에서 가만히 서 있어도
 // 매 프레임 판 전체를 그려 쉬는 시간이 14%뿐이었다. 120Hz 폰은 그걸 두 배로 한다.
-// 움직이는 동안은 최대 60fps, 손이 2초 쉬고 움직이는 게 없으면 30fps 로 내린다. dt 가 길어질 뿐 규칙은 그대로다.
-let framePrevTs=0, paceWake=0;
+// 움직이는 동안은 최대 60fps, 손이 2초 쉬고 움직이는 게 없으면 12fps 로 내린다. dt 가 길어질 뿐 규칙은 그대로다.
+let framePrevTs=0, paceWake=0, frameDtCap=1/30;
+// 판 화질 배율 — 보통 2배. 움직이는 동안 프레임이 자주 늦으면(4초 중 25% 넘게 25ms+) 이번 실행 동안 1.5배로 내린다(10-05 사람).
+// 그리는 점이 44% 준다. 좋은 폰은 그대로 2배, 힘든 폰만 가벼워진다. 규칙·판정·소리는 그대로다.
+let boardCap=2, perfFrom=0, perfWin={t0:0,n:0,slow:0};
+function boardDpr(){ return Math.min(boardCap, window.devicePixelRatio||1); }
+function perfWatch(now, gap){
+  if(boardCap<=1.5 || now<perfFrom || state!=='play' || document.hidden) return;
+  if(!perfWin.t0 || now-perfWin.t0>4000){
+    if(perfWin.n>=60 && perfWin.slow/perfWin.n>0.25 && (window.devicePixelRatio||1)>1.5){ boardCap=1.5; tileKey=''; try{ fit(); }catch(e){} console.info('판 화질 1.5배로 낮춤 — 늦은 프레임', perfWin.slow+'/'+perfWin.n); }
+    perfWin={t0:now,n:0,slow:0}; }
+  perfWin.n++; if(gap>25) perfWin.slow++;
+}
 ['pointerdown','keydown','touchstart','wheel'].forEach(k=>addEventListener(k,()=>{ paceWake=performance.now(); },{passive:true, capture:true}));
 function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin; }
 function frame(ts){
-  const now=ts||performance.now(), gap=frameIdle(now)? 1000/30 : 1000/60;
+  const now=ts||performance.now(), idle=frameIdle(now), gap=idle? 1000/12 : 1000/60;   // 쉴 땐 12 — 맥스 대기 동작이 초당 8~10장이라 빠지는 장이 없다(10-05)
+  frameDtCap=idle? 1/10 : 1/30;                            // 쉴 때 한 걸음이 1/12초라 상한도 늘린다 — 안 늘리면 대기 동작이 40% 속도로 느려진다
   if(framePrevTs && now-framePrevTs < gap-3){ requestAnimationFrame(frame); return; }
+  if(!idle && framePrevTs) perfWatch(now, now-framePrevTs);   // 움직이는 동안만 잰다 — 쉴 땐 일부러 느리다
   framePrevTs=now;
   try{ frameInner(ts); }
   catch(e){ console.error('frame() 예외 — 이번 프레임만 건너뛴다', e); }
@@ -37838,7 +37856,7 @@ function frameInner(ts){
   const now = ts || performance.now();
   // 탭 복귀·프레임 드랍 시 튐 방지. 아래를 0 으로 막는 이유: 시각이 뒤로 가면 dt 가
   // 음수가 되어 타이머가 **거꾸로 자란다**(먹는 시간이 4.2초에서 175초로 불어난 걸 실측).
-  dt = lastFrameT? Math.max(0, Math.min(1/30, (now-lastFrameT)/1000)) : 1/60;
+  dt = lastFrameT? Math.max(0, Math.min(frameDtCap, (now-lastFrameT)/1000)) : 1/60;
   lastFrameT=now; dtF=dt*60;
   animT+=dt;
   if(restartRun){stepRestartRun(dt);render();return;}
