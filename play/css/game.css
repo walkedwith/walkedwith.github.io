@@ -3194,6 +3194,21 @@
     font-family:var(--f-body); font-size:var(--fs-btn); color:#4A3524; box-shadow:0 4px 0 #c99340; cursor:pointer; }
   .okbtn:active { transform:translateY(3px) scaleY(.985); box-shadow:0 1px 0 #c99340; }
   #gintro .gposts { display:flex; justify-content:space-around; width:56%; margin:0 auto; }
+  /* 안내판 A — 판 위에서(10-06). 판은 그대로 보이고 그 기믹 자리만 밝다. 카드는 그 옆 말풍선, 버튼 대신 아무 데나 누르기. */
+  #gintro .gihole, #gintro .gitap { display:none; }
+  #gintro.onboard { background:transparent; backdrop-filter:none; display:none; }
+  #gintro.onboard.show { display:block; }
+  #gintro.onboard .gihole { display:block; position:absolute; border-radius:14px; border:3px dashed #FFE08A; box-shadow:0 0 0 9999px rgba(40,28,15,.5); pointer-events:none; animation:giHole 1.6s ease-in-out infinite; }
+  @keyframes giHole { 0%,100%{border-color:#FFE08A} 50%{border-color:#FFF6D6} }
+  #gintro.onboard .gicard { position:absolute; max-width:none; animation:gipop .35s cubic-bezier(.3,1.5,.5,1); }
+  @keyframes gipop { 0%{transform:scale(.9); opacity:0} 100%{transform:none; opacity:1} }
+  #gintro.onboard .gsign { background:#FFF8EC; border:none; border-radius:18px; padding:12px 14px 12px; box-shadow:0 6px 18px rgba(0,0,0,.28); }
+  #gintro.onboard .gnail, #gintro.onboard .gposts, #gintro.onboard #giOk { display:none; }
+  #gintro.onboard .gtitle { display:table; margin:0 auto; font-size:var(--s6); color:#8A5A18; background:#FFF1D6; border:2px solid #E8A94C; border-radius:999px; padding:2px 12px; }
+  #gintro.onboard .gdemo { margin:8px auto 2px; padding:4px; }
+  #gintro.onboard .gtext.one { font-size:var(--s5); min-height:0; margin:6px 0 4px; color:#4A3420; }
+  #gintro.onboard .gidots { margin:2px 0 6px; }
+  #gintro.onboard .gitap { display:block; font-family:var(--f-body); font-size:var(--s7); color:#A08868; }
   #gintro .gposts i { width:11px; height:26px; background:#D2A468; border-radius:0 0 5px 5px; box-shadow:inset -3px 0 0 #C08F51; }
   #mvbar.tuthi { animation:barGlow 1.2s ease-in-out infinite; border-radius:14px; }
   @keyframes barGlow { 0%,100%{box-shadow:0 0 0 0 rgba(255,198,107,.75)} 50%{box-shadow:0 0 0 10px rgba(255,198,107,0)} }
