@@ -16806,7 +16806,7 @@ function gainFx(kind, n){
 }
 function syncHud(){
   const h=el("hudCur"); if(!h) return;
-  el("hudPaw").textContent = (pawShow==null? pawBal : pawShow);
+  { const t=String(pawShow==null? pawBal : pawShow), e=el("hudPaw"); if(e.textContent!==t) e.textContent=t; }   // 같은 값이면 안 쓴다 — 매 프레임 불린다
   const last=Math.max(maxLevel, BAKED.length);
   // (별 총합 배지 제거 — lsStars/lsMax 갱신도 같이 걷어냈다)
   // 판 안에서도 띄운다 — 도토리·밥이 실제로 나가는 자리가 판 안이라, 거기서 안 보이면
@@ -28285,6 +28285,7 @@ onTap(el("optReset"), ()=>{
 let cell,ox,oy;
 let boardTrim=false;   // 판 테두리를 반 칸만 보이게 잘랐나(fit). 잘렸으면 테두리 소품을 보이는 반 칸 안으로 줄여 넣는다(drawEdgeTile)
 function fit(){
+  gboardFitGen++;                                         // 판 자리가 다시 잡힌다 — 게시판 자리 측정을 새로 한다
   // DPR 상한 2 — 3x 기기(아이폰 등)에서 픽셀 수가 2.25배라 발열·배터리를 먹는데
   // 이 아트 스타일(면 채우기 위주)에선 2x 와 시각 차이가 거의 없다.
   const wrap=el("boardWrap"); const dpr=Math.min(2, window.devicePixelRatio||1);
@@ -28367,8 +28368,13 @@ const GBOARD_ON=true, GBOARD_NEED=176;                      // 판 밑에 이만
 const GBOARD_MIN_CELL=38;                                    // 게시판 자리를 내려고 판을 줄여도 칸은 이보다 작게 안 한다
 function gboardPlay(){ return GBOARD_ON && !menuMode && !tutMode && !houseMode && !yardMode && !moonMode && !tsMode && !lunchMode && !selMode && level>=1; }
 // 판을 줄여서라도 게시판 자리를 비울 화면 — 본편 판 · 방향 버튼 꺼짐 · 세로로 긴 화면(폰 세로). 데스크톱·가로는 지금처럼 남는 자리에만.
+// 매 프레임 syncHud → gboardSync 가 부른다 — getBoundingClientRect 가 레이아웃을 매번 강제했다(실측 CPU 5%).
+// 판 자리는 창 크기와 fit 이 정하므로, 그 둘이 그대로면 앞서 잰 값을 쓴다.
+let gboardResKey='', gboardResVal=false, gboardFitGen=0, gboardSyncSig='';
+addEventListener('resize',()=>{ gboardFitGen++; },{passive:true});
 function gboardReserveOn(){ const w=el('wrap'); if(!gboardPlay() || optPad || !w || !w.getBoundingClientRect) return false;
-  const r=w.getBoundingClientRect(); return r.width>1 && r.height>=r.width*1.25; }
+  const key=gboardFitGen+'|'+document.body.className; if(key===gboardResKey) return gboardResVal;
+  const r=w.getBoundingClientRect(); gboardResKey=key; gboardResVal=r.width>1 && r.height>=r.width*1.25; return gboardResVal; }
 let gboardFitBusy=false, gboardFitWant=false;   // 마지막 fit 이 게시판 자리를 원했나(칸이 너무 작아 포기했어도 원한 것으로 둔다 — 다시 재지 않게)
 const DISTRICT_SCENE_ART={
   1:'art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp',
@@ -28397,6 +28403,10 @@ function gboardSync(){
   if(!gboardFitBusy && document.body.classList && gboardReserveOn()!==gboardFitWant){
     gboardFitBusy=true; try{ fit(); }finally{ gboardFitBusy=false; } return; }
   document.body.classList.toggle('gscene', !!play);
+  // 매 프레임 불린다 — 레이아웃 측정 둘·배경 주소·안내 HTML 을 매번 다시 쓰던 게 폰에서 버벅임·발열 몫이었다(10-05).
+  // 판·판 자리·언어·결과가 그대로면 앞의 결과를 그대로 둔다.
+  const sig=[play?1:0, optPad?1:0, gboardFitGen, level, state, starMap[level]|0, I18N.locale||'', boardTrim?1:0].join('|');
+  if(sig===gboardSyncSig) return; gboardSyncSig=sig;
   let on=false;
   if(play && !optPad && cv && cv.getBoundingClientRect){
     const c=cv.getBoundingClientRect(), wr=w.getBoundingClientRect(), vis=c.bottom-(boardTrim? Math.round(cell/2) : 0);
@@ -33782,6 +33792,34 @@ function drawHmeal(bx,by,s){
 // 타일에도 잔물결·새싹 스윙 같은 미세 애니가 있어 20fps 로 리프레시 — 체감 차이 없음.
 // filled(구덩이 메움·페인트 소모·물 멎음)나 레벨·크기가 바뀌면 즉시 다시 굽는다.
 let tileCv=null, tileCtx=null, tileKey='', tileT=0;
+// 바닥 한 장 — 판 칸·비눗물·씻긴 칸. tileCtx 와 정지 판정용 사본이 같은 그림을 그린다.
+function tileLayerPaint(){
+  if(houseMode && !houseIn) drawHouseGround();
+  // 비눗물·씻긴 칸은 여기서 칸 자리만 모은다 — 일렁임은 drawTilesCached 가 매 프레임 판 위에 바로 그린다(바닥 사본은 멈춰 있게).
+  soapBatch=true; const cells=[];
+  try{ for(let r=0;r<GN;r++) for(let c=0;c<GN;c++){ drawTile(r,c); if(soapVisible(r,c)) cells.push([r,c]); } }
+  finally{ soapBatch=false; }
+  const rc=[]; for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); }
+  tileSoapCells=cells; tileRinseCells=rc;
+}
+let tileSoapCells=[], tileRinseCells=[];
+// 이 바닥이 시간에 따라 움직이나 — 0.37초 뒤 모습을 따로 그려 반 크기로 견준다. 판이 바뀔 때 한 번만 잰다.
+let tileAnim=true, tileAnimFor='', tileAnimAt=0, tileCmp=null;
+function tileLayerMoves(w,h,dpr){
+  try{
+    const W=Math.max(1,Math.round(w/2)), H=Math.max(1,Math.round(h/2));
+    if(!tileCmp){ tileCmp=[0,1,2].map(()=>document.createElement('canvas')); }
+    const [alt,a,b]=tileCmp; alt.width=tileCv.width; alt.height=tileCv.height; a.width=b.width=W; a.height=b.height=H;
+    const ac=alt.getContext('2d'); ac.setTransform(dpr,0,0,dpr,0,0); ac.clearRect(0,0,w,h);
+    const o=ctx, t0=animT; ctx=ac; animT=t0+0.37;
+    try{ tileLayerPaint(); } finally { ctx=o; animT=t0; }
+    const A=a.getContext('2d',{willReadFrequently:true}), B=b.getContext('2d',{willReadFrequently:true});
+    A.clearRect(0,0,W,H); B.clearRect(0,0,W,H); A.drawImage(tileCv,0,0,W,H); B.drawImage(alt,0,0,W,H);
+    const p=A.getImageData(0,0,W,H).data, q=B.getImageData(0,0,W,H).data;
+    let n=0; for(let i=0;i<p.length;i+=4) if(Math.abs(p[i]-q[i])>6 || Math.abs(p[i+1]-q[i+1])>6 || Math.abs(p[i+2]-q[i+2])>6 || Math.abs(p[i+3]-q[i+3])>6){ if(++n>12) return true; }   // 진짜 흔들림은 칸마다 수백 픽셀 — 한두 점은 잡음
+    return false;
+  }catch(e){ return true; }                                 // 못 재면 예전처럼 계속 다시 그린다
+}
 function drawTilesCached(){
   if(!cell){ return; }                                   // 보드가 아직 안 잡힘(레이아웃 과도기) — 그릴 게 없다.
   // 0×0 캔버스에 drawImage 하면 InvalidStateError 로 던진다. 실제로 이 크래시가
@@ -33794,18 +33832,29 @@ function drawTilesCached(){
   const rustleOn=acornSt.some(m=>m.w && !m.got && (matWallTeach(m.w) || critterHidden(m.r,m.c)));
   const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
     +'|'+(rustleOn? Math.round(animT*60) : '-');
-  const stale=(key!==tileKey) || (animT-tileT>0.05);
+  const keyBase=rustleOn? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
+  // 바닥은 원래 50ms 마다 통째로 다시 그렸다(일렁이는 비눗물·흔들리는 꽃). 정지한 바닥까지 초당 20번 다시 그려
+  // 폰 GPU 로 큰 그림을 매번 올리는 게 발열의 한 몫이었다(10-05). 판(키)이 바뀌면 한 번 재서 움직이는 게 없으면 멈춘다.
+  // 시간에 따라 드러나는 연출(첨벙통·펌프 물·깎이·구덩이)이 도는 동안은 예전처럼 계속 다시 그린다.
+  const busy=!!tubPourFx || !!pumpShotFx || !!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower');   // 바닥 그림이 시간 연출을 따라가는 것만(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
+  // 테두리 장식(빨래·바람개비·풀)은 느린 흔들림이라 초당 10번이면 충분하다 — 손을 쉬면 6~7번. 연출이 도는 동안만 20번.
+  const every=busy? 0.05 : frameIdle(performance.now())? 0.15 : 0.1;
+  // 정지 판정 차례 — 판이 바뀌었거나, 움직인다고 본 지 2초가 지났을 때(장식 그림이 늦게 뜨면 처음엔 움직이는 것처럼 보인다).
+  // 연출 중에 그린 사본으로 견주면 틀리니 먼저 새로 그린다.
+  const check=!busy && keyBase && (tileAnimFor!==keyBase || (tileAnim && animT-tileAnimAt>2));
+  const stale=(key!==tileKey) || check || ((tileAnim || busy || !keyBase) && animT-tileT>every);
   if(stale){
     if(!tileCv){ tileCv=document.createElement('canvas'); tileCtx=tileCv.getContext('2d'); }
     if(tileCv.width!==w*dpr || tileCv.height!==h*dpr){ tileCv.width=w*dpr; tileCv.height=h*dpr; }
     tileCtx.setTransform(dpr,0,0,dpr,0,0); tileCtx.clearRect(0,0,w,h);
     const o=ctx; ctx=tileCtx;
-    if(houseMode && !houseIn) drawHouseGround();
-    drawTilesWithSoap(GN, GN, (r,c)=>[r,c], soapVisible);
-    { const rc=[]; for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); } drawRinseCells(rc, 1); }
+    tileLayerPaint();
     ctx=o; tileKey=key; tileT=animT;
   }
+  if(check){ tileAnimFor=keyBase; tileAnimAt=animT; tileAnim=tileLayerMoves(w,h,dpr); }
   ctx.drawImage(tileCv, 0, 0, tileCv.width, tileCv.height, 0, 0, w, h);
+  if(tileSoapCells.length) drawSoapLiquid(tileSoapCells, soapVisible);              // 일렁이는 액체는 매 프레임 그 칸만
+  if(tileRinseCells.length) drawRinseCells(tileRinseCells, 1);
 }
 
 // ── 냇물 붓 ─────────────────────────────────────────────────────────────
@@ -37659,7 +37708,16 @@ const decay=(k)=>1-Math.pow(1-k,dtF);        // 프레임당 비율 감쇠(러�
 // 캔버스는 마지막 성공 프레임에 고정돼 있었다 — "마당이 안 나온다"로 보고된 증상.
 // 한 프레임이 깨져도 다음 프레임에서 스스로 회복하도록 감싼다 — 상태 일부가 이번 프레임만
 // 못 갱신되는 게, 게임 전체가 영구히 멈추는 것보다 훨씬 낫다.
+// 프레임 페이스(10-05 사람: 폰에서 버벅이고 뜨겁다) — 실측(폰 크기·CPU 4배 느림)에서 가만히 서 있어도
+// 매 프레임 판 전체를 그려 쉬는 시간이 14%뿐이었다. 120Hz 폰은 그걸 두 배로 한다.
+// 움직이는 동안은 최대 60fps, 손이 2초 쉬고 움직이는 게 없으면 30fps 로 내린다. dt 가 길어질 뿐 규칙은 그대로다.
+let framePrevTs=0, paceWake=0;
+['pointerdown','keydown','touchstart','wheel'].forEach(k=>addEventListener(k,()=>{ paceWake=performance.now(); },{passive:true, capture:true}));
+function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin; }
 function frame(ts){
+  const now=ts||performance.now(), gap=frameIdle(now)? 1000/30 : 1000/60;
+  if(framePrevTs && now-framePrevTs < gap-3){ requestAnimationFrame(frame); return; }
+  framePrevTs=now;
   try{ frameInner(ts); }
   catch(e){ console.error('frame() 예외 — 이번 프레임만 건너뛴다', e); }
   requestAnimationFrame(frame);
