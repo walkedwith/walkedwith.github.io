@@ -6,7 +6,7 @@ window.MaxComicIntro = (function () {
     run().catch(()=>{if(recover)recover();else{running=false;playTut(0);}});
   }
   async function run(){
-  const root=document.createElement('section');root.id='comicIntro';root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',I18N.t('comic.label'));
+  const root=document.createElement('section');root.id='comicIntro';root.classList.add('album-intro');root.setAttribute('role','dialog');root.setAttribute('aria-modal','true');root.setAttribute('aria-label',I18N.t('comic.label'));
   root.innerHTML='<canvas id="comicCanvas" aria-hidden="true"></canvas><div id="comicControls"><label id="comicSoundLabel"><input id="comicSound" type="checkbox"><span></span></label><button id="comicSkip" type="button"></button><button id="comicStart" type="button" disabled></button></div>';
   document.body.appendChild(root);
   const overlay = document.getElementById('comicIntro'), canvas = document.getElementById('comicCanvas'), g = canvas.getContext('2d');
@@ -157,7 +157,13 @@ window.MaxComicIntro = (function () {
   }
   function page(index, x, w, h) {
     const frameW=Math.min(w,h*2/3), left=(w-frameW)/2+x;
+    // Keep the authored scene untouched; the album treatment lives in the paper gutter.
+    g.fillStyle='#e8dfc9';g.fillRect(0,0,w,h);
+    g.save();g.shadowColor='rgba(72,54,32,.22)';g.shadowBlur=18;g.shadowOffsetY=5;g.fillStyle='#fffaf0';g.fillRect(left-13,8,frameW+26,h-16);g.restore();
+    g.strokeStyle='rgba(185,151,95,.62)';g.lineWidth=1.4;g.setLineDash([7,5]);g.strokeRect(left-5,16,frameW+10,h-32);g.setLineDash([]);
     g.fillStyle='#f9fcf3';g.fillRect(left,0,frameW,h);
+    g.fillStyle='rgba(255,255,255,.72)';g.beginPath();g.moveTo(left-13,8);g.lineTo(left+24,8);g.lineTo(left-13,45);g.closePath();g.fill();
+    g.fillStyle='rgba(214,198,163,.52)';g.beginPath();g.moveTo(left+frameW+13,h-8);g.lineTo(left+frameW-24,h-8);g.lineTo(left+frameW+13,h-45);g.closePath();g.fill();
     const stage = index===4 ? Math.max(0,doorStages.findLastIndex(t=>time>=t)) : 0;
     const margin=8, iw=frameW-margin*2, ih=h-148, image=images[index===4?6+stage:index===3?5:index];
     // Keep the full authored panel visible, with the caption in its own paper gutter.

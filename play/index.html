@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=e7b10250742c">
+<link rel="stylesheet" href="css/game.css?v=d5e2c7b7f803">
 <link rel="stylesheet" href="css/onboarding-comic.css">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
@@ -184,9 +184,14 @@
   <!-- 밥그릇이 빈 시트 — 건너뛰기 카드와 같은 자리·모양. 막다른 길이 아니라 갈림길로 읽혀야 한다. -->
   <!-- 살까요? — 도토리를 쓰는 것은 다 이 카드를 거친다. 값이 한 번 더 보이고
        무엇을 받는지가 적힌다. 실수로 눌러 도토리가 새는 걸 막는다. -->
-  <div id="buyCard">
-    <p class="mct" id="buyTitle"></p>
-    <div class="mcsub" id="buySub" hidden></div>
+  <div id="buyShade" hidden></div>
+  <div id="buyCard" role="dialog" aria-modal="true" aria-labelledby="buyTitle" aria-describedby="buySub buyBalance">
+    <div id="buyContent">
+      <p class="mct" id="buyTitle"></p>
+      <canvas id="buyPreview" width="256" height="256" hidden aria-hidden="true"></canvas>
+      <div class="mcsub" id="buySub" hidden></div>
+      <p id="buyBalance" hidden aria-live="polite"></p>
+    </div>
     <div class="buyactions">
       <button class="buyok" id="buyOk"><span data-i18n="shop.confirm">구매</span><b id="buyCost"></b></button>
       <button class="buyback" id="buyNo" data-i18n="shop.back">돌아가기</button>
@@ -2940,6 +2945,7 @@ let toastTO=0, toastCopy=null;
 function showToast(html, ms){
   toastCopy=html;
   const t=el("toast"); t.innerHTML=tutorialCopy(html); t.classList.add("show");
+  t.classList.toggle('shop-toast',!!el('shopsel') && el('shopsel').classList.contains('show'));
   clearTimeout(toastTO); toastTO=setTimeout(()=>t.classList.remove("show"), ms||2600);
   // 마당의 다른 안내는 이 줄이 사라질 때까지 기다린다
   if(typeof yardQuiet==='function' && yardMode) yardQuiet((ms||2600)/1000 + 0.4);
@@ -5370,6 +5376,10 @@ let shopBillingToastTO=0, shopBillingLastResult=null;
 function shopBillingNotice(result){
   const msg=iapMessage(result); if(!msg) return;
   shopBillingLastResult=result;
+  shopNotice(msg,true);
+}
+function shopNotice(msg,billing=false){
+  if(!billing) shopBillingLastResult=null;
   const t=el('shToast');
   if(!t){ showToast(msg,2400); return; }
   t.textContent=msg; t.classList.add('on');
@@ -5408,15 +5418,35 @@ function iapRestorePending(){
       ? Promise.resolve().then(()=>billing.finish(result)).catch(()=>false) : true;
   })).then(()=>{ syncHud(); return results||[]; })).catch(()=>[]);
 }
+let shopBillingState='loading', shopPricedProducts=new Set(), shopBillingRequest=0;
 function iapRefreshProducts(){
   const billing=window.RollBilling||window.RollEconomy.createUnavailableBilling();
   const ids=PAW_PACK.map(it=>it.productId);
-  Promise.resolve(billing.getProducts(ids)).then(products=>{
+  const request=++shopBillingRequest;
+  shopBillingState='loading'; shopPricedProducts=new Set();
+  shopRefreshBillingView();
+  return Promise.resolve().then(()=>typeof billing.isAvailable==='function'?billing.isAvailable():true).then(available=>{
+    if(!available) return [];
+    return billing.getProducts(ids);
+  }).then(products=>{
+    if(request!==shopBillingRequest) return;
     for(const p of products||[]){
       const pack=PAW_PACK.find(it=>it.productId===p.logicalProductId);
-      if(pack && p.displayPrice) pack.price=p.displayPrice;
+      if(pack && p.displayPrice){ pack.price=p.displayPrice; shopPricedProducts.add(p.logicalProductId); }
     }
-  }).catch(()=>{});
+    shopBillingState=shopPricedProducts.size?'ready':'unavailable';
+    shopRefreshBillingView();
+  }).catch(()=>{
+    if(request!==shopBillingRequest) return;
+    shopBillingState='unavailable'; shopRefreshBillingView();
+  });
+}
+function shopRefreshBillingView(){
+  if(el('shopsel').classList.contains('show')) shopRender();
+}
+function shopBillingLabel(){
+  return I18N.t(shopBillingState==='loading'?'shop.priceLoading':
+    (typeof capacitorApp!=='undefined' && capacitorApp)?'shop.paymentUnavailable':'shop.appOnly');
 }
 window.addEventListener('maxbillingready',()=>{ iapRestorePending(); iapRefreshProducts(); });
 window.addEventListener('maxbillingrecovery',()=>{ iapRestorePending(); });
@@ -12382,7 +12412,7 @@ const PAW_PACK_ICO={
 // 구역 이름과 그림이 이미 말하고, 줄이 늘수록 값이 안 보인다.
 // 살까요? — 사료를 고르면 상품명과 값만 다시 확인한다. 지급량은 상품 카드에 이미
 // 적혀 있어 반복하지 않는다. 버튼은 구매와 돌아가기 둘뿐이라 실수 구매를 막는다.
-let buyAsk=null;
+let buyAsk=null, buyReturnFocus=null, buyPreviewFrame=0;
 // Comparison is today's separate-purchase total, never an invented former price.
 function acornPrice(cost, separate=0){
   const deal=Number.isFinite(separate) && separate>cost;
@@ -12396,21 +12426,86 @@ function foodSeparatePrice(){
 }
 function buyConfirm(title, sub, cost, onOk, opts){
   const free=!!(opts && opts.free);                          // 무료로 주는 첫 선물 — 원래 값을 긋고 「무료로 받기」(방 첫 거울, 10-05)
-  if(!free && pawBal<cost){ sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return; }
-  buyAsk={cost:free? 0 : cost, onOk, title, sub};
+  const inShop=el('shopsel').classList.contains('show');
+  if(!free && pawBal<cost && !inShop){ sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return; }
+  buyReturnFocus=document.activeElement;
+  buyAsk={cost:free? 0 : cost, onOk, title, sub, opts:opts||{}, free, inShop};
+  el('buyContent').scrollTop=0;
   refreshBuyCopy();
-  const lb=el('buyOk') && el('buyOk').querySelector('span'); if(lb) lb.textContent=I18N.t(free? 'room.slot.freeTake' : 'shop.confirm');
-  el('buyCost').innerHTML=free? ' <s>'+pawIco()+' '+cost+'</s>' : ' '+pawIco()+' '+cost;
+  if(free) el('buyCost').innerHTML=' <s>'+pawIco()+' '+cost+'</s>';
+  el('buyShade').hidden=false;
   el('buyCard').classList.add('show');
+  shopBuyPreview();
+  el('buyOk').focus?.();
 }
 function refreshBuyCopy(){
   if(!buyAsk) return;
-  const {title}=buyAsk;
+  const {title,sub,cost,opts,free,inShop}=buyAsk;
   el('buyTitle').innerHTML=typeof title==='function'?title():title;
-  el('buySub').hidden=true;
-  el('buySub').textContent='';
+  const detail=typeof sub==='function'?sub():sub;
+  el('buySub').hidden=!detail;
+  el('buySub').textContent=detail||'';
+  const short=!free && pawBal<cost;
+  const lb=el('buyOk').querySelector('span');
+  if(lb) lb.textContent=I18N.t(short?'shop.refill':free?'room.slot.freeTake':opts.action||'shop.confirm');
+  el('buyCost').hidden=short||(!free && cost===0);
+  if(!free) el('buyCost').innerHTML=' '+pawIco()+' '+cost;
+  el('buyBalance').hidden=!inShop||cost===0;
+  el('buyBalance').classList.toggle('short',short);
+  el('buyBalance').textContent=short?I18N.t('shop.shortDetail',{have:pawBal,need:cost,short:cost-pawBal}):I18N.t('shop.balanceAfter',{have:pawBal,after:pawBal-cost});
 }
-function buyClose(){ buyAsk=null; el('buyCard').classList.remove('show'); }
+function buyClose(){
+  buyAsk=null; cancelAnimationFrame(buyPreviewFrame); buyPreviewFrame=0;
+  el('buyCard').classList.remove('show'); el('buyShade').hidden=true;
+  el('buyPreview').hidden=true;
+  if(buyReturnFocus && buyReturnFocus.isConnected) buyReturnFocus.focus?.({preventScroll:true});
+  buyReturnFocus=null;
+}
+function shopBuyPreview(){
+  cancelAnimationFrame(buyPreviewFrame); buyPreviewFrame=0;
+  const spec=buyAsk && buyAsk.opts.preview, cv=el('buyPreview'); cv.hidden=!spec;
+  if(!spec) return;
+  if(spec.kind==='home'){ houseCashThumb(cv,spec.k); return; }
+  bonusSkinThumb(cv,spec.k);
+  const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced) return;
+  const start=performance.now();
+  const draw=t=>{
+    if(!buyAsk || buyAsk.opts.preview!==spec) return;
+    const im=bonusSkinImg[spec.k], g=cv.getContext('2d');
+    if(g && im && im.complete && im.naturalWidth){
+      const count=Math.min(8,Math.floor(im.naturalWidth/256));
+      const f=Math.floor((t-start)/150)%Math.max(1,count);
+      g.clearRect(0,0,256,256); g.drawImage(im,f*256,0,256,256,0,0,256,256);
+    }
+    buyPreviewFrame=requestAnimationFrame(draw);
+  };
+  buyPreviewFrame=requestAnimationFrame(draw);
+}
+function shopProductShow(kind,k){
+  const skin=kind==='skin', it=skin?BONUS_SKIN_BY[k]:HOUSE_CASH_BY[k]; if(!it) return;
+  const own=skin?bonusSkinOwns(k):houseCashOwns(k);
+  const on=own && (skin?dogWear.hood===k:it.tree?houseTreeKind()===k:houseCashHas(k));
+  const name=()=>I18N.t((skin?'hood.name.':'house.cash.')+k);
+  const action=own?(skin?(on?'shop.takeOff':'shop.outfitWear'):(on?'shop.remove':it.tree?'house.cash.plant':'house.cash.hang')):'shop.confirm';
+  const detail=()=>I18N.t(skin?'shop.skinDetail':it.tree?'shop.treeDetail':'shop.detail.'+k);
+  buyConfirm(name,detail,own?0:it.cost,()=>{
+    // Re-read ownership: another UI action must never charge for an owned item.
+    const nowOwn=skin?bonusSkinOwns(k):houseCashOwns(k);
+    if(own){
+      if(!nowOwn) return;
+      if(skin) wearHood(on?null:k); else houseCashToggle(k);
+    }else{
+      if(nowOwn || !(skin?bonusSkinBuy(k):houseCashBuy(k))) return;
+      spendFx('paw',it.cost);
+      if(skin) wearHood(k);
+    }
+    tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]); shopRender();
+    el('shBody').querySelector('[data-shop-product="'+kind+'-'+k+'"]')?.focus?.({preventScroll:true});
+    if(!skin && !own) homeGotShow(it);
+    else shopNotice(I18N.t(skin?(on?'shop.removedSkin':'shop.wearingNow'):(on?'shop.removedHome':'shop.placedHome'),{name:name()}));
+  },{preview:{kind:skin?'skin':'home',k},action});
+}
 // 가게에서 도토리 칸을 펼쳐 뒀나 — 화면을 다시 열면 접힌 상태로 돌아온다(세션 값).
 let shopPawOpen=false;
 // 도토리 칩으로 들어왔을 때 채우기 묶음이 화면 밖에 있으면 펼쳐도 안 보인다.
@@ -12575,10 +12670,10 @@ function shopRenderBag(body){
     const card=(nm, q, cost, sub, full)=>{
       const b=document.createElement('button'); b.className='kibc'+(full?' best':''); b.setAttribute('data-kib', full? 'full' : 'half');
       b.setAttribute('aria-label',nm()+' · '+I18N.t('stamp.acorns',{count:cost}));
-      b.innerHTML='<span class="kibg">'+kibbleBagSVG(full)+'</span>'
+      b.innerHTML='<span class="kibg">'+kibbleBagSVG(full)+'</span><span class="kibqty">'+nm()+'</span>'
         +'<b class="dchip bundle-price">'+acornPrice(cost,full?foodSeparatePrice():0)+'</b>';
       // 조사는 이름마다 다르다 — '반 봉지'는 를, '순서표 3장'은 을. 박아 두면 하나가 틀린다.
-      onTap(b, ()=>buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', cost, ()=>{
+      onTap(b, ()=>buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), ()=>I18N.t('shop.foodDetail',{have:meal,after:meal+q}), cost, ()=>{
         if(!mealBuy(q,cost,undefined,'shop_feed')) return false;
         shopRender();
         // 받는 연출 — 봉지가 튀어나와 위 밥그릇 칩으로 날아간다(할아버지의 선물 사료와 같은 길).
@@ -12604,17 +12699,12 @@ function shopRenderBag(body){
       const nm=()=>I18N.t('house.cash.'+it.k);
       const card=document.createElement('button');
       card.className='scard hg'+(on?' on':own?' haveit':'')+(!own && pawBal<it.cost?' lock':'');
+      card.setAttribute('data-shop-product','home-'+it.k);
       card.innerHTML='<canvas width="128" height="128"></canvas><span class="sname">'+nm()+'</span>'
         +(own? '<span class="sprice">'+I18N.t(on? (it.tree? 'house.cash.planted' : 'house.cash.hung') : (it.tree? 'house.cash.plant' : 'house.cash.hang'))+'</span>'
              : '<span class="sprice">'+acornPrice(it.cost)+'</span>');
       houseCashThumb(card.querySelector('canvas'), it.k);
-      onTap(card, ()=>{
-        if(own){ houseCashToggle(it.k); tone(620,0.05,'triangle',0.03,820); shopRender(); return; }
-        buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', it.cost, ()=>{
-          if(!houseCashBuy(it.k)) return;
-          spendFx("paw",it.cost); tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]);
-          shopRender(); homeGotShow(it); });
-      });
+      onTap(card, ()=>shopProductShow('home',it.k));
       grid.appendChild(card);
     }
     body.appendChild(sec);
@@ -12629,16 +12719,11 @@ function shopRenderBag(body){
         const own=bonusSkinOwns(s.k), on=own && dogWear.hood===s.k, nm=()=>I18N.t('hood.name.'+s.k);
         const card=document.createElement('button');
         card.className='scard hg'+(on?' on':own?' haveit':'')+(!own && pawBal<s.cost?' lock':'');
+        card.setAttribute('data-shop-product','skin-'+s.k);
         card.innerHTML='<canvas width="128" height="128"></canvas><span class="sname">'+nm()+'</span>'
           +'<span class="sprice">'+(own? I18N.t(on? 'shop.outfitOn' : 'shop.outfitWear') : acornPrice(s.cost))+'</span>';
         bonusSkinThumb(card.querySelector('canvas'), s.k);
-        onTap(card, ()=>{
-          if(own){ wearHood(on? null : s.k); tone(660,0.06,'triangle',0.04,900); buzz([10,20,10]); shopRender(); return; }
-          buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', s.cost, ()=>{
-            if(!bonusSkinBuy(s.k)) return;
-            spendFx("paw",s.cost); tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]);
-            wearHood(s.k); shopRender(); });          // 산 옷은 바로 입는다 — 후디를 받는 순간 입는 것과 같다
-        });
+        onTap(card, ()=>shopProductShow('skin',s.k));
         grid.appendChild(card);
       }
       body.appendChild(sec);
@@ -12650,22 +12735,27 @@ function shopRenderBag(body){
     const fold=document.createElement('button'); fold.className='pkgfold'+(shopPawOpen?' open':'');
     fold.innerHTML='<span class="pkgi">'+PAW_PACK_ICO[PAW_PACK[1].k]+'</span>'
       +'<span class="pkgx"><b class="pkgnm">'+I18N.t('shop.refill')+'</b>'
-      +'<i class="pkgsub">'+I18N.t('shop.from')+'</i></span>'
+      +'<i class="pkgsub">'+(shopBillingState==='ready'?I18N.t('shop.from'):shopBillingLabel())+'</i></span>'
       +'<span class="pkgact">'+I18N.t(shopPawOpen?'shop.hidePacks':'shop.viewPacks')+'</span>'
       +'<span class="pkgarw">'+(shopPawOpen?'▾':'▸')+'</span>';
-    onTap(fold, ()=>{ shopPawOpen=!shopPawOpen; shopRender(); });
+    onTap(fold, ()=>{
+      shopPawOpen=!shopPawOpen; shopRender();
+      if(shopPawOpen && shopBillingState==='unavailable' && typeof capacitorApp!=='undefined' && capacitorApp) iapRefreshProducts();
+    });
     sec.appendChild(fold);
     if(shopPawOpen){
       const grid=document.createElement('div'); grid.className='pkg3';
       for(const it of PAW_PACK){
         const card=document.createElement('button');
+        const available=shopBillingState==='ready' && shopPricedProducts.has(it.productId);
+        card.disabled=!available;
         card.className='pkgc'+(it.best?' best':'');
         card.innerHTML=(it.best? '<span class="pkgtag">'+I18N.t('shop.popular')+'</span>' : '')
           +'<span class="pkgi">'+PAW_PACK_ICO[it.k]+'</span>'
           +'<b class="pkgnm">'+it.nm+'</b>'
           +'<i class="pkgsub">'+I18N.t('shop.quantity',{count:it.paw.toLocaleString()})+'</i>'
-          +'<span class="pkgbuy">'+it.price+'</span>';
-        onTap(card, ()=>pawPackBuy(it));
+          +'<span class="pkgbuy">'+(available?it.price:shopBillingState==='ready'?I18N.t('shop.paymentUnavailable'):shopBillingLabel())+'</span>';
+        onTap(card, ()=>{ if(shopBillingState==='ready' && shopPricedProducts.has(it.productId)) pawPackBuy(it); });
         grid.appendChild(card);
       }
       sec.appendChild(grid);
@@ -12920,6 +13010,7 @@ function openShop(){
   moonMode=false; tsMode=false; menuMode=false; yardMode=false;
   shopTab='bag'; shopRender();
   el("shopsel").classList.add("show");
+  if(typeof capacitorApp!=='undefined' && capacitorApp && shopBillingState!=='loading') iapRefreshProducts();
   bgmSync();
   clearTimeout(stampShopTimer); stampShopTimer=0;
 }
@@ -16809,7 +16900,7 @@ function gainFx(kind, n){
 }
 function syncHud(){
   const h=el("hudCur"); if(!h) return;
-  el("hudPaw").textContent = (pawShow==null? pawBal : pawShow);
+  { const t=String(pawShow==null? pawBal : pawShow), e=el("hudPaw"); if(e.textContent!==t) e.textContent=t; }   // 같은 값이면 안 쓴다 — 매 프레임 불린다
   const last=Math.max(maxLevel, BAKED.length);
   // (별 총합 배지 제거 — lsStars/lsMax 갱신도 같이 걷어냈다)
   // 판 안에서도 띄운다 — 도토리·밥이 실제로 나가는 자리가 판 안이라, 거기서 안 보이면
@@ -26997,6 +27088,13 @@ function tsTapMark(){
   tone(520,0.04,"sine",0.03,700); buzz(6);
 }
 window.addEventListener("keydown",e=>{ const m={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+  if(buyAsk){
+    if(e.key==='Escape'){ e.preventDefault(); buyClose(); }
+    else if(e.key==='Tab'){
+      e.preventDefault(); (document.activeElement===el('buyOk')?el('buyNo'):el('buyOk')).focus?.();
+    }else if(m[e.key]) e.preventDefault();
+    return;
+  }
   if(acornReceiptActive){
     if(e.key==='Escape'){ e.preventDefault(); collectAcornReceipt(false); }
     else if(e.key==='Tab'){ e.preventDefault(); el('acornReceiptCollect').focus?.(); }
@@ -27614,7 +27712,14 @@ onTap(el("buGo"), ()=>{
   if(buAfter){ const f=buAfter; buAfter=null; setTimeout(f, 300); return; }
   setTimeout(checkContentUnlocks, 320);
 });
-onTap(el("buyOk"), ()=>{ const a=buyAsk; buyClose(); if(a && a.onOk) a.onOk(); });
+onTap(el("buyOk"), ()=>{
+  const a=buyAsk; if(!a) return;
+  if(pawBal<a.cost && a.inShop){
+    buyClose(); shopPawOpen=true; shopRender(); shopScrollToPacks(); return;
+  }
+  buyClose(); if(a.onOk) a.onOk();
+});
+onTap(el('buyShade'), ()=>buyClose());
 onTap(el("buyNo"), buyClose);
 // 성장 단계 상세 — 닫기 버튼과 바깥을 누르면 닫힌다(카드 안쪽은 안 닫는다).
 onTap(el("glX"), closeGrowthLadder);
@@ -28288,6 +28393,7 @@ onTap(el("optReset"), ()=>{
 let cell,ox,oy;
 let boardTrim=false;   // 판 테두리를 반 칸만 보이게 잘랐나(fit). 잘렸으면 테두리 소품을 보이는 반 칸 안으로 줄여 넣는다(drawEdgeTile)
 function fit(){
+  gboardFitGen++;                                         // 판 자리가 다시 잡힌다 — 게시판 자리 측정을 새로 한다
   // DPR 상한 2 — 3x 기기(아이폰 등)에서 픽셀 수가 2.25배라 발열·배터리를 먹는데
   // 이 아트 스타일(면 채우기 위주)에선 2x 와 시각 차이가 거의 없다.
   const wrap=el("boardWrap"); const dpr=Math.min(2, window.devicePixelRatio||1);
@@ -28370,8 +28476,13 @@ const GBOARD_ON=true, GBOARD_NEED=176;                      // 판 밑에 이만
 const GBOARD_MIN_CELL=38;                                    // 게시판 자리를 내려고 판을 줄여도 칸은 이보다 작게 안 한다
 function gboardPlay(){ return GBOARD_ON && !menuMode && !tutMode && !houseMode && !yardMode && !moonMode && !tsMode && !lunchMode && !selMode && level>=1; }
 // 판을 줄여서라도 게시판 자리를 비울 화면 — 본편 판 · 방향 버튼 꺼짐 · 세로로 긴 화면(폰 세로). 데스크톱·가로는 지금처럼 남는 자리에만.
+// 매 프레임 syncHud → gboardSync 가 부른다 — getBoundingClientRect 가 레이아웃을 매번 강제했다(실측 CPU 5%).
+// 판 자리는 창 크기와 fit 이 정하므로, 그 둘이 그대로면 앞서 잰 값을 쓴다.
+let gboardResKey='', gboardResVal=false, gboardFitGen=0, gboardSyncSig='';
+addEventListener('resize',()=>{ gboardFitGen++; },{passive:true});
 function gboardReserveOn(){ const w=el('wrap'); if(!gboardPlay() || optPad || !w || !w.getBoundingClientRect) return false;
-  const r=w.getBoundingClientRect(); return r.width>1 && r.height>=r.width*1.25; }
+  const key=gboardFitGen+'|'+document.body.className; if(key===gboardResKey) return gboardResVal;
+  const r=w.getBoundingClientRect(); gboardResKey=key; gboardResVal=r.width>1 && r.height>=r.width*1.25; return gboardResVal; }
 let gboardFitBusy=false, gboardFitWant=false;   // 마지막 fit 이 게시판 자리를 원했나(칸이 너무 작아 포기했어도 원한 것으로 둔다 — 다시 재지 않게)
 const DISTRICT_SCENE_ART={
   1:'art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp',
@@ -28400,6 +28511,10 @@ function gboardSync(){
   if(!gboardFitBusy && document.body.classList && gboardReserveOn()!==gboardFitWant){
     gboardFitBusy=true; try{ fit(); }finally{ gboardFitBusy=false; } return; }
   document.body.classList.toggle('gscene', !!play);
+  // 매 프레임 불린다 — 레이아웃 측정 둘·배경 주소·안내 HTML 을 매번 다시 쓰던 게 폰에서 버벅임·발열 몫이었다(10-05).
+  // 판·판 자리·언어·결과가 그대로면 앞의 결과를 그대로 둔다.
+  const sig=[play?1:0, optPad?1:0, gboardFitGen, level, state, starMap[level]|0, I18N.locale||'', boardTrim?1:0].join('|');
+  if(sig===gboardSyncSig) return; gboardSyncSig=sig;
   let on=false;
   if(play && !optPad && cv && cv.getBoundingClientRect){
     const c=cv.getBoundingClientRect(), wr=w.getBoundingClientRect(), vis=c.bottom-(boardTrim? Math.round(cell/2) : 0);
@@ -33785,6 +33900,34 @@ function drawHmeal(bx,by,s){
 // 타일에도 잔물결·새싹 스윙 같은 미세 애니가 있어 20fps 로 리프레시 — 체감 차이 없음.
 // filled(구덩이 메움·페인트 소모·물 멎음)나 레벨·크기가 바뀌면 즉시 다시 굽는다.
 let tileCv=null, tileCtx=null, tileKey='', tileT=0;
+// 바닥 한 장 — 판 칸·비눗물·씻긴 칸. tileCtx 와 정지 판정용 사본이 같은 그림을 그린다.
+function tileLayerPaint(){
+  if(houseMode && !houseIn) drawHouseGround();
+  // 비눗물·씻긴 칸은 여기서 칸 자리만 모은다 — 일렁임은 drawTilesCached 가 매 프레임 판 위에 바로 그린다(바닥 사본은 멈춰 있게).
+  soapBatch=true; const cells=[];
+  try{ for(let r=0;r<GN;r++) for(let c=0;c<GN;c++){ drawTile(r,c); if(soapVisible(r,c)) cells.push([r,c]); } }
+  finally{ soapBatch=false; }
+  const rc=[]; for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); }
+  tileSoapCells=cells; tileRinseCells=rc;
+}
+let tileSoapCells=[], tileRinseCells=[];
+// 이 바닥이 시간에 따라 움직이나 — 0.37초 뒤 모습을 따로 그려 반 크기로 견준다. 판이 바뀔 때 한 번만 잰다.
+let tileAnim=true, tileAnimFor='', tileAnimAt=0, tileCmp=null;
+function tileLayerMoves(w,h,dpr){
+  try{
+    const W=Math.max(1,Math.round(w/2)), H=Math.max(1,Math.round(h/2));
+    if(!tileCmp){ tileCmp=[0,1,2].map(()=>document.createElement('canvas')); }
+    const [alt,a,b]=tileCmp; alt.width=tileCv.width; alt.height=tileCv.height; a.width=b.width=W; a.height=b.height=H;
+    const ac=alt.getContext('2d'); ac.setTransform(dpr,0,0,dpr,0,0); ac.clearRect(0,0,w,h);
+    const o=ctx, t0=animT; ctx=ac; animT=t0+0.37;
+    try{ tileLayerPaint(); } finally { ctx=o; animT=t0; }
+    const A=a.getContext('2d',{willReadFrequently:true}), B=b.getContext('2d',{willReadFrequently:true});
+    A.clearRect(0,0,W,H); B.clearRect(0,0,W,H); A.drawImage(tileCv,0,0,W,H); B.drawImage(alt,0,0,W,H);
+    const p=A.getImageData(0,0,W,H).data, q=B.getImageData(0,0,W,H).data;
+    let n=0; for(let i=0;i<p.length;i+=4) if(Math.abs(p[i]-q[i])>6 || Math.abs(p[i+1]-q[i+1])>6 || Math.abs(p[i+2]-q[i+2])>6 || Math.abs(p[i+3]-q[i+3])>6){ if(++n>12) return true; }   // 진짜 흔들림은 칸마다 수백 픽셀 — 한두 점은 잡음
+    return false;
+  }catch(e){ return true; }                                 // 못 재면 예전처럼 계속 다시 그린다
+}
 function drawTilesCached(){
   if(!cell){ return; }                                   // 보드가 아직 안 잡힘(레이아웃 과도기) — 그릴 게 없다.
   // 0×0 캔버스에 drawImage 하면 InvalidStateError 로 던진다. 실제로 이 크래시가
@@ -33797,18 +33940,29 @@ function drawTilesCached(){
   const rustleOn=acornSt.some(m=>m.w && !m.got && (matWallTeach(m.w) || critterHidden(m.r,m.c)));
   const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
     +'|'+(rustleOn? Math.round(animT*60) : '-');
-  const stale=(key!==tileKey) || (animT-tileT>0.05);
+  const keyBase=rustleOn? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
+  // 바닥은 원래 50ms 마다 통째로 다시 그렸다(일렁이는 비눗물·흔들리는 꽃). 정지한 바닥까지 초당 20번 다시 그려
+  // 폰 GPU 로 큰 그림을 매번 올리는 게 발열의 한 몫이었다(10-05). 판(키)이 바뀌면 한 번 재서 움직이는 게 없으면 멈춘다.
+  // 시간에 따라 드러나는 연출(첨벙통·펌프 물·깎이·구덩이)이 도는 동안은 예전처럼 계속 다시 그린다.
+  const busy=!!tubPourFx || !!pumpShotFx || !!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower');   // 바닥 그림이 시간 연출을 따라가는 것만(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
+  // 테두리 장식(빨래·바람개비·풀)은 느린 흔들림이라 초당 10번이면 충분하다 — 손을 쉬면 6~7번. 연출이 도는 동안만 20번.
+  const every=busy? 0.05 : frameIdle(performance.now())? 0.15 : 0.1;
+  // 정지 판정 차례 — 판이 바뀌었거나, 움직인다고 본 지 2초가 지났을 때(장식 그림이 늦게 뜨면 처음엔 움직이는 것처럼 보인다).
+  // 연출 중에 그린 사본으로 견주면 틀리니 먼저 새로 그린다.
+  const check=!busy && keyBase && (tileAnimFor!==keyBase || (tileAnim && animT-tileAnimAt>2));
+  const stale=(key!==tileKey) || check || ((tileAnim || busy || !keyBase) && animT-tileT>every);
   if(stale){
     if(!tileCv){ tileCv=document.createElement('canvas'); tileCtx=tileCv.getContext('2d'); }
     if(tileCv.width!==w*dpr || tileCv.height!==h*dpr){ tileCv.width=w*dpr; tileCv.height=h*dpr; }
     tileCtx.setTransform(dpr,0,0,dpr,0,0); tileCtx.clearRect(0,0,w,h);
     const o=ctx; ctx=tileCtx;
-    if(houseMode && !houseIn) drawHouseGround();
-    drawTilesWithSoap(GN, GN, (r,c)=>[r,c], soapVisible);
-    { const rc=[]; for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); } drawRinseCells(rc, 1); }
+    tileLayerPaint();
     ctx=o; tileKey=key; tileT=animT;
   }
+  if(check){ tileAnimFor=keyBase; tileAnimAt=animT; tileAnim=tileLayerMoves(w,h,dpr); }
   ctx.drawImage(tileCv, 0, 0, tileCv.width, tileCv.height, 0, 0, w, h);
+  if(tileSoapCells.length) drawSoapLiquid(tileSoapCells, soapVisible);              // 일렁이는 액체는 매 프레임 그 칸만
+  if(tileRinseCells.length) drawRinseCells(tileRinseCells, 1);
 }
 
 // ── 냇물 붓 ─────────────────────────────────────────────────────────────
@@ -37662,7 +37816,16 @@ const decay=(k)=>1-Math.pow(1-k,dtF);        // 프레임당 비율 감쇠(러�
 // 캔버스는 마지막 성공 프레임에 고정돼 있었다 — "마당이 안 나온다"로 보고된 증상.
 // 한 프레임이 깨져도 다음 프레임에서 스스로 회복하도록 감싼다 — 상태 일부가 이번 프레임만
 // 못 갱신되는 게, 게임 전체가 영구히 멈추는 것보다 훨씬 낫다.
+// 프레임 페이스(10-05 사람: 폰에서 버벅이고 뜨겁다) — 실측(폰 크기·CPU 4배 느림)에서 가만히 서 있어도
+// 매 프레임 판 전체를 그려 쉬는 시간이 14%뿐이었다. 120Hz 폰은 그걸 두 배로 한다.
+// 움직이는 동안은 최대 60fps, 손이 2초 쉬고 움직이는 게 없으면 30fps 로 내린다. dt 가 길어질 뿐 규칙은 그대로다.
+let framePrevTs=0, paceWake=0;
+['pointerdown','keydown','touchstart','wheel'].forEach(k=>addEventListener(k,()=>{ paceWake=performance.now(); },{passive:true, capture:true}));
+function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin; }
 function frame(ts){
+  const now=ts||performance.now(), gap=frameIdle(now)? 1000/30 : 1000/60;
+  if(framePrevTs && now-framePrevTs < gap-3){ requestAnimationFrame(frame); return; }
+  framePrevTs=now;
   try{ frameInner(ts); }
   catch(e){ console.error('frame() 예외 — 이번 프레임만 건너뛴다', e); }
   requestAnimationFrame(frame);

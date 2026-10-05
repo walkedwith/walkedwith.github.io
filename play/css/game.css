@@ -2255,6 +2255,7 @@
   .kibc { flex:1; background:#FFFDF8; border:2px solid #EADFC9; border-radius:15px;
     padding:10px 8px 11px; text-align:center; font-family:inherit; cursor:pointer; }
   .kibc.best { border-color:#8FC24E; }
+  .kibqty { display:block; color:#4A3524; font-size:var(--fs-label); font-weight:var(--w-bold); margin-top:4px; }
   .kibc:active { transform:scale(.97); }
   .kibg { display:block; height:54px; }
   .kibg svg { display:block; margin:0 auto; }
@@ -3229,6 +3230,7 @@
     font-family:var(--f-body); font-size:var(--s6); line-height:1.4; color:#7A5330; text-align:center;
     box-shadow:0 6px 22px rgba(43,32,54,.25); opacity:0; pointer-events:none; transition:opacity .3s, transform .3s; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #toast.shop-toast { z-index:65; }
   #toast b { color:#B5483F; font-weight:var(--w-reg); }
   /* 건너뛰기 제안 — 화면을 막지 않는다. 놀이를 중단시키면 "포기하라"는 압박이 된다.
      아래쪽에 조용히 떠 있다가, 계속 풀면 그냥 거기 있는 채로 둔다. */
@@ -3286,17 +3288,36 @@
   #mealCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   /* 살까요? 카드 — 밥그릇 시트와 같은 자리·같은 모양. 상점 위(57)에 떠야 한다. */
   #buyCard { position:absolute; left:50%; bottom:96px; transform:translateX(-50%) translateY(10px);
-    z-index:62; width:286px; max-width:86%; background:rgba(255,249,240,.98); border-radius:20px;
+    z-index:64; width:286px; max-width:86%; background:rgba(255,249,240,.98); border-radius:20px;
     padding:15px 16px 13px; text-align:center;
     box-shadow:0 8px 26px rgba(43,32,54,.24),0 0 0 100vmax rgba(43,32,54,.28);
     opacity:0; visibility:hidden; pointer-events:none; transition:opacity var(--t-base), transform var(--t-base); }
   #buyCard.show { opacity:1; visibility:visible; transform:translateX(-50%); pointer-events:auto; }
   #buyCard .mct { margin:4px 0 20px; font-size:var(--s6); line-height:1.35; color:#4A3524; }
   #buyCard .mct b { font-weight:var(--w-bold); }
-  #buyCard .mcsub { display:none; }
+  #buyShade { position:absolute; inset:0; z-index:63; background:rgba(43,32,54,.28); }
+  #buyShade[hidden] { display:none; }
+  #buyCard { display:flex; flex-direction:column; bottom:max(16px,env(safe-area-inset-bottom)); max-height:calc(100% - 88px); overflow:hidden;
+    box-shadow:0 8px 26px rgba(43,32,54,.24); }
+  #buyContent { min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+  #buyCard .mcsub { display:block; color:#665540; font-size:var(--s8); line-height:1.55; margin:8px 0 12px; white-space:pre-line; }
+  #buyCard .mcsub[hidden], #buyPreview[hidden], #buyBalance[hidden], #buyCost[hidden] { display:none !important; }
+  #buyPreview { display:block; width:144px; height:144px; max-width:100%; margin:0 auto; }
+  #buyBalance { color:#665540; font-size:var(--s8); line-height:1.45; margin:8px 0 14px; }
+  #buyBalance.short { color:#A3372E; }
+  .pkgc:disabled { cursor:default; }
+  .pkgc:disabled .pkgbuy { background:#E4E7E2; color:#525E4C; box-shadow:none; font-size:var(--s9); line-height:1.4; white-space:normal; }
+  @media (max-height:600px) { #buyPreview { width:88px; height:88px; } #buyCard .mct { margin-bottom:8px; } }
+  @media (max-height:450px) and (min-width:600px) {
+    #buyCard { width:400px; }
+    #buyCard:has(#buyPreview:not([hidden])) #buyContent { display:grid; grid-template-columns:76px minmax(0,1fr); column-gap:10px; }
+    #buyCard:has(#buyPreview:not([hidden])) .mct { grid-column:1 / -1; }
+    #buyCard:has(#buyPreview:not([hidden])) #buyPreview { grid-column:1; grid-row:2 / span 2; width:72px; height:72px; align-self:center; }
+    #buyCard:has(#buyPreview:not([hidden])) .mcsub, #buyCard:has(#buyPreview:not([hidden])) #buyBalance { grid-column:2; text-align:left; margin:4px 0 8px; }
+  }
   #buyCard .rsfirst { display:block; width:max-content; margin:0 auto 8px; padding:3px 10px; border-radius:6px; background:#E8604C; color:#fff; font-size:var(--s8); }   /* 첫 선물 띠 — 방 첫 거울(10-05) */
   #buyCost s { opacity:.6; text-decoration-thickness:2px; text-decoration-color:#C0564A; }
-  #buyCard .buyactions { display:grid; gap:9px; }
+  #buyCard .buyactions { display:grid; gap:9px; flex-shrink:0; padding:4px 0; }
   #buyCard .buyok, #buyCard .buyback { width:100%; min-height:46px; border-radius:14px;
     font-family:var(--f); font-size:var(--s7); cursor:pointer; }
   #buyCard .buyok { display:flex; align-items:center; justify-content:center; border:0;
