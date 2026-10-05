@@ -35,6 +35,7 @@
   }catch(_){ finish(false); }
 })();
 </script>
+<link rel="stylesheet" href="css/onboarding-comic.css?v=3633db6920d4">
 </head>
 <body class="hud-pilot booting testbuild"><div id="testBuildBadge" style="position:fixed;left:8px;bottom:8px;z-index:10000;padding:6px 10px;border-radius:999px;background:#2B2036;color:#FFF9F0;font:12px sans-serif;pointer-events:none">TEST · 전 동네 열림 · 저장 분리</div>
 <div id="bootLoading" hidden aria-busy="true">
@@ -783,8 +784,8 @@
   </div>
 </div>
 
-<script src="localization/ko.js"></script>
-<script src="localization/en.js"></script>
+<script src="localization/ko.js?v=ae6f05e14542"></script>
+<script src="localization/en.js?v=233013b17104"></script>
 <script src="localization/i18n.js"></script>
 <script src="billing/roll-economy.js?v=735da02bf8f4"></script>
 <script src="billing/cdv-purchase-adapter.js"></script>
@@ -19273,6 +19274,7 @@ function showStory(mood, html, btn, onGo){
 }
 function storyHide(){ el("storysel").classList.remove("show"); document.body.classList.remove('instory'); }
 function startStory(){
+  if(window.MaxComicIntro){ window.MaxComicIntro.start(); return; }
   stopGameEffects(); document.body.classList.add('instory');
   storyStep=0; storyCB=null;
   el("menu").classList.remove("show"); document.body.classList.remove("inmenu");
@@ -37743,6 +37745,7 @@ if(typeof ResizeObserver!=='undefined'){
 // Android 뒤로가기는 화면을 건너뛰지 않는다: 가장 위 카드 → 하위 화면 → 플레이 중
 // 나가기 확인 → 타이틀에서 앱 종료 순서다. 웹에서는 같은 함수가 등록만 안 된다.
 function closeTopOverlayForBack(){
+  if(window.MaxComicIntro?.status().active){ window.MaxComicIntro.skip(); return true; }
   if(acornReceiptActive){ collectAcornReceipt(false); return true; }
   const shown=(id,cls)=>{ const n=el(id); return !!(n&&n.classList.contains(cls||'show')); };
   const click=id=>{ const n=el(id); if(n){ n.click(); return true; } return false; };
@@ -37913,5 +37916,6 @@ if(window.MaxBootLoading) window.MaxBootLoading.ready();
 <script src="mechanics/grandpa-tools.js"></script>
 <script src="mechanics/core-joy-qa.js"></script>
 <script src="mechanics/training-practice.js"></script>
+<script src="mechanics/onboarding-comic.js?v=46c5850fd354"></script>
 </body>
 </html>

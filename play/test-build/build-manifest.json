@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-04T21:44:10.890Z",
-  "totalBytes": 77316623,
+  "generatedAt": "2026-10-05T01:32:17.770Z",
+  "totalBytes": 78959178,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2887257
+      "bytes": 2887764
     },
     {
       "path": "css/game.css",
@@ -15,12 +15,12 @@
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 77112
+      "bytes": 77811
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 70101
+      "bytes": 70745
     },
     {
       "path": "localization/i18n.js",
@@ -1816,6 +1816,66 @@
       "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.png",
       "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.png",
       "bytes": 256639
+    },
+    {
+      "path": "mechanics/onboarding-comic.js",
+      "source": "mechanics/onboarding-comic.js",
+      "bytes": 15076
+    },
+    {
+      "path": "css/onboarding-comic.css",
+      "source": "css/onboarding-comic.css",
+      "bytes": 1273
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-01.webp",
+      "source": "art/onboarding-comic-v3/page-01.webp",
+      "bytes": 251634
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-02.webp",
+      "source": "art/onboarding-comic-v3/page-02.webp",
+      "bytes": 173900
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-03.webp",
+      "source": "art/onboarding-comic-v3/page-03.webp",
+      "bytes": 184590
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-04.webp",
+      "source": "art/onboarding-comic-v3/page-04.webp",
+      "bytes": 251484
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-01.webp",
+      "source": "art/onboarding-comic-v4/door-01.webp",
+      "bytes": 155396
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-02.webp",
+      "source": "art/onboarding-comic-v4/door-02.webp",
+      "bytes": 154904
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-03.webp",
+      "source": "art/onboarding-comic-v4/door-03.webp",
+      "bytes": 161472
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-04.webp",
+      "source": "art/onboarding-comic-v4/door-04.webp",
+      "bytes": 172104
+    },
+    {
+      "path": "art/onboarding-comic-v1/knock.wav",
+      "source": "art/onboarding-comic-v1/knock.wav",
+      "bytes": 65580
+    },
+    {
+      "path": "art/onboarding-comic-v1/light.wav",
+      "source": "art/onboarding-comic-v1/light.wav",
+      "bytes": 53292
     }
   ]
 }

@@ -1,16 +1,45 @@
 {
-  "sourceHead": "16243745e4e2745962c774a646ba6f4ae6f804de",
-  "date": "2026-10-04T21:47:18.307Z",
-  "liveSha256": "8c4d322f9aba83dd6209245ed8f661a2d9693331627864fac92f5d3892349cf5",
-  "testSha256": "547cdb6c9ede87f0a0a7efe3e49395261a43cbee5bde248ed8c74398bb7a7b2b",
-  "files": 363,
-  "sourceCommit": "16243745e4e2745962c774a646ba6f4ae6f804de",
   "kind": "test",
-  "tests": {
-    "total": 1033,
-    "passed": 978,
-    "failed": 0,
-    "skipped": 55
+  "date": "2026-10-05T01:32:17.770Z",
+  "scope": "Approved comic v4 intro only; existing tutorial retained",
+  "testSha256": "4f51b799b88468f6b356807ebe87b80138d640e96889cf30d6eadef03fd0c507",
+  "liveSha256": "8c4d322f9aba83dd6209245ed8f661a2d9693331627864fac92f5d3892349cf5",
+  "files": 375,
+  "baselineRelease": {
+    "sourceHead": "16243745e4e2745962c774a646ba6f4ae6f804de",
+    "date": "2026-10-04T21:47:18.307Z",
+    "liveSha256": "8c4d322f9aba83dd6209245ed8f661a2d9693331627864fac92f5d3892349cf5",
+    "testSha256": "547cdb6c9ede87f0a0a7efe3e49395261a43cbee5bde248ed8c74398bb7a7b2b",
+    "files": 363,
+    "sourceCommit": "16243745e4e2745962c774a646ba6f4ae6f804de",
+    "kind": "test",
+    "tests": {
+      "total": 1033,
+      "passed": 978,
+      "failed": 0,
+      "skipped": 55
+    },
+    "levelChecks": 430
   },
-  "levelChecks": 430
+  "introFiles": {
+    "mechanics/onboarding-comic.js": "46c5850fd3548dfd2a24af29e31abc11bea9bd32f6c56097dfa3065eb99e2f22",
+    "css/onboarding-comic.css": "3633db6920d4c59cced3997144dd8aa03efe0ae3ebb9cd1ee1808bb4233c087c",
+    "art/onboarding-comic-v3/page-01.webp": "13870eb2e0802e7963ff72545328dc5b1bc38524641f58b90fc77c7ec25ecbcf",
+    "art/onboarding-comic-v3/page-02.webp": "110648b616fbf2cb732be7da0d0396fb1d67259bc042dee2160daa58fe84c76d",
+    "art/onboarding-comic-v3/page-03.webp": "a3229f2313ed15f2a942a31d5486fdfd883224d4818d7f96bedcaf38ff107270",
+    "art/onboarding-comic-v3/page-04.webp": "39f15f85599c9749b910e1b67a408ef3ab50e9ca1cb6cd7520bbb2f5e0aade40",
+    "art/onboarding-comic-v4/door-01.webp": "0827ccf92898c46bc7431c28f311c6ac6d8df4ce0c41c6e969a863acbf4ea82a",
+    "art/onboarding-comic-v4/door-02.webp": "038dbbbc22ebfd171cda4c0dba4226275f830185a1566781c99b4293b07cbda1",
+    "art/onboarding-comic-v4/door-03.webp": "5921b987cbd64f748660f1243c1253c7e2c525c49e73d445bd73cb1b8cb8c10a",
+    "art/onboarding-comic-v4/door-04.webp": "d4e16e1cc8c25884813bd63f99f3f3ee666a39c9521b1a05f43400f06916e627",
+    "art/onboarding-comic-v1/knock.wav": "187860c68e5e480f3d6e7d3edd91e7500319a8afdd816d133437de49c6c84fa8",
+    "art/onboarding-comic-v1/light.wav": "b016b47575e0b74b45bbe855ab3b67f6e22e4d4ed8484a14deed7cae91d0bb38"
+  },
+  "validation": {
+    "focusedNodeTestsPassed": 24,
+    "candidateBrowserScenariosPassed": 10,
+    "candidatePageErrors": 0,
+    "liveStorageIsolation": "passed",
+    "publicBrowserCheck": "performed after publication; recorded in source handoff"
+  }
 }
