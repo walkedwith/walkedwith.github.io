@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-10-04T21:47:18.123Z",
-  "totalBytes": 77316623,
+  "generatedAt": "2026-10-05T01:43:26.510Z",
+  "totalBytes": 77333989,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2887257
+      "bytes": 2903448
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 634112
+      "bytes": 634419
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 77112
+      "bytes": 77557
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 70101
+      "bytes": 70524
     },
     {
       "path": "localization/i18n.js",

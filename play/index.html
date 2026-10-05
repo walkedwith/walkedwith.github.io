@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=d7950eaa39fd">
+<link rel="stylesheet" href="css/game.css?v=e7b10250742c">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -8022,8 +8022,8 @@ function openLvlSel(){                                  // 스테이지 선택 =
   el("yardsel").classList.remove("show","farmmap-on");
   el("lvlsel").classList.add("show");
   bgmSync();
-  const cur=lsWant || nextLv();                     // 스크롤도 다음에 걸을 판으로 맞춘다
-  lsWant=0;                                         // 쪽지는 한 번만 쓴다
+  const cur=lsWant || lsBackLv || nextLv();         // 스크롤도 다음에 걸을 판으로 맞춘다(다시 깬 지난 판이면 그 판)
+  lsWant=0; lsBackLv=0;                             // 쪽지는 한 번만 쓴다
   const sc=el("lsScroll"), n=el("lsMap").querySelector('[data-lv="'+cur+'"]');
   // offsetTop 은 **그 판이 속한 동네 띠(.lstrail) 안에서의** 위치다 — 동네마다 0 부터
   // 다시 센다. 그걸 그대로 scrollTop 에 넣고 있어서, 어느 판을 가리켜도 목록 꼭대기
@@ -9099,6 +9099,8 @@ function lsProgHTML(n){
 // 제 스크롤(nextLv)을 잡고 완주 카드까지 띄워서 부드러운 스크롤이 중간에 잘렸다 —
 // 폴짝 공터로 간다고 해 놓고 153판(6동네)에 내려놓았다(실측).
 let lsWant=0;
+// 이미 깬 판을 다시 깨고 나오면 목록이 그 판에 머문다(10-05 사람) — 맥스(다음 판 표시)는 그대로 앞길에 서 있다.
+let lsBackLv=0, lvWasCleared=false;
 // 그 동네에서 다음에 걸을 판. 다 걸었으면 동네 첫 판으로 — 없는 판을 가리키지 않는다.
 function lsNextInDist(n){
   const d=DISTRICTS[n-1]; if(!d) return 0;
@@ -9405,13 +9407,14 @@ function renderLvlMap(){
   // 펼침 애니메이션이 자리를 잡은 뒤에 옮긴다(바로 부르면 높이가 0 이라 안 먹는다).
   if(openD>=0){
     const want=map.querySelector('.lstrail .lslv.nx') || map.querySelector('.lstrail .lslv.cur');
+    const back=lsBackLv && map.querySelector('.lstrail .lslv[data-lv="'+lsBackLv+'"]'), look=back || want;   // 다시 깬 지난 판이면 목록은 그 판을 비춘다
     if(want) requestAnimationFrame(()=>requestAnimationFrame(()=>{
       try{
         // 지평선을 두면서 초반 오솔길은 화면 안에 다 들어온다 — 그때 가운데로 끌어오면
         // 동네 머리글이 위로 밀려 나간다(실측). 넘칠 때만 옮긴다.
         const sc=el('lsScroll');
         const tall=sc && sc.scrollHeight > sc.clientHeight+120;
-        want.scrollIntoView({block: tall?'center':'nearest', behavior:'auto'});
+        look.scrollIntoView({block: tall?'center':'nearest', behavior:'auto'});
       }catch(e){ }
       const walk=lsWalkPend; lsWalkPend=false; lsWalkIn(want,walk);
     }));
@@ -11207,7 +11210,7 @@ function applyScene(g){
   filled=new Set();
   par=g.par; moves=0; undoStack=[]; state="play"; undoFacing=null; undoFx=null;
   if(!tutMode) tutSlide=0;
-  fx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; treatAllPend=0; seatCombo=0; seatLastMove=-99;
+  fx=[]; liqFx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; treatAllPend=0; seatCombo=0; seatLastMove=-99;
   matIntroT=(menuMode||moonMode||tutMode)? -1 : 0; winFest=null;
   { const wf=el('winFest'); if(wf) wf.classList.remove('show','stk'); } deadT=0; deadPend=false; trail=[]; walkPulse=[]; rollPulse=[];
   joyT=0; joyN=0; glum=0;                                        // 판 안 맥스 반응도 판마다 처음부터
@@ -11255,6 +11258,7 @@ function hudPilotForLevel(lv){ return true; }
 function uiuxPolishForLevel(lv){ return lv>=1; }
 // keepTries: 같은 판을 다시 까는 것이라 시도 횟수를 이어 센다(재시작). 안 주면 새 입장이다.
 function loadLevel(lv, moon, keepTries){
+  lvWasCleared=(starMap[lv]|0)>0; lsBackLv=0;                  // 다시 걷는 판인가 — 깨고 나가면 목록이 여기로 온다
   mowDir={lv:0, m:new Map()};                                   // 깎은 결(그림)은 판을 다시 깔면 지운다
   teach=null;
   if(TRAINING_PRACTICE && typeof trainingPracticeStart==='function') return trainingPracticeStart();
@@ -12388,11 +12392,13 @@ function foodSeparatePrice(){
   const half=Math.ceil(MEAL_MAX/2);
   return MEAL_MAX%half===0?KIBBLE_HALF_COST*(MEAL_MAX/half):0;
 }
-function buyConfirm(title, sub, cost, onOk){
-  if(pawBal<cost){ sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return; }
-  buyAsk={cost, onOk, title, sub};
+function buyConfirm(title, sub, cost, onOk, opts){
+  const free=!!(opts && opts.free);                          // 무료로 주는 첫 선물 — 원래 값을 긋고 「무료로 받기」(방 첫 거울, 10-05)
+  if(!free && pawBal<cost){ sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return; }
+  buyAsk={cost:free? 0 : cost, onOk, title, sub};
   refreshBuyCopy();
-  el('buyCost').innerHTML=' '+pawIco()+' '+cost;
+  const lb=el('buyOk') && el('buyOk').querySelector('span'); if(lb) lb.textContent=I18N.t(free? 'room.slot.freeTake' : 'shop.confirm');
+  el('buyCost').innerHTML=free? ' <s>'+pawIco()+' '+cost+'</s>' : ' '+pawIco()+' '+cost;
   el('buyCard').classList.add('show');
 }
 function refreshBuyCopy(){
@@ -12958,7 +12964,7 @@ onTap(el("shClose"), closeShop);
 //    다만 목록의 죽은 항목 둘(울타리·트램플린)은 이 커밋에서 같이 고쳤다.
 // let 인 건 테스트가 g.run 으로 켜고 끄며 양쪽을 다 재기 때문이다.
 let YARD_CONTENT_ON=true;
-const YARD_OPEN_AT=5;                                       // 마당이 열리는 판 수(10-04 사람: 10 → 5, 첫 선물 판과 같이)
+const YARD_OPEN_AT=30;                                      // 마당이 열리는 판 수(10-05 사람: 5 → 30 — 젬은 방 자리에 쓴다, 마당은 1동네를 다 걸은 뒤)
 // 마당의 **산 것들**(맥스 · 수수 · 율무)을 그릴지. 2026-09-21 껐다 — 마당은 지금
 // 장식과 짓기를 보여 주는 자리고, 산 것이 같이 돌아다니면 시선이 그쪽으로 간다.
 // **그리기만 끈다.** 움직임·밥·짓기 로직은 그대로 돈다(맥스가 물건 앞까지 걸어가
@@ -16809,7 +16815,8 @@ function syncHud(){
   const onSel=["lvlsel","shopsel","yardsel"].some(id=>el(id) && el(id).classList.contains("show"));
   const inPlay=!tutMode && !menuMode && !onSel && !document.body.classList.contains("inmenu");
   const inYard=houseMode && !houseIn && YARD_GEM_ON && yardUnlocked();   // 마당 — 여섯 자리 값표를 읽으려면 지갑이 보여야 한다(10-04)
-  h.classList.toggle("on", onSel || inPlay || inYard);
+  const inRoomSlots=roomSlotsOn();                           // 방 자리 값표 — 젬 지갑이 보여야 한다(10-05)
+  h.classList.toggle("on", onSel || inPlay || inYard || inRoomSlots);
   document.body.classList.toggle("hudinplay", inPlay && !onSel);
   // 간식 칩은 첫 간식을 주운 뒤부터, + 는 쓸 가게가 열린 뒤부터(안 배운 건 숨긴다).
   document.body.classList.toggle("nopaw", !treatKnown());
@@ -20123,6 +20130,7 @@ function houseTap(x,y){
   if(houseGramps){ houseGrampsEnd(); return true; }           // 배달 중 — 한 번 누르면 바로 끝(상자는 제자리에)
   if(housePlacePending()){ housePlaceGo(); return true; }      // 선물이 떠 있다 — 어디를 눌러도 놓는다(링은 갈 곳을 보여 줄 뿐, 막힌 손이 없게)
   if(houseIn && houseDecoIsOpen() && !houseCarry){ const h=houseDecoHit(x,y); if(h){ houseDecoJump(h); return true; } }   // 꾸미는 중 — 짚은 물건의 종류로
+  if(!houseCarry && roomSlotTap(x,y)) return true;                 // 방 자리 — 값표·자리를 누르면 살까요?(벽 위 값표는 판 칸 밖이라 칸 찾기 전에)
   const p=houseCellAt(x,y);
   if(houseCarry){
     if(!p || (p.r===dog.r && p.c===dog.c)){ houseDrop(); return true; }
@@ -20218,7 +20226,8 @@ function houseRoomSignOn(){ return houseFurnSeen().length>0 || houseShopList(['t
 // 그다음은 늦게 연 꾸러미부터(giftOpened 는 넣은 순서를 지킨다), 가게에서 산 것은 뒤.
 let houseGiftNew=null;
 function houseGiftOrder(){
-  const p=houseFurnPending(), lvs=[...giftOpenedSet()], rank=it=>{ if(it.k===houseGiftNew) return -1;
+  const p=houseFurnPending().filter(it=>{ const k=roomSlotOf(it); return !k || roomSlotOwns(k); }),   // 자리를 안 산 선물은 값표 옆에서 기다린다(drawRoomSlots)
+        lvs=[...giftOpenedSet()], rank=it=>{ if(it.k===houseGiftNew) return -1;
     const i=lvs.findIndex(lv=>{ const x=furnAtLv(lv); return x && x.k===it.k; }); return i<0? 1e6 : lvs.length-i; };
   return p.slice().sort((a,b)=>rank(a)-rank(b));
 }
@@ -21346,7 +21355,7 @@ function houseGrassDeco(g, deco, dx, dy, r0){
 // 누르면 젬으로 놓는다. 첫 자리는 거울 — 앞에 서면 비친 제 모습에 맥스가 신나 한다(후디를 입으면 그 옷이 비친다).
 // 값은 1동네에서 버는 젬으로 두세 개를 놓을 만큼. 칸을 막지 않는 장식이다(마당 가구와 같다).
 // 가진 것은 roll_house.cash.yg = [k..]. 화면 확인용: window.__yardGem=['mirror',...] 가진 것처럼.
-const YARD_GEM_ON=true;
+const YARD_GEM_ON=false;                                    // 10-05 사람: 마당 젬 자리는 걷는다 — 젬은 방 자리(ROOM_SLOT)에 쓴다
 const YARD_GEM=[
   {k:'mirror', cost:10, at:[1,1]},
   {k:'stones', cost:20, at:[3,3]},                           // 대문에서 개집까지 디딤돌 — 자리 표는 길 가운데
@@ -21502,6 +21511,127 @@ function drawYardGems(){
   if(!yardGemOwns('mirror')){ const m=YARD_GEM[0].at, tap=Math.abs(Math.sin(animT*3))*s*0.12;   // 첫 자리 — 손가락이 톡톡
     drawHand(cx(m[1])+s*0.56-tap*0.5, cy(m[0])+s*0.12-tap, -0.55, 0.62, 0.95); }   // 값표를 안 가리게 오른쪽에서
 }
+// ── 방 자리(10-05 사람, 시안 4) — 젬으로는 **자리**를 산다. 자리에 놓을 물건은 판 선물로 받는다.
+// 거울 + 꾸러미 여섯 칸(러그·잠자리·대표 가구·벽지·바닥·옷걸이). 5판 뒤부터 방에 값표가 붙는다.
+// 칸 상태 넷: lock 잠김(흐린 그림 + 값) · wait 선물은 왔는데 자리가 없음(진한 그림 + 상자 + 값) ·
+// empty 자리는 샀고 선물 대기(금 테 + "N판 선물") · 놓임(그리지 않는다). 거울은 자리를 사면 거울이 선다.
+// 첫 거울은 원래 값(10)을 긋고 무료로 준다 — 첫 선물로 포장(10-05 사람). 가진 자리는 roll_house.cash.rs = [k..].
+// 이미 그 종류를 방에 놓아 둔 옛 세이브는 그 자리를 산 것으로 친다(가진 걸 빼앗지 않는다).
+const ROOM_SLOT_ON=true, ROOM_SLOT_AT=5;
+const ROOM_SLOT_COST={mirror:10, rug:15, bed:20, thing:25, paper:30, floor:40, hood:50};
+const ROOM_SLOT_KINDS=['mirror','rug','bed','thing','paper','floor','hood'];
+let roomSlotFx=null;
+function roomSlotsOn(){ return ROOM_SLOT_ON && houseMode && houseIn && (FREEPLAY || clearedCount()>=ROOM_SLOT_AT); }
+function roomSlotOf(it){ if(!it) return null; if(it.kind==='thing') return it.shop? null : 'thing';
+  return ['rug','bed','paper','floor','hood'].includes(it.kind)? it.kind : null; }
+function roomSlotPlaced(k){ const f=houseFurnState();
+  if(k==='thing') return !!f.on.thing;
+  if(k==='hood') return f.seen.some(z=>{ const it=HOUSE_FURN_BY[z]; return it && it.kind==='hood'; });
+  return !!f.on[k]; }
+function roomSlotOwns(k){
+  if(!ROOM_SLOT_ON) return true;
+  const cs=houseCashState(); if(Array.isArray(cs.rs) && cs.rs.includes(k)) return true;
+  if(k==='mirror') return Array.isArray(cs.yg) && cs.yg.includes('mirror');   // 마당 거울을 산 옛 세이브
+  return roomSlotPlaced(k);
+}
+function roomSlotFree(k){ return k==='mirror' && !(houseCashState().rs||[]).length; }   // 아무 자리도 안 산 첫 거울
+function roomSlotWaiting(k){ return houseFurnPending().find(it=>roomSlotOf(it)===k) || null; }
+function roomSlotNextLv(k){                                    // 이 자리에 올 다음 선물 판
+  const got=giftOpenedSet();
+  for(let n=1;n<=10;n++) for(const x of DISTRICT_GROWTH[n]||[]){ const it=furnAtLv(x.level); if(roomSlotOf(it)===k && !got.has(x.level)) return x.level; }
+  return 0; }
+function roomSlotState(k){
+  const own=roomSlotOwns(k);
+  if(k==='mirror') return own? 'have' : 'lock';
+  if(own) return roomSlotPlaced(k) || roomSlotWaiting(k)? 'have' : (roomSlotNextLv(k)? 'empty' : 'have');
+  return roomSlotWaiting(k)? 'wait' : 'lock';
+}
+function roomSlotBuy(k){
+  if(roomSlotOwns(k)) return false;
+  const free=roomSlotFree(k), cost=free? 0 : ROOM_SLOT_COST[k]; if(pawBal<cost) return false;
+  const next=JSON.parse(JSON.stringify(houseTheme)); next.cash=next.cash||{}; next.cash.rs=(Array.isArray(next.cash.rs)? next.cash.rs : []).concat([k]);
+  if(cost>0){ if(!economySpend(cost,'room:'+k,{key:'roll_house',value:next})) return false; }
+  houseTheme=next; persist(); houseCashSave(); syncHud();
+  roomSlotFx={k, t0:animT};
+  houseGiftRefill(); houseToysSave(); tileKey='';               // 기다리던 선물이 이제 방에 상자로 나온다
+  return true;
+}
+function roomSlotAsk(k){
+  const free=roomSlotFree(k), nm=()=>I18N.t('room.slot.'+k);
+  buyConfirm(()=>free? '<span class="rsfirst">'+I18N.t('room.slot.firstGift')+'</span>'+nm() : I18N.t('room.slot.ask',{name:nm()}), '', ROOM_SLOT_COST[k], ()=>{
+    if(!roomSlotBuy(k)) return;
+    if(!free) spendFx("paw",ROOM_SLOT_COST[k]);
+    tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]); dog.wagBoost=1; }, free? {free:true} : null);
+}
+// 자리 그림 위치(판 그리기 좌표) — 값표 자리와 테두리. 벽지·바닥·러그는 테두리가 넓어 값표로만 누른다.
+function roomSlotGeo(){
+  const c=cell, T=-houseTop, bx=cx(HOUSE_BED[1]), by=cy(HOUSE_BED[0]), tx=cx(2), ty=cy(2), hx=c*6.0, hy=T+c*0.62;
+  return [
+    {k:'mirror', tag:[c*4,c*0.95], shape:g=>g.roundRect(c*2.85,-c*0.28,c*2.3,c*1.26,c*0.16), box:[c*2.85,-c*0.28,c*2.3,c*1.26]},
+    {k:'paper', tag:[c*2.35,T+c*0.66], shape:g=>g.roundRect(c*0.72,T+c*0.06,c*6.56,c*0.86-T-c*0.1,c*0.12)},
+    {k:'floor', tag:[c*2.75,c*5.62], shape:g=>g.roundRect(c*1.08,c*1.08,c*5.84,c*4.84,c*0.14)},
+    {k:'rug',   tag:[c*4,c*4.62], shape:g=>g.ellipse(c*4,c*3.5,c*1.7,c*1.1,0,0,7), ghost:[c*4,c*3.5,c*3.77]},
+    {k:'bed',   tag:[bx,by+c*0.42], shape:g=>g.roundRect(bx-c*0.44,by-c*0.5,c*0.88,c*0.92,c*0.16), ghost:[bx,by,c], box:[bx-c*0.44,by-c*0.5,c*0.88,c*0.92]},
+    {k:'thing', tag:[tx,ty+c*0.42], shape:g=>g.roundRect(tx-c*0.42,ty-c*0.5,c*0.84,c*0.9,c*0.16), ghost:[tx,ty,c], box:[tx-c*0.42,ty-c*0.5,c*0.84,c*0.9]},
+    {k:'hood',  tag:[hx,hy+c*0.42], shape:g=>g.roundRect(hx-c*0.3,hy-c*0.3,c*0.6,c*0.66,c*0.12), ghost:'hood', box:[hx-c*0.3,hy-c*0.3,c*0.6,c*0.66]},
+  ];
+}
+function roomSlotHand(){                                       // 손가락 — 첫 거울, 그다음엔 선물이 기다리는 살 수 있는 자리
+  if(!roomSlotOwns('mirror')) return 'mirror';
+  return ROOM_SLOT_KINDS.find(k=>roomSlotState(k)==='wait' && pawBal>=ROOM_SLOT_COST[k]) || null;
+}
+// 방을 눌렀다 — 값이 붙은 자리(잠김·선물 대기)면 살까요? 카드.
+function roomSlotTap(x,y){
+  if(!roomSlotsOn()) return false;
+  const rect=cv.getBoundingClientRect(), k=(cv.offsetWidth? rect.width/cv.offsetWidth : 1)||1, px=(x-rect.left)/k, py=(y-rect.top)/k-houseTop, c=cell;
+  for(const sl of roomSlotGeo()){ const st=roomSlotState(sl.k); if(st!=='lock' && st!=='wait') continue;
+    const onTag=Math.abs(px-sl.tag[0])<c*0.5 && Math.abs(py-sl.tag[1])<c*0.3;
+    const onBox=sl.box && px>=sl.box[0] && px<=sl.box[0]+sl.box[2] && py>=sl.box[1] && py<=sl.box[1]+sl.box[3];
+    if(onTag || onBox){ roomSlotAsk(sl.k); return true; } }
+  return false;
+}
+function drawRoomSlots(){
+  if(!roomSlotsOn()) return;
+  const g=ctx, c=cell, busy=!!(houseGramps || housePlacePending());
+  const furnOf=k=>{ const lv=roomSlotNextLv(k); return lv? furnAtLv(lv) : (DISTRICT_GROWTH[1]||[]).map(x=>furnAtLv(x.level)).find(it=>roomSlotOf(it)===k); };
+  const pill=(px,py,cost,free)=>{ const ok=pawBal>=cost || free, w=c*(free? 1.05 : 0.8), h=c*0.36, pu=0.5+0.5*Math.sin(animT*3.4);
+    g.fillStyle='rgba(255,253,247,.97)'; g.strokeStyle=free? 'rgba(76,175,80,'+(0.6+0.4*pu).toFixed(2)+')' : ok? 'rgba(242,181,58,'+(0.6+0.4*pu).toFixed(2)+')' : 'rgba(120,100,80,.3)';
+    g.lineWidth=Math.max(1.5,c*(ok? 0.04 : 0.025)); g.beginPath(); g.roundRect(px-w/2,py-h/2,w,h,h/2); g.fill(); g.stroke();
+    if(UI_GEM_IMG && UI_GEM_IMG.complete && UI_GEM_IMG.naturalWidth) g.drawImage(UI_GEM_IMG,px-w/2+c*0.04,py-c*0.15,c*0.3,c*0.3);
+    g.font=Math.round(c*0.26)+'px '+CFONT; g.textBaseline='middle'; g.textAlign='center';
+    if(free){ const nx=px-w/2+c*0.47; g.fillStyle='#9C8E80'; g.fillText(String(cost), nx, py+c*0.015);   // 원래 값을 긋고 「무료」
+      g.strokeStyle='#C0564A'; g.lineWidth=Math.max(1.2,c*0.025); g.beginPath(); g.moveTo(nx-c*0.15,py+c*0.06); g.lineTo(nx+c*0.15,py-c*0.04); g.stroke();
+      g.fillStyle='#3E8E41'; g.font=Math.round(c*0.21)+'px '+CFONT; g.fillText(I18N.t('room.slot.free'), px+w/2-c*0.26, py+c*0.015); }
+    else { g.fillStyle=ok? '#5A4636' : '#9C8E80'; g.fillText(String(cost), px+c*0.13, py+c*0.015); }
+    g.textAlign='left'; g.textBaseline='alphabetic'; };
+  const ribbon=(px,py)=>{ const t=I18N.t('room.slot.firstGift'); g.font=Math.round(c*0.19)+'px '+CFONT; const w=g.measureText(t).width+c*0.28, h=c*0.28;
+    g.fillStyle='#E8604C'; g.beginPath(); g.roundRect(px-w/2,py-h/2,w,h,c*0.06); g.fill();
+    g.fillStyle='#FFFFFF'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(t,px,py+c*0.01); g.textAlign='left'; g.textBaseline='alphabetic'; };
+  const lvTag=(px,py,lv)=>{ const w=c*1.15, h=c*0.34; g.fillStyle='rgba(255,247,226,.97)'; g.strokeStyle='rgba(231,167,44,.9)'; g.lineWidth=Math.max(1.5,c*0.03); g.beginPath(); g.roundRect(px-w/2,py-h/2,w,h,h/2); g.fill(); g.stroke();
+    g.save(); g.translate(px-w/2+c*0.17,py+c*0.02); g.scale(0.42,0.42); drawHouseGift(0,0,(lv%30)===0); g.restore();
+    g.fillStyle='#8A5A1E'; g.font=Math.round(c*0.2)+'px '+CFONT; g.textAlign='center'; g.textBaseline='middle'; g.fillText(I18N.t('room.slot.giftAt',{n:lv}), px+c*0.14, py+c*0.015); g.textAlign='left'; g.textBaseline='alphabetic'; };
+  const outline=(sl,gold)=>{ g.save(); g.fillStyle=gold? 'rgba(255,236,170,.18)' : 'rgba(255,255,255,.12)'; g.strokeStyle=gold? 'rgba(231,167,44,.95)' : 'rgba(255,255,255,.9)'; g.lineWidth=Math.max(1.5,c*(gold? 0.05 : 0.035));
+    if(!gold) g.setLineDash([c*0.09,c*0.07]); g.beginPath(); sl.shape(g); g.fill(); g.stroke(); g.restore(); };
+  const geo=roomSlotGeo();
+  for(const sl of geo){ const st=roomSlotState(sl.k); if(st==='have') continue;
+    const al= st==='wait'? 0.6 : st==='lock'? (sl.k==='mirror'? 0.26 : 0.18) : 0;
+    if(al){ g.save(); g.globalAlpha=al;
+      if(sl.k==='mirror') drawHouseMirror(-houseTop);
+      else if(sl.ghost==='hood'){ g.fillStyle=(GOAL_FEEL_SETS.chicken||{}).base||'#F2C655'; g.beginPath(); g.roundRect(sl.tag[0]-c*0.22,sl.tag[1]-c*0.62,c*0.44,c*0.5,c*0.1); g.fill(); }
+      else if(sl.ghost){ const it=furnOf(sl.k); if(it) drawFurn(it, sl.ghost[0], sl.ghost[1], sl.ghost[2]); }
+      g.restore(); }
+    outline(sl, st==='empty');
+    if(st==='empty') lvTag(sl.tag[0], sl.tag[1], roomSlotNextLv(sl.k));
+    else { const free=roomSlotFree(sl.k); pill(sl.tag[0], sl.tag[1], ROOM_SLOT_COST[sl.k], free); if(free) ribbon(sl.tag[0], sl.tag[1]-c*0.36); }
+    if(st==='wait'){ const b=Math.abs(Math.sin(animT*3))*c*0.08; g.save(); g.translate(sl.tag[0]+c*0.55, sl.tag[1]-c*0.32-b); g.scale(0.55,0.55); drawHouseGift(0,0,sl.k==='hood'); g.restore(); }
+  }
+  if(roomSlotFx){ const u=(animT-roomSlotFx.t0)/0.9, sl=geo.find(x=>x.k===roomSlotFx.k);   // 자리를 연 순간 — 반짝이가 사방으로
+    if(u<1 && sl){ const X=sl.ghost && sl.ghost!=='hood'? sl.ghost[0] : sl.tag[0], Y=sl.ghost && sl.ghost!=='hood'? sl.ghost[1] : sl.tag[1]-c*0.5;
+      g.fillStyle='#FFE58A'; for(let i=0;i<12;i++){ const a=i/12*6.283, R=c*(0.4+u*0.8); g.globalAlpha=1-u; g.beginPath(); g.arc(X+Math.cos(a)*R*1.4,Y+Math.sin(a)*R*0.8,c*0.05*(1-u*0.5),0,7); g.fill(); }
+      g.globalAlpha=1; } else roomSlotFx=null; }
+  const hk=!busy && roomSlotHand(); if(hk){ const sl=geo.find(x=>x.k===hk), tap=Math.abs(Math.sin(animT*3))*c*0.12;
+    drawHand(sl.tag[0]+c*0.56-tap*0.5, sl.tag[1]+c*0.1-tap, -0.55, 0.62, 0.95); }
+}
 // 마당 잔디깎이(2026-10-04) — 21판(잔디깎이를 배운 판)을 깨면 산책 대문 오른쪽 울타리 가(아랫줄 (7,6))에 선다.
 // 마당 안쪽 칸은 막지 않는다. 맥스가 들이받으면 마당 잔디를 깎아 무늬를 바꾼다 — 줄무늬(21) · 체크(25) · 십자(30), 없음.
 const YARD_MOW_AT=[GN-1, GN-2], YARD_MOW_PAT=[['stripe',21],['check',25],['cross',30]];
@@ -21633,7 +21763,7 @@ function drawHouseRoom(bare){                                    // bare — 첫
     g.fillStyle='rgba(120,70,40,.14)'; g.beginPath(); g.ellipse(X,Y+c*0.06,RX,RY,0,0,7); g.fill();
     (HOUSE_ROOM_RUG[houseTheme.rugC]||HOUSE_ROOM_RUG.rose).rings.forEach((col,i)=>{ const k=[1,0.84,0.7,0.56,0.4,0.26][i]; g.fillStyle=col; g.beginPath(); g.ellipse(X,Y,RX*k,RY*k,0,0,7); g.fill(); });
     g.fillStyle='#FFF3DE'; for(let a=0;a<6.28;a+=0.2){ g.beginPath(); g.arc(X+Math.cos(a)*RX*1.03,Y+Math.sin(a)*RY*1.04,c*0.035,0,7); g.fill(); } }
-  if(!bare && !houseCashHas('win')) drawHouseMirror(T);                                    // 통창을 놓으면 거울 자리를 창이 쓴다
+  if(!bare && !houseCashHas('win') && roomSlotOwns('mirror')) drawHouseMirror(T);                                    // 통창을 놓으면 거울 자리를 창이 쓴다
   if(!bare) drawHouseCash(T);
   // 침대 — 구석 방석
   if(FS.on.bed && HOUSE_FURN_BY[FS.on.bed]) drawFurn(HOUSE_FURN_BY[FS.on.bed], cx(HOUSE_BED[1]), cy(HOUSE_BED[0]), c);
@@ -26143,6 +26273,7 @@ function win(){
   if(tutMode){ state="win"; winT=0; sfxWin(); buzz([16,40,16]); if(labMode) labNext(); else tutNext(); return; }   // 연습판: 별·도토리·기록 없음
   if(lunchMode){ lunchFinish(); return; }                          // 점심 산책: level 이 이전 값 그대로라 starMap 을 덮어쓸 뻔했다 — 전용 경로로 분리
   if(menuMode){ state="win"; winT=0; sfxWin(); winCardTO=setTimeout(startMenu,1800); return; }   // 메뉴 데모는 기록하지 않는다
+  if(lvWasCleared && !moonMode) lsBackLv=level;                   // 지난 판을 다시 깼다 — 목록으로 나가면 이 판을 비춘다
   winCopy={};
   if(tut){ tut=0; if(!tutMode) tutDone=true; }
   state="win"; winT=0; moveBuffer=null; walkQueueClear(); dragReset();
@@ -34929,6 +35060,58 @@ function drawTilesWithSoap(rows, cols, at, isSoap){
   finally{ soapBatch=false; }
   drawSoapLiquid(cells, isSoap);
 }
+// 액체 위 연출(10-05 사람: 비눗물엔 공 거품 꼬리 · 맑은 물엔 물살 · 맥스는 찰박 발자국).
+// 칸 좌표로 쌓아 판과 같이 움직이고, 나이는 animT 로 잰다(갱신 루프 없음).
+let liqFx=[];
+function liquidAt(r,c){
+  if(r<1||c<1||r>=GN-1||c>=GN-1) return null; const k=kk(r,c);
+  if(soapVisible(r,c)) return 'soap';
+  return filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k)? 'clean' : null;
+}
+function liquidFx(){
+  const now=animT, push=p=>{ p.t0=now; if(liqFx.length<180) liqFx.push(p); };
+  if(!houseMode) for(const b of boxes){
+    if(b.sink||b.carried||b.houseHop||b.air||(b.kind!=='ball'&&b.kind!=='log')){ b._lq=null; continue; }
+    const pr=b._lq; b._lq=[b.rr,b.cc]; if(!pr) continue;
+    const dr=b.rr-pr[0], dc=b.cc-pr[1], d=Math.hypot(dr,dc); if(d<0.004 || d>1.2) continue;
+    const kind=liquidAt(Math.round(b.rr),Math.round(b.cc)); if(!kind){ b._lqD=0; continue; }
+    const ur=dr/d, uc=dc/d; b._lqD=(b._lqD||0)+d;
+    if(kind==='soap' && b._lqD>0.14){ b._lqD=0;                                   // 거품 꼬리 — 뒤에 남아 일렁이다 톡
+      push({k:'bub', r:b.rr-ur*0.32+(Math.random()-0.5)*0.3, c:b.cc-uc*0.32+(Math.random()-0.5)*0.3, s:0.05+Math.random()*0.06, ph:Math.random()*6, life:1.1+Math.random()*0.3}); }
+    if(kind==='clean' && b._lqD>0.09){ b._lqD=0;                                  // 물살 — 뒤로 퍼지는 V + 앞 물방울
+      push({k:'wake', r:b.rr-ur*0.18, c:b.cc-uc*0.18, ur, uc, life:0.75});
+      if(Math.random()<0.7) for(const sg of [-1,1]) push({k:'drop', r:b.rr+ur*0.2-uc*sg*0.12, c:b.cc+uc*0.2+ur*sg*0.12, vr:ur*0.9-uc*sg*(0.6+Math.random()*0.5)-0.6, vc:uc*0.9+ur*sg*(0.6+Math.random()*0.5), life:0.45}); }
+  }
+  if(dog && !houseMode){                                                          // 찰박 — 칸에 내려설 때 한 번
+    const k=kk(dog.r,dog.c), near=Math.abs(dog.rr-dog.r)+Math.abs(dog.cc-dog.c)<0.22;
+    if(near && dog._lqAt!==k){ const prev=dog._lqAt; dog._lqAt=k;
+      const pr=prev!=null? [(prev/GN)|0, prev%GN] : null, warp=pr && Math.abs(pr[0]-dog.r)+Math.abs(pr[1]-dog.c)>1;
+      if(pr && !warp && liquidAt(dog.r,dog.c)){ const fr=dog.r+0.3, fc=dog.c+(dog.face||1)*-0.06;
+        push({k:'ring', r:fr, c:fc, life:0.6});
+        push({k:'paw', r:fr+0.02, c:fc-0.1*(dog.face||1), life:2.4, a:Math.atan2(dog.c-pr[1], pr[0]-dog.r)});
+        for(let i=0;i<3;i++) push({k:'drop', r:fr-0.05, c:fc, vr:-0.9-Math.random()*0.8, vc:(Math.random()-0.5)*1.4, life:0.5}); } }
+  }
+  if(!liqFx.length) return;
+  const g=ctx, s=cell; liqFx=liqFx.filter(p=>now-p.t0<p.life);
+  for(const p of liqFx){ const u=(now-p.t0)/p.life, X=cx(p.c), Y=cy(p.r);
+    if(p.k==='bub'){ const pop=u>0.82, a=pop? 1-(u-0.82)/0.18 : Math.min(1,u*6), R=s*p.s*(pop? 1+(u-0.82)*5 : 1), yy=Y+Math.sin(now*5+p.ph)*s*0.025;
+      g.lineWidth=Math.max(1,s*0.022); g.strokeStyle='rgba(165,145,228,'+(0.8*a).toFixed(2)+')';
+      if(pop){ g.beginPath(); for(let i=0;i<6;i++){ const an=i/6*6.283; g.moveTo(X+Math.cos(an)*R*0.6,yy+Math.sin(an)*R*0.6); g.lineTo(X+Math.cos(an)*R,yy+Math.sin(an)*R); } g.stroke(); }
+      else { g.fillStyle='rgba(255,255,255,'+(0.5*a).toFixed(2)+')'; g.beginPath(); g.arc(X,yy,R,0,7); g.fill(); g.stroke();
+        g.fillStyle='rgba(255,255,255,'+(0.95*a).toFixed(2)+')'; g.beginPath(); g.arc(X-R*0.35,yy-R*0.35,R*0.26,0,7); g.fill(); } }
+    else if(p.k==='wake'){ const a=1-u, L=s*(0.08+u*0.55), W=s*(0.1+u*0.32);
+      g.strokeStyle='rgba(255,255,255,'+(0.85*a).toFixed(2)+')'; g.lineWidth=Math.max(1.2,s*0.035*(1-u*0.5));
+      g.beginPath(); for(const sg of [-1,1]){ const ex=X-p.uc*L-p.ur*sg*W, ey=Y-p.ur*L+p.uc*sg*W;
+        g.moveTo(X,Y); g.quadraticCurveTo(X-p.uc*L*0.4-p.ur*sg*W*0.15, Y-p.ur*L*0.4+p.uc*sg*W*0.15, ex, ey); } g.stroke(); }
+    else if(p.k==='drop'){ const t=now-p.t0, px=X+p.vc*t*s, py=Y+(p.vr*t+2.6*t*t)*s;
+      g.fillStyle='rgba(196,226,255,'+(1-u).toFixed(2)+')'; g.beginPath(); g.arc(px,py,s*0.04,0,7); g.fill(); }
+    else if(p.k==='ring'){ g.strokeStyle='rgba(255,255,255,'+(1-u).toFixed(2)+')'; g.lineWidth=Math.max(1.2,s*0.03);
+      g.beginPath(); g.ellipse(X,Y,s*(0.08+u*0.5),s*(0.04+u*0.2),0,0,7); g.stroke(); }
+    else if(p.k==='paw'){ const a=(1-u)*0.45; g.save(); g.translate(X,Y); g.rotate(p.a||0); g.fillStyle='rgba(110,130,200,'+a.toFixed(2)+')';
+      g.beginPath(); g.ellipse(0,0,s*0.06,s*0.045,0,0,7); g.fill();
+      for(let i=-1;i<=1;i++){ g.beginPath(); g.arc(i*s*0.05,-s*0.07+Math.abs(i)*s*0.015,s*0.022,0,7); g.fill(); } g.restore(); }
+  }
+}
 // 씻긴 칸(뽀득 바닥 — 10-05 사람 1안) — 맑은 물기 + 물방울 + 반짝 별. 칸 루프 뒤에 비눗물과 같이 그린다.
 function drawRinseCells(cells, style){
   const g=ctx, s=cell, P={style:style||1};
@@ -36702,6 +36885,7 @@ function render(){
       const lane=!L.wl || L.wl.includes((PINV[windNow][1]!==0)?b.r:b.c); if(!lane) continue;
       ctx.beginPath(); ctx.arc(cx(b.c),cy(b.r),cell*(.38+.08*pulse),0,7); ctx.stroke(); }
     ctx.restore(); }
+  liquidFx();                                                     // 비눗물·맑은 물 위 — 공 거품 꼬리/물살, 맥스 찰박 발자국
   for(const b of boxes){
     goalToyOverride = houseMode ? ((houseToys[boxes.indexOf(b)]||'').indexOf(':')<0? (houseToys[boxes.indexOf(b)]||null) : null) : (obActive()? STAGE_TOYS[0] : null);
     if(b.sink>=1 || b.carried || b.houseHop) continue;
@@ -36748,17 +36932,7 @@ function render(){
               step=segLen*dt/.42;
             }
           }else if(tg.postHop || (tg.waitContact&&tg.waitContact.hop)) step=Math.min(step,dt/.24);
-          // 미끄럼 자국 — 박스(log)는 먼지를 흘리는데 공은 아무것도 안 남겼다.
-          // 비눗물 위 5칸을 미끄러져도 화면에 흔적이 0이라 챕터 주역이 제일 조용했다.
-          // 뒤쪽으로 거품을 흘려 "얼마나 미끄러졌는지"를 눈에 남긴다.
-          if(here===ICE && !b.air){                                          // 공중이면 거품 안 남긴다
-            b.foamT=(b.foamT||0)+step;
-            if(b.foamT>0.22){ b.foamT=0;
-              const ux=dx/dist, uy=dy/dist;                                  // 진행 방향
-              fx.push({ r:b.rr-uy*0.3+(Math.random()-0.5)*0.22, c:b.cc-ux*0.3+(Math.random()-0.5)*0.22,
-                        vx:-ux*0.5+(Math.random()-0.5)*0.5, vy:-uy*0.5-0.35-Math.random()*0.4,
-                        t:0.75, col:"#DFF1FA" }); }
-          } else b.foamT=0;
+          // 미끄럼 자국은 liquidFx 가 맡는다(10-05 — 비눗물은 거품 꼬리, 맑은 물은 물살).
           // 마지막 한 수 — 판을 푸는 공은 방석에 가까울수록 느려진다(0.35배까지). 입력은 안 막는다.
           if(finalFx && !finalFx.hit && finalFx.slow && b.pend && b.pend.land===finalFx.k)
             step*=0.35+0.65*Math.min(1,(Math.abs(b.r-b.rr)+Math.abs(b.c-b.cc))/1.5);
@@ -37013,7 +37187,7 @@ function render(){
     }
   }
   if(labMode) drawLabTop();                                                        // 실험 판 — 신은 신발·입에 문 삽
-  if(houseMode && houseIn){ drawHouseActTop(); drawHouseCashTop(); drawHouseGiftCue(); drawHouseGramps(); }               // 텐트는 맥스 앞에 서고, 방의 선물(불 끈 방)은 그 위에 덮인다
+  if(houseMode && houseIn){ drawRoomSlots(); drawHouseActTop(); drawHouseCashTop(); drawHouseGiftCue(); drawHouseGramps(); }               // 텐트는 맥스 앞에 서고, 방의 선물(불 끈 방)은 그 위에 덮인다
   if(tubPourFx) drawTubPour();                                                      // 첨벙통 물줄기(시험)
   if(pumpShotFx) drawPumpShot();                                                    // 손펌프 물줄기(시험)
   if(bonkFx) drawBonk(cx(dog.cc)+dog.lungeC*lg, cy(dog.rr)+dog.lungeR*lg-cell*0.5);
