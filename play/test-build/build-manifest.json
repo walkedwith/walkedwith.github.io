@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-10-05T12:25:03.048Z",
-  "totalBytes": 82834016,
+  "generatedAt": "2026-10-05T12:31:36.878Z",
+  "totalBytes": 82845507,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 2913032
+      "bytes": 2918229
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 634419
+      "bytes": 636301
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 78256
+      "bytes": 79697
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 71168
+      "bytes": 72324
     },
     {
       "path": "localization/i18n.js",
@@ -100,12 +100,12 @@
     {
       "path": "mechanics/onboarding-comic.js",
       "source": "mechanics/onboarding-comic.js",
-      "bytes": 15208
+      "bytes": 15973
     },
     {
       "path": "css/onboarding-comic.css",
       "source": "css/onboarding-comic.css",
-      "bytes": 1273
+      "bytes": 2323
     },
     {
       "path": "art/onboarding-comic-v3/page-01.webp",

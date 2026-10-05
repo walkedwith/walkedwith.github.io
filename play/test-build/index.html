@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=e7b10250742c">
+<link rel="stylesheet" href="css/game.css?v=d5e2c7b7f803">
 <link rel="stylesheet" href="css/onboarding-comic.css">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
@@ -184,9 +184,14 @@
   <!-- 밥그릇이 빈 시트 — 건너뛰기 카드와 같은 자리·모양. 막다른 길이 아니라 갈림길로 읽혀야 한다. -->
   <!-- 살까요? — 도토리를 쓰는 것은 다 이 카드를 거친다. 값이 한 번 더 보이고
        무엇을 받는지가 적힌다. 실수로 눌러 도토리가 새는 걸 막는다. -->
-  <div id="buyCard">
-    <p class="mct" id="buyTitle"></p>
-    <div class="mcsub" id="buySub" hidden></div>
+  <div id="buyShade" hidden></div>
+  <div id="buyCard" role="dialog" aria-modal="true" aria-labelledby="buyTitle" aria-describedby="buySub buyBalance">
+    <div id="buyContent">
+      <p class="mct" id="buyTitle"></p>
+      <canvas id="buyPreview" width="256" height="256" hidden aria-hidden="true"></canvas>
+      <div class="mcsub" id="buySub" hidden></div>
+      <p id="buyBalance" hidden aria-live="polite"></p>
+    </div>
     <div class="buyactions">
       <button class="buyok" id="buyOk"><span data-i18n="shop.confirm">구매</span><b id="buyCost"></b></button>
       <button class="buyback" id="buyNo" data-i18n="shop.back">돌아가기</button>
@@ -2940,6 +2945,7 @@ let toastTO=0, toastCopy=null;
 function showToast(html, ms){
   toastCopy=html;
   const t=el("toast"); t.innerHTML=tutorialCopy(html); t.classList.add("show");
+  t.classList.toggle('shop-toast',!!el('shopsel') && el('shopsel').classList.contains('show'));
   clearTimeout(toastTO); toastTO=setTimeout(()=>t.classList.remove("show"), ms||2600);
   // 마당의 다른 안내는 이 줄이 사라질 때까지 기다린다
   if(typeof yardQuiet==='function' && yardMode) yardQuiet((ms||2600)/1000 + 0.4);
@@ -5370,6 +5376,10 @@ let shopBillingToastTO=0, shopBillingLastResult=null;
 function shopBillingNotice(result){
   const msg=iapMessage(result); if(!msg) return;
   shopBillingLastResult=result;
+  shopNotice(msg,true);
+}
+function shopNotice(msg,billing=false){
+  if(!billing) shopBillingLastResult=null;
   const t=el('shToast');
   if(!t){ showToast(msg,2400); return; }
   t.textContent=msg; t.classList.add('on');
@@ -5409,15 +5419,35 @@ function iapRestorePending(){
       ? Promise.resolve().then(()=>billing.finish(result)).catch(()=>false) : true;
   })).then(()=>{ syncHud(); return results||[]; })).catch(()=>[]);
 }
+let shopBillingState='loading', shopPricedProducts=new Set(), shopBillingRequest=0;
 function iapRefreshProducts(){
   const billing=window.RollBilling||window.RollEconomy.createUnavailableBilling();
   const ids=PAW_PACK.map(it=>it.productId);
-  Promise.resolve(billing.getProducts(ids)).then(products=>{
+  const request=++shopBillingRequest;
+  shopBillingState='loading'; shopPricedProducts=new Set();
+  shopRefreshBillingView();
+  return Promise.resolve().then(()=>typeof billing.isAvailable==='function'?billing.isAvailable():true).then(available=>{
+    if(!available) return [];
+    return billing.getProducts(ids);
+  }).then(products=>{
+    if(request!==shopBillingRequest) return;
     for(const p of products||[]){
       const pack=PAW_PACK.find(it=>it.productId===p.logicalProductId);
-      if(pack && p.displayPrice) pack.price=p.displayPrice;
+      if(pack && p.displayPrice){ pack.price=p.displayPrice; shopPricedProducts.add(p.logicalProductId); }
     }
-  }).catch(()=>{});
+    shopBillingState=shopPricedProducts.size?'ready':'unavailable';
+    shopRefreshBillingView();
+  }).catch(()=>{
+    if(request!==shopBillingRequest) return;
+    shopBillingState='unavailable'; shopRefreshBillingView();
+  });
+}
+function shopRefreshBillingView(){
+  if(el('shopsel').classList.contains('show')) shopRender();
+}
+function shopBillingLabel(){
+  return I18N.t(shopBillingState==='loading'?'shop.priceLoading':
+    (typeof capacitorApp!=='undefined' && capacitorApp)?'shop.paymentUnavailable':'shop.appOnly');
 }
 window.addEventListener('maxbillingready',()=>{ iapRestorePending(); iapRefreshProducts(); });
 window.addEventListener('maxbillingrecovery',()=>{ iapRestorePending(); });
@@ -12379,7 +12409,7 @@ const PAW_PACK_ICO={
 // 구역 이름과 그림이 이미 말하고, 줄이 늘수록 값이 안 보인다.
 // 살까요? — 사료를 고르면 상품명과 값만 다시 확인한다. 지급량은 상품 카드에 이미
 // 적혀 있어 반복하지 않는다. 버튼은 구매와 돌아가기 둘뿐이라 실수 구매를 막는다.
-let buyAsk=null;
+let buyAsk=null, buyReturnFocus=null, buyPreviewFrame=0;
 // Comparison is today's separate-purchase total, never an invented former price.
 function acornPrice(cost, separate=0){
   const deal=Number.isFinite(separate) && separate>cost;
@@ -12393,21 +12423,86 @@ function foodSeparatePrice(){
 }
 function buyConfirm(title, sub, cost, onOk, opts){
   const free=!!(opts && opts.free);                          // 무료로 주는 첫 선물 — 원래 값을 긋고 「무료로 받기」(방 첫 거울, 10-05)
-  if(!free && pawBal<cost){ sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return; }
-  buyAsk={cost:free? 0 : cost, onOk, title, sub};
+  const inShop=el('shopsel').classList.contains('show');
+  if(!free && pawBal<cost && !inShop){ sfxBlocked(); showToast(I18N.t('notice.short',{count:cost-pawBal}), 1800); return; }
+  buyReturnFocus=document.activeElement;
+  buyAsk={cost:free? 0 : cost, onOk, title, sub, opts:opts||{}, free, inShop};
+  el('buyContent').scrollTop=0;
   refreshBuyCopy();
-  const lb=el('buyOk') && el('buyOk').querySelector('span'); if(lb) lb.textContent=I18N.t(free? 'room.slot.freeTake' : 'shop.confirm');
-  el('buyCost').innerHTML=free? ' <s>'+pawIco()+' '+cost+'</s>' : ' '+pawIco()+' '+cost;
+  if(free) el('buyCost').innerHTML=' <s>'+pawIco()+' '+cost+'</s>';
+  el('buyShade').hidden=false;
   el('buyCard').classList.add('show');
+  shopBuyPreview();
+  el('buyOk').focus?.();
 }
 function refreshBuyCopy(){
   if(!buyAsk) return;
-  const {title}=buyAsk;
+  const {title,sub,cost,opts,free,inShop}=buyAsk;
   el('buyTitle').innerHTML=typeof title==='function'?title():title;
-  el('buySub').hidden=true;
-  el('buySub').textContent='';
+  const detail=typeof sub==='function'?sub():sub;
+  el('buySub').hidden=!detail;
+  el('buySub').textContent=detail||'';
+  const short=!free && pawBal<cost;
+  const lb=el('buyOk').querySelector('span');
+  if(lb) lb.textContent=I18N.t(short?'shop.refill':free?'room.slot.freeTake':opts.action||'shop.confirm');
+  el('buyCost').hidden=short||(!free && cost===0);
+  if(!free) el('buyCost').innerHTML=' '+pawIco()+' '+cost;
+  el('buyBalance').hidden=!inShop||cost===0;
+  el('buyBalance').classList.toggle('short',short);
+  el('buyBalance').textContent=short?I18N.t('shop.shortDetail',{have:pawBal,need:cost,short:cost-pawBal}):I18N.t('shop.balanceAfter',{have:pawBal,after:pawBal-cost});
 }
-function buyClose(){ buyAsk=null; el('buyCard').classList.remove('show'); }
+function buyClose(){
+  buyAsk=null; cancelAnimationFrame(buyPreviewFrame); buyPreviewFrame=0;
+  el('buyCard').classList.remove('show'); el('buyShade').hidden=true;
+  el('buyPreview').hidden=true;
+  if(buyReturnFocus && buyReturnFocus.isConnected) buyReturnFocus.focus?.({preventScroll:true});
+  buyReturnFocus=null;
+}
+function shopBuyPreview(){
+  cancelAnimationFrame(buyPreviewFrame); buyPreviewFrame=0;
+  const spec=buyAsk && buyAsk.opts.preview, cv=el('buyPreview'); cv.hidden=!spec;
+  if(!spec) return;
+  if(spec.kind==='home'){ houseCashThumb(cv,spec.k); return; }
+  bonusSkinThumb(cv,spec.k);
+  const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduced) return;
+  const start=performance.now();
+  const draw=t=>{
+    if(!buyAsk || buyAsk.opts.preview!==spec) return;
+    const im=bonusSkinImg[spec.k], g=cv.getContext('2d');
+    if(g && im && im.complete && im.naturalWidth){
+      const count=Math.min(8,Math.floor(im.naturalWidth/256));
+      const f=Math.floor((t-start)/150)%Math.max(1,count);
+      g.clearRect(0,0,256,256); g.drawImage(im,f*256,0,256,256,0,0,256,256);
+    }
+    buyPreviewFrame=requestAnimationFrame(draw);
+  };
+  buyPreviewFrame=requestAnimationFrame(draw);
+}
+function shopProductShow(kind,k){
+  const skin=kind==='skin', it=skin?BONUS_SKIN_BY[k]:HOUSE_CASH_BY[k]; if(!it) return;
+  const own=skin?bonusSkinOwns(k):houseCashOwns(k);
+  const on=own && (skin?dogWear.hood===k:it.tree?houseTreeKind()===k:houseCashHas(k));
+  const name=()=>I18N.t((skin?'hood.name.':'house.cash.')+k);
+  const action=own?(skin?(on?'shop.takeOff':'shop.outfitWear'):(on?'shop.remove':it.tree?'house.cash.plant':'house.cash.hang')):'shop.confirm';
+  const detail=()=>I18N.t(skin?'shop.skinDetail':it.tree?'shop.treeDetail':'shop.detail.'+k);
+  buyConfirm(name,detail,own?0:it.cost,()=>{
+    // Re-read ownership: another UI action must never charge for an owned item.
+    const nowOwn=skin?bonusSkinOwns(k):houseCashOwns(k);
+    if(own){
+      if(!nowOwn) return;
+      if(skin) wearHood(on?null:k); else houseCashToggle(k);
+    }else{
+      if(nowOwn || !(skin?bonusSkinBuy(k):houseCashBuy(k))) return;
+      spendFx('paw',it.cost);
+      if(skin) wearHood(k);
+    }
+    tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]); shopRender();
+    el('shBody').querySelector('[data-shop-product="'+kind+'-'+k+'"]')?.focus?.({preventScroll:true});
+    if(!skin && !own) homeGotShow(it);
+    else shopNotice(I18N.t(skin?(on?'shop.removedSkin':'shop.wearingNow'):(on?'shop.removedHome':'shop.placedHome'),{name:name()}));
+  },{preview:{kind:skin?'skin':'home',k},action});
+}
 // 가게에서 도토리 칸을 펼쳐 뒀나 — 화면을 다시 열면 접힌 상태로 돌아온다(세션 값).
 let shopPawOpen=false;
 // 도토리 칩으로 들어왔을 때 채우기 묶음이 화면 밖에 있으면 펼쳐도 안 보인다.
@@ -12572,10 +12667,10 @@ function shopRenderBag(body){
     const card=(nm, q, cost, sub, full)=>{
       const b=document.createElement('button'); b.className='kibc'+(full?' best':''); b.setAttribute('data-kib', full? 'full' : 'half');
       b.setAttribute('aria-label',nm()+' · '+I18N.t('stamp.acorns',{count:cost}));
-      b.innerHTML='<span class="kibg">'+kibbleBagSVG(full)+'</span>'
+      b.innerHTML='<span class="kibg">'+kibbleBagSVG(full)+'</span><span class="kibqty">'+nm()+'</span>'
         +'<b class="dchip bundle-price">'+acornPrice(cost,full?foodSeparatePrice():0)+'</b>';
       // 조사는 이름마다 다르다 — '반 봉지'는 를, '순서표 3장'은 을. 박아 두면 하나가 틀린다.
-      onTap(b, ()=>buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', cost, ()=>{
+      onTap(b, ()=>buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), ()=>I18N.t('shop.foodDetail',{have:meal,after:meal+q}), cost, ()=>{
         if(!mealBuy(q,cost,undefined,'shop_feed')) return false;
         shopRender();
         // 받는 연출 — 봉지가 튀어나와 위 밥그릇 칩으로 날아간다(할아버지의 선물 사료와 같은 길).
@@ -12601,17 +12696,12 @@ function shopRenderBag(body){
       const nm=()=>I18N.t('house.cash.'+it.k);
       const card=document.createElement('button');
       card.className='scard hg'+(on?' on':own?' haveit':'')+(!own && pawBal<it.cost?' lock':'');
+      card.setAttribute('data-shop-product','home-'+it.k);
       card.innerHTML='<canvas width="128" height="128"></canvas><span class="sname">'+nm()+'</span>'
         +(own? '<span class="sprice">'+I18N.t(on? (it.tree? 'house.cash.planted' : 'house.cash.hung') : (it.tree? 'house.cash.plant' : 'house.cash.hang'))+'</span>'
              : '<span class="sprice">'+acornPrice(it.cost)+'</span>');
       houseCashThumb(card.querySelector('canvas'), it.k);
-      onTap(card, ()=>{
-        if(own){ houseCashToggle(it.k); tone(620,0.05,'triangle',0.03,820); shopRender(); return; }
-        buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', it.cost, ()=>{
-          if(!houseCashBuy(it.k)) return;
-          spendFx("paw",it.cost); tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]);
-          shopRender(); homeGotShow(it); });
-      });
+      onTap(card, ()=>shopProductShow('home',it.k));
       grid.appendChild(card);
     }
     body.appendChild(sec);
@@ -12626,16 +12716,11 @@ function shopRenderBag(body){
         const own=bonusSkinOwns(s.k), on=own && dogWear.hood===s.k, nm=()=>I18N.t('hood.name.'+s.k);
         const card=document.createElement('button');
         card.className='scard hg'+(on?' on':own?' haveit':'')+(!own && pawBal<s.cost?' lock':'');
+        card.setAttribute('data-shop-product','skin-'+s.k);
         card.innerHTML='<canvas width="128" height="128"></canvas><span class="sname">'+nm()+'</span>'
           +'<span class="sprice">'+(own? I18N.t(on? 'shop.outfitOn' : 'shop.outfitWear') : acornPrice(s.cost))+'</span>';
         bonusSkinThumb(card.querySelector('canvas'), s.k);
-        onTap(card, ()=>{
-          if(own){ wearHood(on? null : s.k); tone(660,0.06,'triangle',0.04,900); buzz([10,20,10]); shopRender(); return; }
-          buyConfirm(()=>I18N.t('shop.buy',{name:nm(),particle:josa(nm(),'을','를')}), '', s.cost, ()=>{
-            if(!bonusSkinBuy(s.k)) return;
-            spendFx("paw",s.cost); tone(880,0.07,'triangle',0.05,1320); buzz([10,30,10]);
-            wearHood(s.k); shopRender(); });          // 산 옷은 바로 입는다 — 후디를 받는 순간 입는 것과 같다
-        });
+        onTap(card, ()=>shopProductShow('skin',s.k));
         grid.appendChild(card);
       }
       body.appendChild(sec);
@@ -12647,22 +12732,27 @@ function shopRenderBag(body){
     const fold=document.createElement('button'); fold.className='pkgfold'+(shopPawOpen?' open':'');
     fold.innerHTML='<span class="pkgi">'+PAW_PACK_ICO[PAW_PACK[1].k]+'</span>'
       +'<span class="pkgx"><b class="pkgnm">'+I18N.t('shop.refill')+'</b>'
-      +'<i class="pkgsub">'+I18N.t('shop.from')+'</i></span>'
+      +'<i class="pkgsub">'+(shopBillingState==='ready'?I18N.t('shop.from'):shopBillingLabel())+'</i></span>'
       +'<span class="pkgact">'+I18N.t(shopPawOpen?'shop.hidePacks':'shop.viewPacks')+'</span>'
       +'<span class="pkgarw">'+(shopPawOpen?'▾':'▸')+'</span>';
-    onTap(fold, ()=>{ shopPawOpen=!shopPawOpen; shopRender(); });
+    onTap(fold, ()=>{
+      shopPawOpen=!shopPawOpen; shopRender();
+      if(shopPawOpen && shopBillingState==='unavailable' && typeof capacitorApp!=='undefined' && capacitorApp) iapRefreshProducts();
+    });
     sec.appendChild(fold);
     if(shopPawOpen){
       const grid=document.createElement('div'); grid.className='pkg3';
       for(const it of PAW_PACK){
         const card=document.createElement('button');
+        const available=shopBillingState==='ready' && shopPricedProducts.has(it.productId);
+        card.disabled=!available;
         card.className='pkgc'+(it.best?' best':'');
         card.innerHTML=(it.best? '<span class="pkgtag">'+I18N.t('shop.popular')+'</span>' : '')
           +'<span class="pkgi">'+PAW_PACK_ICO[it.k]+'</span>'
           +'<b class="pkgnm">'+it.nm+'</b>'
           +'<i class="pkgsub">'+I18N.t('shop.quantity',{count:it.paw.toLocaleString()})+'</i>'
-          +'<span class="pkgbuy">'+it.price+'</span>';
-        onTap(card, ()=>pawPackBuy(it));
+          +'<span class="pkgbuy">'+(available?it.price:shopBillingState==='ready'?I18N.t('shop.paymentUnavailable'):shopBillingLabel())+'</span>';
+        onTap(card, ()=>{ if(shopBillingState==='ready' && shopPricedProducts.has(it.productId)) pawPackBuy(it); });
         grid.appendChild(card);
       }
       sec.appendChild(grid);
@@ -12917,6 +13007,7 @@ function openShop(){
   moonMode=false; tsMode=false; menuMode=false; yardMode=false;
   shopTab='bag'; shopRender();
   el("shopsel").classList.add("show");
+  if(typeof capacitorApp!=='undefined' && capacitorApp && shopBillingState!=='loading') iapRefreshProducts();
   bgmSync();
   clearTimeout(stampShopTimer); stampShopTimer=0;
 }
@@ -26994,6 +27085,13 @@ function tsTapMark(){
   tone(520,0.04,"sine",0.03,700); buzz(6);
 }
 window.addEventListener("keydown",e=>{ const m={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};
+  if(buyAsk){
+    if(e.key==='Escape'){ e.preventDefault(); buyClose(); }
+    else if(e.key==='Tab'){
+      e.preventDefault(); (document.activeElement===el('buyOk')?el('buyNo'):el('buyOk')).focus?.();
+    }else if(m[e.key]) e.preventDefault();
+    return;
+  }
   if(acornReceiptActive){
     if(e.key==='Escape'){ e.preventDefault(); collectAcornReceipt(false); }
     else if(e.key==='Tab'){ e.preventDefault(); el('acornReceiptCollect').focus?.(); }
@@ -27611,7 +27709,14 @@ onTap(el("buGo"), ()=>{
   if(buAfter){ const f=buAfter; buAfter=null; setTimeout(f, 300); return; }
   setTimeout(checkContentUnlocks, 320);
 });
-onTap(el("buyOk"), ()=>{ const a=buyAsk; buyClose(); if(a && a.onOk) a.onOk(); });
+onTap(el("buyOk"), ()=>{
+  const a=buyAsk; if(!a) return;
+  if(pawBal<a.cost && a.inShop){
+    buyClose(); shopPawOpen=true; shopRender(); shopScrollToPacks(); return;
+  }
+  buyClose(); if(a.onOk) a.onOk();
+});
+onTap(el('buyShade'), ()=>buyClose());
 onTap(el("buyNo"), buyClose);
 // 성장 단계 상세 — 닫기 버튼과 바깥을 누르면 닫힌다(카드 안쪽은 안 닫는다).
 onTap(el("glX"), closeGrowthLadder);

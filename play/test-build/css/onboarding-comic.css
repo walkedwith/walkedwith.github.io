@@ -1,8 +1,12 @@
-#comicIntro { position:fixed; inset:0; z-index:3100; background:#172322; }
+#comicIntro { position:fixed; inset:0; z-index:3100; background:#e8dfc9; }
+#comicIntro::before, #comicIntro::after { content:""; position:absolute; pointer-events:none; z-index:1; width:42px; height:42px; opacity:.48; }
+#comicIntro::before { left:10px; top:10px; border-left:2px solid #b99b67; border-top:2px solid #b99b67; border-radius:12px 0 0; }
+#comicIntro::after { right:10px; bottom:10px; border-right:2px solid #b99b67; border-bottom:2px solid #b99b67; border-radius:0 0 12px; }
 #comicCanvas { display:block; width:100%; height:100%; }
 #comicControls { position:fixed; inset:0; z-index:3101; pointer-events:none; font-family:'Jua',sans-serif; }
-#comicControls button, #comicSoundLabel { pointer-events:auto; position:absolute; border:1px solid #b7c3b0; border-radius:8px; background:#fffdf6; color:#344432; min-height:44px; padding:10px 16px; font:18px 'Jua',sans-serif; cursor:pointer; }
-#comicSkip { top:max(16px,env(safe-area-inset-top)); right:max(16px,env(safe-area-inset-right)); }
+#comicControls button, #comicSoundLabel { pointer-events:auto; position:absolute; border:2px solid #c5a873; border-radius:7px; background:#fff9e9; color:#55432c; min-height:44px; padding:9px 16px; font:18px 'Jua',sans-serif; cursor:pointer; box-shadow:0 3px 0 #d8c39a,0 7px 15px rgba(89,67,36,.10); }
+#comicSkip { top:max(16px,env(safe-area-inset-top)); right:max(16px,env(safe-area-inset-right)); padding-right:28px; clip-path:polygon(0 0,calc(100% - 13px) 0,100% 50%,calc(100% - 13px) 100%,0 100%); border-radius:7px 2px 2px 7px; }
+#comicSkip::after { content:'›'; position:absolute; right:10px; top:50%; transform:translateY(-53%); font-size:25px; line-height:1; color:#98733d; }
 #comicSoundLabel { top:max(16px,env(safe-area-inset-top)); left:max(16px,env(safe-area-inset-left)); display:flex; gap:8px; align-items:center; }
 #comicSound { accent-color:#577d40; width:17px; height:17px; }
 #comicStart { bottom:max(24px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); min-width:130px; white-space:nowrap; }
@@ -10,3 +14,5 @@
 #comicControls button:focus-visible, #comicSound:focus-visible { outline:3px solid #356b8b; outline-offset:3px; }
 #comicIntro[hidden], #comicControls [hidden] { display:none!important; }
 @media (hover:hover) and (pointer:fine) { #comicControls button:hover { background:#eef5e8; } }
+@media (max-width:430px) { #comicControls button,#comicSoundLabel { min-height:42px; padding-top:8px; padding-bottom:8px; font-size:16px; } #comicSkip { padding-left:13px; padding-right:27px; } }
+@media (prefers-reduced-motion: reduce) { #comicIntro::before,#comicIntro::after { opacity:.35; } }
