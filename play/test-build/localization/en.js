@@ -785,7 +785,7 @@
     "guide.mower.name": "Lawn Mower",
     "guide.mower.text": "Push from the <b>handle side</b> and it runs <b>until it hits something</b>|Push from <b>the side</b> to turn it in place|Mowed grass <b>lets balls through</b>",
     "guide.tub.name": "Splash Tub",
-    "guide.tub.text": "Push from <b>behind the duck</b> to pour on the <b>next three tiles</b>|Push from <b>the side</b> to slide it one tile|Refill an empty tub with the <b>duck pump</b>",
+    "guide.tub.text": "Push a full tub to pour on the <b>next three tiles</b>|An <b>empty tub</b> slides one tile|Refill an empty tub with the <b>duck pump</b>",
     "guide.pump.name": "Duck Pump",
     "guide.pump.text": "Each push from behind shoots water <b>as far as the dots</b>|Clean water <b>washes soap away</b>|Push from <b>the side</b> to turn it",
     "guide.cart.name": "Vertical Cart",
