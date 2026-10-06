@@ -2009,12 +2009,12 @@ function mowerPush(L, st, filled, boxes, bi, nr, nc, dr, dc){
   return res;
 }
 // ── 첨벙통 (시험 10-05) ────────────────────────────────────────────
-// 오리 주둥이가 한쪽을 본다. **주둥이 반대쪽(뒤)에서 밀면 엎는다** — 주둥이 쪽으로 물이 쏟아져 막힐 때까지
-// 그 줄의 잔디가 비눗물이 되고 통은 빈다. 옆·앞에서 밀면(또는 빈 통은 어느 쪽이든) 한 칸 밀린다 — 미끄러지지 않는다.
-// 방향·물은 color 에 싣는다(TUB_C - 나침반 - 빈 통이면 4) — stKey·무르기·저장이 그대로 가른다.
+// 10-06: 주둥이 방향을 없앴다 — **물이 찼으면 어느 쪽에서 밀어도 미는 쪽으로 엎는다**. 막힐 때까지(최대 3칸)
+// 그 줄의 잔디가 비눗물이 되고 통은 빈다. 빈 통은 어느 쪽이든 한 칸 밀린다 — 미끄러지지 않는다. 찬 통은 못 옮긴다.
+// 물은 color 에 싣는다(TUB_C - 옛 방향 - 4×찼다 - 8×맑은 물). 옛 방향 비트는 남았지만 규칙·그림이 안 쓴다.
 const TUB_C=-40;
 function tubFace(b){ return (TUB_C-b.color)&3; }
-// 통은 한 크기 — 엎으면 늘 주둥이 앞 **3칸**에 쏟는다(10-05 사람). 비눗물이 찼거나 · 맑은 물이 찼거나 · 비었거나.
+// 통은 한 크기 — 엎으면 늘 미는 쪽 **3칸**에 쏟는다(10-05 사람). 비눗물이 찼거나 · 맑은 물이 찼거나 · 비었거나.
 // color = TUB_C - 방향 - 4×찼다 - 8×맑은 물.
 const TUB_REACH=3;
 function tubFull(b){ return (((TUB_C-b.color)>>2)&1)===1; }
@@ -2023,8 +2023,8 @@ function tubColor(f, full, clean){ return TUB_C-f-(full? 4 : 0)-(full&&clean? 8 
 function tubAmt(b){ return tubFull(b)? TUB_REACH : 0; }
 function tubPush(L, st, filled, boxes, bi, nr, nc, dr, dc){
   const b=boxes[bi], f=tubFace(b), m=doorCompass(dr, dc);
-  if(tubFull(b) && m===f){                                         // 뒤에서 — 엎는다
-    const [fr,fc]=[[-1,0],[0,1],[1,0],[0,-1]][f], cells=[], wasSp=[], clean=tubClean(b); let r=b.r, c=b.c, blocked=false;
+  if(tubFull(b)){                                                  // 찼으면 어느 쪽에서 밀든 미는 쪽으로 엎는다(10-06 사람 — 주둥이 방향을 없앴다)
+    const [fr,fc]=[[-1,0],[0,1],[1,0],[0,-1]][m], cells=[], wasSp=[], clean=tubClean(b); let r=b.r, c=b.c, blocked=false;
     // 물이 지나갈 수 있는 칸 — 벽·문·다른 통·펌프에서 멈춘다. 공은 물을 못 막는다(밑으로 흐른다). 방석은 안 젖고 지나간다.
     const wet=(r2,c2)=>{ if(r2<1||c2<1||r2>GN-2||c2>GN-2) return false; if(L.doors && doorLeafAt(L, filled, r2, c2)) return false;
       const bj=boxIdxAt(boxes, r2, c2, bi); if(bj>=0 && boxes[bj].kind!=='ball') return false;
@@ -2038,9 +2038,9 @@ function tubPush(L, st, filled, boxes, bi, nr, nc, dr, dc){
     if(!cells.length) return null;                                   // 바로 앞이 막혔다 — 안 엎인다(덜컹, 물은 그대로)
     boxes[bi]={r:b.r, c:b.c, color:tubColor(f, false, false), kind:'tub'};
     return { dog:{r:st.dog.r, c:st.dog.c}, boxes, filled, carry:false, pushed:false, slid:0, sunk:false, recolored:false,
-             tubPour:{r:b.r, c:b.c, f, cells, clean, wasSp, blocked, hitR:r+fr, hitC:c+fc} };
+             tubPour:{r:b.r, c:b.c, f:m, cells, clean, wasSp, blocked, hitR:r+fr, hitC:c+fc} };
   }
-  const tr=b.r+dr, tc=b.c+dc;                                      // 옆·앞(·빈 통) — 한 칸
+  const tr=b.r+dr, tc=b.c+dc;                                      // 빈 통 — 어느 쪽이든 한 칸
   if(!mowerFloor(L, filled, boxes, tr, tc, bi)) return null;
   boxes[bi]={r:tr, c:tc, color:b.color, kind:'tub'};
   return { dog:{r:nr, c:nc}, boxes, filled, carry:false, pushed:true, slid:1, sunk:false, recolored:false,
@@ -4099,8 +4099,8 @@ const ACORN_PACK =
   '513422611114143546212312556612462663625142225246561542266146'+   // 11~20
   '216416632351166664662155165624611141441666426446165411224114'+   // 21~30
   '251311533215564523243162464125613526541141166445446635464255'+   // 31~40
-  '622336426635113666666115613156143335165341266641664613166541'+   // 41~50
-  '166311162161441461516224346516236551556661662635625131136541'+   // 51~60
+  '622336426635113666661451621631143335162262266641664613166541'+   // 41~50
+  '162235162161611522516224346516161462521566662635625131133422'+   // 51~60
   '524126545645452556664432442551256342656153431636525643242146'+   // 61~70
   '555344154113633166555322525443653442624224626612344362253643'+   // 71~80
   '213254451522261146235412533224264515545635664124455236554454'+   // 81~90
@@ -4150,7 +4150,7 @@ function acornCells(lv){
 // tools/acorn-par5.js 가 구웠다.
 const PAR5_PACK =
   '000h0j0j0r0j0n0k0k0q0m0q0n0m0t0m0r0p0s0u0p0v0t0j0q0n0s0o0x10'+   // 1~30
-  '0g0j0o0l0m0s0u0u0r0x0k0s0p0w0t0k0k0n0s0r0p0s0p0s0p0p0s0s0s0t'+   // 31~60
+  '0g0j0o0l0m0s0u0u0r0x0k0s0p0x0v0k0p0n0s0r0q0s0v0s0p120s0s0s0x'+   // 31~60
   '0o0p0k0o0m0l0m0m0o0v0h0i0q0p0r0l0l0u0n100i0k0v0r0s0p0r0u100v'+   // 61~90
   '0m0n0q0n0w0n0s0v0s0v0t0s0v0t0w0u0x0y0x0z0t100w0v110y0z0z0z0z'+   // 91~120
   '0k0k0m0o0q0k0m0n0m0m0m0t0r0r0s0j0n0m0n0q0n0q0m0p0u0p0w0s0u0z'+   // 121~150
@@ -4164,8 +4164,8 @@ const SL5_PACK =
   'LDUUURRDRDDDDRRUULULDDUL RDLLDLDRDRUULLLULDDRLDDDURRR DRDDRUDRRDUULRULRULULDDLD DUUDRRRRURUURLLLLDDRULUR DLDDDDRLUULLUUULDDLDRDDLULURRRR DLURUURLULLDRRDRRUUULRDD DLLUULUDDLLLDDRLUUUURRRLUURDR UUUURLDDRDRURRDUURRDDDDLRUU DRDURRUURRDDDLLRRDLDLLULLDLRRR DDDLUUDLLLLDDDRRRURDLLUULURRDRUU ' +   // 11~20
   'RDLLLUUUURDRRULUURRRLLLLDDD DLUUURRRRRULRULDDLURULLUDDRDDLDRR RDULULLULUUURRRDLLDDURDDLLDRDUR RUURRDDRLLLDLUUULURRR URDRRRRUDLLLLDDDRRRUDLRRURUU LDDDURRRDLLULUUUDRDDLDRRR DRRLUULRRUUULLLDLURRRDDLURULLL LUDLDLRDRLLLDDUULLUURURDDD LLUUDDDDDRRRULURURURUDLLULDDDULDDRR UUULLDLLDLRURURRDLDLLRUUULULDDURDDULDD ' +   // 21~30
   'LLLDLDULLUUDRURDRR RRLLDDDULDLDDRRDULDLU LDUULLDLDRDRRDRULLLUURDLDR ULULDLDULDDULDLDRDURDRU DRDDRULLLDLDUDLUURRUURRD RRUURRRDLLRDRDRLLLDLLRURRUULLD URRRUDDRDDLLLDLUUURRURDLDRDRDLLL DLDDRDLLDDRRULULUURRLDDURRDUURUL RRLLDLDRULURURRDDRDUURLLLULDD URUUULLDDURRDRRDDLLDLLULLDRULURDRUU ' +   // 31~40
-  'ULRDDDUUURRURLLUURRRDD RDDRRRDUUULLDDDDRDRLULLULDLDRR UUURDRDRDRRRDDDULULLUULDLDD RLLLLLRRRURURUURLDDDDLLURLUUURURDD URLLDDDLRDLLDDURRRRDRUULUULLULD DLUURUURRUULULRDDLLDLU LLDDRRRUURRUUURULDLDLU DLDRRRDLDDRRRURRDDUUUUDLL RRRDLRRDRUULUUDDDRDDRRULUURULL LLUURRRUURUURRRDLDDRDLDDUUULD ' +   // 41~50
-  'ULUUDDRRDDDRRRUULURURRURLDD URURRRDDRLDULLULDLRDDLDDURRURD LULLDDDRDDRDLDDLLLUUURRDRDL LDDRDRLUURRRRRULLRUUULDLDDRRUL LDDRRRURRLDDLDDRRULULDRDDLL UDDDDUULLDDDLRRDRDRRUUULULD RDRDRRDDLLDDLLLDDURRRURRDDUULD RUUULULURRURRRRDDDDDUUULDLLDLU RRRRURDDLLLLDULUUDRDDRRRRUUULD UULLLDLLDDDRRDRRUUDRRDULULRDDLU ' +   // 51~60
+  'ULRDDDUUURRURLLUURRRDD RDDRRRDUUULLDDDDRDRLULLULDLDRR UUURDRDRDRRRDDDULULLUULDLDD RLUUURUULLULDLDLLULURDDLDDURRDRLURR DRURULUURUDLLLLLDLDDRDRURUUDDLUUU DLUURUURRUULULRDDLLDLU UULDDDDURRUUDDRURUUUULDLDLU DLDRRRDLDDRRRURRDDUUUUDLL RRRDLRRDRUULUUDDDRDDRRULUURULL LLUURRRUURUURRRDLDDRDLDDUUULD ' +   // 41~50
+  'ULRRURRDRRRURLDDDDDLUULURURD URURRRDDRLDULLULDLRDDLDDURRURD LLLDUURUDDDRRLDDRDLDLLLDUUURRDRDL LDDRDRLUURRRRRULLRUUULDLDDRRUL LDDRRRURRLDDLDDRRULULDRDDLL RRDDLDLLLLUURRRRLLLUUURRURRLLDDRDLLDLUUU ULRURURRDDDLLDLDDLDRRURRDDUULD RUUULULURRURRRRDDDDDUUULDLLDLU RRRRURDDLLLLDULUUDRDDRRRRUUULD RRUUURLURRUDRDUURDRDDDRLDLLLUURDLDR ' +   // 51~60
   'ULLDULLDLDDRLUUULURDRLULDD URRRLLDDDRRUDRDLLLUULULUURR DULRUURRRLDDRDRULLLDLU DLDRDURRDRULLULLUULURRLLDD DDLUDDLUUULURRRRDULLDDRL LRRRRURULLLUURRLLDLDRRU URLDDDLDDURRDRDRLUULLULD DDLDDUURURDRUULLLLULDRRR UULURDDDRRLLLLRUURRULLRUUR DDLDDRRULUULUURRDRRDRDDUUULDLRURD ' +   // 61~70
   'LDDRUULULLDRDLLRDDL UUURRDRULLLUDULDDDUR LRRRURULUDDLLLLULUDRRRURDLDR UDDDDRRRRRUULRDDLLLLLUURDUR RURDLLULLDLRRRLUUDLDLURRURLDL LULULURULLLUULDDDRDRRUR LDLDLDLDDRUUURURRDLLLDD RDDLLDLURRRDRURULULLULURDLDLRRRL RUDLDLLUULRRURULLDDRLLDRR UDDDURDRLULLUURRRRDULLLDDLDDRDRULDLUUU ' +   // 71~80
   'UULRRRRDDDLLUUURUURD RUUDDDRDRLLLDULUUDRUDR RLLURUUULRRRDLULDRRRRLLDDRRLLLDDR URRDDUULLULDLDLRRDDRLUUUDRURD UUDRURRRDDLDLRRRUDLLULRLLDLULU URRDRDDDLDLLURRLULURULLLDLD RURRRULUUDRDLLLDLULULDRRULDLU DULURLDDRRUURUDRDDDRLLLURRLLLLUU LLDDRLUUURRRLDUURRRDDDURULLLULDRDLULDD DRDRDLLDLUDRRRULUDRDLLRUUURLDDRDL ' +   // 81~90
@@ -4375,23 +4375,23 @@ const BAKED=[
 {T:'0000000000111110011100100111111001111130001111100011111000000000',h:[[38,0]],p:[],b:[[3,2,0,0],[4,3,-45,7]],d:[4,1],par:13,sl:'RRDRUUULDLDRR',bi:1},
 {T:'0000000001101110011110100011111001111000011111000111331000000000',h:[[52,0],[53,0]],p:[],b:[[2,3,0,0],[6,2,0,0],[3,3,-46,7]],d:[2,2],par:20,sl:'RDDRRRUULLDDDDLLLDRR',bi:1},
 {T:'0000000001111110011101100111111001111110011111100331111000000000',h:[[49,0],[50,0]],p:[],b:[[3,2,0,0],[2,3,0,0],[2,2,-46,7]],d:[3,1],par:17,sl:'UURDRDDRDLUULDLDD',bi:1},
-{T:'0000000001101100011211100112011001121130010213000111111000000000',h:[[38,0],[45,0]],p:[],b:[[5,4,0,0],[2,5,0,0],[4,5,-46,7]],d:[6,5],par:24,sl:'LURURUULDDDDLLURLUURURDD',bi:1},
-{T:'0000000002111000021111100210011001101110011111100131111000000000',h:[[50,0]],p:[],b:[[2,3,0,0],[2,2,-46,7]],d:[2,4],par:21,sl:'ULLDDDDLDRUUUURRDLULD',bi:1},
+{T:'0000000001101100011211100112011001121130010213000111111000000000',h:[[38,0],[45,0]],p:[],b:[[5,4,0,0],[2,5,0,0],[4,5,-46,7]],d:[6,5],par:27,sl:'UUURUULLLDLLUURDDLDRRDRLURR',bi:1},
+{T:'0000000001133010001122200111110001011110011111100111111000000000',h:[[12,0],[11,0]],p:[],b:[[5,5,0,0],[5,2,0,0],[5,4,-44,7]],d:[6,4],par:22,sl:'URURULLDLUUUDLLDDRRDRU',bi:1},
 {T:'0000000001301110012101100121111001211110011100100011111000000000',h:[[10,0]],p:[],b:[[5,3,0,0],[5,2,-60,8]],d:[6,3],par:12,sl:'LUURUURULDLU',bi:1},
-{T:'0000000001103010022221100111111001111010011111100111111000000000',h:[[12,0]],p:[],b:[[2,5,0,0],[4,4,-60,8]],d:[3,3],par:14,sl:'DDRUURRUUULDLU',bi:1},
+{T:'0000000001113010022221100111111001111310011111100111111000000000',h:[[12,0],[37,0]],p:[],b:[[2,5,0,0],[4,4,-60,8],[5,3,0,0]],d:[4,3],par:17,sl:'LDRRUUDRUURUULDLU',bi:1},
 {T:'0000000000112110021121100213211002101110011111100011111000000000',h:[[27,0]],p:[],b:[[4,4,0,0],[3,2,-60,8]],d:[1,2],par:15,sl:'DLDRRRDDRRRURUL',bi:1},
 {T:'0000000000110210022232100113121001111210011111000011111000000000',h:[[20,0],[27,0]],p:[],b:[[5,5,0,0],[4,3,0,0],[3,2,-61,8]],d:[3,1],par:20,sl:'RRRDDRRUDDRRUURULDLU',bi:1},
 {T:'0000000002222210011101000111111001111210011032100111120000000000',h:[[44,0]],p:[],b:[[2,5,0,0],[4,3,-61,8]],d:[6,3],par:19,sl:'LUURRUUURRRDDRDLULD',bi:1},
-{T:'0000000001110110011121000111211001222320011011100111111000000000',h:[[37,0]],p:[],b:[[5,4,0,0],[3,3,-45,7],[3,2,-61,8]],d:[4,1],par:17,sl:'URRDDDRRRUULURURD',bi:1},
+{T:'0000000001110110011121000111211001222320011011100111111000000000',h:[[37,0]],p:[],b:[[5,4,0,0],[3,3,-45,7],[3,2,-61,8]],d:[4,1],par:18,sl:'URRDDDRRRUULUURURD',bi:1},
 {T:'0000000001111110011111100210111002111010021111100211311000000000',h:[[52,0]],p:[],b:[[2,4,0,0],[3,4,-46,7],[6,2,-61,8]],d:[3,2],par:19,sl:'URRDDDLDRUURRULULDD',bi:1},
-{T:'0000000000011110011111100111111001011110013222100112222000000000',h:[[42,0]],p:[],b:[[3,4,0,0],[3,3,-46,7],[2,3,-62,8]],d:[1,5],par:17,sl:'LLDDDRDDRDLULDRDL',bi:1},
+{T:'0000000001111110011111100111111001011110013222100102222000000000',h:[[42,0]],p:[],b:[[2,4,0,0],[3,3,-46,7],[2,3,-62,8]],d:[3,4],par:21,sl:'LLLUURDDDRDDRDLULDRDL',bi:1},
 {T:'0000000001110110011121100311211001112110010021100110111000000000',h:[[25,0]],p:[],b:[[2,5,0,0],[3,5,-47,7],[2,2,-61,8]],d:[3,2],par:20,sl:'DRRRRULLDLURRUULDRDL',bi:1},
 {T:'0000000001101110022221100011110001111110022221100131111000000000',h:[[50,0]],p:[],b:[[4,5,0,0],[6,6,-47,7],[3,2,-62,8]],d:[1,1],par:17,sl:'DRDDRDRRDRDLULLLD',bi:1},
-{T:'0000000001011110002111100121111001201010012111100110311000000000',h:[[52,0]],p:[],b:[[3,5,0,0],[3,4,-46,7],[6,2,-61,8]],d:[1,4],par:19,sl:'DDDLLDDRRUUURRDLULD',bi:1},
-{T:'0000000001222220010111100111011001111110011122200111031000000000',h:[[53,0]],p:[],b:[[5,2,0,0],[2,5,-46,7],[3,5,-62,8]],d:[1,1],par:20,sl:'RRDRRDDLLDDLLDRRURRD',bi:1},
+{T:'0000000001311110011010000110112000111120011100200111111000000000',h:[[10,0]],p:[],b:[[2,4,0,0],[4,4,-44,7]],d:[3,4],par:26,sl:'RDLLLDLUUULURRRDDRDLLDLUUU',bi:1},
+{T:'0000000000222220011111100111011001111110011122200111031000000000',h:[[53,0]],p:[],b:[[3,2,0,0],[2,4,-46,7],[3,5,-62,8]],d:[4,1],par:20,sl:'URURRRRDDLLDDLDRURRD',bi:1},
 {T:'0000000001322210011111100110011000111110001101100111111000000000',h:[[10,0]],p:[],b:[[4,3,0,0],[5,2,-44,7],[2,5,-63,8]],d:[6,1],par:22,sl:'RUUUUURULRRRRDDDLLLDLU',bi:1},
 {T:'0000000001011110001111100100011001111110011003100111111000000000',h:[[45,0]],p:[],b:[[5,2,0,0],[6,3,-47,7],[4,2,-45,7]],d:[4,1],par:26,sl:'RRRRRDDLLLLULURDDRRRURUULD',bi:1},
-{T:'0000000000113110011111100110111001222100011011100111111000000000',h:[[12,0]],p:[],b:[[5,5,0,0],[5,4,-44,7],[2,5,-61,8]],d:[3,6],par:23,sl:'LDLLLDDRRUUDRRULULRDDLU',bi:1},
+{T:'0000000002222200011111100110131001110110011101100111113000000000',h:[[29,0],[54,0]],p:[],b:[[5,2,0,0],[5,3,0,0],[6,2,-45,7]],d:[6,1],par:29,sl:'RRUUULURRRURDRDDDDLLLLUURDLDR',bi:1},
 {T:'0000000000000000011111100111101001dfff1001110df00000000000000000',h:[[41,0]],p:[],b:[[3,4,0,0]],d:[3,6],par:10,sl:'ULLDLLULDD'},
 {T:'0000000001111ge0011111e00111dff000110110001111100000000000000000',h:[[12,0]],p:[],b:[[2,5,0,0]],d:[3,2],par:13,sl:'URRRLLDLULURR'},
 {T:'0000000001111ge0011111e000111ef001111110011101100000000000000000',h:[[26,0]],p:[],b:[[4,6,0,0]],d:[5,1],par:14,sl:'URRRRDRULLLDLU'},
@@ -4992,7 +4992,7 @@ const MECH={
               fired:s=>s.mowerRun,
               pairs:{ door:'달려온 깎이가 문짝 옆을 치면 문이 돈다', ice:'쳐 낸 공이 미끄러진다' } },
   tub:      { nm:'첨벙통',       intro:41, kind:7, tags:['#Push','#Pour','#Soap'],
-              rule:'주둥이 반대쪽(뒤)에서 밀면 엎어져 앞 세 칸을 적신다 — 비눗물이면 미끄럼길, 맑은 물이면 씻긴다. 옆·앞에서 밀면 한 칸 밀린다. 빈 통은 어느 쪽이든 한 칸.',
+              rule:'물이 찬 통은 어느 쪽에서 밀어도 미는 쪽 세 칸에 엎는다 — 비눗물이면 미끄럼길, 맑은 물이면 씻긴다. 빈 통은 어느 쪽이든 한 칸 밀린다. 찬 통은 못 옮긴다.',
               fail:'엎을 줄을 잘못 골라 남겨야 할 칸까지 적신다.',
               has:o=>mHasKind(o,7), off:o=>mDropKind(o,7),
               fired:s=>s.tubPour,
@@ -9893,7 +9893,7 @@ const DEMOS={
   mower:{ tiles:[GRASS,GRASS,FURROW,GRASS,GRASS,GRASS], dur:4.6,
     act(p){ const a=seg(p,.10,.26), r=seg(p,.30,.60), mc=1+r*4;
       return { dog:a, mowers:[{c:mc, run:r>0&&r<1}], fill: mc>=2.4? [2+MOW_OFF] : [] }; } },
-  // 첨벙통 — 맥스가 오리 반대쪽에서 밀면 엎어져 앞 세 칸이 비눗물(물결이 한 칸씩 번진다).
+  // 첨벙통 — 물이 찬 통을 맥스가 밀면 미는 쪽 세 칸이 비눗물(물결이 한 칸씩 번진다).
   tub:{ tiles:[GRASS,GRASS,GRASS,GRASS,GRASS,GRASS], dur:4.4,
     act(p){ const a=seg(p,.10,.26), w=seg(p,.34,.60), n=Math.floor(w*3.999);
       return { dog:a, tubs:[{c:1, full:w<=0}], fill:[2,3,4].slice(0,n).map(c=>c+SPILL_OFF) }; } },
@@ -11246,7 +11246,7 @@ function renderHint(){
   for(const b of (st.balls||[])) if(b.layer!=='over') demoBall(b);
   for(const g of (st.logs||[])) drawLog(cx(g.c),cy(0),cell,1,1);
   for(const m of (st.mowers||[])) drawMower(cx(m.c),cy(0),cell,{color:MOWER_C-1, path:m.run? [1] : null});
-  for(const t of (st.tubs||[])) drawTub(cx(t.c),cy(0),cell,{r:-9,c:t.c,color:tubColor(1,t.full,false)});   // 첨벙통 데모 — 오른쪽 봄
+  for(const t of (st.tubs||[])) drawTub(cx(t.c),cy(0),cell,{r:-9,c:t.c,color:tubColor(1,t.full,false)});   // 첨벙통 데모
   for(const q of (st.pumps||[])) drawPump(cx(q.c),cy(0),cell,{color:PUMP_C-1-4*((q.next||1)-1)});        // 손펌프 데모 — 오른쪽 봄   // 잔디깎이 데모 — 오른쪽으로 달린다
   for(const g of (st.carts||[])) d.vert? drawCart(cx(0),cy(g.c),cell,!!g.vertical,1,1,0)
                                        : drawCart(cx(g.c),cy(0),cell,!!g.vertical,1,1,0);
@@ -22085,7 +22085,7 @@ function drawRoomSlots(){
     if(!(calm && (sl.k==='paper' || sl.k==='floor'))) outline(sl, st==='empty');   // 시안: 방 전체를 감싸는 점선은 뺀다
     if(st==='empty') lvTag(sl.tag[0], sl.tag[1], roomSlotNextLv(sl.k));
     else { const free=roomSlotFree(sl.k); pill(sl.tag[0], sl.tag[1], ROOM_SLOT_COST[sl.k], free); if(free) ribbon(sl.tag[0], sl.tag[1]-c*0.36); }
-    if(st==='wait'){ const b=Math.abs(Math.sin(animT*3))*c*0.08; g.save(); g.translate(sl.tag[0]+c*0.55, sl.tag[1]-c*0.32-b); g.scale(0.55,0.55); drawHouseGift(0,0,sl.k==='hood'); g.restore(); }
+    // 10-06 사람: 젬으로 여는 자리 옆의 선물 상자는 뺀다 — 값표와 흐린 물건 그림만으로 충분하다
   }
   if(roomSlotFx){ const u=(animT-roomSlotFx.t0)/0.9, sl=geo.find(x=>x.k===roomSlotFx.k);   // 자리를 연 순간 — 반짝이가 사방으로
     if(u<1 && sl){ const X=sl.ghost && sl.ghost!=='hood'? sl.ghost[0] : sl.tag[0], Y=sl.ghost && sl.ghost!=='hood'? sl.ghost[1] : sl.tag[1]-c*0.5;
@@ -29007,7 +29007,9 @@ function syncWalkFab(){
   const ic=b.querySelector && b.querySelector('.lbico');
   if(ic && ic.getContext && !(ic.dataset && ic.dataset.nb)){ if(ic.dataset) ic.dataset.nb='1'; drawWalkIcon(ic.getContext('2d'), ic.width, ic.height); }
 }
-function cx(c){ return c*cell+cell/2; } function cy(r){ return r*cell+cell/2; }
+function cx(c){ hillLastX=c; return c*cell+cell/2; }
+function cy(r){ const y=r*cell+cell/2;                            // 도토리 동산 — cx 다음 cy 로 부르는 자리(공·맥스·방석·젬)는 땅 높이만큼 든다. 바닥 층은 안 든다.
+  if(hillLastX==null || ctx===tileCtx || !hillOn()) return y; return y - hillZ(hillLastX+.5, r+.5)*HILL_HS*cell; }
 // ---- 색종이 (승리 연출) ----
 // 꽃가루는 따뜻한 색만(2026-10-02) — 보라·파랑 고채도는 아트 원칙(고채도 금지)과 어긋났다. 크림·금·잔디·분홍.
 let cftEl=null, cftx=null, cft=[], cftPal=["#F2C14E","#FFF3D6","#9BCB6E","#F2A7A0","#E8A94C","#C9E3A8"];
@@ -34354,6 +34356,7 @@ function tileLayerPaint(){
   finally{ soapBatch=false; }
   const rc=[]; for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); }
   tileSoapCells=cells; tileRinseCells=rc;
+  if(hillOn()) hillPaint();
 }
 let tileSoapCells=[], tileRinseCells=[];
 // 이 바닥이 시간에 따라 움직이나 — 0.37초 뒤 모습을 따로 그려 반 크기로 견준다. 판이 바뀔 때 한 번만 잰다.
@@ -35174,37 +35177,40 @@ function drawPumpShot(){
 let tubPourFx=null;
 const TUB_POUR_STEP=0.09;
 function tubSpillShown(k){ const fx=tubPourFx; if(!fx) return true; const i=fx.cells.indexOf(k); return i<0 || animT-fx.t0>0.2+i*TUB_POUR_STEP; }
-function drawTub(x,y,s,b){
-  const g=ctx, f=tubFace(b), full=tubFull(b), [fr,fc]=[[-1,0],[0,1],[1,0],[0,-1]][f];
+function drawTub(x,y,s,b){                                        // 오리 얼굴 대야(10-06 F1) — 둥근 노란 대야 + 물갈퀴 발 + 날개, 앞면이 얼굴
+  const g=ctx, full=tubFull(b);
   const fx=tubPourFx, live=fx && fx.r===b.r && fx.c===b.c, u=live? (animT-fx.t0) : 9;
-  const tip=u<0.18? u/0.18 : u<0.75? 1 : u<1.0? 1-(u-0.75)/0.25 : 0;              // 기울었다 돌아온다
-  g.fillStyle='rgba(60,50,30,.2)'; g.beginPath(); g.ellipse(x,y+s*0.32,s*0.38,s*0.08,0,0,7); g.fill();
+  const [fr,fc]=live? [[-1,0],[0,1],[1,0],[0,-1]][fx.f] : [0,0];
+  const tip=u<0.18? u/0.18 : u<0.75? 1 : u<1.0? 1-(u-0.75)/0.25 : 0;              // 미는 쪽으로 기울었다 돌아온다
+  g.fillStyle='rgba(60,50,30,.2)'; g.beginPath(); g.ellipse(x,y+s*0.3,s*0.38,s*0.08,0,0,7); g.fill();
   g.save(); g.translate(x+fc*s*0.3,y+s*0.22); g.rotate(fc*tip*0.75); g.translate(0,fr*tip*s*0.1); if(!fc) g.scale(1,1-tip*0.25*Math.abs(fr)); g.translate(-x-fc*s*0.3,-y-s*0.22);
-  if(f===0 && !full){}                                                            // (자리)
-  const back=f===0;                                                               // 주둥이가 뒤(위)를 보면 머리를 통 뒤에 먼저 그린다
-  const headAt=()=>{ const hx=x+fc*s*0.4, hy=y-s*0.26+fr*s*0.12, r=s*0.12*(back? 0.85 : 1), dir=fc||1;
-    g.fillStyle='#F7CF45'; g.beginPath(); g.arc(hx,hy,r,0,7); g.fill();
-    if(f===2){ g.fillStyle='#F2A33A'; g.beginPath(); g.ellipse(hx,hy+r*0.45,r*0.5,r*0.32,0,0,7); g.fill(); g.fillStyle='#2A2522'; for(const d of [-0.4,0.4]){ g.beginPath(); g.arc(hx+d*r,hy-r*0.15,r*0.15,0,7); g.fill(); } }
-    else if(f===0){ g.fillStyle='#F2BE35'; g.beginPath(); g.arc(hx,hy,r*0.6,0,7); g.fill(); }
-    else { g.fillStyle='#F2A33A'; g.beginPath(); g.ellipse(hx+dir*r*1.05,hy+r*0.18,r*0.55,r*0.32,0,0,7); g.fill(); g.fillStyle='#2A2522'; g.beginPath(); g.arc(hx+dir*r*0.35,hy-r*0.22,r*0.16,0,7); g.fill(); } };
-  if(back) headAt();
-  g.fillStyle='#6FB3D9'; g.beginPath(); g.moveTo(x-s*0.36,y-s*0.16); g.lineTo(x+s*0.36,y-s*0.16); g.lineTo(x+s*0.29,y+s*0.26); g.lineTo(x-s*0.29,y+s*0.26); g.closePath(); g.fill();
-  g.fillStyle='#5A9FC8'; g.fillRect(x-s*0.34,y+s*0.02,s*0.68,s*0.045); g.fillRect(x-s*0.31,y+s*0.16,s*0.62,s*0.04);
-  g.fillStyle='#8CC6E6'; g.beginPath(); g.ellipse(x,y-s*0.16,s*0.36,s*0.085,0,0,7); g.fill();
+  const w=s*0.38, top=y-s*0.06, bot=y+s*0.22;
+  g.fillStyle='#F2A33A';                                                          // 물갈퀴 발
+  for(const d of [-1,1]){ const px=x+d*s*0.17, py=bot+s*0.07; g.beginPath(); g.moveTo(px-s*0.08,py); g.lineTo(px,py-s*0.07); g.lineTo(px+s*0.08,py);
+    g.quadraticCurveTo(px+s*0.04,py+s*0.03,px,py+s*0.01); g.quadraticCurveTo(px-s*0.04,py+s*0.03,px-s*0.08,py); g.fill(); }
+  g.fillStyle='#F2BE35'; for(const d of [-1,1]){ g.beginPath(); g.ellipse(x+d*w*1.02,y+s*0.05,s*0.08,s*0.05,d*0.6,0,7); g.fill(); }   // 날개
+  const gr=g.createLinearGradient(0,top,0,bot); gr.addColorStop(0,'#FBDB62'); gr.addColorStop(1,'#F0B93A'); g.fillStyle=gr;
+  g.beginPath(); g.moveTo(x-w,top); g.quadraticCurveTo(x-w*1.02,bot,x-w*0.6,bot+s*0.01); g.lineTo(x+w*0.6,bot+s*0.01); g.quadraticCurveTo(x+w*1.02,bot,x+w,top); g.closePath(); g.fill();
+  g.fillStyle='#FFEB9A'; g.beginPath(); g.ellipse(x,top,w,s*0.1,0,0,7); g.fill();
   const amt=tubAmt(b), clean=tubClean(b) || (live && fx.clean), filling=b.fillT!=null && animT<b.fillT+0.4;
   const shown=live && u<0.6? 3*(1-u/0.6) : filling? 3*Math.max(0,Math.min(1,(animT-b.fillT)/0.4)) : amt;   // 물 높이
   const lv=Math.max(0,Math.min(1,shown/3));
-  if(lv>0){ g.fillStyle=clean? '#7CC7EC' : '#BFE8FA'; g.beginPath(); g.ellipse(x,y-s*0.15,s*0.3*lv+s*0.02,s*0.06*lv+s*0.01,0,0,7); g.fill();
-    if(clean){ g.fillStyle='rgba(255,255,255,.85)'; g.beginPath(); g.ellipse(x-s*0.1*lv,y-s*0.17,s*0.08*lv,s*0.018,-0.2,0,7); g.fill(); }   // 맑은 물 — 거품 없이 윤슬 하나
-    else { g.fillStyle='rgba(255,255,255,.92)'; for(const dx of [-0.15,0.02,0.17]){ g.beginPath(); g.arc(x+dx*s*lv,y-s*0.17,s*0.032,0,7); g.fill(); } } }
-  else { g.fillStyle='#4E86AE'; g.beginPath(); g.ellipse(x,y-s*0.15,s*0.3,s*0.06,0,0,7); g.fill(); }
-  if(!back) headAt();
+  g.fillStyle='#C99A2E'; g.beginPath(); g.ellipse(x,top+s*0.012,w*0.86,s*0.075,0,0,7); g.fill();   // 마른 바닥
+  if(lv>0){ g.fillStyle=clean? '#7CC7EC' : '#D2EEFB'; g.beginPath(); g.ellipse(x,top+s*0.012,w*0.86*(0.55+0.45*lv),s*0.075*(0.55+0.45*lv),0,0,7); g.fill();
+    if(clean){ g.fillStyle='rgba(255,255,255,.85)'; g.beginPath(); g.ellipse(x-s*0.17*lv,top+s*0.005,s*0.07*lv,s*0.014,-0.2,0,7); g.fill(); }   // 맑은 물 — 윤슬 하나
+    else { g.fillStyle='#fff'; for(const [dx,dy,q] of [[-0.22,-0.01,0.05],[-0.08,0.02,0.035],[0.24,-0.01,0.045]]){ g.beginPath(); g.arc(x+dx*s*lv,top+dy*s,q*s*Math.max(0.5,lv),0,7); g.fill(); } } }   // 비눗물 — 거품
+  // 얼굴 — 차면 방긋, 비면 졸린 눈, 엎는 동안 꽥
+  const mood=live && u<0.9? 'wow' : lv>0? 'happy' : 'sleep', fy=top+s*0.14;
+  g.fillStyle='#2A2522'; g.strokeStyle='#2A2522'; g.lineWidth=s*0.02; g.lineCap='round';
+  for(const d of [-1,1]){ const ex=x+d*s*0.11, er=s*0.025;
+    if(mood==='sleep'){ g.beginPath(); g.arc(ex,fy-er*0.3,er,Math.PI*0.15,Math.PI*0.85); g.stroke(); }
+    else if(mood==='happy'){ g.beginPath(); g.arc(ex,fy+er*0.4,er,Math.PI*1.15,Math.PI*1.85); g.stroke(); }
+    else { g.fillStyle='#2A2522'; g.beginPath(); g.arc(ex,fy,er*1.15,0,7); g.fill(); g.fillStyle='#fff'; g.beginPath(); g.arc(ex-er*0.35,fy-er*0.35,er*0.4,0,7); g.fill(); } }
+  const by=fy+s*0.06; g.fillStyle='#F2A33A';
+  if(mood==='wow'){ g.beginPath(); g.ellipse(x,by-s*0.012,s*0.055,s*0.022,0,0,7); g.fill(); g.fillStyle='#C9672A'; g.beginPath(); g.ellipse(x,by+s*0.012,s*0.04,s*0.02,0,0,7); g.fill(); g.fillStyle='#F2A33A'; g.beginPath(); g.ellipse(x,by+s*0.03,s*0.05,s*0.018,0,0,7); g.fill(); }
+  else { g.beginPath(); g.ellipse(x,by,s*0.06,s*0.028,0,0,7); g.fill(); g.strokeStyle='rgba(160,80,20,.5)'; g.lineWidth=s*0.008; g.beginPath(); g.moveTo(x-s*0.045,by); g.quadraticCurveTo(x,by+(mood==='happy'? s*0.012 : 0),x+s*0.045,by); g.stroke(); }
+  g.fillStyle='rgba(240,130,120,.45)'; for(const d of [-1,1]){ g.beginPath(); g.ellipse(x+d*s*0.19,fy+s*0.05,s*0.035,s*0.022,0,0,7); g.fill(); }   // 볼
   g.restore();
-  const dots=live && u<0.25? 3 : live? 0 : filling? Math.floor(3*Math.max(0,Math.min(1,(animT-b.fillT)/0.4))) : amt;   // 찼으면 ●●● · 비었으면 ○○○
-  for(let i=1;i<=3;i++){ const px=x+(i-2)*s*0.15, py=y+s*0.43, on=i<=dots;              // 받침 앞 점 셋 — 남은 물(칸 수). 손펌프와 같은 자리·같은 크기
-    g.fillStyle=on? (clean? '#4FA8E0' : '#E9F6FD') : 'rgba(255,255,255,.35)'; g.beginPath(); g.arc(px,py,s*0.05,0,7); g.fill();
-    g.strokeStyle=on? (clean? '#2E7FB8' : '#7FC3E6') : 'rgba(40,90,140,.4)'; g.lineWidth=on? 2 : 1.2; g.stroke();
-    if(on && !clean){ g.fillStyle='rgba(255,255,255,.95)'; g.beginPath(); g.arc(px-s*0.015,py-s*0.015,s*0.016,0,7); g.fill(); } }
 }
 function drawTubPour(){
   // 레이저 같던 일직선 물줄기를 걷었다(10-05 사람) — 통 입구에서 물이 콸 쏟아져 바닥에 철퍼덕, 그 물결이 바닥을 타고 한 칸씩 굴러간다.
@@ -35799,9 +35805,173 @@ function drawRinseCells(cells, style){
     }
   }
 }
+// ── 도토리 동산 땅(10-06 사람 시안 승인) ─────────────────────────────────────────
+// 91~120판만. 판·규칙은 그대로, 그림만 바꾼다.
+//  · 언덕 칸 = 이어진 비탈. 같은 방향이 줄지으면 칸 수만큼 높은 한 비탈, 오르막 끝 평지는 마루로 솟는다.
+//  · 안쪽 벽(옛 덤불) = 둥근 동산 + 작은 참나무. 기댄 비탈과는 높이가 이어지고 걷는 땅 쪽은 둥글게 내려간다.
+//  · 둘레 덤불 대신 잔디섬 — 판 아래 흙 단면 + 둥근 귀. 땅은 판 윗선을 안 넘는다(나무 머리만 넘는다).
+//  · 공·맥스·방석은 80%, 땅 높이만큼 든다(cy). 나무는 공·맥스 뒤에 한 번 더 그려 뒷줄 물건을 가린다.
+// 땅은 판마다 한 번 굽는다(hillBake) — 바닥 캐시가 20fps 로 다시 그려도 지형 계산은 다시 안 돈다.
+// var — cx/cy·drawTile 이 이 줄보다 먼저(부트 중) 불려도 TDZ 로 죽지 않게.
+var HILL_SUB=10, HILL_HS=0.36, HILL_OBJ_K=0.8, hillC={lv:-1}, hillLastX=null;
+function hillIsS(t){ return t>=SU&&t<=SR; }
+function hillInner(r,c){ return r>=1&&c>=1&&r<=GN-2&&c<=GN-2; }
+function hillLevel(){ return !!hillC && level>=91 && level<=120 && !houseMode && !labMode && !menuMode && !tutMode && !moonMode; }
+function hillAnalyze(){
+  const T=L.T, n=GN, k=(r,c)=>r*n+c, lo={}, hi={}, crest={}, wallH={};
+  const low=(r,c)=>{ const key=k(r,c); if(lo[key]!=null) return lo[key]; const v=SLOPEV[T[r][c]], nr=r+v[0], nc=c+v[1];
+    let x=0; lo[key]=0; if(T[nr]&&T[nr][nc]===T[r][c]) x=low(nr,nc)+1; lo[key]=x; hi[key]=x+1; return x; };
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){ if(hillIsS(T[r][c])) low(r,c); if(T[r][c]===WALL && hillInner(r,c)) wallH[k(r,c)]=1; }
+  for(let r=0;r<n;r++)for(let c=0;c<n;c++){ const t=T[r][c]; if(!hillIsS(t)) continue; const v=SLOPEV[t], ur=r-v[0], uc=c-v[1];
+    if(!hillInner(ur,uc)) continue; const u=T[ur][uc], key=k(ur,uc);
+    if(u===WALL) wallH[key]=Math.max(wallH[key],hi[k(r,c)]);
+    else if(!hillIsS(u)) crest[key]=Math.max(crest[key]||0,hi[k(r,c)]); }
+  return {lo,hi,crest,wallH};
+}
+function hillField(A){                                            // 걷는 땅(벽·둘레 아닌 칸)만의 높이장 — 칸 경계는 걷는 땅 쪽 값
+  const n=GN, S=HILL_SUB, W=n*S+1, T=L.T, ss=t=>t*t*(3-2*t);
+  const cellVal=(r,c,fx,fy)=>{ const t=T[r][c], key=r*n+c;
+    if(hillIsS(t)){ const d=SLOPEV[t]; const u=d[0]===1?fy:d[0]===-1?1-fy:d[1]===1?fx:1-fx; return A.lo[key]+(1-ss(u)); }
+    return A.crest[key]||0; };
+  const z=new Float32Array(W*W).fill(NaN);
+  for(let j=0;j<W;j++)for(let i=0;i<W;i++){
+    const cands=[]; for(const [r,c] of [[(j/S)|0,(i/S)|0],[((j-1)/S)|0,(i/S)|0],[(j/S)|0,((i-1)/S)|0],[((j-1)/S)|0,((i-1)/S)|0]]){
+      if(r<0||c<0||r>=n||c>=n||!hillInner(r,c)||T[r][c]===WALL) continue; cands.push(cellVal(r,c,i/S-c,j/S-r)); }
+    if(cands.length) z[j*W+i]=Math.max(...cands); }
+  let a=z; for(let p=0;p<2;p++){ const b=new Float32Array(W*W).fill(NaN); for(let j=0;j<W;j++)for(let i=0;i<W;i++){ if(isNaN(a[j*W+i])) continue; let s=0,m=0; for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){ const jj=j+dj, ii=i+di; if(jj<0||ii<0||jj>=W||ii>=W) continue; const v=a[jj*W+ii]; if(isNaN(v)) continue; s+=v; m++; } b[j*W+i]=s/m; } a=b; }
+  return {z:a,W};
+}
+function hillKnollEdgeLow(r,c,dr,dc){ const r2=r+dr, c2=c+dc; if(!hillInner(r2,c2)) return false; const t=L.T[r2][c2]; if(t===WALL) return false;
+  if(hillIsS(t)){ const v=SLOPEV[t]; if(r2-v[0]===r && c2-v[1]===c) return false; }   // 이 동산에 기댄 비탈의 높은 변 — 이어진다
+  return true; }
+function hillZc(r,c,i,j){                                         // 칸 안 표본 높이 — 동산은 둥근 꼭대기, 걷는 땅은 높이장
+  if(L.T[r][c]===WALL && hillInner(r,c)){ const H=hillC.A.wallH[r*GN+c], fx=i/HILL_SUB-c, fy=j/HILL_SUB-r, R=0.42, f=d=>{ const t=Math.max(0,Math.min(1,d/R)); return t*t*(3-2*t); };
+    let k=1; const E=hillC.knE[r*GN+c];
+    if(E[0]) k*=f(fy); if(E[1]) k*=f(1-fy); if(E[2]) k*=f(fx); if(E[3]) k*=f(1-fx);
+    return H*k; }
+  const v=hillC.z[j*hillC.W+i]; return isNaN(v)?0:v; }
+function hillEnsure(){
+  if(hillC.lv===level && hillC.cell===cell && hillC.T===L.T) return hillC;
+  hillC={lv:level,cell,T:L.T,ok:false};
+  if(!hillLevel()) return hillC;
+  const A=hillAnalyze(); Object.assign(hillC, hillField(A), {ok:true, A, cv:null, Z:null});
+  hillC.knE={}; for(let r=1;r<GN-1;r++)for(let c=1;c<GN-1;c++) if(L.T[r][c]===WALL) hillC.knE[r*GN+c]=[hillKnollEdgeLow(r,c,-1,0),hillKnollEdgeLow(r,c,1,0),hillKnollEdgeLow(r,c,0,-1),hillKnollEdgeLow(r,c,0,1)];
+  return hillC;
+}
+function hillOn(){ return hillLevel() && hillEnsure().ok; }
+function hillZ(x,y){ const H=hillC; if(!H.ok) return 0; if(H.Z) return H.Z(x,y);
+  const r=Math.min(GN-1,y|0), c=Math.min(GN-1,x|0), i=Math.max(0,Math.min(H.W-1,Math.round(x*HILL_SUB))), j=Math.max(0,Math.min(H.W-1,Math.round(y*HILL_SUB))); return hillZc(r,c,i,j); }
+function hillTreeAt(g,x,y,S){ g.fillStyle='#8A5B36'; g.fillRect(x-S*.045,y-S*.24,S*.09,S*.24);
+  for(const [dx,dy,rr_,cl] of [[0,-.44,.27,'#4E8B3F'],[-.16,-.35,.18,'#4E8B3F'],[.16,-.35,.18,'#457F38'],[-.06,-.52,.14,'#64A04E']]){ g.fillStyle=cl; g.beginPath(); g.arc(x+dx*S,y+dy*S,rr_*S,0,7); g.fill(); }
+  g.fillStyle='#9A6534'; for(const [dx,dy] of [[-.12,-.38],[.14,-.46]]){ g.beginPath(); g.ellipse(x+dx*S,y+dy*S,S*.035,S*.045,0,0,7); g.fill(); } }
+function hillBake(){
+  const H=hillC, S=HILL_SUB, HS=HILL_HS, dpr=boardDpr(), w=GN*cell, h=GN*cell+Math.round(cell*0.16);
+  const cv=document.createElement('canvas'); cv.width=w*dpr; cv.height=h*dpr; const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  const P=(x,y,zz)=>[x*cell, y*cell-zz*HS*cell], base=H.base||[170,208,138];
+  const isW=(r,c)=>hillInner(r,c)&&L.T[r][c]===WALL;
+  // 통합 높이장 U(동산·걷는 땅) + 동산 정도 V — 경계 표본은 닿은 칸 평균, 흐려서 이음매를 녹인다
+  const Wn=GN*S+1; let U=new Float32Array(Wn*Wn), V=new Float32Array(Wn*Wn);
+  for(let j=0;j<Wn;j++)for(let i=0;i<Wn;i++){ let sz=0,sv=0,m=0;
+    for(const [r,c] of [[(j/S)|0,(i/S)|0],[((j-1)/S)|0,(i/S)|0],[(j/S)|0,((i-1)/S)|0],[((j-1)/S)|0,((i-1)/S)|0]]){
+      if(r<0||c<0||r>=GN||c>=GN) continue; if(j-r*S<0||j-r*S>S||i-c*S<0||i-c*S>S) continue;
+      const iv=hillInner(r,c); sz+= iv? hillZc(r,c,i,j) : 0; sv+= (iv&&isW(r,c))?1:0; m++; }
+    U[j*Wn+i]=m?sz/m:0; V[j*Wn+i]=m?sv/m:0; }
+  const blur=(A)=>{ const B=new Float32Array(Wn*Wn); for(let j=0;j<Wn;j++)for(let i=0;i<Wn;i++){ let t=0,m=0; for(let dj=-1;dj<=1;dj++)for(let di=-1;di<=1;di++){ const jj=j+dj, ii=i+di; if(jj<0||ii<0||jj>=Wn||ii>=Wn) continue; t+=A[jj*Wn+ii]; m++; } B[j*Wn+i]=t/m; } return B; };
+  U=blur(blur(blur(U))); V=blur(blur(V));
+  const bil=(A,X,Y)=>{ const x=Math.max(0,Math.min(Wn-1.001,X*S)), y=Math.max(0,Math.min(Wn-1.001,Y*S)), i=x|0, j=y|0, fx=x-i, fy=y-j;
+    return (A[j*Wn+i]*(1-fx)+A[j*Wn+i+1]*fx)*(1-fy)+(A[(j+1)*Wn+i]*(1-fx)+A[(j+1)*Wn+i+1]*fx)*fy; };
+  H.Z=(X,Y)=>bil(U,X,Y);
+  // 화면 픽셀 단위로 칠한다 — 열마다 북→남, 앞(남)이 뒤를 덮는다. 판 윗선 위로는 안 칠한다.
+  { const D=cell*dpr, Wd=cv.width, Hd=cv.height, img=g.createImageData(Wd,Hd), px=img.data, step=1/D, e=0.5/S, topY=Math.ceil(D);
+    for(let X_=Math.floor(D);X_<Math.ceil((GN-1)*D);X_++){ const X=(X_+.5)/D;
+      for(let Y=1;Y<GN-1;Y+=step){
+        const z=bil(U,X,Y); if(z<0.002) continue;
+        const zn=bil(U,X,Y+step), sy=Y*D-z*HS*D, sy2=(Y+step)*D-zn*HS*D;
+        const dzx=(bil(U,X+e,Y)-bil(U,X-e,Y))/(2*e), dzy=(bil(U,X,Y+e)-bil(U,X,Y-e))/(2*e);
+        const k=HS*1.6, nx=-dzx*k, ny=-dzy*k, nl=Math.hypot(nx,ny,1), dot=(nx*-0.45+ny*-0.55+0.70)/nl;   // 왼쪽 위 앞에서 오는 빛
+        const Lm=Math.max(-.22,Math.min(.2,(dot-0.70)*0.9)) - bil(V,X,Y)*0.06;
+        const al=Math.min(1,z/0.05), a1=al*al*(3-2*al);
+        const rC=base[0]+Lm*130, gC=base[1]+Lm*130, bC=base[2]+Lm*130;
+        const ya=Math.max(topY,Math.floor(sy)), yb=Math.min(Hd-1,Math.max(ya,Math.ceil(sy2)-1)); if(yb<ya) continue;
+        for(let yy=ya;yy<=yb;yy++){ const o=(yy*Wd+X_)*4, ea=px[o+3]/255, na=a1+ea*(1-a1);
+          px[o]=(rC*a1+px[o]*ea*(1-a1))/na; px[o+1]=(gC*a1+px[o+1]*ea*(1-a1))/na; px[o+2]=(bC*a1+px[o+2]*ea*(1-a1))/na; px[o+3]=na*255; } } }
+    g.putImageData(img,0,0); }
+  g.save(); g.beginPath(); g.rect(0,cell,GN*cell,GN*cell); g.clip();
+  g.strokeStyle='rgba(60,95,40,.12)'; g.lineWidth=cell*.012;          // 땅 위 칸 경계(옅게) — 퍼즐 칸이 읽히게
+  for(let k=1;k<GN;k++) for(const vert of [0,1]){ g.beginPath(); let on=false;
+    for(let t=S;t<=(GN-1)*S;t++){ const X=vert?k:t/S, Y=vert?t/S:k, zz=H.Z(X,Y); if(zz<0.04){ on=false; continue; } const p=P(X,Y,zz); on?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]); on=true; }
+    g.stroke(); }
+  g.restore();
+  for(let r=1;r<=GN-2;r++){
+    for(let c=1;c<GN-1;c++){ if(!isW(r,c)) continue; const zz=H.Z(c+.5,r+.78), p=P(c+.5,r+.78,zz), Sz=cell*.88;   // 동산 꼭대기 참나무
+      g.fillStyle='rgba(40,60,20,.22)'; g.beginPath(); g.ellipse(p[0],p[1]+Sz*.06,Sz*.3,Sz*.07,0,0,7); g.fill(); hillTreeAt(g,p[0],p[1],Sz); }
+    g.save(); g.beginPath(); g.rect(0,cell,GN*cell,GN*cell); g.clip();   // 산자락 선(옅게)
+    g.strokeStyle='rgba(55,95,38,.28)'; g.lineWidth=cell*.016; g.lineCap='round'; g.lineJoin='round'; g.beginPath();
+    for(let j=r*S*2;j<(r+1)*S*2;j++) for(let i=S*2;i<(GN-1)*S*2;i++){ const S2=S*2;
+      const q=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]].map(([a,b])=>[a,b,H.Z(a/S2,b/S2)]), pts=[], lv=0.06;
+      for(let e=0;e<4;e++){ const A=q[e], B=q[(e+1)%4]; if((A[2]-lv)*(B[2]-lv)<0){ const t=(lv-A[2])/(B[2]-A[2]); pts.push([(A[0]+(B[0]-A[0])*t)/S2,(A[1]+(B[1]-A[1])*t)/S2]); } }
+      for(let m=0;m+1<pts.length;m+=2){ const a=P(pts[m][0],pts[m][1],lv), b=P(pts[m+1][0],pts[m+1][1],lv); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); } }
+    g.stroke(); g.restore();
+    for(let c=1;c<GN-1;c++){ const t=L.T[r][c]; if(!hillIsS(t)) continue; const d=SLOPEV[t];   // 갈매기 — 내리막 방향
+      g.strokeStyle='rgba(255,255,245,.85)'; g.lineWidth=cell*.04; g.lineCap='round'; g.lineJoin='round';
+      for(const off of [-0.12,0.14]){ const mx=c+.5+d[1]*off, my=r+.5+d[0]*off, w2=.15, l=.1;
+        const A=[mx-d[1]*l-d[0]*w2, my-d[0]*l-d[1]*w2], Tp=[mx+d[1]*l, my+d[0]*l], B=[mx-d[1]*l+d[0]*w2, my-d[0]*l+d[1]*w2];
+        const pa=P(A[0],A[1],H.Z(...A)), pt=P(Tp[0],Tp[1],H.Z(...Tp)), pb=P(B[0],B[1],H.Z(...B));
+        g.beginPath(); g.moveTo(pa[0],pa[1]); g.lineTo(pt[0],pt[1]); g.lineTo(pb[0],pb[1]); g.stroke(); } }
+  }
+  return cv;
+}
+function hillIsland(g){                                           // 둘레 덤불 대신 잔디섬 — 둥근 귀 + 판 아래 흙 단면
+  const s=cell, A=cell, B=(GN-1)*cell, H=s*.34, R=s*.26, hs=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); };
+  g.save();
+  g.globalCompositeOperation='destination-out';
+  for(const [cx_,cy_,sx,sy] of [[A,A,1,1],[B,A,-1,1],[A,B,1,-1],[B,B,-1,-1]]){
+    g.beginPath(); g.moveTo(cx_+sx*R,cy_); g.lineTo(cx_,cy_); g.lineTo(cx_,cy_+sy*R); g.quadraticCurveTo(cx_,cy_,cx_+sx*R,cy_); g.fill(); }
+  g.globalCompositeOperation='source-over';
+  const sh=g.createRadialGradient((A+B)/2,B+H+s*.06,s*.5,(A+B)/2,B+H+s*.06,(B-A)*.62);
+  sh.addColorStop(0,'rgba(40,70,60,.22)'); sh.addColorStop(1,'rgba(40,70,60,0)');
+  g.fillStyle=sh; g.beginPath(); g.ellipse((A+B)/2,B+H+s*.06,(B-A)*.56,s*.14,0,0,7); g.fill();
+  const face=()=>{ g.beginPath(); g.moveTo(A,B-R); g.quadraticCurveTo(A,B,A+R,B); g.lineTo(B-R,B); g.quadraticCurveTo(B,B,B,B-R);
+    g.lineTo(B,B+H-R*.6); g.quadraticCurveTo(B,B+H,B-R,B+H); g.lineTo(A+R,B+H); g.quadraticCurveTo(A,B+H,A,B+H-R*.6); g.closePath(); };
+  face(); const gr=g.createLinearGradient(0,B,0,B+H); gr.addColorStop(0,'#8E6640'); gr.addColorStop(.35,'#B98A5B'); gr.addColorStop(1,'#A47B50'); g.fillStyle=gr; g.fill();
+  g.save(); face(); g.clip();
+  g.strokeStyle='rgba(255,235,200,.18)'; g.lineWidth=s*.02; for(const f of [.55,.8]){ g.beginPath(); for(let i=0;i<=20;i++){ const xx=A+(B-A)*i/20, yy=B+H*f+Math.sin(i*1.3)*s*.012; i?g.lineTo(xx,yy):g.moveTo(xx,yy); } g.stroke(); }
+  g.fillStyle='rgba(90,60,30,.3)'; for(let i=0;i<12;i++){ g.beginPath(); g.ellipse(A+(i+.5)*(B-A)/12+(hs(i)-.5)*s*.12, B+H*(.42+hs(i+5)*.4), s*.045, s*.025,0,0,7); g.fill(); }
+  g.strokeStyle='rgba(70,45,20,.35)'; g.lineWidth=s*.012; g.lineCap='round';
+  for(let i=0;i<9;i++){ const xx=A+s*.3+(B-A-s*.6)*hs(i+20); g.beginPath(); g.moveTo(xx,B+s*.02); g.quadraticCurveTo(xx+s*.04,B+H*.2,xx-s*.02,B+H*(.3+hs(i+30)*.15)); g.stroke(); }
+  g.restore();
+  g.fillStyle='#78AC55'; g.beginPath(); g.moveTo(A+R*.4,B-s*.02);
+  for(let i=0;i<=30;i++){ const t=i/30, xx=A+R*.4+(B-A-R*.8)*t; g.lineTo(xx, B+s*.03+(i%2?s*.035:0)+Math.sin(t*9)*s*.008); }
+  g.lineTo(B-R*.4,B-s*.02); g.closePath(); g.fill();
+  g.strokeStyle='rgba(70,110,45,.35)'; g.lineWidth=s*.018; g.beginPath();
+  g.moveTo(A,B-R); g.lineTo(A,A+R); g.quadraticCurveTo(A,A,A+R,A); g.lineTo(B-R,A); g.quadraticCurveTo(B,A,B,A+R); g.lineTo(B,B-R); g.stroke();
+  g.restore();
+}
+function hillPaint(){                                             // tileLayerPaint 끝에서 — 굽은 땅을 바닥 위에 붙이고 잔디섬으로 마감
+  const H=hillC;
+  if(!H.base){ try{ const dpr=boardDpr(); let best=null; for(let r=1;r<GN-1&&!best;r++)for(let c=1;c<GN-1;c++){ if(L.T[r][c]===GRASS && !H.A.crest[r*GN+c]){ const S=Math.round(cell*.5*dpr), d=ctx.getImageData(Math.round((c*cell+cell*.25)*dpr),Math.round((r*cell+cell*.25)*dpr),S,S).data; let R=0,G=0,B=0,N=0; for(let q=0;q<d.length;q+=4){ R+=d[q];G+=d[q+1];B+=d[q+2];N++; } if(N) best=[R/N,G/N,B/N]; break; } } if(best) H.base=best; }catch(e){} }
+  if(!H.cv) H.cv=hillBake();
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(H.cv,0,0); ctx.restore();
+  hillIsland(ctx);
+}
+function hillTreesFront(){                                        // 공·맥스를 다 그린 뒤 나무를 한 번 더 — 뒷줄 물건은 나무 뒤로 숨는다
+  if(!hillOn() || !hillC.Z) return;                               // 제 칸 3/4 줄까지만 — 앞줄 물건 머리는 안 덮는다
+  for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ if(L.T[r][c]!==WALL) continue;
+    const zz=hillC.Z(c+.5,r+.78), x=(c+.5)*cell, y=(r+.78)*cell-zz*HILL_HS*cell;
+    ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); hillTreeAt(ctx,x,y,cell*.88); ctx.restore(); }
+}
+// 공·맥스·방석 80% — 발밑을 기준으로 줄인다. 겹친 호출(맥스 그림 안의 맥스 그림)은 바깥 한 번만.
+{ let depth=0;
+  const wrap=(f,footY)=>function(x,y,...rest){ if(depth>0 || !hillOn()){ depth++; try{ return f.call(this,x,y,...rest); } finally{ depth--; } }
+      const fy=y+cell*footY, k=HILL_OBJ_K; ctx.save(); ctx.translate(x,fy); ctx.scale(k,k); ctx.translate(-x,-fy); depth++;
+      try{ return f.call(this,x,y,...rest); } finally{ depth--; ctx.restore(); } };
+  drawGoalFeelCushion=wrap(drawGoalFeelCushion,0.1); drawGoalFeelToy=wrap(drawGoalFeelToy,0.28); drawBall=wrap(drawBall,0.28);
+  drawChapterMaxPrototype=wrap(drawChapterMaxPrototype,0.32); drawDog=wrap(drawDog,0.32); }
 function drawTile(r,c){
   if(houseMode && !houseIn && drawHouseTile(r,c)) return;
   if(labMode && labDrawTile(r,c)) return;                    // 실험 판 — 모래·둔덕
+  if(hillOn()){ if(!hillInner(r,c)) return;                  // 도토리 동산 — 둘레는 잔디섬(hillIsland), 언덕·동산은 굽은 땅(hillPaint)이 그린다
+    if(hillIsS(L.T[r][c]) || L.T[r][c]===WALL){ drawFloorBase(c*cell,r*cell,r,c,EDGE_ART.FLOOR[(districtOf(level)||{}).nm]); return; } }
   // 다진 이랑(filled)은 잔디가 아니라 **다진 밭**으로 남는다 — 촉촉한 갈이흙 + 싹 + 밝은 자국.
   const _k=kk(r,c), _raw=L.T[r][c], _fl=filled.has(_k);
   const _proto=chapterMaxPrototypeBoardStyle(level);
@@ -37913,6 +38083,7 @@ function render(){
   drawTutScene(); drawTutorHand(); drawObHand();
   drawHintFx();
   drawMatEat();
+  hillTreesFront();                                           // 도토리 동산 — 나무 뒤 칸 공·맥스·방석은 나무가 가린다
   drawCritterPeeks();                                         // 옆에서 엿보는 동물 — 맥스에 안 가리게 맥스 위
   drawTeach();
   drawBubble();
