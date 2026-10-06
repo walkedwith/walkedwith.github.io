@@ -783,7 +783,7 @@
     "mower.click": "Click",
     "mower.peep": "Peep!",
     "guide.mower.name": "Lawn Mower",
-    "guide.mower.text": "Push from the <b>handle side</b> and it runs <b>until it hits something</b>|Push from <b>the side</b> to turn it in place|Mowed grass <b>lets balls through</b>",
+    "guide.mower.text": "The machine and handle take <b>one tile each</b>|Push behind the handle to run <b>until something blocks it</b>|Push the handle from <b>the side</b> to pivot around the machine|Mowed grass <b>lets balls through</b>",
     "guide.tub.name": "Splash Tub",
     "guide.tub.text": "Push a full tub to pour on the <b>next three tiles</b>|An <b>empty tub</b> slides one tile|Refill an empty tub with the <b>duck pump</b>",
     "guide.pump.name": "Duck Pump",

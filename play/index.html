@@ -1059,7 +1059,7 @@ function bgmSync(){
 async function pauseAppAudio(){
   bgmInit();
   bgmSuspended=true; bgmStop();
-  moveBuffer=null; walkQueueClear(); dragReset();
+  clearMoveBuffer(); walkQueueClear(); dragReset();
   clearTimeout(dpadTO); clearInterval(dpadIV); dpadTO=0; dpadIV=0;
   stopGameEffects();
   if(actx&&actx.state==='running') try{ await actx.suspend(); }catch(e){}
@@ -11419,7 +11419,7 @@ function loadLevel(lv, moon, keepTries){
   if(TRAINING_PRACTICE && typeof trainingPracticeStart==='function') return trainingPracticeStart();
   stopGameEffects();
   trampFx=null;                                   // 앞 판의 헛점프 잔상이 새 판으로 넘어오면 안 된다
-  moveBuffer=null;                                // 앞 판 마지막 스와이프가 새 판 첫 수가 되면 안 된다
+  clearMoveBuffer();                              // 앞 판 마지막 스와이프가 새 판 첫 수가 되면 안 된다
   walkQueueClear(); dragReset();                  // 끌어 둔 경로도 마찬가지다
   hideBoardTip();
   exitMenu();
@@ -23317,6 +23317,10 @@ function chapterMaxPrototypeIsMoving(){
 function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!(doorFx && !doorFx.fail) || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||b.turnFx||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
+// 애니메이션 중 빠르게 이어진 손짓을 한 번만 기억하면 마지막 방향이 앞 입력을
+// 덮어써서 스와이프가 멈춘 것처럼 느껴진다. 짧은 입력 두 개까지 순서대로 받는다.
+let moveBufferNext=[];
+function clearMoveBuffer(){ moveBuffer=null; moveBufferNext.length=0; }
 // 유효시간(at)은 **애니가 끝난 뒤부터** 잰다 — 프레임 루프가 애니 중엔 at 을 당겨 둔다.
 // 입력 시각부터 재면 밀기(≈264ms) 초반에 이어 쓴 스와이프가 끝나기도 전에 만료돼 버려졌다
 // (실측: 첫 밀기 뒤 40·80ms 에 쓴 두 번째 밀기가 사라짐). t0 는 너무 늦은 입력을 끊는 상한이다.
@@ -23324,12 +23328,23 @@ const MOVE_BUFFER_CAP_MS=1500;
 // 긋기 번호 — 그은 경로가 걷는 동안의 걸음은 같은 번호를 달고 무르기 스택에 쌓인다.
 // 무르기 한 번이 그 번호 전체를 되돌린다(2026-09-26). 한 칸 스와이프는 번호가 없어 한 걸음씩이다.
 let strokeTag=0, strokeSeq=0, strokeCur=0;
-function bufferMove(dr,dc){ const now=performance.now(); moveBuffer={dr,dc,at:now,t0:now,tag:strokeTag}; }
+function bufferMove(dr,dc){
+  const now=performance.now(), next={dr,dc,at:now,t0:now,tag:strokeTag};
+  if(!moveBuffer){ moveBuffer=next; return; }
+  if(moveBufferNext.length<2) moveBufferNext.push(next);
+  else moveBufferNext[moveBufferNext.length-1]=next;
+}
 function moveBufferWindowMs(){ return (MAX_LIVELY_POLISH_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)?520:MOVE_BUFFER_MS; }
 function flushMoveBuffer(){
   const q=moveBuffer; moveBuffer=null;
   const now=performance.now();
-  if(!q || state!=="play" || now-q.at>moveBufferWindowMs() || now-(q.t0||q.at)>MOVE_BUFFER_CAP_MS) return;
+  if(state!=="play"){ moveBufferNext.length=0; return; }
+  if(!q){ moveBuffer=moveBufferNext.shift()||null; return; }
+  if(now-q.at>moveBufferWindowMs() || now-(q.t0||q.at)>MOVE_BUFFER_CAP_MS){
+    moveBuffer=moveBufferNext.shift()||null;
+    return;
+  }
+  if(moveBufferNext.length) moveBuffer=moveBufferNext.shift();
   strokeTag=q.tag||0; tryMove(q.dr,q.dc); strokeTag=0;
 }
 // ── 끌어서 걷기 (2026-09-25) ─────────────────────────────────────────────
@@ -26894,7 +26909,7 @@ function win(){
   if(lvWasCleared && !moonMode) lsBackLv=level;                   // 지난 판을 다시 깼다 — 목록으로 나가면 이 판을 비춘다
   winCopy={};
   if(tut){ tut=0; if(!tutMode) tutDone=true; }
-  state="win"; winT=0; moveBuffer=null; walkQueueClear(); dragReset();
+  state="win"; winT=0; clearMoveBuffer(); walkQueueClear(); dragReset();
   winFaceLive=false;
   if(window.MaxVictoryCard && !maxSkinName()) window.MaxVictoryCard.prepare(winFaceRewardCount());
   dog.maxEvent='victory'; dog.maxEventT=0;
@@ -27412,6 +27427,7 @@ window.addEventListener("touchstart",e=>{ if(swipeBlocked(e)){ downOn=false; ywH
   // 물건을 들고 있을 때만 막는다(끌어서 놓을 자리를 보여 줘야 한다).
   if(!(yardMode && farmMapMode && !yardLift)) e.preventDefault(); },{passive:false});
 window.addEventListener("touchend",e=>{ ywHold=null; if(!downOn) return; downOn=false; const t=e.changedTouches?e.changedTouches[0]:e; swipe(t.clientX-downX, t.clientY-downY); },{passive:false});
+window.addEventListener("touchcancel",()=>{ ywHold=null; downOn=false; clearMoveBuffer(); dragReset(); },{passive:true});
 window.addEventListener("mousedown",e=>{ if(swipeBlocked(e)){ downOn=false; ywHold=null; return; } audio(); const p=downPt(e); downX=p.x; downY=p.y; downOn=true; downT=Date.now(); ywHoldStart(p.x,p.y); dragReset(); });
 // 마당 팬 — 이동 이벤트로 카메라를 직접 끈다. 14px 넘게 움직이면 탭이 아니다.
 function ywPan(e){
@@ -27633,7 +27649,7 @@ function undoPress(){ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buzz(
   // v22 걷기 보간과 같은 경로로 직전 칸까지 되감는다.
   // 그은 경로 하나는 무르기 한 번에 통째로 — 같은 긋기 번호의 스냅숏을 다 걷고 가장 앞 것으로 돌아간다.
   // 걷는 도중에 누르면 남은 걸음도 버린다(되돌린 뒤에 계속 걸으면 무른 게 아니다).
-  walkQueueClear(); moveBuffer=null;
+  walkQueueClear(); clearMoveBuffer();
   let undoSnap=undoStack.pop(), undoSteps=1;
   if(undoSnap.grp) while(undoStack.length && undoStack[undoStack.length-1].grp===undoSnap.grp){ undoSnap=undoStack.pop(); undoSteps++; }
   const beforeUndoR=dog.r, beforeUndoC=dog.c;
@@ -27721,7 +27737,7 @@ function startRestartRun(done){
   if(dog.r===L._dogR&&dog.c===L._dogC) return false;
   const points=mode==='jump'?[{r:dog.rr,c:dog.cc},{r:L._dogR,c:L._dogC}]:restartRunPath();
   if(!points) return false;
-  stopGameEffects();walkQueueClear();moveBuffer=null;dragReset();aimReset();hintCancel();hintFx=null;
+  stopGameEffects();walkQueueClear();clearMoveBuffer();dragReset();aimReset();hintCancel();hintFx=null;
   restartRun={kind:mode==='jump'?'jump':'run',points,t:0,dur:mode==='jump'?.5:Math.min(.8,Math.max(.4,(points.length-1)*.065)),done,savedDog:{...dog}};
   state='restart-run';
   Object.assign(dog,{maxEvent:null,maxEventNext:null,maxEventT:0,protoPush:0,protoMoveT:1,
@@ -38907,7 +38923,10 @@ function frameInner(ts){
       if(sf.t>=1){ sf.done=true; starPend=Math.max(0,starPend-1); syncStars();
         tone(880+starPend*-60,0.1,"triangle",0.06,1300); } }
   }
-  if(moveBuffer && isAnimating()) moveBuffer.at=performance.now();   // 애니 중엔 만료 시계를 멈춘다
+  if(moveBuffer && isAnimating()){
+    const keepAt=performance.now(); moveBuffer.at=keepAt;
+    moveBufferNext.forEach(q=>{ q.at=keepAt; });                    // 이어진 손짓도 같은 애니 구간만큼 살려 둔다
+  }
   if(state==="play" && !pendingWin && !isAnimating()) flushMoveBuffer();
   if(state==="play" && !pendingWin && !isAnimating() && !moveBuffer) flushWalkQueue();   // 끌어 둔 경로 — 반사 버퍼가 먼저
   if(pendingWin && state==="play" && !isAnimating()){ pendingWin=false; win(); }

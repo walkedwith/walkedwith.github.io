@@ -1059,7 +1059,7 @@ function bgmSync(){
 async function pauseAppAudio(){
   bgmInit();
   bgmSuspended=true; bgmStop();
-  moveBuffer=null; walkQueueClear(); dragReset();
+  clearMoveBuffer(); walkQueueClear(); dragReset();
   clearTimeout(dpadTO); clearInterval(dpadIV); dpadTO=0; dpadIV=0;
   stopGameEffects();
   if(actx&&actx.state==='running') try{ await actx.suspend(); }catch(e){}
@@ -2008,6 +2008,55 @@ function mowerPush(L, st, filled, boxes, bi, nr, nc, dr, dc){
   res.extra=res.extra.concat(settleSlopes(L, res.filled, res.boxes, true, null, null, !valveOpen(L, res.filled, res.boxes)));
   return res;
 }
+// 두 칸 잔디깎이 — 몸통의 반대편 한 칸을 손잡이가 실제로 차지한다.
+// 손잡이를 뒤에서 밀면 달리고, 옆에서 밀면 몸통을 축으로 90도 돈다. 몸통은 직접 밀 수 없다.
+function deepMowerMove(L, st, dr, dc){
+  const mi=st.boxes.findIndex(b=>b.kind==='mower');
+  if(mi<0) return applyMoveCore(L, st, dr, dc);
+  const b=st.boxes[mi], f=mowerFace(b), v=DOOR_CV[f];
+  const hr=b.r-v[0], hc=b.c-v[1], nr=st.dog.r+dr, nc=st.dog.c+dc;
+  const free=(r,c)=>{
+    if(r<1||c<1||r>GN-2||c>GN-2) return false;
+    if(st.boxes.some((x,i)=>i!==mi&&!x.gone&&x.r===r&&x.c===c)) return false;
+    if(r===st.dog.r&&c===st.dog.c) return false;
+    if(L.doors&&doorLeafAt(L,st.filled,r,c)) return false;
+    const t=tileAt(L,st.filled,r,c);
+    return t===GRASS||t===MAT||t===FURROW;
+  };
+  if(nr===b.r&&nc===b.c) return null;                            // 몸통은 직접 밀지 못한다
+  if(nr===hr&&nc===hc){
+    if(st.carry) return null;
+    const m=doorCompass(dr,dc), boxes=st.boxes.map(x=>({...x})), filled=new Set(st.filled);
+    if(m===((f+2)&3)) return null;                               // 손잡이 앞에서 당길 수 없다
+    if(m!==f){
+      const nf=(m+2)&3, nv=DOOR_CV[nf];
+      const er=b.r-nv[0], ec=b.c-nv[1];                          // 회전 뒤 손잡이
+      const sr=hr-nv[0], sc=hc-nv[1];                            // 손잡이가 쓸고 가는 모서리
+      if(!free(er,ec)||!free(sr,sc)) return null;
+      boxes[mi]={...b,color:MOWER_C-nf};
+      return {dog:{...st.dog},boxes,filled,carry:false,pushed:false,slid:0,sunk:false,recolored:false,
+              mowTurn:{r:b.r,c:b.c,from:f,to:nf}};
+    }
+    let r=b.r,c=b.c; const path=[],cut=[];
+    while(free(r+dr,c+dc)){
+      r+=dr; c+=dc; path.push({r,c});
+      if(tileAt(L,filled,r,c)===FURROW){ filled.add(kk(r,c)+MOW_OFF); cut.push(kk(r,c)); }
+    }
+    if(!path.length) return null;
+    boxes[mi]={...b,r,c};
+    return {dog:{r:hr,c:hc},boxes,filled,carry:false,pushed:true,slid:path.length,sunk:false,recolored:false,
+            restR:r,restC:c,landCell:null,path,kind:'mower',mow:{cut,dr,dc},extra:[]};
+  }
+  // 다른 물체가 손잡이 칸으로 들어오는 것도 막는다. 임시 무거운 물체로 기존 판정을
+  // 그대로 통과시킨 뒤, 손잡이가 움직이려 했다면 그 수 전체를 거부한다.
+  const ghost={r:hr,c:hc,color:-9,kind:'log'};
+  const res=applyMoveCore(L,{...st,boxes:st.boxes.concat(ghost)},dr,dc);
+  if(!res) return null;
+  const gi=res.boxes.findIndex(x=>x.kind==='log'&&x.color===-9);
+  if(gi<0||res.boxes[gi].r!==hr||res.boxes[gi].c!==hc) return null;
+  res.boxes.splice(gi,1);
+  return res;
+}
 // ── 첨벙통 (시험 10-05) ────────────────────────────────────────────
 // 10-06: 주둥이 방향을 없앴다 — **물이 찼으면 어느 쪽에서 밀어도 미는 쪽으로 엎는다**. 막힐 때까지(최대 3칸)
 // 그 줄의 잔디가 비눗물이 되고 통은 빈다. 빈 통은 어느 쪽이든 한 칸 밀린다 — 미끄러지지 않는다. 찬 통은 못 옮긴다.
@@ -2070,7 +2119,7 @@ function pumpPush(L, st, filled, boxes, bi, nr, nc, dr, dc){
   return { dog:{r:st.dog.r, c:st.dog.c}, boxes, filled, carry:false, pushed:false, slid:0, sunk:false, recolored:false, pumpShot:{r:b.r, c:b.c, f, n, tr, tc, hit, wasSpill} };
 }
 function applyMove(L, st, dr, dc){
-  const res=applyMoveCore(L, st, dr, dc);
+  const res=L.deepMower? deepMowerMove(L,st,dr,dc) : applyMoveCore(L,st,dr,dc);
   // 고양이 상자 — 굴러온 공(경사·비눗물·물살·당구)이 정면으로 닿은 상자도 고양이를 옮긴다.
   // 직접 민 경우는 applyMoveCore 가 처리했다(cs 가 이미 있다). 닿은 순서대로,
   // **직접 미는 길과 똑같이** cbIdxAt + cbNextFree 로 다음 빈 상자를 고른다 —
@@ -4097,7 +4146,7 @@ function matDots(n, ks, tot){
 const ACORN_PACK =
   '623442416333512314412644515446655662435652633114644653265163'+   // 1~10
   '513422611114143546212312556612462663625142225246561542266146'+   // 11~20
-  '216416632351166664662155165624611141441666426446165411224114'+   // 21~30
+  '545226121535232162234632155354566452122553641523461432511544'+   // 21~30
   '251311533215564523243162464125613526541141166445446635464255'+   // 31~40
   '622336426635113666661451621631143335162262266641664613166541'+   // 41~50
   '162235162161611522516224346516161462521566662635625131133422'+   // 51~60
@@ -4149,7 +4198,7 @@ function acornCells(lv){
 //     (tools/acorn-par5.js 머리 주석). 이제 '00' 인 판은 1판 하나뿐이다(칸이 없다).
 // tools/acorn-par5.js 가 구웠다.
 const PAR5_PACK =
-  '000h0j0j0r0j0n0k0k0q0m0q0n0m0t0m0r0p0s0u0p0v0t0j0q0n0s0o0x10'+   // 1~30
+  '000h0j0j0r0j0n0k0k0q0m0q0n0m0t0m0r0p0s0u160t17141s0k111o1220'+   // 1~30
   '0g0j0o0l0m0s0u0u0r0x0k0s0p0x0v0k0p0n0s0r0q0s0v0s0p120s0s0s0x'+   // 31~60
   '0o0p0k0o0m0l0m0m0o0v0h0i0q0p0r0l0l0u0n100i0k0v0r0s0p0r0u100v'+   // 61~90
   '0m0n0q0n0w0n0s0v0s0v0t0s0v0t0w0u0x0y0x0z0t100w0v110y0z0z0z0z'+   // 91~120
@@ -4162,7 +4211,7 @@ const PAR5_PACK =
 const SL5_PACK =
   ' LDDLDLLLUUDRRURUL ULDDLULLUURURURLDDD RDRDLDULDDLLULRDRRR URRURRDDRDDDLLURDLLLLUUUUUR LULLLRRRRUUUULLLLURR DRLLLLUURRUUURRDLULLLDRR RDLDRDRURUUDDDRDDLLUR RDRRURUDDLLLDDRRRUUUU LLLLDURRUURRDDLDDLRRURUURUL ' +   // 1~10
   'LDUUURRDRDDDDRRUULULDDUL RDLLDLDRDRUULLLULDDRLDDDURRR DRDDRUDRRDUULRULRULULDDLD DUUDRRRRURUURLLLLDDRULUR DLDDDDRLUULLUUULDDLDRDDLULURRRR DLURUURLULLDRRDRRUUULRDD DLLUULUDDLLLDDRLUUUURRRLUURDR UUUURLDDRDRURRDUURRDDDDLRUU DRDURRUURRDDDLLRRDLDLLULLDLRRR DDDLUUDLLLLDDDRRRURDLLUULURRDRUU ' +   // 11~20
-  'RDLLLUUUURDRRULUURRRLLLLDDD DLUUURRRRRULRULDDLURULLUDDRDDLDRR RDULULLULUUURRRDLLDDURDDLLDRDUR RUURRDDRLLLDLUUULURRR URDRRRRUDLLLLDDDRRRUDLRRURUU LDDDURRRDLLULUUUDRDDLDRRR DRRLUULRRUUULLLDLURRRDDLURULLL LUDLDLRDRLLLDDUULLUURURDDD LLUUDDDDDRRRULURURURUDLLULDDDULDDRR UUULLDLLDLRURURRDLDLLRUUULULDDURDDULDD ' +   // 21~30
+  'UDDDRRRURLDLLLUURRRRUULDRDLLDLLUURDLDRURDLDR DRDUURURRDLULLDDRRRDDLLURULLDLU UULLULURLLLLDRURRDDDDDLLULUUUURDUURRDLULDDLDR LDLDRDRRULDLULLDRLLDLRDURDURRDLULLDDRURULL DLUURDDDDUULLLDDRRDRRUUUUULDDRDLUULLLUURDRRUULDDDRDLLRUULLDLLDDRUU RDDDDDDLUDLLURULULDLUU UUUURRRDRLULLDDRRRDDLDLUUULURDDDRRRRDLL DLDDLLULUDRRRUULUULLULLDRRDRRDRDDLLLULULURDRDRUDDRRRUULULLLDLU RRURRDUUULLLLDDRLDRURRRULULDDDRDDLUUURUL LULULLLDRUUULURDURRDDLLRDDLURUUULLDDLLDRDRDRULUUUURRDDDDDDRULLLURRURDLLLUR ' +   // 21~30
   'LLLDLDULLUUDRURDRR RRLLDDDULDLDDRRDULDLU LDUULLDLDRDRRDRULLLUURDLDR ULULDLDULDDULDLDRDURDRU DRDDRULLLDLDUDLUURRUURRD RRUURRRDLLRDRDRLLLDLLRURRUULLD URRRUDDRDDLLLDLUUURRURDLDRDRDLLL DLDDRDLLDDRRULULUURRLDDURRDUURUL RRLLDLDRULURURRDDRDUURLLLULDD URUUULLDDURRDRRDDLLDLLULLDRULURDRUU ' +   // 31~40
   'ULRDDDUUURRURLLUURRRDD RDDRRRDUUULLDDDDRDRLULLULDLDRR UUURDRDRDRRRDDDULULLUULDLDD RLUUURUULLULDLDLLULURDDLDDURRDRLURR DRURULUURUDLLLLLDLDDRDRURUUDDLUUU DLUURUURRUULULRDDLLDLU UULDDDDURRUUDDRURUUUULDLDLU DLDRRRDLDDRRRURRDDUUUUDLL RRRDLRRDRUULUUDDDRDDRRULUURULL LLUURRRUURUURRRDLDDRDLDDUUULD ' +   // 41~50
   'ULRRURRDRRRURLDDDDDLUULURURD URURRRDDRLDULLULDLRDDLDDURRURD LLLDUURUDDDRRLDDRDLDLLLDUUURRDRDL LDDRDRLUURRRRRULLRUUULDLDDRRUL LDDRRRURRLDDLDDRRULULDRDDLL RRDDLDLLLLUURRRRLLLUUURRURRLLDDRDLLDLUUU ULRURURRDDDLLDLDDLDRRURRDDUULD RUUULULURRURRRRDDDDDUUULDLLDLU RRRRURDDLLLLDULUUDRDDRRRRUUULD RRUUURLURRUDRDUURDRDDDRLDLLLUURDLDR ' +   // 51~60
@@ -4352,16 +4401,16 @@ const BAKED=[
 {T:'000000000011100001111110010111300111111001101t100113111000000000',h:[[30,0],[51,0]],p:[],b:[[4,2,0,0],[5,4,0,0]],d:[6,1],par:17,sl:'UURRRDUURRDDDLRUU',dr:[[45,1,2]]},
 {T:'000000000111111001t1111001131110001111100111t1100111131000000000',h:[[27,0],[53,0]],p:[],b:[[4,5,0,0],[6,2,0,0]],d:[3,1],par:20,sl:'RRRRRDLLRDDLLULLDRRR',dr:[[44,2,2],[18,1,2]]},
 {T:'00000000011113100111t110011111100111111001t101100111113000000000',h:[[13,0],[54,0]],p:[],b:[[5,3,0,0],[6,5,0,0]],d:[1,6],par:28,sl:'DDLUULLDDDLLDDRRRRLLUUUULURR',dr:[[20,0,2],[42,2]]},
-{T:'000000000111111001111110011111100oooooo0013110100111111000000000',h:[[42,0]],p:[],b:[[2,3,0,0],[3,2,-22,6]],d:[5,4],par:17,sl:'UUUULDLDURRDLULDD'},
-{T:'00000000013o1110001o1110011o1110011o1110011o1110011o113000000000',h:[[10,0],[54,0]],p:[],b:[[2,5,0,0],[4,4,0,0],[1,5,-23,6],[2,2,-21,6]],d:[4,2],par:22,sl:'RRRURUULDDRDDLUUURULLL'},
-{T:'00000000011o1110011o1100011o1110013o1110011o1130011o101000000000',h:[[34,0],[46,0]],p:[],b:[[3,5,0,0],[2,4,0,0],[4,4,-22,6]],d:[5,5],par:19,sl:'ULLULUURDDURDDLLDRR'},
-{T:'0000000001111110011113100111011001111130011101000111111000000000',h:[[38,0],[21,0]],p:[],b:[[4,5,0,0],[5,2,0,0],[4,3,-21,6]],d:[5,3],par:12,sl:'DLUURLULURRR'},
-{T:'00000000011o1010011o1130011o1110011o1010001o1110031o111000000000',h:[[49,0],[22,0]],p:[],b:[[5,4,0,0],[2,2,0,0],[6,4,-23,6]],d:[2,1],par:16,sl:'URDDDDRRRDLRRUUU'},
-{T:'000000000110011001130010011001100110t110011113100110011000000000',h:[[45,0],[19,0]],p:[],b:[[4,2,0,0],[2,2,0,0],[5,2,-21,6]],d:[3,1],par:17,sl:'DDRRLULUURDDLDRRR',dr:[[36,2]]},
-{T:'0000000001311110011t01100110311001001110010011000110111000000000',h:[[10,0],[28,0]],p:[],b:[[2,5,0,0],[4,5,0,0],[1,5,-20,6]],d:[5,4],par:20,sl:'RURUUULLLRRDDLURULLL',dr:[[19,0]]},
-{T:'000000000101111001111110011011300oooooo001113t100011111000000000',h:[[44,0],[30,0]],p:[],b:[[2,5,0,0],[2,3,0,0],[3,4,-22,6]],d:[1,6],par:17,sl:'LDLDDLLUURURDDDUR',dr:[[45,3]]},
-{T:'000000000111o0100101o1100111o0100111o1100111o3100130o11000000000',h:[[45,0],[50,0]],p:[],b:[[4,3,0,0],[2,3,0,0],[5,2,-21,6],[4,1,-21,6]],d:[3,2],par:23,sl:'LDDDRRRULURUULDDDULDDRR'},
-{T:'000000000111111001111110001111100oooooo00113t1100131111000000000',h:[[43,0],[50,0]],p:[],b:[[3,4,0,0],[2,4,0,0],[3,3,-22,6]],d:[5,5],par:28,sl:'UUULLDURRDLDLLRUULDDUUULDDDD',dr:[[44,3]]},
+{T:'000000000110o1100111011001110110011o11100o111o100101131000000000',h:[[53,0]],p:[],b:[[4,4,-23,6],[3,5,0,0]],d:[2,3],deepMower:true,sl:'DDDRRRULDLLLUURRRRUULDRDLLDLLUURDLDRURDLDR',par:42},
+{T:'00000000013oo1100o1111100o11111001301o10010111100101101000000000',h:[[34,0],[10,0]],p:[],b:[[2,3,-23,6],[3,4,0,0],[3,2,0,0]],d:[1,1],deepMower:true,sl:'DRDUURRRDLULLDDRRRDDLURULLDLU',par:29},
+{T:'00000000011113100o1111o0011011100113o1100oo0o100011o111000000000',h:[[13,0],[35,0]],p:[],b:[[4,2,-21,6],[2,4,0,0],[2,2,0,0]],d:[5,5],deepMower:true,sl:'UULULURLLLDRURRDDDDDLLULUUUURDUURRDLULDDLDR',par:43},
+{T:'00000000010111000o1o30100311111001o111o00111o0000101oo1000000000',h:[[20,0],[25,0]],p:[],b:[[5,3,-21,6],[4,3,0,0],[3,4,0,0]],d:[1,5],deepMower:true,sl:'LDLDRDRRULDLULLDRLLDRURDURRDLULLDDRURULL',par:40},
+{T:'000000000100ooo001111110013o1100011011100111o11001o1o13000000000',h:[[26,0],[54,0]],p:[],b:[[4,4,-23,6],[2,3,0,0],[2,5,0,0]],d:[3,5],deepMower:true,sl:'DLUURDDDDUULLLDDRRDRRUUUUULDDRDLUULLLURDRRUULDDDRDLLRUULLDLDDRUU',par:64},
+{T:'000000000111101003o100o001001oo00111011001111310011111o000000000',h:[[45,0],[17,0]],p:[],b:[[4,5,-23,6],[4,2,0,0],[5,4,0,0]],d:[1,6],deepMower:true,sl:'DDDDDDLUDLLURLULDLUU',par:20},
+{T:'00000000011131100oo1110001o10o10011111100113111001o101o000000000',h:[[12,0],[43,0]],p:[],b:[[2,3,-23,6],[4,4,0,0],[5,5,0,0]],d:[5,2],deepMower:true,sl:'UUUURRRDLULLDDRRRDDLDLUUULURDDDRRRDLL',par:37},
+{T:'0000000003o111o0011111000111011000o1301001oo11100000o11000000000',h:[[9,0],[36,0]],p:[],b:[[2,2,-21,6],[4,3,0,0],[5,4,0,0]],d:[3,6],deepMower:true,sl:'DDDLLULUDRRRUULUULLLLDRRDRRDRDDLLLULULURDRDRUDDRRRUULULLLDLU',par:60},
+{T:'00000000000311100o0o1o1001o1111001111110011ooo300110111000000000',h:[[11,0],[46,0]],p:[],b:[[2,4,-20,6],[4,4,0,0],[3,3,0,0]],d:[4,3],deepMower:true,sl:'RRURDUUULLLDDRLDRURRRULULDDDRDDLUUURUL',par:38},
+{T:'00000000011111100011011001o113100oo111o00o111o300101111000000000',h:[[29,0],[46,0]],p:[],b:[[3,3,-22,6],[5,2,0,0],[5,4,0,0]],d:[6,5],deepMower:true,sl:'LULULLDRUUUURDURRDDLLRDDLURUUULLDDLLDRDRDRULUUUURRDDDDDDRULLLURRURDLLLUR',par:72},
 {T:'0000000001110000021211100111111000211100000000000000000000000000',h:[[22,0]],p:[],b:[[3,3,0,0]],d:[3,6],par:12,sl:'LLLDLULURRRR'},
 {T:'0000000000011100011112000122110000110000021111000211210000000000',h:[[34,0]],p:[],b:[[2,3,0,0]],d:[1,3],par:13,sl:'DDDLDDRRULDLU'},
 {T:'0000000000111110002121100011100000221210001101100000000000000000',h:[[38,0]],p:[],b:[[2,5,0,0]],d:[2,6],par:14,sl:'LULLDLDRURDLDR'},
@@ -4789,7 +4838,7 @@ function fromBaked(o, lv){
   // 상태는 고양이가 선 칸(fc) 하나 — fc 가 null 이면 아직 순찰 중(ci 가 위치를 진다),
   // 값이 있으면 따라오는 중이다. 두 모드가 한 필드로 갈린다.
   const fw = (o.fw!=null)? o.fw : null;
-  return { L:{tc:(lv!=null? toolCutKey(lv) : null),T,holes,paintCol,needBone:boxes.some(b=>b.kind==='bone'),billiard:!!o.bi,treat:(o.tr==null?null:o.tr),cat:(o.ct==null?null:o.ct),walk,catP,wind,wl:(o.wl||null),cb:(o.cb||null),cbm:(o.cbm||null),np:(o.np||null),pk,fw,bn:(o.bn||null),nap:(o.nap==null?null:o.nap),_bnB:(o.bn? new Set(o.bn) : null),
+  return { L:{tc:(lv!=null? toolCutKey(lv) : null),T,holes,paintCol,needBone:boxes.some(b=>b.kind==='bone'),billiard:!!o.bi,deepMower:!!o.deepMower,treat:(o.tr==null?null:o.tr),cat:(o.ct==null?null:o.ct),walk,catP,wind,wl:(o.wl||null),cb:(o.cb||null),cbm:(o.cbm||null),np:(o.np||null),pk,fw,bn:(o.bn||null),nap:(o.nap==null?null:o.nap),_bnB:(o.bn? new Set(o.bn) : null),
        _pkCells:(pk? new Set(pk.flat()) : null),
        doors:(o.dr? o.dr.map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})) : null), doorHit:o.dh!==0, doorLock:!!o.dl},   // 문으로 공 치기는 11판부터 기본(2026-10-02 사람) — dh:0 일 때만 끈다
            start:{dog:{r:o.d[0],c:o.d[1]},boxes,filled:new Set(),ci:(walk?walk.i:0),cd:(walk?walk.d:1),ca:0,ck:(o.ct==null?undefined:o.ct),
@@ -4983,14 +5032,14 @@ const MECH={
               has:o=>mHasKind(o,3)||mHasKind(o,4), off:o=>mDropKind(mDropKind(o,3),4),
               fired:s=>s.cartPush,
               pairs:{ log:'상자는 네 방향, 손수레는 한 축만 움직인다' } },
-  // 잔디깎이(2026-10-04) — 1동네 21~30. 긴 풀은 고랑길(FURROW)과 같은 칸이다(맥스만 지나감, 1동네 그림만 다르다).
+  // 잔디깎이(2026-10-07) — 1동네 21~30은 몸통+손잡이 두 칸 버전. 긴 풀은 고랑길(FURROW)과 같은 칸이다.
   mower:    { nm:'잔디깎이',     intro:21, kind:6, tiles:[FURROW], tags:['#Push','#Run','#Cut'],
-              rule:'뒤(손잡이 쪽)에서 밀면 막힐 때까지 달리며 긴 풀을 깎는다. 옆에서 밀면 제자리에서 돌아 미는 쪽을 본다. 달리다 공을 만나면 그 앞에서 서고 공을 한 칸 쳐 낸다. 문짝 옆을 치면 문이 돈다.',
-              fail:'방석 위에서 빠질 데 없이 서면 그 방석을 영영 못 쓴다.',
+              rule:'몸통과 손잡이가 한 칸씩 차지한다. 손잡이 뒤에서 밀면 막힐 때까지 달리며 긴 풀을 깎고, 손잡이 옆에서 밀면 몸통을 중심으로 90도 돈다.',
+              fail:'손잡이가 돌거나 맥스가 설 공간을 미리 비우지 않으면 원하는 방향으로 보낼 수 없다.',
               has:o=>mHasKind(o,6), off:o=>mDropKind(o,6),
               strict:o=>({...o, b:o.b.map(b=>(b[3]|0)===6? [b[0],b[1],-9,1] : b)}),   // 달리지 않는 상자로 — 한 칸씩만 밀리면 같은가
               fired:s=>s.mowerRun,
-              pairs:{ door:'달려온 깎이가 문짝 옆을 치면 문이 돈다', ice:'쳐 낸 공이 미끄러진다' } },
+              pairs:{} },
   tub:      { nm:'첨벙통',       intro:41, kind:7, tags:['#Push','#Pour','#Soap'],
               rule:'물이 찬 통은 어느 쪽에서 밀어도 미는 쪽 세 칸에 엎는다 — 비눗물이면 미끄럼길, 맑은 물이면 씻긴다. 빈 통은 어느 쪽이든 한 칸 밀린다. 찬 통은 못 옮긴다.',
               fail:'엎을 줄을 잘못 골라 남겨야 할 칸까지 적신다.',
@@ -11367,7 +11416,7 @@ function loadLevel(lv, moon, keepTries){
   if(TRAINING_PRACTICE && typeof trainingPracticeStart==='function') return trainingPracticeStart();
   stopGameEffects();
   trampFx=null;                                   // 앞 판의 헛점프 잔상이 새 판으로 넘어오면 안 된다
-  moveBuffer=null;                                // 앞 판 마지막 스와이프가 새 판 첫 수가 되면 안 된다
+  clearMoveBuffer();                              // 앞 판 마지막 스와이프가 새 판 첫 수가 되면 안 된다
   walkQueueClear(); dragReset();                  // 끌어 둔 경로도 마찬가지다
   hideBoardTip();
   exitMenu();
@@ -23265,6 +23314,10 @@ function chapterMaxPrototypeIsMoving(){
 function isAnimating(){ return chapterMaxPrototypeIsMoving() || !!digFx || !!(doorFx && !doorFx.fail) || !!cutFx || !!tunFx || !!fetchFx || !!catJumpFx || boxes.some(b=>b.path||b.turnFx||(b.sink>0&&b.sink<1)||((b.kind==='log'||b.kind==='cartV'||b.kind==='cartH')&&b.wasMoving)); }
 const MOVE_BUFFER_MS=180;
 let moveBuffer=null;
+// 애니메이션 중 빠르게 이어진 손짓을 한 번만 기억하면 마지막 방향이 앞 입력을
+// 덮어써서 스와이프가 멈춘 것처럼 느껴진다. 짧은 입력 두 개까지 순서대로 받는다.
+let moveBufferNext=[];
+function clearMoveBuffer(){ moveBuffer=null; moveBufferNext.length=0; }
 // 유효시간(at)은 **애니가 끝난 뒤부터** 잰다 — 프레임 루프가 애니 중엔 at 을 당겨 둔다.
 // 입력 시각부터 재면 밀기(≈264ms) 초반에 이어 쓴 스와이프가 끝나기도 전에 만료돼 버려졌다
 // (실측: 첫 밀기 뒤 40·80ms 에 쓴 두 번째 밀기가 사라짐). t0 는 너무 늦은 입력을 끊는 상한이다.
@@ -23272,12 +23325,23 @@ const MOVE_BUFFER_CAP_MS=1500;
 // 긋기 번호 — 그은 경로가 걷는 동안의 걸음은 같은 번호를 달고 무르기 스택에 쌓인다.
 // 무르기 한 번이 그 번호 전체를 되돌린다(2026-09-26). 한 칸 스와이프는 번호가 없어 한 걸음씩이다.
 let strokeTag=0, strokeSeq=0, strokeCur=0;
-function bufferMove(dr,dc){ const now=performance.now(); moveBuffer={dr,dc,at:now,t0:now,tag:strokeTag}; }
+function bufferMove(dr,dc){
+  const now=performance.now(), next={dr,dc,at:now,t0:now,tag:strokeTag};
+  if(!moveBuffer){ moveBuffer=next; return; }
+  if(moveBufferNext.length<2) moveBufferNext.push(next);
+  else moveBufferNext[moveBufferNext.length-1]=next;
+}
 function moveBufferWindowMs(){ return (MAX_LIVELY_POLISH_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)?520:MOVE_BUFFER_MS; }
 function flushMoveBuffer(){
   const q=moveBuffer; moveBuffer=null;
   const now=performance.now();
-  if(!q || state!=="play" || now-q.at>moveBufferWindowMs() || now-(q.t0||q.at)>MOVE_BUFFER_CAP_MS) return;
+  if(state!=="play"){ moveBufferNext.length=0; return; }
+  if(!q){ moveBuffer=moveBufferNext.shift()||null; return; }
+  if(now-q.at>moveBufferWindowMs() || now-(q.t0||q.at)>MOVE_BUFFER_CAP_MS){
+    moveBuffer=moveBufferNext.shift()||null;
+    return;
+  }
+  if(moveBufferNext.length) moveBuffer=moveBufferNext.shift();
   strokeTag=q.tag||0; tryMove(q.dr,q.dc); strokeTag=0;
 }
 // ── 끌어서 걷기 (2026-09-25) ─────────────────────────────────────────────
@@ -24349,7 +24413,7 @@ function tryMove(dr,dc){
       // 전용 밀기 포즈의 접촉 프레임(.42)에서 소리와 공이 함께 출발한다.
       fxAfter((dog.protoMoveDur||.34)*.42,()=>{sfxBallPush();feedbackPulse('push');});
     } else { sfxBallPush(); feedbackPulse('push'); }
-    const b=boxes.find(x=>x.sink===0 && x.r===nr && x.c===nc); // 밀린 라이브 공
+    const b=boxes.find(x=>x.sink===0 && (L.deepMower&&res.kind==='mower'? x.kind==='mower' : x.r===nr&&x.c===nc)); // 밀린 라이브 공·두 칸 깎이
     if(b){
       b.sdr=dr; b.sdc=dc; b.sqT=(b.kind==='log'||b.kind==='cartV'||b.kind==='cartH'?0.45:1);
       ballKickFx(b,dr,dc);
@@ -25919,7 +25983,8 @@ function toySquash(b){
 // 벽만 본다 — 공·문짝·물은 나중에 비켜날 수 있으니 열린 셈 친다(덜 치는 쪽이 안전하다).
 function mowerTrapped(L, fil, b){
   const open=(r,c)=>r>=1&&c>=1&&r<=GN-2&&c<=GN-2&&tileAt(L,fil,r,c)!==WALL;
-  const back=q=>open(b.r-DOOR_CV[q][0], b.c-DOOR_CV[q][1]), ahead=q=>open(b.r+DOOR_CV[q][0], b.c+DOOR_CV[q][1]);
+  const back=q=>open(b.r-DOOR_CV[q][0]*(L.deepMower?2:1), b.c-DOOR_CV[q][1]*(L.deepMower?2:1));
+  const ahead=q=>open(b.r+DOOR_CV[q][0], b.c+DOOR_CV[q][1]);
   const seen=new Set([mowerFace(b)]), todo=[mowerFace(b)];
   while(todo.length){ const f=todo.pop();
     if(back(f) && ahead(f)) return false;
@@ -26841,7 +26906,7 @@ function win(){
   if(lvWasCleared && !moonMode) lsBackLv=level;                   // 지난 판을 다시 깼다 — 목록으로 나가면 이 판을 비춘다
   winCopy={};
   if(tut){ tut=0; if(!tutMode) tutDone=true; }
-  state="win"; winT=0; moveBuffer=null; walkQueueClear(); dragReset();
+  state="win"; winT=0; clearMoveBuffer(); walkQueueClear(); dragReset();
   winFaceLive=false;
   if(window.MaxVictoryCard && !maxSkinName()) window.MaxVictoryCard.prepare(winFaceRewardCount());
   dog.maxEvent='victory'; dog.maxEventT=0;
@@ -27359,6 +27424,7 @@ window.addEventListener("touchstart",e=>{ if(swipeBlocked(e)){ downOn=false; ywH
   // 물건을 들고 있을 때만 막는다(끌어서 놓을 자리를 보여 줘야 한다).
   if(!(yardMode && farmMapMode && !yardLift)) e.preventDefault(); },{passive:false});
 window.addEventListener("touchend",e=>{ ywHold=null; if(!downOn) return; downOn=false; const t=e.changedTouches?e.changedTouches[0]:e; swipe(t.clientX-downX, t.clientY-downY); },{passive:false});
+window.addEventListener("touchcancel",()=>{ ywHold=null; downOn=false; clearMoveBuffer(); dragReset(); },{passive:true});
 window.addEventListener("mousedown",e=>{ if(swipeBlocked(e)){ downOn=false; ywHold=null; return; } audio(); const p=downPt(e); downX=p.x; downY=p.y; downOn=true; downT=Date.now(); ywHoldStart(p.x,p.y); dragReset(); });
 // 마당 팬 — 이동 이벤트로 카메라를 직접 끈다. 14px 넘게 움직이면 탭이 아니다.
 function ywPan(e){
@@ -27580,7 +27646,7 @@ function undoPress(){ if(giftBlocking()) return; if(tsMode){ sfxBlocked(); buzz(
   // v22 걷기 보간과 같은 경로로 직전 칸까지 되감는다.
   // 그은 경로 하나는 무르기 한 번에 통째로 — 같은 긋기 번호의 스냅숏을 다 걷고 가장 앞 것으로 돌아간다.
   // 걷는 도중에 누르면 남은 걸음도 버린다(되돌린 뒤에 계속 걸으면 무른 게 아니다).
-  walkQueueClear(); moveBuffer=null;
+  walkQueueClear(); clearMoveBuffer();
   let undoSnap=undoStack.pop(), undoSteps=1;
   if(undoSnap.grp) while(undoStack.length && undoStack[undoStack.length-1].grp===undoSnap.grp){ undoSnap=undoStack.pop(); undoSteps++; }
   const beforeUndoR=dog.r, beforeUndoC=dog.c;
@@ -27668,7 +27734,7 @@ function startRestartRun(done){
   if(dog.r===L._dogR&&dog.c===L._dogC) return false;
   const points=mode==='jump'?[{r:dog.rr,c:dog.cc},{r:L._dogR,c:L._dogC}]:restartRunPath();
   if(!points) return false;
-  stopGameEffects();walkQueueClear();moveBuffer=null;dragReset();aimReset();hintCancel();hintFx=null;
+  stopGameEffects();walkQueueClear();clearMoveBuffer();dragReset();aimReset();hintCancel();hintFx=null;
   restartRun={kind:mode==='jump'?'jump':'run',points,t:0,dur:mode==='jump'?.5:Math.min(.8,Math.max(.4,(points.length-1)*.065)),done,savedDog:{...dog}};
   state='restart-run';
   Object.assign(dog,{maxEvent:null,maxEventNext:null,maxEventT:0,protoPush:0,protoMoveT:1,
@@ -35267,9 +35333,31 @@ function drawTubPour(){
       g.fillStyle='#7A5330'; g.font=Math.round(s*0.15)+'px '+CFONT; g.textAlign='center'; g.textBaseline='middle'; g.fillText(hard===2? '촤악!' : '철퍽!',0,0); g.restore(); g.textAlign='left'; g.textBaseline='alphabetic'; }
   }
 }
+function drawDeepMowerHandle(x,y,s,b){
+  if(!L||!L.deepMower) return;
+  const f=mowerFace(b), T=b.turnFx;
+  let a=MOWER_HANDLE[f];
+  if(T&&T.t<1){
+    const u=Math.max(0,T.t), a0=MOWER_HANDLE[T.from];
+    let d=MOWER_HANDLE[T.to]-a0; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI;
+    const k=1.7, e=1+(k+1)*Math.pow(u-1,3)+k*Math.pow(u-1,2); a=a0+d*e;
+  }
+  const dx=Math.cos(a),dy=Math.sin(a),px=-dy,py=dx;
+  ctx.save(); ctx.lineCap='round';
+  ctx.strokeStyle='rgba(52,62,57,.16)'; ctx.lineWidth=s*.12;
+  ctx.beginPath(); ctx.moveTo(x+dx*s*.28,y+dy*s*.28+s*.08); ctx.lineTo(x+dx*s*.98,y+dy*s*.98+s*.08); ctx.stroke();
+  ctx.strokeStyle=MOWER_P.bar; ctx.lineWidth=s*.055;
+  for(const side of [-1,1]){ const ox=px*s*.19*side,oy=py*s*.19*side;
+    ctx.beginPath(); ctx.moveTo(x+dx*s*.18+ox,y+dy*s*.18+oy-s*.08); ctx.lineTo(x+dx*s*.94+ox,y+dy*s*.94+oy-s*.08); ctx.stroke(); }
+  const hx=x+dx*s,hy=y+dy*s-s*.08;
+  ctx.strokeStyle='#A86D42'; ctx.lineWidth=s*.11;
+  ctx.beginPath(); ctx.moveTo(hx-px*s*.22,hy-py*s*.22); ctx.lineTo(hx+px*s*.22,hy+py*s*.22); ctx.stroke();
+  ctx.restore();
+}
 function drawMower(x,y,s,b){
   const f=mowerFace(b), T=b.turnFx;
   ctx.save();
+  drawDeepMowerHandle(x,y,s,b);
   if(T && T.t<1){
     const u=Math.max(0,T.t), a0=MOWER_HANDLE[T.from];
     let d=MOWER_HANDLE[T.to]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
@@ -35321,9 +35409,11 @@ function drawMowerAim(){
 function drawMowerTurnHint(){
   if(state!=='play' || dog.moving || gintroOn) return;
   for(const b of boxes){ if(b.kind!=='mower' || b.sink!==0 || b.path || b.turnFx) continue;
-    const dr=b.r-dog.r, dc=b.c-dog.c; if(Math.abs(dr)+Math.abs(dc)!==1) continue;
-    const f=mowerFace(b), m=doorCompass(dr,dc); if(m===f || m===((f+2)&3)) continue;
-    const s=cell, x=cx(b.c), y=cy(b.rr), a0=MOWER_HANDLE[f]; let d=MOWER_HANDLE[m]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
+    const f=mowerFace(b),v=DOOR_CV[f],tr=L.deepMower?b.r-v[0]:b.r,tc=L.deepMower?b.c-v[1]:b.c;
+    const dr=tr-dog.r, dc=tc-dog.c; if(Math.abs(dr)+Math.abs(dc)!==1) continue;
+    const m=doorCompass(dr,dc); if(m===f || m===((f+2)&3)) continue;
+    const to=L.deepMower?((m+2)&3):m;
+    const s=cell, x=cx(b.c), y=cy(b.rr), a0=MOWER_HANDLE[f]; let d=MOWER_HANDLE[to]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
     const pu=0.7+0.3*Math.sin(animT*4), R=s*.6, ry=R*.75, cy0=y-s*.15, a1=a0+d;
     ctx.save(); ctx.globalAlpha=pu; ctx.strokeStyle='#F2A33A'; ctx.lineWidth=Math.max(3,s*.085); ctx.lineCap='round';
     ctx.setLineDash([s*.1,s*.08]); ctx.lineDashOffset=-animT*s*.3;
@@ -38830,7 +38920,10 @@ function frameInner(ts){
       if(sf.t>=1){ sf.done=true; starPend=Math.max(0,starPend-1); syncStars();
         tone(880+starPend*-60,0.1,"triangle",0.06,1300); } }
   }
-  if(moveBuffer && isAnimating()) moveBuffer.at=performance.now();   // 애니 중엔 만료 시계를 멈춘다
+  if(moveBuffer && isAnimating()){
+    const keepAt=performance.now(); moveBuffer.at=keepAt;
+    moveBufferNext.forEach(q=>{ q.at=keepAt; });                    // 이어진 손짓도 같은 애니 구간만큼 살려 둔다
+  }
   if(state==="play" && !pendingWin && !isAnimating()) flushMoveBuffer();
   if(state==="play" && !pendingWin && !isAnimating() && !moveBuffer) flushWalkQueue();   // 끌어 둔 경로 — 반사 버퍼가 먼저
   if(pendingWin && state==="play" && !isAnimating()){ pendingWin=false; win(); }
