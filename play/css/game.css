@@ -2846,7 +2846,6 @@
 .farmmap { position:absolute; inset:0; display:none;
   background:#A8D07A; pointer-events:auto; overflow-y:auto; -webkit-overflow-scrolling:touch; }
 /* 농장 지도는 휴면 — 코드와 원화는 그대로 두고 진열대에서만 내렸다. 되살릴 땐 이 한 줄이다. */
-#farmMapCv { display:none; }
 /* 골목 — 마당 띠(12×6)가 폭 가득 서고 사이마다 시골 흙길. 띠 비율 8:5 는 월드 72×36 유닛에
    지평선 몫(HOOD_HZ 0.20)을 더한 값이다 — 이 비율이어야 가로·세로 배율이 같아 여백이 안 남는다. */
 .ygrid { display:block; background:#9CC46C;
@@ -3101,24 +3100,8 @@
   @keyframes overflash { 0%{opacity:1; box-shadow:inset 0 0 20px 2px rgba(209,60,45,.95)}
     22%{opacity:1; box-shadow:inset 0 0 75px 16px rgba(209,60,45,.85)}
     100%{opacity:0; box-shadow:inset 0 0 75px 16px rgba(209,60,45,0)} }
-  #storysel { position:absolute; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
-    background:linear-gradient(#CFE9F5,#DCEFC6); }
-  #storysel.show { display:flex; }
   body.instory #boardWrap, body.instory #hud, body.instory #dock,
   body.instory #hint, body.instory #dpad { display:none !important; }
-  .stcard { width:min(88%,360px); overflow:hidden; border:3px solid rgba(255,255,255,.88); border-radius:24px;
-    background:#FFF9ED; box-shadow:0 12px 32px rgba(77,91,46,.2); animation:gidrop .5s cubic-bezier(.3,1.5,.5,1); }
-  #storysel .stscene { width:100%; aspect-ratio:4/3; background-image:url('../art/toy-world/onboarding-toys-v1-step1.webp');
-    background-repeat:no-repeat; background-size:100% 100%; background-position:center; transition:opacity .18s ease; }
-  #storysel .stscene.second { background-image:url('../art/toy-world/onboarding-toys-v1-step2.webp'); }
-  .stcopy { padding:15px 18px 18px; text-align:center; }
-  .sttxt { min-height:58px; display:flex; align-items:center; justify-content:center; font-family:var(--f-body);
-    font-size:var(--fs-body); line-height:1.35; color:#65472F; margin:0 0 8px; }
-  .sttxt b { font-family:var(--f-hand); font-size:var(--s4); display:block; font-weight:var(--w-reg); }
-  .stdots { display:flex; justify-content:center; gap:7px; margin:0 0 12px; }
-  .stdots i { width:7px; height:7px; border-radius:50%; background:#D8C9AE; transition:width .18s,background .18s; }
-  .stdots i.on { width:20px; border-radius:8px; background:#8FC54A; }
-  #storysel .okbtn { min-width:150px; }
   #chapterStory { position:absolute; inset:0; z-index:60;   /* 지갑 알약(.hudcur 59)보다 위 — 같은 59 면 뒤에 오는 알약이 어두운 막 위로 떴다 */ display:none; align-items:center; justify-content:center;
     padding:18px; background:rgba(43,55,34,.54); backdrop-filter:blur(3px); }
   #chapterStory.show { display:flex; }
@@ -3678,8 +3661,7 @@ body.inmenu #dock { display:none !important; }         /* dpad 모드의 #dock g
   .sthead small { display:block; font-size:var(--s9); color:#7A5330; opacity:.8; margin-top:1px; }
   .stbody { padding:12px 14px 0; }
   #stCard .stscene { position:relative; aspect-ratio:15/8; border-radius:16px; overflow:hidden;
-    background-color:#CDE6A1; background-image:url('../art/daily-gift-grandpa-v1-960.webp');
-    background-position:center; background-size:cover; background-repeat:no-repeat; }
+    background-color:#CDE6A1; }
   /* 말풍선과 캔버스 캐릭터 대신 챕터 아트와 같은 한 장면을 쓴다. 아래 오늘 칸이
      선물 종류를 말하므로 장면은 할아버지가 맥스에게 건네는 관계만 보여 준다. */
   .stweek { display:flex; justify-content:space-between; gap:4px; margin:12px 2px 0; }
