@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=ff5b1c822f43">
+<link rel="stylesheet" href="css/game.css?v=67c385bad238">
 <link rel="stylesheet" href="css/onboarding-comic.css">
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
@@ -487,8 +487,6 @@
         <div class="dcribbon" id="dcName">우리집골목</div>
         <div class="dcstamp" id="dcStamp" aria-hidden="true"></div>
       </div>
-      <div class="dctitle" id="dcTitle">마당 완료!</div>
-      <div class="dcsub" id="dcSub" hidden>챕터 아트 획득</div>
       <div class="dcpaws" id="dcPaws"></div>
       <div class="dcstats" id="dcStats"></div>
       <div class="dcgift" id="dcGift"></div>
@@ -5664,8 +5662,7 @@ function refreshStampCopy(){
   // 이름으로 불렀다. 진행은 아래 작은 줄로 내린다.
   el("stHead").innerHTML = I18N.t('stamp.title')
     + '<small>' + (last? I18N.t('stamp.week')
-        // 한국어는 첫·둘·셋… 이라 숫자로 못 만든다. 영어는 그냥 Day N 이다
-        // (victory.areaDone 의 '서른' 이 같은 방식으로 풀려 있다).
+        // 한국어는 첫·둘·셋… 이라 숫자로 못 만든다. 영어는 그냥 Day N 이다.
         : I18N.t('stamp.nth',{day: I18N.locale==='ko'? (KO_NTH[day-1]||day) : day})) + '</small>';
   // 이번 주 일곱 칸 — 찍은 칸은 그림, 오늘은 테두리, 아직 안 온 날은 물음표(7일은 상자)
   el("stWeek").innerHTML = STAMP_WEEK.map((x,i)=>{
@@ -13121,7 +13118,7 @@ function openYard(){
   giftLiftNext(520);
   // 정해진 자리 물건은 들 수가 없다. 대신 그 자리를 빛으로 짚고 이름을 말한다 —
   // 새로 온 것이 어디 섰는지는 알려 줘야 마당이 넓어진 게 사건이 된다.
-  if(!yardGiftQ.length && !yardLift){
+  if(!HOUSE_ON && !yardGiftQ.length && !yardLift){        // 하우스에선 동네 완주 건물이 없다 — 알림도 없다
     for(let n=1;n<=DISTRICTS.length;n++){
       const it=districtGiftItem(n);
       if(!it || !yardFixed(it.k) || !districtCleared(n) || !yardOwned.includes(it.k)) continue;
@@ -18005,8 +18002,7 @@ function refreshDistrictDoneCopy(){
   const d=DISTRICTS[dcPendN-1]; if(!d) return;
   const cnt=Math.min(d.to,BAKED.length)-d.from+1;
   el('dcName').textContent=districtName(d);
-  el('dcTitle').textContent=I18N.t('victory.areaDone',{count:I18N.locale==='ko'&&cnt===30?'서른':cnt});
-  { const s=el('dcSub'); if(s) s.textContent=I18N.t('victory.chapterArt'); }
+  // 제목("마당 완료!")·부제("챕터 아트 획득")는 걷었다(2026-10-07 사람) — 동네마다 마당이 아니고, 그림은 카드가 이미 보여 준다.
   { const h=el('dcHint'); if(h) h.textContent=I18N.t(dcPendN<Math.min(DISTRICTS.length,districtOfLv(BAKED.length))? 'victory.nextArea' : 'common.tapContinue'); }
   { const g=el('dcGift'); if(g && g.innerHTML){ g.innerHTML=dcGiftHTML(dcPendN); dcGiftPaint(); } }   // 언어를 바꾸면 보상 타일 이름도 따라온다
 }
@@ -18152,6 +18148,8 @@ function showDistrictGiftGuide(it,n){
   return true;
 }
 function pendingDistrictGiftGuide(){
+  // 맥스네 하우스(HOUSE_ON)에선 동네를 다 걸어도 마당에 건물이 서지 않는다 — "마당에 ○○이 생겼어요"는 거짓말이 된다(2026-10-07 사람: 걷기).
+  if(HOUSE_ON) return null;
   for(let n=1;n<=DISTRICTS.length;n++){
     const it=districtGiftItem(n);
     // 정해진 자리 물건도 안내는 한다 — 자리를 고르라는 말만 빠지고 "마당에 생겼다"는
