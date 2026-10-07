@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=a6cd8fdc2bf0">
+<link rel="stylesheet" href="css/game.css?v=ce3f35b2ed2b">
 <link rel="stylesheet" href="css/onboarding-comic.css">
 <link rel="preload" as="image" href="art/daily-gift-grandpa-v1-960.webp" type="image/webp">
 <script id="fontBoot">
@@ -3064,12 +3064,15 @@ function giPlace(){
   const pad=cell*k*0.06, x=cr.left+(cx(c0)-cell/2)*k-pad-br.left, y=top+(cy(r0)-cell/2)*k-pad-br.top, w=(c1-c0+1)*cell*k+pad*2, h=(r1-r0+1)*cell*k+pad*2;
   Object.assign(hole.style,{left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
   const ax=cr.left+cx(ac)*k-br.left, ayT=top+(cy(ar)-cell/2)*k-br.top, ayB=ayT+cell*k;
-  const cw=Math.min(br.width-24, 330); card.style.width=cw+'px';
+  // 알약은 글 길이만큼(C안) — 한 줄로 재 보고, 상한(330)을 넘을 때만 줄을 꺾는다. 잰 폭은 박아 둔다(auto 면 옮긴 자리에서 다시 줄어든다).
+  const mx=Math.min(br.width-24, 330); card.style.width='auto'; card.style.maxWidth='none'; card.classList.add('nowrap');
+  let cw=Math.ceil(card.offsetWidth); if(cw>mx){ card.classList.remove('nowrap'); cw=mx; } card.style.width=cw+'px';
   const left=Math.max(12, Math.min(br.width-cw-12, ax-cw/2)); card.style.left=left+'px';
   card.style.setProperty('--tail', Math.max(26, Math.min(cw-26, ax-left))+'px');
   const ch=card.getBoundingClientRect().height, above=Math.min(ayT, y)-16-ch, below=Math.max(ayB, y+h)+16;
   const boardTop=cr.top-br.top;                                    // 위에 둘 자리가 머리 막대까지 덮으면 아래로(31·21·6판처럼 물건이 판 위쪽일 때)
-  const up=(above>=boardTop-36 && above>8) || below+ch>br.height-8;
+  const chip=el('ruleChip'), chipB=chip && chip.offsetParent? chip.getBoundingClientRect().bottom-br.top+4 : -1e9;   // 판 위 기믹 이름표도 안 덮는다
+  const up=(above>=Math.max(boardTop-36, chipB) && above>8) || below+ch>br.height-8;
   card.classList.toggle('below', !up);
   card.style.top=(up? Math.max(8, above) : below)+'px';
 }
@@ -24422,7 +24425,7 @@ function tryMove(dr,dc){
       // 미는 순간 걸면 굴러가는 몸짓과 겹쳐 공이 납작한 채로 떠오른다(실측).
       if(res.trampBlock) b.tramp={dr, dc};
       if(b.kind==='log'||b.kind==='cartV'||b.kind==='cartH'){ b.strain=1; b.tilt=0; b.wasMoving=true; b.path=null; } // 무거운 짐은 느린 추종
-      else { b.path=res.path; b.pathI=0;
+      else { res.path=valleyTrim(res.path,res.restR,res.restC); b.path=res.path; b.pathI=0;
         if(chapterMaxMasterMotionRuntimeEnabled())
           b.delay=Math.max(b.delay||0,chapterMaxMasterPushBallDelay(dog.protoMoveDur||.38));
         else if((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1)
@@ -24448,7 +24451,7 @@ function tryMove(dr,dc){
     assigned.add(bb);
     const d0=e.path[0];
     bb.sdr=Math.sign(d0.r-e.fromR); bb.sdc=Math.sign(d0.c-e.fromC);
-    bb.path=e.path; bb.pathI=0; bb.r=e.restR; bb.c=e.restC;
+    e.path=valleyTrim(e.path,e.restR,e.restC); bb.path=e.path; bb.pathI=0; bb.r=e.restR; bb.c=e.restC;
     bb.bridgeUnder=ballUsesBridgeUnderpass(L,filled,e.fromR,e.fromC,e.path);
     bb.pend={ sunk:e.sunk, land:e.landCell, recolor:e.recolored? e.color:null, slid:e.slid, openNow:false };
     filled=new Set(res.filled);
@@ -34423,6 +34426,7 @@ function tileLayerPaint(){
   const rc=[]; for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); }
   tileSoapCells=cells; tileRinseCells=rc;
   if(hillOn()) hillPaint();
+  valleyStones();
   if(creekOn()) creekPaint();
 }
 let tileSoapCells=[], tileRinseCells=[];
@@ -35097,12 +35101,13 @@ const MOWER_P={body:'#E8574E', deep:'#C9443D', hi:'rgba(255,255,255,.35)', bar:'
 let mowerAim=null, mowDir={lv:0, m:new Map()};
 const MOWER_HANDLE=[Math.PI/2, Math.PI, -Math.PI/2, 0];                // 바라보는 쪽의 반대 — 손잡이 각(화면)
 function mowerRR(x,y,w,h,r){ ctx.beginPath(); ctx.roundRect(x,y,w,h,r); }
+function mowerDeep(){ return !!(L && L.deepMower); }                  // 두 칸 깎이 — 손잡이는 drawDeepMowerHandle 하나만 그린다
 function mowerShadow(x,y,s,w){ ctx.fillStyle='rgba(48,64,35,.22)'; ctx.beginPath(); ctx.ellipse(x,y+s*.3,s*w,s*.08,0,0,7); ctx.fill(); }
 function mowerSide(x,y,s,dir){                                         // dir 1 오른쪽 / -1 왼쪽 — 손잡이는 뒤
   mowerShadow(x,y,s,.38);
-  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
-  ctx.beginPath(); ctx.moveTo(x-dir*s*.12,y-s*.05); ctx.lineTo(x-dir*s*.42,y-s*.5); ctx.stroke();
-  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-dir*s*.5,y-s*.52); ctx.lineTo(x-dir*s*.34,y-s*.5); ctx.stroke();
+  if(!mowerDeep()){ ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+    ctx.beginPath(); ctx.moveTo(x-dir*s*.12,y-s*.05); ctx.lineTo(x-dir*s*.42,y-s*.5); ctx.stroke();
+    ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-dir*s*.5,y-s*.52); ctx.lineTo(x-dir*s*.34,y-s*.5); ctx.stroke(); }
   ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.3,y-s*.16,s*.6,s*.34,s*.1); ctx.fill();
   ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.28,y-s*.2,s*.56,s*.26,s*.1); ctx.fill();
   ctx.fillStyle=MOWER_P.hi; mowerRR(x-s*.22,y-s*.18,s*.3,s*.06,s*.03); ctx.fill();
@@ -35114,15 +35119,16 @@ function mowerBack(x,y,s){                                             // 위로
   ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.28,y-s*.24,s*.56,s*.38,s*.12); ctx.fill();
   ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.26,y-s*.28,s*.52,s*.28,s*.12); ctx.fill();
   ctx.fillStyle=MOWER_P.tire; for(const dx of [-.3,.3]){ mowerRR(x+dx*s-s*.05,y-s*.02,s*.1,s*.18,s*.04); ctx.fill(); }
+  if(mowerDeep()) return;
   ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
   for(const sg of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+sg*s*.16,y+s*.08); ctx.lineTo(x+sg*s*.15,y+s*.36); ctx.stroke(); }
   ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-s*.18,y+s*.38); ctx.lineTo(x+s*.18,y+s*.38); ctx.stroke();
 }
 function mowerFront(x,y,s){                                            // 아래로 간다 — 손잡이가 위로 선다
   mowerShadow(x,y,s,.34);
-  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
-  for(const sg of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+sg*s*.16,y-s*.1); ctx.lineTo(x+sg*s*.14,y-s*.58); ctx.stroke(); }
-  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-s*.18,y-s*.6); ctx.lineTo(x+s*.18,y-s*.6); ctx.stroke();
+  if(!mowerDeep()){ ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+    for(const sg of [-1,1]){ ctx.beginPath(); ctx.moveTo(x+sg*s*.16,y-s*.1); ctx.lineTo(x+sg*s*.14,y-s*.58); ctx.stroke(); }
+    ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(x-s*.18,y-s*.6); ctx.lineTo(x+s*.18,y-s*.6); ctx.stroke(); }
   ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.28,y-s*.14,s*.56,s*.38,s*.12); ctx.fill();
   ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.26,y-s*.18,s*.52,s*.28,s*.12); ctx.fill();
   ctx.fillStyle=MOWER_P.hi; mowerRR(x-s*.18,y-s*.16,s*.24,s*.06,s*.03); ctx.fill();
@@ -35131,9 +35137,9 @@ function mowerFront(x,y,s){                                            // 아래
 function mowerTop(x,y,s,a){                                            // 도는 중 — 위에서 본 몸통 + 각 a 의 손잡이
   mowerShadow(x,y,s,.34);
   const hx=Math.cos(a), hy=Math.sin(a), gx=x+hx*s*.46, gy=y+hy*s*.46*.7-s*.28;
-  ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
-  ctx.beginPath(); ctx.moveTo(x+hx*s*.12,y+hy*s*.12-s*.04); ctx.lineTo(gx,gy); ctx.stroke();
-  ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(gx-hy*s*.12,gy+hx*s*.12*.7); ctx.lineTo(gx+hy*s*.12,gy-hx*s*.12*.7); ctx.stroke();
+  if(!mowerDeep()){ ctx.strokeStyle=MOWER_P.bar; ctx.lineCap='round'; ctx.lineWidth=s*.05;
+    ctx.beginPath(); ctx.moveTo(x+hx*s*.12,y+hy*s*.12-s*.04); ctx.lineTo(gx,gy); ctx.stroke();
+    ctx.lineWidth=s*.07; ctx.beginPath(); ctx.moveTo(gx-hy*s*.12,gy+hx*s*.12*.7); ctx.lineTo(gx+hy*s*.12,gy-hx*s*.12*.7); ctx.stroke(); }
   ctx.fillStyle=MOWER_P.deep; mowerRR(x-s*.29,y-s*.18,s*.58,s*.38,s*.12); ctx.fill();
   ctx.fillStyle=MOWER_P.body; mowerRR(x-s*.27,y-s*.22,s*.54,s*.28,s*.12); ctx.fill();
   ctx.fillStyle=MOWER_P.hi; mowerRR(x-s*.2,y-s*.2,s*.26,s*.06,s*.03); ctx.fill();
@@ -35333,31 +35339,37 @@ function drawTubPour(){
       g.fillStyle='#7A5330'; g.font=Math.round(s*0.15)+'px '+CFONT; g.textAlign='center'; g.textBaseline='middle'; g.fillText(hard===2? '촤악!' : '철퍽!',0,0); g.restore(); g.textAlign='left'; g.textBaseline='alphabetic'; }
   }
 }
-function drawDeepMowerHandle(x,y,s,b){
-  if(!L||!L.deepMower) return;
-  const f=mowerFace(b), T=b.turnFx;
-  let a=MOWER_HANDLE[f];
+// 두 칸 깎이 손잡이(10-07 사람 2a안) — 몸통 뒤에서 세운 두 봉이 손잡이 칸 위 나무 가로 손잡이로 간다.
+// 손잡이 끝은 손잡이 칸 가운데에 놓인다 — 위를 보는 깎이(손잡이가 카메라 쪽)는 봉을 조금 더 길게 빼서
+// 나무 손잡이가 몸통 밑 칸 경계에 걸쳐 보이지 않게 한다(옆에서 밀어 돌릴 칸이 어딘지 보이게).
+// 땅엔 봉 그림자가 손잡이 칸까지 깔린다. 각 a(위에서 본 손잡이 방향)로 그려서 도는 중에도 같은 그림이다.
+function mowerHandleAngle(b){
+  const T=b.turnFx; let a=MOWER_HANDLE[mowerFace(b)];
   if(T&&T.t<1){
     const u=Math.max(0,T.t), a0=MOWER_HANDLE[T.from];
     let d=MOWER_HANDLE[T.to]-a0; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI;
     const k=1.7, e=1+(k+1)*Math.pow(u-1,3)+k*Math.pow(u-1,2); a=a0+d*e;
   }
-  const dx=Math.cos(a),dy=Math.sin(a),px=-dy,py=dx;
+  return a;
+}
+function drawDeepMowerHandle(x,y,s,b){
+  if(!mowerDeep()) return;
+  const a=mowerHandleAngle(b), dx=Math.cos(a), dy=Math.sin(a), px=-dy, py=dx;
+  const K=.98+.2*Math.max(0,dy), LIFT=.46, G0=.24;
+  const pt=(k,lift,w,sd)=>[x+dx*s*k+px*s*w*sd, y+dy*s*k+s*G0-s*lift+py*s*w*sd*.4];
+  const line=(p,q,w,col)=>{ ctx.strokeStyle=col; ctx.lineWidth=w; ctx.beginPath(); ctx.moveTo(p[0],p[1]); ctx.lineTo(q[0],q[1]); ctx.stroke(); };
   ctx.save(); ctx.lineCap='round';
-  ctx.strokeStyle='rgba(52,62,57,.16)'; ctx.lineWidth=s*.12;
-  ctx.beginPath(); ctx.moveTo(x+dx*s*.28,y+dy*s*.28+s*.08); ctx.lineTo(x+dx*s*.98,y+dy*s*.98+s*.08); ctx.stroke();
-  ctx.strokeStyle=MOWER_P.bar; ctx.lineWidth=s*.055;
-  for(const side of [-1,1]){ const ox=px*s*.19*side,oy=py*s*.19*side;
-    ctx.beginPath(); ctx.moveTo(x+dx*s*.18+ox,y+dy*s*.18+oy-s*.08); ctx.lineTo(x+dx*s*.94+ox,y+dy*s*.94+oy-s*.08); ctx.stroke(); }
-  const hx=x+dx*s,hy=y+dy*s-s*.08;
-  ctx.strokeStyle='#A86D42'; ctx.lineWidth=s*.11;
-  ctx.beginPath(); ctx.moveTo(hx-px*s*.22,hy-py*s*.22); ctx.lineTo(hx+px*s*.22,hy+py*s*.22); ctx.stroke();
+  line(pt(.3,0,0,0),pt(K,0,0,0),s*.16,'rgba(48,64,35,.15)');                    // 땅 그림자
+  for(const sd of [-1,1]) line(pt(.22,.26,.16,sd),pt(K-.02,LIFT,.2,sd),s*.06,MOWER_P.bar);
+  const g1=pt(K,LIFT,.26,-1), g2=pt(K,LIFT,.26,1);
+  line(g1,g2,s*.13,'#8A5A34'); line([g1[0],g1[1]-s*.012],[g2[0],g2[1]-s*.012],s*.085,'#C98B55');
   ctx.restore();
 }
 function drawMower(x,y,s,b){
   const f=mowerFace(b), T=b.turnFx;
   ctx.save();
-  drawDeepMowerHandle(x,y,s,b);
+  const handleFront=mowerDeep() && Math.sin(mowerHandleAngle(b))>.3;   // 손잡이가 카메라 쪽이면 몸통을 덮어야 한다
+  if(!handleFront) drawDeepMowerHandle(x,y,s,b);
   if(T && T.t<1){
     const u=Math.max(0,T.t), a0=MOWER_HANDLE[T.from];
     let d=MOWER_HANDLE[T.to]-a0; while(d>Math.PI) d-=2*Math.PI; while(d<-Math.PI) d+=2*Math.PI;
@@ -35384,6 +35396,7 @@ function drawMower(x,y,s,b){
       ctx.beginPath(); ctx.moveTo(x+bx*s*.45+ox, y+by*s*.45+oy); ctx.lineTo(x+bx*s*(.45+l)+ox, y+by*s*(.45+l)+oy); ctx.stroke(); }
   }
   drawMowerRider(x,y,s,b,f);                                           // 병아리 운전수(D안)
+  if(handleFront) drawDeepMowerHandle(x,y,s,b);
   ctx.restore();
 }
 // 겨눈 길 — 돈 직후 달려 나갈 줄을 점선으로 잠깐 보여 준다. mowerFloor(엔진)와 같은 판정이라 거짓말을 안 한다.
@@ -35953,6 +35966,38 @@ function hillEnsure(){
 function hillOn(){ return hillLevel() && hillEnsure().ok; }
 function hillZ(x,y){ const H=hillC; if(!H.ok) return 0; if(H.Z) return H.Z(x,y);
   const r=Math.min(GN-1,y|0), c=Math.min(GN-1,x|0), i=Math.max(0,Math.min(H.W-1,Math.round(x*HILL_SUB))), j=Math.max(0,Math.min(H.W-1,Math.round(y*HILL_SUB))); return hillZc(r,c,i,j); }
+// 골짜기 돌턱(10-07 사람 5안) — 마주 본 비탈 두 칸(>> <<)은 골짜기다. 규칙상 공은 처음 들어간 칸에 선다
+// (같은 자리가 되풀이되면 굴림을 끊는다). 예전엔 그 사이를 세 번 왔다 갔다 하며 3초를 끌고 비탈 한가운데 섰다.
+// 경계에 납작한 돌턱을 깔고, 공은 돌턱에 톡 부딪혀 살짝 튕긴 뒤 골 바닥 쪽에 기대 선다 — 칸·규칙·par 는 그대로.
+function slopeValleyDir(r,c){                                     // (r,c) 가 골짜기 한쪽 비탈이면 골 바닥 쪽 방향, 아니면 null
+  if(!L || !L.T || !L.T[r]) return null; const t=L.T[r][c]; if(!isSlope(t)) return null;
+  const v=SLOPEV[t], t2=L.T[r+v[0]] && L.T[r+v[0]][c+v[1]]; if(!isSlope(t2)) return null;
+  const w=SLOPEV[t2]; return (w[0]===-v[0] && w[1]===-v[1])? v : null;
+}
+function valleyTrim(path,R,C){                                    // 그리기 경로만 — 골짜기에 든 뒤의 왕복을 자른다(서는 칸은 엔진 그대로)
+  if(!path || !path.length) return path;
+  const v=slopeValleyDir(R,C); if(!v) return path;
+  for(let i=0;i<path.length-1;i++){ const a=path[i], b=path[i+1];
+    if(a.r===R && a.c===C && b.r===R+v[0] && b.c===C+v[1]) return path.slice(0,i+1); }
+  return path;
+}
+function valleyRestOff(t){                                        // 도착한 뒤 골 바닥 쪽으로 붙는 거리(칸) — 돌턱에 톡, 살짝 튕기고 선다
+  const e=x=>1-(1-x)*(1-x);
+  if(t<0.14) return 0.26*e(t/0.14);
+  if(t<0.28) return 0.26-0.12*e((t-0.14)/0.14);
+  if(t<0.4) return 0.14+0.06*e((t-0.28)/0.12);
+  return 0.2;
+}
+function valleyStones(){                                          // 바닥 한 장에 — 골 경계마다 납작한 돌 넷
+  const g=ctx, s=cell;
+  for(let r=1;r<GN-1;r++) for(let c=1;c<GN-1;c++){ const v=slopeValleyDir(r,c); if(!v || v[0]<0 || v[1]<0) continue;   // 한 쌍에 한 번
+    const x=(c+.5+v[1]*.5)*s, y=(r+.5+v[0]*.5)*s;
+    for(const [q,rx,ry,col] of [[-.32,.13,.09,'#B7AE9C'],[-.06,.15,.1,'#A79E8B'],[.2,.13,.09,'#BDB4A3'],[.4,.09,.06,'#A79E8B']]){   // 돌줄은 경계를 따라 — 돌 모양은 늘 납작하게
+      const px=x+(v[0]? q*s : 0), py=y+(v[0]? 0 : q*s);
+      g.fillStyle='rgba(50,40,25,.25)'; g.beginPath(); g.ellipse(px+s*.01,py+s*.035,s*rx,s*ry*.6,0,0,7); g.fill();
+      g.fillStyle=col; g.beginPath(); g.ellipse(px,py,s*rx,s*ry,0,0,7); g.fill();
+      g.fillStyle='rgba(255,255,255,.45)'; g.beginPath(); g.ellipse(px-s*rx*.3,py-s*ry*.4,s*rx*.4,s*ry*.3,0,0,7); g.fill(); } }
+}
 function hillTreeAt(g,x,y,S){ g.fillStyle='#8A5B36'; g.fillRect(x-S*.045,y-S*.24,S*.09,S*.24);
   for(const [dx,dy,rr_,cl] of [[0,-.44,.27,'#4E8B3F'],[-.16,-.35,.18,'#4E8B3F'],[.16,-.35,.18,'#457F38'],[-.06,-.52,.14,'#64A04E']]){ g.fillStyle=cl; g.beginPath(); g.arc(x+dx*S,y+dy*S,rr_*S,0,7); g.fill(); }
   g.fillStyle='#9A6534'; for(const [dx,dy] of [[-.12,-.38],[.14,-.46]]){ g.beginPath(); g.ellipse(x+dx*S,y+dy*S,S*.035,S*.045,0,0,7); g.fill(); } }
@@ -37964,6 +38009,7 @@ function render(){
             if(tg.emitContact){b.air=0;fireBallContact(b,tg.emitContact);}
             if(b.pathI>=b.path.length){ if(b.kind==='mower'){ if(doorFx && doorFx.t<-1) doorFx.t=0; sfxThud(); buzz([12,24,12]); }   // 깎이 도착 — 친 문이 이제 돈다
               b.path=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
+              if(b.kind==='ball' && slopeValleyDir(b.r,b.c)) b.vbT=animT;   // 골짜기 — 돌턱에 톡
               if(b.kind==='ball' && !b.tramp){ b.stopT=1; tone(210,0.06,"sine",0.03,150); }   // 멈추며 통 — 방석에 들면 firePend 가 거둔다
               firePend(b); }
             else if(!tg.contactApproach && !tg.contactReturn){ const t=tileAt(L,filled,tg.r,tg.c); if(isSlope(t)){ b.holdT=SLOPE_HOLD; sfxSlide(); } }  // 접촉 반동에는 별도 멈칫을 넣지 않는다
@@ -38085,8 +38131,9 @@ function render(){
         else by+=Math.sin(animT*2.4+kk(b.r,b.c))*cell*0.02;          // 흘러 나가기 직전 — 둥실
       }
       if(isSlope(tt) && !b.path){ bsc=0.86;
-        const v=rollVec(tt);                                      // 흐름(내리막) 방향의 반대 = 오르막 쪽으로 붙임
-        bx-=v[1]*cell*0.09; by-=v[0]*cell*0.09; } }
+        const v=rollVec(tt), vd=slopeValleyDir(Math.round(b.rr),Math.round(b.cc));
+        if(vd){ const o=valleyRestOff(b.vbT!=null? animT-b.vbT : 9); bx+=vd[1]*cell*o; by+=vd[0]*cell*o; }   // 골짜기 — 돌턱 쪽 바닥에 기댄다
+        else { bx-=v[1]*cell*0.09; by-=v[0]*cell*0.09; } } }      // 흐름(내리막) 방향의 반대 = 오르막 쪽으로 붙임
     if(b.r===dog.r && b.c===dog.c && b.sink===0 && !b.carried){   // 맥스 발밑까지 굴러온 공: 갈라서 그림
       bsc=Math.min(bsc,0.72); bx-=cell*0.2; by-=cell*0.16; }
     // 빈 주차 상자 위에 멈춘 공 — 맥스와 같은 문법으로 띄운다(뚫고 있는 그림 방지).
