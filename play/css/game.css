@@ -1819,10 +1819,6 @@
   .dcstamp.on { animation:dcHeroStamp .4s cubic-bezier(.25,1.75,.4,1) both; }
   @keyframes dcHeroStamp { 0%{opacity:0;transform:scale(1.8) rotate(12deg)}
     65%{opacity:1;transform:scale(.92) rotate(-5deg)} 100%{opacity:1;transform:scale(1) rotate(-2deg)} }
-  .dctitle { margin:7px 12px 1px; text-align:center; font-family:var(--f-hand);
-    font-size:var(--s5); color:#4A3524; }
-  .dcsub { margin:0 12px 2px; text-align:center; font-family:var(--f-body);
-    font-size:var(--fs-note); font-weight:var(--w-bold); color:#7FA954; }
   /* 도장판(2026-10-03 D안) — 간식을 다 주운 산책은 발도장, 남은 산책은 점선 빈 칸에 판 번호.
      10×3이라 '10판씩 세 번'이 한눈에 읽힌다. 다시 갈 판이 어디인지가 이 카드가 남기는 것이다. */
   .dcpaws { display:grid; grid-template-columns:repeat(10,1fr); gap:5px; padding:10px 16px 4px; }
