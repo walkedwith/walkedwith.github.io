@@ -1227,7 +1227,7 @@
      화면에 뜬 뱃지 수가 곧 할 일 수다. */
   /* 주울 젬이 남았다 — 숫자 대신 젬 하나(09-30 뼈 → 10-07 젬). 그림은 HUD·판 위와 같은 젬 한 장(matSVG('snack')). */
   .lstrail .lslv .lsdebt { position:absolute; right:-12px; top:-8px; width:22px; height:22px; min-width:0;
-    padding:0; border:0; font-size:0; color:transparent; filter:drop-shadow(0 1px 1.5px rgba(43,32,54,.35));
+    padding:0; border:0; font-size:0; color:transparent; filter:drop-shadow(0 1px 1.5px rgba(43,32,54,.35)); }
   .lstrail .lslv .lsdebt svg { width:100%; height:100%; display:block; }
   .lstrail .lslv .lsdebt.mis { background:#6EA83C; width:17px; height:17px; border-radius:9px; border:2px solid #FFF9F0;
     font-size:var(--s11); color:#FFF9F0; font-family:var(--f-hand); line-height:13px; text-align:center; right:-6px; top:-6px; filter:none; }

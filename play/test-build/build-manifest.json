@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-10-07T08:33:23.712Z",
-  "totalBytes": 83138013,
+  "generatedAt": "2026-10-07T08:43:01.244Z",
+  "totalBytes": 83138015,
   "files": [
     {
       "path": "index.html",
@@ -10,7 +10,7 @@
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 636919
+      "bytes": 636921
     },
     {
       "path": "localization/ko.js",
