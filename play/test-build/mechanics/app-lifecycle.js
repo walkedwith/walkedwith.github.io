@@ -11,23 +11,32 @@
     const o = options || {};
     const pauseAudio = o.pauseAudio || noop;
     const resumeAudio = o.resumeAudio || noop;
+    const pauseFrames = o.pauseFrames || noop;
+    const resumeFrames = o.resumeFrames || noop;
+    const releaseResources = o.releaseResources || noop;
+    const restoreResources = o.restoreResources || noop;
     const resetFrameClock = o.resetFrameClock || noop;
     const closeTopOverlay = o.closeTopOverlay || (() => false);
     const isInStage = o.isInStage || (() => false);
     const requestStageExit = o.requestStageExit || noop;
     const exitApp = o.exitApp || noop;
     let hidden = false;
+    let detachCurrent = noop;
 
-    async function background() {
-      if (hidden) return;
+    async function background(fullRelease) {
+      if (hidden) { if(fullRelease) await releaseResources(); return; }
       hidden = true;
+      pauseFrames();
       await pauseAudio();
+      if (fullRelease) await releaseResources();
     }
 
     async function foreground() {
       if (!hidden) return;
       hidden = false;
+      await restoreResources();
       resetFrameClock();
+      resumeFrames();
       // Restore lifecycle state even with music off. The audio owner applies
       // music/effect preferences independently when deciding what to play.
       await resumeAudio();
@@ -44,23 +53,42 @@
     }
 
     function attach(doc, capacitorApp) {
+      detachCurrent();
+      const cleanups = [];
+      let detached = false;
       if (doc && doc.addEventListener) {
-        doc.addEventListener('visibilitychange', () => {
+        const visibility = () => {
           if (doc.hidden) background();
           else foreground();
-        });
+        };
+        const pagehide = () => background(true);
+        const pageshow = () => foreground();
+        doc.addEventListener('visibilitychange', visibility);
+        doc.addEventListener('pagehide', pagehide);
+        doc.addEventListener('pageshow', pageshow);
+        cleanups.push(()=>doc.removeEventListener('visibilitychange', visibility));
+        cleanups.push(()=>doc.removeEventListener('pagehide', pagehide));
+        cleanups.push(()=>doc.removeEventListener('pageshow', pageshow));
       }
       if (capacitorApp && capacitorApp.addListener) {
-        capacitorApp.addListener('appStateChange', state => {
+        const remember = handle => {
+          if(handle && typeof handle.then==='function') handle.then(remember).catch(noop);
+          else if(handle && typeof handle.remove==='function'){
+            if(detached) handle.remove(); else cleanups.push(()=>handle.remove());
+          }
+        };
+        remember(capacitorApp.addListener('appStateChange', state => {
           if (state && state.isActive) foreground();
           else background();
-        });
-        capacitorApp.addListener('backButton', back);
+        }));
+        remember(capacitorApp.addListener('backButton', back));
       }
+      detachCurrent=()=>{ detached=true; while(cleanups.length){ try{ cleanups.pop()(); }catch(_){ } } detachCurrent=noop; };
       return api;
     }
 
-    const api = { background, foreground, back, attach, isBackgrounded: () => hidden };
+    function detach(){ detachCurrent(); }
+    const api = { background, foreground, back, attach, detach, isBackgrounded: () => hidden };
     return api;
   }
 

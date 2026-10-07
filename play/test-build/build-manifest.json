@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-10-07T08:48:14.281Z",
-  "totalBytes": 83138198,
+  "generatedAt": "2026-10-07T12:33:36.899Z",
+  "totalBytes": 82705659,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3208174
+      "bytes": 3060431
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 636921
+      "bytes": 635311
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 80358
+      "bytes": 80052
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 72911
+      "bytes": 72661
     },
     {
       "path": "localization/i18n.js",
@@ -50,7 +50,7 @@
     {
       "path": "mechanics/app-lifecycle.js",
       "source": "mechanics/app-lifecycle.js",
-      "bytes": 2006
+      "bytes": 3468
     },
     {
       "path": "mechanics/progress-recovery.js",
@@ -78,24 +78,19 @@
       "bytes": 487100
     },
     {
-      "path": "mechanics/core-joy-levels.js",
-      "source": "mechanics/core-joy-levels.js",
-      "bytes": 3948
+      "path": "mechanics/yard-growth-art.js",
+      "source": "mechanics/yard-growth-art.js",
+      "bytes": 101687
     },
     {
-      "path": "mechanics/grandpa-tools.js",
-      "source": "mechanics/grandpa-tools.js",
-      "bytes": 5214
+      "path": "mechanics/notebook-pages.js",
+      "source": "mechanics/notebook-pages.js",
+      "bytes": 8819
     },
     {
-      "path": "mechanics/core-joy-qa.js",
-      "source": "mechanics/core-joy-qa.js",
-      "bytes": 22455
-    },
-    {
-      "path": "mechanics/training-practice.js",
-      "source": "mechanics/training-practice.js",
-      "bytes": 3542
+      "path": "mechanics/dev-runtime-loader.js",
+      "source": "mechanics/dev-runtime-loader.js",
+      "bytes": 1009
     },
     {
       "path": "mechanics/onboarding-comic.js",
@@ -273,29 +268,9 @@
       "bytes": 96148
     },
     {
-      "path": "art/daily-gift-grandpa-v1-960.webp",
-      "source": "art/daily-gift-grandpa-v1-960.webp",
-      "bytes": 36718
-    },
-    {
       "path": "art/grandpa-delivery-v1/grandpa-delivery.webp",
       "source": "art/grandpa-delivery-v1/grandpa-delivery.webp",
       "bytes": 839894
-    },
-    {
-      "path": "art/toy-world/onboarding-toys-v1-step1.webp",
-      "source": "art/toy-world/onboarding-toys-v1-step1.webp",
-      "bytes": 57750
-    },
-    {
-      "path": "art/toy-world/onboarding-toys-v1-step2.webp",
-      "source": "art/toy-world/onboarding-toys-v1-step2.webp",
-      "bytes": 62750
-    },
-    {
-      "path": "art/chapter-concepts/optimized/farm-map-v1-1080.webp",
-      "source": "art/chapter-concepts/optimized/farm-map-v1-1080.webp",
-      "bytes": 247128
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-01-frontyard-toys-v1-720.webp",
@@ -1846,6 +1821,26 @@
       "path": "art/max-master/motions/skins/max-rain-victory-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-rain-victory-front-8f-runtime.webp",
       "bytes": 224346
+    },
+    {
+      "path": "art/max-master/thumbnails/skins/max-space.webp",
+      "source": "art/max-master/thumbnails/skins/max-space.webp",
+      "bytes": 10248
+    },
+    {
+      "path": "art/max-master/thumbnails/skins/max-ranger.webp",
+      "source": "art/max-master/thumbnails/skins/max-ranger.webp",
+      "bytes": 12124
+    },
+    {
+      "path": "art/max-master/thumbnails/skins/max-mail.webp",
+      "source": "art/max-master/thumbnails/skins/max-mail.webp",
+      "bytes": 9910
+    },
+    {
+      "path": "art/max-master/thumbnails/skins/max-rain.webp",
+      "source": "art/max-master/thumbnails/skins/max-rain.webp",
+      "bytes": 11616
     },
     {
       "path": "art/max-master/motions/canonical/max-walk-v4-face-clean.png",
