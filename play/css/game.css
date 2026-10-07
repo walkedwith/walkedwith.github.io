@@ -462,6 +462,7 @@
     background:#D65C50; z-index:1; }
   #gboard .gbnote { background:#FFFAEC; transform:rotate(-1.5deg); padding:7px 18px 6px; font-size:var(--s7); color:#5E4630;
     box-shadow:0 2px 0 rgba(90,60,30,.25); white-space:nowrap; }
+  #gboard .gbnote small { font-size:.82em; opacity:.6; }   /* 명언 출처 — 옛말 뒤에 작게 */
   /* 방의 길 버튼 — .lsbuild(지도의 방 버튼)와 같은 틀. 방에서만 뜨고(syncWalkFab), 꾸미기 시트가 열리면 비킨다. */
   .hswalk { z-index:40; }
   .hsdeco { z-index:40; right:auto; left:12px; }   /* 꾸미기 — 산책 단추와 마주 보는 왼쪽 아래(10-04) */
