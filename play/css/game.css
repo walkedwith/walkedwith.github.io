@@ -676,6 +676,14 @@
   .wrfree { display:none; position:absolute; right:-6px; top:-7px; }
   #wRetry { position:relative; overflow:visible; }
   #wRetry.free .wrfree { display:block; }
+  /* 승리 카드 버튼(10-07 사람) — 노란 "다시" · 초록 "다음" 알약. 다음이 늘 기본 동선이라 초록이 조금 더 넓다. */
+  #win .btn2.wpill { width:auto; height:56px; padding:0 22px; border-radius:999px; display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    font-family:var(--f-hand); font-size:var(--s6); }
+  #win .btn2.wpill svg { width:17px; height:17px; flex:none; }
+  #win #wRetry.wpill { background:linear-gradient(#FFD27A,#F4B04A); color:#5A3A12; box-shadow:0 4px 0 #C98A2E; }
+  #win #wRetry.wpill .wrfree { left:50%; right:auto; top:-11px; transform:translateX(-50%); white-space:nowrap; }
+  #win #wNext.wpill { padding:0 28px; background:linear-gradient(#9FD07E,#74B356); color:#fff; box-shadow:0 4px 0 #568F3F; text-shadow:0 1px 0 rgba(0,0,0,.15); }
+  #win #wNext.wpill:active { box-shadow:0 1px 0 #568F3F; }
   /* 클리어 2배 — 승리 카드 안, 획득 표시 바로 아래. 광고 자리라 눈에 띄어야 하지만
      ▶(다음 판)보다 세면 안 된다. 다음으로 가는 게 여전히 기본 동선이다. */
   .w2x { display:none; align-items:center; justify-content:center; gap:6px; margin:8px auto 0;
@@ -1217,11 +1225,10 @@
   .lstrail .lslv.hard .lso { border-color:#E7A72C; border-width:3px; }
   /* 빚 — 밖으로 나오는 **유일한** 표식이다. 다 챙긴 판엔 아무것도 안 붙으므로
      화면에 뜬 뱃지 수가 곧 할 일 수다. */
-  /* 주울 뼈가 남았다 — 숫자 대신 뼈 하나(2026-09-30). 주황 숫자가 판 번호·별 수로 읽혔다. */
-  /* 그림은 HUD 간식(PAW_SVG)과 같은 한 장 — 판 위·상점·방·지도가 다 같은 뼈다(2026-10-01 사람 지적: 지도만 납작한 가로 뼈였다). */
+  /* 주울 젬이 남았다 — 숫자 대신 젬 하나(09-30 뼈 → 10-07 젬). 그림은 HUD·판 위와 같은 젬 한 장(matSVG('snack')). */
   .lstrail .lslv .lsdebt { position:absolute; right:-12px; top:-8px; width:22px; height:22px; min-width:0;
     padding:0; border:0; font-size:0; color:transparent; filter:drop-shadow(0 1px 1.5px rgba(43,32,54,.35));
-    background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath d='M2.92 22.78a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM6.68 33.12a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM24.62 14.88a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM28.38 25.22a8.35 8.35 0 1 0 16.7 0a8.35 8.35 0 1 0 -16.7 0zM11.04 22.17L15.25 33.73L36.96 25.83L32.75 14.27z' fill='%23B39A6E'/%3E%3Cpath d='M5.22 22.78a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM8.98 33.12a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM26.92 14.88a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM30.68 25.22a6.05 6.05 0 1 0 12.1 0a6.05 6.05 0 1 0 -12.1 0zM11.83 24.33L14.46 31.57L36.17 23.67L33.54 16.43z' fill='%23FFFDF8'/%3E%3Cpath d='M14.92 29.75L34.65 22.57' fill='none' stroke='%23E6DAC2' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M8.06 21.72Q7.66 18.88 10.6 17.6' fill='none' stroke='rgba%28255,255,255,.9%29' stroke-width='2.0' stroke-linecap='round'/%3E%3C/svg%3E") center/contain no-repeat; }
+  .lstrail .lslv .lsdebt svg { width:100%; height:100%; display:block; }
   .lstrail .lslv .lsdebt.mis { background:#6EA83C; width:17px; height:17px; border-radius:9px; border:2px solid #FFF9F0;
     font-size:var(--s11); color:#FFF9F0; font-family:var(--f-hand); line-height:13px; text-align:center; right:-6px; top:-6px; filter:none; }
   /* 번호는 원 밖 — 흰 글씨에 그림자. 풍경 위에서도 읽힌다. */
@@ -4159,15 +4166,6 @@ body, #toast, .coach, .card { word-break:keep-all; overflow-wrap:break-word; }
    (숨기지 않으면 상단이 세 버튼이라 캡슐·타이포 쌍이 만든 여백이 도로 죽는다). */
 body.hud-pilot #helpbtn { display:none; }
 
-/* ── 승리 잔치 (2026-09-26, 미도쿠 벤치마크) — 카드보다 먼저 보드 위에서 ────────── */
-#winFest { position:absolute; left:50%; top:34%; transform:translateX(-50%);
-  display:none; flex-direction:column; align-items:center; gap:10px; z-index:58; pointer-events:none; }
-#winFest.show { display:flex; }
-/* 리본·변환 팝은 걷어냈다(2026-09-26) — 남은 건 스트릭 배지 하나. 배지가 홀로 서므로 한 단 키운다. */
-#winFest i#wfStreak { display:none; font-style:normal; background:#FFE9C0; border:2px solid #E8A94C;
-  border-radius:999px; padding:5px 16px; color:#8A6741; font-family:var(--f-hand); font-size:var(--s7); }
-#winFest.stk i#wfStreak:not(:empty) { display:inline-block; animation:festin2 .3s cubic-bezier(.3,1.5,.5,1) both; }
-@keyframes festin2 { from { transform:scale(.6); opacity:0; } to { transform:scale(1); opacity:1; } }
 
 /* ── 판 전환 발자국 와이프 ── */
 #wipe { position:absolute; inset:0; z-index:120; pointer-events:none; display:none;
@@ -4304,23 +4302,19 @@ body.hardlv:not(.inhouse) #hud > .hgrp #lvl { background:#F2C24E; border-color:#
 #hardVig.show { opacity:1; }
 @media (prefers-reduced-motion:reduce){ #hardIntro.show, #hardIntro.show::after, #hardIntro .higift { animation:none; transform:translate(-50%,-50%) rotate(-12deg); } }
 
-/* ── 아슬아슬 도장 (2026-09-30) — 남은 걸음 셋 이하로 깼을 때 카드 오른쪽 위에 쿵 ─────── */
+/* ── 칭찬 도장 (10-07 사람; 옛 아슬아슬 도장 자리) — 주운 젬 단계마다 색과 별이 오른다 ─────── */
 #win .card { position:relative; }
 #win .wclose { position:absolute; right:-24px; top:-32px; z-index:3; width:100px; height:100px; border-radius:50%;
   display:none; place-content:center; justify-items:center; pointer-events:none;
   --sc:#D9644F; border:4px solid var(--sc); box-shadow:inset 0 0 0 3px #FFF6E6, inset 0 0 0 5px var(--sc);
   background:rgba(255,246,230,.94); color:var(--sc); font-family:var(--f-hand); transform:rotate(-14deg); }
-#win .wclose.gold { --sc:#C88A1E; background:rgba(255,241,200,.96); }
+#win .wclose.t0 { --sc:#6FA35A; } #win .wclose.t1 { --sc:#4C8FC9; } #win .wclose.t2 { --sc:#E08A2E; } #win .wclose.t3 { --sc:#D9513F; }
+#win .wclose.t3::after { content:''; position:absolute; inset:-9px; border-radius:50%; border:2px dashed var(--sc); opacity:.4; }
+#win .wclose.t1 b { font-size:var(--s7); }
 #win .wclose.on { display:grid; animation:closeStamp .42s cubic-bezier(.3,1.4,.5,1) both; }
 #win .wclose b { font-weight:var(--w-reg); font-size:var(--s6); line-height:1; white-space:nowrap; }
 #win .wclose span { font-family:var(--f-body); font-size:var(--s10); margin-top:3px; white-space:nowrap; }
 @keyframes closeStamp { 0%{ opacity:0; transform:rotate(-30deg) scale(2.2) } 60%{ opacity:1; transform:rotate(-12deg) scale(.92) } 100%{ transform:rotate(-14deg) scale(1) } }
-body.hudinplay:not(.inhouse) #mvbar .mvphew { position:absolute; left:calc(clamp(26px, calc(var(--fr,1) * 100%), calc(100% - 26px)) + 30px); top:-8px;
-  z-index:3; font-family:var(--f-hand); font-size:var(--s8); color:#8A7458; transform:rotate(-8deg); white-space:nowrap;
-  opacity:0; pointer-events:none; }
-body.hudinplay:not(.inhouse) #mvbar .mvphew.on { animation:phewIn 1.8s ease-out .9s both; }
-.mvphew { display:none; } body.hudinplay:not(.inhouse) #mvbar .mvphew { display:block; }
-@keyframes phewIn { 0%{ opacity:0; translate:0 6px } 20%{ opacity:1; translate:0 0 } 80%{ opacity:1 } 100%{ opacity:.85 } }
 
 /* ── 꾸러미 여는 연출 (2026-09-30) — 뚜껑이 튀어 오르고 색종이가 터진다 ─────────────── */
 .wgbico svg .gblid { transform-box:fill-box; transform-origin:30% 100%; }
