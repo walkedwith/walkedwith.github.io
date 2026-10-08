@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-10-07T14:06:55.462Z",
-  "totalBytes": 82710343,
+  "generatedAt": "2026-10-08T10:36:07.738Z",
+  "totalBytes": 82784865,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3061485
+      "bytes": 3158305
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 635143
+      "bytes": 634487
     },
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 82024
+      "bytes": 81754
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 74487
+      "bytes": 74283
     },
     {
       "path": "localization/i18n.js",
@@ -80,7 +80,7 @@
     {
       "path": "mechanics/yard-growth-art.js",
       "source": "mechanics/yard-growth-art.js",
-      "bytes": 101687
+      "bytes": 94825
     },
     {
       "path": "mechanics/notebook-pages.js",
@@ -280,7 +280,7 @@
     {
       "path": "art/chapter-concepts/optimized/chapter-02-backyard-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-02-backyard-toys-v1-720.webp",
-      "bytes": 60416
+      "bytes": 46110
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-03-stream-toys-approved-v1-720.webp",

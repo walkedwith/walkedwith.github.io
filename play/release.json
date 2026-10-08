@@ -1,17 +1,16 @@
 {
-  "sourceHead": "26f7daa1c8247969290dd99d55318e4efe8caeed",
-  "sourcePatch": "mower-levels-29-30-lower-difficulty-20261008",
-  "date": "2026-10-08T03:20:17Z",
-  "liveSha256": "f9402e026c328f00c1dcef3bde1a671b63938e034faf6767eff43dc1dba255d3",
-  "testSha256": "b3f4e8e52e233a354b6ce66bb4da04841c67ab7ead563cc4fd4eb2790bbb7bf8",
+  "sourceHead": "7c9f96d9644c723428a4e62aefdc205d46ca27f9",
+  "date": "2026-10-08T10:36:07.879Z",
+  "liveSha256": "ee2f0a37af8b5cd01a621a798e2642b2112058a2d4f09621dd4f21a221dc6817",
+  "testSha256": "6ba512b76bddf68506971bd506dc13f3c9cc8805173cef9e8aebb53423fce142",
   "files": 383,
-  "sourceCommit": "26f7daa1c8247969290dd99d55318e4efe8caeed",
+  "sourceCommit": "7c9f96d9644c723428a4e62aefdc205d46ca27f9",
   "kind": "live",
   "tests": {
-    "total": 1086,
-    "passed": 1024,
-    "failed": 7,
+    "total": 1062,
+    "passed": 998,
+    "failed": 9,
     "skipped": 55
   },
-  "levelChecks": 430
+  "levelChecks": 300
 }
