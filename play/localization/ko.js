@@ -824,7 +824,7 @@
     "guide.bridge.under": "물살에 실린 공은 <b>다리 아래로</b> 지나가요",
     "guide.creek61.text": "나무를 넘겨 다리로!",
     "guide.creek62.text": "물살 끝에선 들어갈 수 있어",
-    "guide.creek63.text": "따라 넘기면 떠내려가요",
+    "guide.creek63.text": "나란히 굴려 넣으면 떠내려가요",
     "guide.creek64.text": "공이 공을 밀어내요",
     "guide.creek66.text": "웅덩이 통나무는 배!",
     "guide.creek68.text": "배로 공을 밀어요",
