@@ -451,9 +451,7 @@
     z-index:3; width:min(338px, calc(100% - 14px)); pointer-events:none; }
   body.gboard:not(.dpad) #gboard { display:block; }
   body.gbtop #boardWrap { align-items:flex-start; padding-top:34px; box-sizing:border-box; }   /* 폰 세로 — 판을 위로 붙여 게시판 자리를 낸다(fit 의 gboardReserveOn). 34 = 규칙 칩(여닫이 문 ?) 자리 */
-  #gboard .gbroof { height:24px; margin:0 -5px -2px; background:#B4604C; clip-path:polygon(50% 0, 100% 100%, 0 100%);
-    filter:drop-shadow(0 3px 0 #8C4636); }
-  #gboard .gbpost { position:absolute; bottom:-10px; width:9px; height:92px; background:#8A5E36; border-radius:3px; }
+  #gboard .gbpost { position:absolute; bottom:-10px; width:9px; height:70px; background:#8A5E36; border-radius:3px; }
   #gboard .gbpost.l { left:14px; } #gboard .gbpost.r { right:14px; }
   #gboard .gbwood { position:relative; background:linear-gradient(#D1A068,#BD8A52); border:3px solid #8A5E36; border-radius:10px;
     box-shadow:0 4px 0 #7A5230, inset 0 2px 0 rgba(255,255,255,.25); padding:6px; box-sizing:border-box; }
@@ -2164,14 +2162,6 @@
   .ycat .yedit { margin-left:auto; border-color:#EADFC9; background:#FFFDF8; color:#8A6741; }
   .ycat .yedit.on { background:#FFF0D4; border-color:#E7A72C; color:#8A5A18; }
   #yardsel.lifting .ytodo { display:none; }
-  .ybath { position:absolute; top:48px; left:0; right:0; display:none; flex-direction:column;
-    align-items:center; gap:6px; pointer-events:none; }
-  .ybath.on { display:flex; }
-  .ybath i { font-style:normal; font-family:var(--f-hand); font-size:var(--s6); color:#4A3524;
-    background:rgba(255,249,240,.92); border-radius:99px; padding:4px 13px 5px;
-    box-shadow:0 2px 7px rgba(43,32,54,.16); }
-  .ybath .pbar { display:none; width:132px; margin:0; }
-  .ybath.bar .pbar { display:flex; }
   .ydots { position:absolute; top:52px; left:0; right:0; display:flex; justify-content:center; gap:7px; pointer-events:none; }
   .ydots i { width:8px; height:8px; border-radius:50%; background:rgba(74,53,36,.75); }
   .ydots i:not(.on):not(.lk) { background:rgba(74,53,36,.28); }
