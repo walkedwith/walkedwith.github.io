@@ -1311,7 +1311,7 @@ const WALL=0,GRASS=1,ICE=2,MAT=3,SU=4,SD=5,SL=6,SR=7,PIT=8,PAINT=9,WATER=10,PLAT
       DOOR=29,
       // ── 냇가(61~90, 10-08 재제작) ─────────────────────────────────────
       // 갈림 칸(36진 u) — 물이 양쪽으로 갈리는 칸. 어느 쪽으로 나가는지는 타일이 아니라 개구리 자리(판 데이터 fg + FROG_F)가 정한다.
-      // 보통 나무(36진 v) — 도끼 없는 나무. 맥스·공 모두에게 벽(tileAt 이 WALL). 통나무 배가 밀고 출발하는 반동 자리로만 쓰인다.
+      // 보통 나무(36진 v) — 도끼 없는 나무. 맥스·공 모두에게 벽(tileAt 이 WALL). 통나무 배가 밀고 출발하는 반동 자리로 쓰인다(그루터기·갈대 벽에서도 밀고 떠난다 — 10-08).
       FORK=30, TREE=31;
 // 그리기 전용 상태값 — 타일이 아니라 drawTile 의 분기 열쇠다(mechOff 의 9901·9902 와 같은 문법).
 const TILLED=9800,                                 // 메운 자리 — 구덩이든 흙더미이든 흙으로 덮인 칸
@@ -1359,6 +1359,7 @@ const isCurrent=t=>isFlow(t)||t===FORK;            // 흐르는 물 — 공·뜬
 // 물살 끝 칸 — 하류(FLOWV) 다음 칸이 안쪽 땅(잔디)인 물살 칸. 그 땅이 모래톱(creekShores)이고 배는 여기서 선다.
 // 맥스가 들어가는 물 칸은 이것 하나뿐(10-08 사람). 갈림 칸은 끝 칸이 아니다(출구가 개구리 따라 바뀐다).
 // 물살(흐르는 물)이 한 칸이라도 있는 판 — 냇가 쿵 문법(knockBall creek·긴 통나무 쳐내기)을 언덕 판과 가른다
+function boardHasWaterway(L){ if(L._wway==null){ L._wway=false; for(let r=0;r<boardRows(L)&&!L._wway;r++)for(let c=0;c<GN;c++) if(isWater(L.T[r][c])){ L._wway=true; break; } } return L._wway; }   // 물살·웅덩이·갈림 칸이 하나라도 있는 판(냇가)
 function boardHasCurrent(L){ if(L._cur==null){ L._cur=false; for(let r=0;r<boardRows(L)&&!L._cur;r++)for(let c=0;c<GN;c++) if(isCurrent(L.T[r][c])){ L._cur=true; break; } } return L._cur; }
 function flowMouth(L, filled, r, c){ const t=tileAt(L, filled, r, c); if(!isFlow(t)) return false;
   const v=FLOWV[t], r2=r+v[0], c2=c+v[1];
@@ -1371,7 +1372,7 @@ const dogWet=(L, filled, r, c)=>{ const t=tileAt(L, filled, r, c); return isWate
 // 언덕 판(101~120)의 통나무도 같은 물체·같은 판정이다. 서 있는 통나무(color>=4)는 물에 없다 — 들어가는 순간 눕는다.
 function logAxis(b){ return DOOR_CV[b.color&3]; }
 function logOnWater(L, filled, b){ if(b.kind!=='hillLog' || b.gone) return false; const t=tileAt(L, filled, b.r, b.c); return isWater(t) || t===WATER; }
-function logBridges(L, filled, b){ if(!logOnWater(L, filled, b)) return false; const v=logAxis(b), wet=t=>isWater(t)||t===WATER;
+function logBridges(L, filled, b){ if(!logOnWater(L, filled, b)) return false; const v=logAxis(b), wet=t=>isWater(t)||t===WATER;   // 양 끝이 다 땅일 때만 다리(웅덩이 끝은 땅이 아니다 — 10-08 사람, 끼임 없음)
   return !wet(tileAt(L, filled, b.r+v[0], b.c+v[1])) && !wet(tileAt(L, filled, b.r-v[0], b.c-v[1])); }
 function logFloats(L, filled, b){ return logOnWater(L, filled, b) && !logBridges(L, filled, b); }
 // (r,c) 의 1칸 통나무 다리 번호(없으면 -1). 10-08 — 다리 통나무는 옛 나무다리(BH/BV)처럼 물에 실린 것을 밑으로 보낸다(긴 통나무는 둑 그대로).
@@ -1379,10 +1380,13 @@ function logBridgeIdx(L, filled, boxes, r, c, skip){ const j=boxIdxAt(boxes, r, 
 // 다리 칸 — 나무다리 타일이거나 1칸 통나무 다리
 function bridgeCellAt(L, filled, boxes, r, c, skip){ return isBridge(tileAt(L, filled, r, c)) || logBridgeIdx(L, filled, boxes, r, c, skip)>=0; }
 // ── 통나무 배 ───────────────────────────────────────────────
-// 웅덩이에 뜬 1칸 통나무에 맥스가 올라선 뒤 옆 칸 보통 나무(TREE) 쪽으로 밀면 반동으로 반대쪽으로 미끄러진다.
+// 웅덩이에 뜬 1칸 통나무에 맥스가 올라선 뒤 통나무 끝 쪽의 막힌 칸(보통 나무·그루터기·벽) 쪽으로 밀면 반동으로 반대쪽으로 미끄러진다.
 // 웅덩이 칸은 그 방향 그대로 지나고, 물살·갈림 칸에 들어서면 물이 방향을 정한다. 물가(물 아닌 칸)·벽·다른 물체·
 // 나무다리 앞에서 멈춘다(다리 밑은 맥스 머리가 걸린다 — 빈 통나무와 다르다). 한 수 안에 끝까지 간다.
-// 앞이 공이면 쿵(10-08) — 배는 그 앞에 서고 맥스는 탄 채, 공은 knockBall 로 막힐 때까지 간다(hit 를 돌려준다).
+// 앞이 공이면 쿵(10-08) — 배는 그 앞에 서고 맥스는 탄 채, 공은 knockBall 로 한 칸(hit 를 돌려준다).
+// 배는 **길이 방향으로만** 간다(10-08 사람): 통나무 끝 쪽 칸이 막혀 있어야(나무·그루터기·벽) 밀고 출발하고(옆구리 쪽은 안 민다), 웅덩이에서 물살에
+// 옆구리로(축이 물길을 가로질러) 닿으면 못 들어가고 웅덩이 끝 칸에 떠서 선다(끼임 없음). 물길을 따라 들어서면 흐른다.
+// 물살 굽이·개구리 갈림 칸에서는 물을 따라 꺾인다(머리도 물을 따라 돈다 — 얼굴 = 마지막 실제 걸음).
 // 되돌아오는 길(방문한 칸+방향)이 다시 나오면 멈춘다 — 고리 물길에서 영영 도는 걸 막는다.
 function boatDrift(L, filled, boxes, bi, v){
   const b=boxes[bi]; let r=b.r, c=b.c; const path=[], seen=new Set(); let guard=0, last=null, hit=null;   // last = 마지막으로 실제 간 걸음, hit = 부딪힌 물체(쿵)
@@ -1392,6 +1396,9 @@ function boatDrift(L, filled, boxes, bi, v){
     else if(isFlow(t)) v=FLOWV[t];                                   // 물살에 들면 물길 방향으로
     const ar=r+v[0], ac=c+v[1], ta=tileAt(L, filled, ar, ac);
     if(!isWater(ta)) break;                                          // 물가·벽·다리 — 배는 물에 남는다
+    // 웅덩이에서 물살로 옆구리부터(축이 물길을 가로지름) — 배는 옆으로 못 흐르니 웅덩이 끝 칸에 떠서 선다(끼어 다리 되기는 없다 — 10-08 사람).
+    // 물살로 나가는 건 축이 물길과 나란할 때뿐. 선 배에서 맥스는 둑으로 내린다.
+    if(!isCurrent(tileAt(L, filled, r, c)) && isFlow(ta) && FLOWV[ta][0]*v[0]+FLOWV[ta][1]*v[1]===0) break;
     { const j=boxIdxAt(boxes, ar, ac, bi); if(j>=0){ hit={j, dir:[v[0],v[1]]}; break; } }   // 공·통나무 앞 — 공이면 쿵(applyMoveCore 가 knockBall)
     const key=kk(ar,ac)*4+doorCompass(v[0],v[1]); if(seen.has(key)) break; seen.add(key);
     r=ar; c=ac; path.push({r,c}); last=[v[0],v[1]];
@@ -1730,8 +1737,7 @@ function trampCellFree(L, filled, boxes, i, r, c, open){
 }
 // 공 하나를 굴린다. (pr,pc) = 이미 들어선 첫 칸, 그 칸의 효과부터 판정.
 // 얼음/경사 위에서만 계속 굴러가고, 앞이 공이면 hit 로 알림(당구 전달용).
-// slide — 냇가 쿵으로 맞은 공(10-08): 땅(잔디·방석)에서도 곧게 막힐 때까지 간다. 땅 아닌 칸에 들면 그 칸 규칙으로 돌아간다.
-function rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet, slide=false){
+function rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet){
   const isLog=boxes[i].kind==='hillLog';          // 뜬 통나무 — 물감·씻김 없음, 물가에서 물에 남아 멈춘다
   let color=boxes[i].color, sunk=false, recolored=false, steps=0, hit=-1, hitDir=null, catStop=null, cbHit=null, binHit=null, pounceStop=0;
   let bounced=0, rebound=0, trampBlock=null, trampKnock=null;
@@ -1781,8 +1787,7 @@ function rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet, slide=false){
       continue;                                                   // 얼음·언덕에 내리면 이어서 미끄러진다
     }
     let cont=false, nd=dir;
-    if(slide && (t===GRASS || t===MAT)) cont=true;            // 쿵 맞은 공은 땅에서 곧게
-    else if((slide=false), t===ICE) cont=true;
+    if(t===ICE) cont=true;
     else if(t===FORK){ nd=forkVec(L,filled,pr,pc); if(!nd) break; cont=true; }   // 갈림 칸: 개구리 반대쪽으로
     else if(isRollT(t)){ nd=rollVec(t); cont=true; }         // 언덕·물살: 타일이 방향을 정한다
     // 다리 칸에선 안 멈춘다 — 밑으로 흐르든 위로 굴러가든 그 축으로 계속 나간다.
@@ -1834,10 +1839,9 @@ function rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet, slide=false){
   }
   return {pr,pc,color,sunk,recolored,path,hit,hitDir,catStop,bounced,rebound,trampBlock,trampKnock,cbHit,binHit,pounceStop};
 }
-// 쿵 — 맞은 공 j 를 부딪힌 방향(hitDir)으로 한 칸 내보내고 이어서 굴린다. 못 나가면 null(친 쪽만 선다).
-// creek(냇가 쿵, 10-08) 이면 땅으로 쳐내진 공은 곧게 막힐 때까지 간다(rollFrom slide). 물길대로 떠나는 공은 물길 규칙 그대로.
-// 당구 판(L.billiard)·옛 물살 쿵은 creek=false — 한 칸 나간 뒤 그 칸 규칙(얼음·언덕은 계속, 땅은 선다).
-function knockBall(L, filled, boxes, j, hitDir, open, out, depth, wet, creek){
+// 쿵 — 맞은 공 j 를 부딪힌 방향(hitDir)으로 **딱 한 칸** 내보내고, 그다음은 그 칸 규칙(물살이면 흐르고 웅덩이·땅이면 선다, 얼음·언덕은 제 규칙).
+// 못 나가면 null(친 쪽만 선다). 2동네 당구와 같은 문법이고 냇가 쿵(떠내려온 통나무·배·공, 긴 통나무 휘두르기)도 다 이걸 쓴다(10-08 사람 — "막힐 때까지"는 접었다).
+function knockBall(L, filled, boxes, j, hitDir, open, out, depth, wet){
   const h=boxes[j];
   if(!h || h.gone || h.kind==='log' || h.kind==='bone' || h.kind==='cartV' || h.kind==='cartH' || h.kind==='mower' || h.kind==='tub' || h.kind==='pump' || h.kind==='hillLog' || h.kind==='log2' || h.kind==='log2End' || h.kind==='stump' || h.kind==='treeSmall' || h.kind==='treeBig') return null;
   // 물살 **위에** 서 있던 공은 물살이 데려간다 — 쿵은 붙잡고 있던 걸 떼 줄 뿐이다.
@@ -1845,20 +1849,20 @@ function knockBall(L, filled, boxes, j, hitDir, open, out, depth, wet, creek){
   // 따라 흐른다" 와 정면으로 어긋난다(264판 실측: 물살← 위의 공이 위쪽 잔디로 튀었다).
   // 하류가 막혀 있으면 예전대로 부딪힌 방향으로 간다. 웅덩이는 물살 타일이
   // 아니므로 여기 안 걸린다 — 웅덩이 공은 부딪힌 방향으로 나간다.
-  let hd=hitDir, alongFlow=false;
+  let hd=hitDir;
   { const ht=tileAt(L,filled,h.r,h.c);
     const fv = ht===FORK? forkVec(L,filled,h.r,h.c) : isFlow(ht)? rollVec(ht) : null;   // 갈림 칸은 개구리가 정한 출구, 출구 없으면 하류 없음
     if(fv){ const fr=h.r+fv[0], fc=h.c+fv[1];
       const fb = tileAt(L,filled,fr,fc)===WALL || boxIdxAt(boxes,fr,fc,j)>=0
               || (L._dogB2!=null && L._dogB2===kk(fr,fc)) || (!open && L.holes.has(kk(fr,fc)))
               || bridgeTrap(L,filled,boxes,j,h.r,h.c,fr,fc,fv,open);
-      if(!fb){ hd=fv; alongFlow=true; } } }
+      if(!fb) hd=fv; } }
   const ar=h.r+hd[0], ac=h.c+hd[1];
   const blocked = tileAt(L,filled,ar,ac)===WALL || boxIdxAt(boxes,ar,ac,j)>=0 || (!open && L.holes.has(kk(ar,ac)))
                || bridgeTrap(L,filled,boxes,j,h.r,h.c,ar,ac,hd,open);   // 쿵으로도 다리 밑에 못 민다
   if(blocked) return null;
   const contact={r:h.r,c:h.c,dr:hitDir[0],dc:hitDir[1]};
-  resolveRoll(L, filled, boxes, j, ar, ac, hd, open, out, h.r, h.c, depth, wet, contact, !!creek && !alongFlow);   // 물길대로 가는 공은 모래톱에서 선다 — 미끄러지지 않는다
+  resolveRoll(L, filled, boxes, j, ar, ac, hd, open, out, h.r, h.c, depth, wet, contact);
   return contact;
 }
 // 물살에 실려 다리로 들어간 공만 상판 아래로 그린다. 땅에서 밀어
@@ -1874,8 +1878,8 @@ function ballUsesBridgeUnderpass(L,filled,fromR,fromC,path){
 function bridgeUnderAfterPath(wasUnder, tile){ return !!wasUnder && isBridge(tile); }
 function ballNeedsBridgeDeck(b){ return !!b.bridgeUnder && b.sink<1; }
 // 굴림 확정 + 당구 전달(굴러온 공이 멈춘 공을 치면 그 공이 이어서 굴러감) 연쇄
-function resolveRoll(L, filled, boxes, i, pr, pc, dir, open, out, fromR, fromC, depth, wet, contactIn=null, slide=false){
-  let R=rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet, slide);
+function resolveRoll(L, filled, boxes, i, pr, pc, dir, open, out, fromR, fromC, depth, wet, contactIn=null){
+  let R=rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet);
   const b=boxes[i];
   // 밀린 공의 기록은 반드시 out[0] 이어야 한다(applyMoveCore 가 recs[0] 를 주인공으로 읽는다).
   // 튕겨내기는 상대 공을 먼저 굴리므로, 자리를 미리 잡아 두지 않으면 주인공이 바뀐다.
@@ -1922,9 +1926,9 @@ function resolveRoll(L, filled, boxes, i, pr, pc, dir, open, out, fromR, fromC, 
             bounced:R.bounced, rebound:R.rebound, trampBlock:R.trampBlock, trampKnocked:knocked, cbHit:R.cbHit, binHit:R.binHit, pounceStop:R.pounceStop};
   // 당구: 부딪힌 공이 같은 방향으로 한 칸 밀려나며 이어서 굴러감
   const flowHit=R.path.some(p=>isCurrent(tileAt(L,filled,p.r,p.c)) || isBridge(tileAt(L,filled,p.r,p.c)));
-  // 냇가 쿵(10-08): 물에 실려 온 것은 뜬 통나무·배도 친다 — 자기는 그 앞에 서고 맞은 공은 막힐 때까지(knockBall)
+  // 냇가 쿵(10-08): 물에 실려 온 것은 뜬 통나무·배도 친다 — 자기는 그 앞에 서고 맞은 공은 한 칸(knockBall)
   if((L.billiard || flowHit) && !R.sunk && R.hit>=0 && depth<8 && (boxes[i].kind!=='hillLog' || flowHit)){
-    const contact=knockBall(L, filled, boxes, R.hit, R.hitDir, open, out, depth+1, wet, flowHit);
+    const contact=knockBall(L, filled, boxes, R.hit, R.hitDir, open, out, depth+1, wet);
     if(contact){ const last=R.path.length-1;                     // 경로 길이·도착 칸은 그대로 두고 접촉 관계만 기록한다(솔버 규칙 불변)
       R.path[last]={...R.path[last],contactOut:[...(R.path[last].contactOut||[]),contact]}; }
   }
@@ -2472,23 +2476,29 @@ function applyMoveCore(L, st, dr, dc){
     const extra=settleSlopes(L, filled, bx, true, null, null, !valveOpen(L,filled,bx));   // 옆에 서 있던 공은 그 수에 친다
     return {dog:{r:st.dog.r,c:st.dog.c}, boxes:bx, filled, carry:false, pushed:false, slid:0, sunk:false, recolored:false, poolFrogHop:{i:pi, from, to}, extra};
   } }
-  // ── 통나무 배 출발 — 뜬 통나무 위의 맥스가 보통 나무 쪽으로 민다. tileAt 이 나무를 WALL 로 주므로 벽 판정보다 먼저 ──
-  if(L.T[nr] && L.T[nr][nc]===TREE && !st.carry){
+  // ── 통나무 배 출발(10-08 사람) — 웅덩이 배 위의 맥스가 통나무 **끝 쪽**(길이 방향) 칸으로 가는데 거기가 막혀 있으면 밀고 반대쪽으로 떠난다.
+  // 막힘 = 보통 나무·벽(갈대·채움)·그루터기(벤 자리 제 그루터기도)·도끼 나무·긴 통나무 — 맥스가 못 디디는 단단한 것. 판 밖·웅덩이 개구리는 아니다.
+  // 끝 쪽이 디딜 둑이면 그냥 내린다(아래 일반 걸음). 타고 내리기는 사방(옆구리 둑으로도 — 10-08 사람). 옆구리 쪽 막힘은 출발 없이 거절(배는 길이 방향으로만 밀린다), 물은 못 간다.
+  // tileAt 이 나무·벽을 WALL 로 주고 그루터기는 맥스가 오르는 물체라, 벽 판정·그루터기 분기보다 먼저 ──
+  const boatSolid=(r,c)=>{ if(r<0||c<0||r>=boardRows(L)||c>=GN) return false; if(L.pfrogs && pfrogAt(L, filled, r, c)>=0) return false;
+    if(L.T[r][c]===TREE || tileAt(L, filled, r, c)===WALL) return true;
+    const j=boxIdxAt(st.boxes, r, c, -1); return j>=0 && ['stump','treeSmall','treeBig','log2','log2End'].includes(st.boxes[j].kind); };
+  if(!st.carry && !L.noBoat && boatSolid(nr,nc) && (()=>{ const j=boxIdxAt(st.boxes, st.dog.r, st.dog.c, -1); return j>=0 && st.boxes[j].kind==='hillLog' && logFloats(L, filled, st.boxes[j]); })()){
     const bx=st.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried}));
     const ai=boxIdxAt(bx, st.dog.r, st.dog.c, -1);
-    if(ai<0 || bx[ai].kind!=='hillLog' || !logFloats(L, filled, bx[ai])) return null;   // 배 위가 아니면 나무는 그냥 벽
+    { const ax=logAxis(bx[ai]); if(ax[0]*dr+ax[1]*dc===0) return null; }               // 옆구리 쪽은 못 민다 — 배는 길이 방향으로만(10-08 사람)
     const d=boatDrift(L, filled, bx, ai, [-dr,-dc]);
     if(!d.path.length) return null;                                                     // 반대쪽이 막혀 못 나간다
     bx[ai]={r:d.r, c:d.c, color:d.face, kind:'hillLog'};
     L._dogB2=kk(d.r,d.c);                                                                // 맥스는 배와 함께 간다 — 정착 검사는 배 자리를 막힌 걸로 본다
     const run={bi:ai, fromR:st.dog.r, fromC:st.dog.c, path:d.path, restR:d.r, restC:d.c, sunk:false, landCell:null, recolored:false, color:d.face, slid:d.path.length};
-    // 배가 공에 쿵(10-08) — 배는 그 앞에 서고(맥스는 탄 채) 공은 막힐 때까지 간다
+    // 배가 공에 쿵(10-08) — 배는 그 앞에 서고(맥스는 탄 채) 공은 한 칸 나간 뒤 그 칸 규칙
     const knocks=[];
-    if(d.hit){ const ct=knockBall(L, filled, bx, d.hit.j, d.hit.dir, true, knocks, 1, !valveOpen(L,filled,bx), true);
+    if(d.hit){ const ct=knockBall(L, filled, bx, d.hit.j, d.hit.dir, true, knocks, 1, !valveOpen(L,filled,bx));
       if(ct){ const k=d.path.length-1; d.path[k]={...d.path[k], contactOut:[ct]}; } }
     const extra=knocks.concat(settleSlopes(L, filled, bx, true, null, null, !valveOpen(L,filled,bx)));
     return {dog:{r:d.r,c:d.c}, boxes:bx, filled, carry:false, pushed:false, slid:0, sunk:false, recolored:false,
-            boat:{bi:ai, fromR:st.dog.r, fromC:st.dog.c, path:d.path, restR:d.r, restC:d.c}, extra:[run].concat(extra)};
+            boat:{bi:ai, fromR:st.dog.r, fromC:st.dog.c, path:d.path, restR:d.r, restC:d.c, off:L.T[nr][nc]===TREE? 'tree' : 'solid'}, extra:[run].concat(extra)};
   }
   if(tdst===WALL) return null;
   const boxes=st.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried}));
@@ -2524,7 +2534,7 @@ function applyMoveCore(L, st, dr, dc){
     if(seg.kind==='log2End' && !parallel && ri>=0 && ei>=0){
       const root=boxes[ri], sr=root.r-v[0], sc=root.c-v[1], nf=doorCompass(dr,dc), nv=DOOR_CV[nf];
       const cells=[{r:sr+nv[0],c:sc+nv[1]},{r:sr+nv[0]*2,c:sc+nv[1]*2}];
-      // 냇가 판(물살이 있는 판, 10-08)에선 덮는 칸의 공을 휘두른 쪽(-v — 통나무가 쓸고 오는 방향)으로 쳐낸다. 쳐낼 첫 칸이 막혔으면 못 돈다.
+      // 냇가 판(물살이 있는 판, 10-08)에선 덮는 칸의 공을 휘두른 쪽(-v — 통나무가 쓸고 오는 방향)으로 한 칸 쳐낸다. 쳐낼 칸이 막혔으면 못 돈다.
       // 언덕 판(101~120)은 예전대로 공이 있으면 못 돈다.
       const swing=boardHasCurrent(L), sv=[-v[0],-v[1]], hitB=[];
       const free=c=>{ const t=tileAt(L,filled,c.r,c.c), j=boxIdxAt(boxes,c.r,c.c,-1);
@@ -2538,7 +2548,7 @@ function applyMoveCore(L, st, dr, dc){
       boxes[ri]={r:cells[0].r,c:cells[0].c,color:nf,kind:'log2'};
       boxes[ei]={r:cells[1].r,c:cells[1].c,color:nf,kind:'log2End'};
       const wet=!valveOpen(L,filled,boxes), knocks=[];
-      for(const j of hitB) knockBall(L, filled, boxes, j, sv, true, knocks, 1, wet, true);   // 덮인 칸의 공은 통나무 칸과 겹친 채 출발한다 — knockBall 은 맞은 공 자리에서 한 칸 내보낸다
+      for(const j of hitB) knockBall(L, filled, boxes, j, sv, true, knocks, 1, wet);   // 덮인 칸의 공은 통나무 칸과 겹친 채 출발한다 — knockBall 은 맞은 공 자리에서 한 칸 내보낸다
       // 쳐낸 공은 굴러온 공이 아니라 도는 통나무에 맞는다 — 접촉을 내보낼 굴림 경로가 없으니 대기(contactIn)를 걷고 회전과 함께 바로 출발한다.
       // (안 걷으면 연출이 영영 오지 않는 접촉 신호를 기다린다. 맞은 공이 또 친 공의 접촉 짝은 그대로다.)
       for(const k of knocks) if(k && k.path && k.path[0] && k.path[0].contactIn && hitB.includes(k.bi)){ const {contactIn, ...p0}=k.path[0]; k.path[0]=p0; }
@@ -2762,6 +2772,18 @@ function applyMoveCore(L, st, dr, dc){
     const axial=!standing && ((dr===axis[0]&&dc===axis[1])||(dr===-axis[0]&&dc===-axis[1]));
     const blocked=(r,c,ignore=-1)=>{ const t=tileAt(L,filled,r,c), j=boxIdxAt(boxes,r,c,bi);
       return t===WALL||t===FURROW||t===IRANG||binBlocksBall(L,kk(r,c))||(j>=0&&j!==ignore); };
+    // 땅 통나무 쿵(10-09 사람 A안) — 굴리기·넘어뜨리기·세우기 어느 쪽이든 그 칸에 공이 있으면 통나무·맥스는 제자리,
+    // 공만 미는 쪽으로 딱 한 칸(knockBall — 그 칸 규칙: 물살이면 흐르고 웅덩이·땅이면 선다). 공 갈 칸이 막히면 밀기 거절.
+    { const kj=boxIdxAt(boxes,pr,pc,bi), kt=tileAt(L,filled,pr,pc);
+      if(kj>=0 && boxes[kj].kind==='ball' && boardHasWaterway(L) && !logOnWater(L,filled,boxes[bi]) && !isWater(kt) && kt!==WATER){   // 냇가(물길 있는 판)만 — 언덕 101~110 은 옛 규칙(공이 막는다)
+        const wet=!valveOpen(L,filled,boxes), knocks=[];
+        if(!knockBall(L, filled, boxes, kj, [dr,dc], true, knocks, 1, wet)) return null;
+        // 맞은 공은 통나무가 닿는 순간 떠난다 — 굴러온 공의 접촉 신호가 없으니 대기(contactIn)를 걷는다(긴 통나무 휘두르기와 같다).
+        for(const k of knocks) if(k && k.bi===kj && k.path && k.path[0] && k.path[0].contactIn){ const {contactIn, ...p0}=k.path[0]; k.path[0]=p0; }
+        const extra=knocks.concat(settleSlopes(L, filled, boxes, true, null, null, wet));
+        return {dog:{r:st.dog.r,c:st.dog.c},boxes,filled,carry,pushed:false,slid:0,sunk:false,recolored:false,
+                logKnock:{r:nr,c:nc,dr,dc,ball:{r:pr,c:pc}}, extra};
+      } }
     if(blocked(pr,pc)) return null;
     const path=[{r:pr,c:pc}]; let sunk=false, hitBall=null, newFace=standing?doorCompass(dr,dc):face;
     const wetDst=isWater(tileAt(L,filled,pr,pc)) || tileAt(L,filled,pr,pc)===WATER;   // 물에서는 못 선다 — 길이 방향으로 밀어 넣어도 그 축으로 눕는다
@@ -3455,7 +3477,7 @@ let teach=null;
 const TEACH_KEYS=new Set(['door','mower','mowerTurn','log','cart','valve','catbox','logpit','logvalve']);
 // 구운 해답을 앞에서부터 굴려 그 기믹이 처음 작동하는 수를 찾는다 — 맥스가 설 칸과 미는 방향. 못 찾으면 null.
 function giTarget(key){
-  if(/^creek\d+$/.test(key)) return moves>0? null : creekPillTarget(level, L, {dog:{r:dog.r,c:dog.c}, boxes:boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(filled)});   // 냇가 첫 쓰임 알약
+  if(/^creek\d+$/.test(key)) return creekPillTarget(level, L, {dog:{r:dog.r,c:dog.c}, boxes:boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(filled)});   // 냇가 첫 쓰임 알약
   const m=MECH[key], row=BAKED[level-1]; if(!m || !m.fired || !row || !row.sl || moves>0) return null;
   const start={dog:{r:dog.r,c:dog.c}, boxes:boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(filled)};
   let st={dog:{...start.dog}, boxes:start.boxes.map(b=>({...b})), filled:new Set(start.filled), carry:false};
@@ -3526,28 +3548,58 @@ function showBoardGuides(){
   if(!keys.length){ showGintro(chapterOf(level)===1? 'base' : (INTRO[chapterOf(level)]||'base')); return; }
   giQueue=keys.slice(1); showGintro(keys[0]);
 }
-// 냇가 61~90 첫 쓰임 알약(10-08) — 그 판에서 처음 필요한 쓰임을 한 줄로. INTRO 에 판마다 제 열쇠로 들어가
-// 안내판 C 알약으로 뜬다(giSeen 이 열쇠별이라 한 번만). 자리는 해답에서 그 쓰임이 처음 일어나는 수 — hit 가 고른다.
-const _pTree=k=>(r,st,mv)=>st.boxes.some(b=>b.kind===k && b.r===st.dog.r+mv[0] && b.c===st.dog.c+mv[1]);
-const _pWade=(r,st,mv,L)=>isCurrent((L.T[r.dog.r]||[])[r.dog.c]);
-const _pKnock=r=>!!(r.extra && r.extra.length);
-const _pBoat=r=>!!r.boat, _pBoatKnock=r=>!!r.boat && _pKnock(r);
+// 냇가 61~90 첫 쓰임 알약(10-08) — 그 판에서 처음 필요한 쓰임을 한 줄로. INTRO 에 판마다 제 열쇠로 들어간다(giSeen 이 열쇠별이라 한 번만).
+// **판이 그 상황에 닿았을 때** 뜬다(10-08 사람: 64판 시작에 공 하나 앞에 "공이 공을 밀어내요" 가 떠 말이 안 됐다 — 맞을 공이 아직 거기 없었다).
+// 매 걸음이 끝난 뒤(creekPillTick) 지금 판에서 네 방향을 한 수씩 둬 보고, 알약이 말하는 일이 **바로 이 수에** 일어나면
+// 그 수 — 맥스 칸 + 미는 물건 칸 — 에 알약을 띄운다. 그래서 밝혀진 칸에는 늘 글이 말하는 물건(나무·공·배를 미는 나무·개구리…)이 있다.
+const _pFell=(len,ok)=>(r,st,mv,L)=>!!(r.treeFall && r.treeFall.len===len && ok(r,L));
+const _pLog=(r)=>{ const c=r.treeFall.cells[0]; return r.boxes.find(b=>b.kind==='hillLog' && b.r===c.r && b.c===c.c) || null; };
+const _pChain=r=>(r.extra||[]).some(e=>e && e.chain);
+// 1칸 통나무를 밀어 물길을 가로지르는 다리 자리로 넣은 수 — 밀기 전 맥스 앞 칸의 통나무가, 민 뒤 한 칸 더 나아가 다리가 된다
+const _pPushBr=(r,st,mv,L)=>{ const ar=st.dog.r+mv[0], ac=st.dog.c+mv[1], pr=ar+mv[0], pc=ac+mv[1];
+  if(!st.boxes.some(x=>!x.gone && x.kind==='hillLog' && x.r===ar && x.c===ac)) return false;
+  const b=r.boxes.find(x=>!x.gone && x.kind==='hillLog' && x.r===pr && x.c===pc); return !!b && logBridges(L, r.filled, b); };
+// 1칸 통나무를 밀어 물살에 나란히 넣은 수 — 밀기 전 맥스 앞 칸의 통나무가 물살에 올라 떠내려가기 시작한다(이전에 떠 있던 통나무는 세지 않는다)
+const _pDrift=(r,st,mv,L)=>{ const ar=st.dog.r+mv[0], ac=st.dog.c+mv[1], lg=x=>!x.gone && x.kind==='hillLog';
+  if(!st.boxes.some(x=>lg(x) && x.r===ar && x.c===ac)) return false;
+  const was=new Set(st.boxes.filter(x=>lg(x) && logFloats(L, st.filled, x)).map(x=>x.r+','+x.c));
+  return r.boxes.some(x=>lg(x) && logFloats(L, r.filled, x) && !was.has(x.r+','+x.c)); };
 const CREEK_PILLS={
-  61:_pTree('treeSmall'), 62:_pWade, 63:_pTree('treeSmall'), 64:_pKnock, 66:_pTree('treeSmall'), 68:_pBoatKnock,
-  71:_pTree('treeBig'), 73:r=>!!r.logTurn, 76:r=>!!r.frogHop, 78:_pBoat, 81:r=>!!(r.pfKick || (r.extra||[]).some(e=>e && e.pfKick)),
-  82:r=>!!r.poolFrogHop, 86:_pBoat,
+  61:(r,st,mv,L)=>_pFell(1,(r,L)=>{ const b=_pLog(r); return !!b && logBridges(L, r.filled, b); })(r,st,mv,L) || _pPushBr(r,st,mv,L),   // 넘긴 통나무가 물길을 가로질러 다리가 된다 — 쓰러져 바로 다리가 되거나, 1칸 통나무를 밀어 다리 자리에 넣을 때
+  62:(r,st,mv,L)=>isCurrent((L.T[r.dog.r]||[])[r.dog.c]) && !st.boxes.some(b=>b.r===r.dog.r && b.c===r.dog.c),   // (통나무 다리를 밟는 건 아니다)                                                  // 맥스가 물살 끝 칸에 들어선다
+  63:(r,st,mv,L)=>_pFell(1,(r)=>!_pLog(r))(r,st,mv,L) || _pDrift(r,st,mv,L),                             // 넘긴 통나무가 제자리에 없다 = 떠내려갔다 — 또는 1칸 통나무를 밀어 물살에 나란히 넣어 떠내려보낼 때
+  64:(r,st)=>!r.treeFall && !r.boat && _pChain(r),                                                         // 민 공이 다른 공을 쿵
+  66:(r,st,mv,L)=>_pFell(1,(r,L)=>{ const b=_pLog(r); return !!b && logFloats(L, r.filled, b); })(r,st,mv,L) || _pDrift(r,st,mv,L),   // 웅덩이에 떨어진 통나무 = 배 — 또는 1칸 통나무를 밀어 웅덩이에 넣을 때
+  68:r=>!!r.boat && _pChain(r),                                                                            // 배가 공을 쿵
+  71:r=>!!r.treeLean,                                                                                      // 큰 나무 첫 번째 밀기(기운다)
+  73:r=>!!r.logTurn && _pChain(r),                                                                         // 긴 통나무를 돌려 공을 친다
+  76:r=>!!r.frogHop,                                                                                       // 개구리를 옮긴다
+  78:(r,st,mv,L)=>!!r.boat && r.boat.path.some(q=>L.T[q.r] && L.T[q.r][q.c]===FORK),                       // 배가 갈림 칸을 지난다
+  81:r=>!!(r.pfKick || (r.extra||[]).some(e=>e && e.pfKick)),                                              // 개구리 옆에 선 공을 개구리가 쳐낸다
+  82:r=>!!r.poolFrogHop && (r.extra||[]).some(e=>e && e.pfKick),                                           // 옮기자마자 기다리던 공을 친다
+  86:r=>!!r.boat,                                                                                          // 배로 건넌다
 };
 for(const lv in CREEK_PILLS) GI_TXT['creek'+lv]={nameKey:'chapter.'+(((lv-1)/5|0)*5+1)+'.name', textKey:'guide.creek'+lv+'.text'};
-// 해답을 앞에서부터 굴려 hit 가 처음 참인 수 — 맥스가 설 칸과 미는 방향. 못 찾으면 첫 수(알약은 늘 판 위에 뜬다).
+// 지금 상태(start)에서 알약이 말하는 일이 바로 일어나는 수 — 맥스가 설 칸(지금 칸)과 미는 방향. 없으면 null(아직 안 띄운다).
 function creekPillTarget(lv, L, start){
-  const hit=CREEK_PILLS[lv], row=BAKED[lv-1]; if(!hit || !row || !row.sl) return null;
-  let st={dog:{...start.dog}, boxes:start.boxes.map(b=>({...b})), filled:new Set(start.filled), carry:false}, first=null;
-  for(const ch of row.sl){ const mv=SL_DIR[ch]; if(!mv) continue;
-    const r=applyMove(L,st,mv[0],mv[1]); if(!r) break;
-    const t={key:'creek'+lv, r:st.dog.r, c:st.dog.c, dr:mv[0], dc:mv[1]}; if(!first) first=t;
-    try{ if(hit(r,st,mv,L)) return t; }catch(e){}
-    st={dog:r.dog,boxes:r.boxes,filled:r.filled,carry:r.carry}; }
-  return first;
+  const hit=CREEK_PILLS[lv]; if(!hit) return null;
+  const st={dog:{...start.dog}, boxes:start.boxes.map(b=>({...b})), filled:new Set(start.filled), carry:!!start.carry};
+  for(const mv of [[-1,0],[1,0],[0,-1],[0,1]]){
+    let r=null; try{ r=applyMove(L,{dog:{...st.dog}, boxes:st.boxes.map(b=>({...b})), filled:new Set(st.filled), carry:st.carry},mv[0],mv[1]); }catch(e){ r=null; }
+    if(!r) continue;
+    try{ if(hit(r,st,mv,L)) return {key:'creek'+lv, r:st.dog.r, c:st.dog.c, dr:mv[0], dc:mv[1]}; }catch(e){}
+  }
+  return null;
+}
+// 걸음이 끝나 판이 멈출 때마다 한 번 — 상황이 왔으면 알약을 띄운다. 같은 판 모양은 다시 재지 않는다.
+let creekPillSig='';
+function creekPillTick(){
+  const key='creek'+level;
+  if(!CREEK_PILLS[level] || giSeen[key] || gintroOn || state!=='play' || tutMode || houseMode || menuMode || moonMode || (coachSteps && !matCoach) || noteOn || failOn) return;
+  if(isAnimating()) return;
+  const sig=level+'|'+dog.r+','+dog.c+'|'+boxes.map(b=>b.kind[0]+b.r+','+b.c+(b.gone?'g':'')).join(';')+'|'+[...filled].join(',');
+  if(sig===creekPillSig) return; creekPillSig=sig;
+  if(creekPillTarget(level, L, {dog:{r:dog.r,c:dog.c}, boxes:boxes.filter(b=>!b.gone).map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled})) showGintro(key);
 }
 // 자동 안내는 실제 첫 학습판에 붙인다. 페인트와 색 맞추기는 181판의 두 장으로 묶고,
 // 상자 구덩이 메우기는 그 조합이 실제 등장하는 205판에서 따로 연다.
@@ -4814,26 +4866,26 @@ const BAKED=[
 {T:'0000000000013110001111100012210000110110001310100011131000000000',h:[[43,0],[53,0],[12,0]],p:[],b:[[2,4,0,0],[4,3,0,0],[2,3,0,0]],d:[1,3],par:22,sl:'DLDDRDULUURDRUDLDLDDRR',bi:1},
 {T:'0000000000000000000000000012213000112110001101100031031000000000',h:[[50,0],[30,0],[53,0]],p:[],b:[[5,3,0,0],[4,3,0,0],[4,5,0,0]],d:[4,2],par:25,sl:'RRLLDDRULUURRRDDRULLLULDD',bi:1},
 {T:'0000000001111100011313100011111001210010011101100122310000000000',h:[[21,0],[52,0],[19,0]],p:[],b:[[3,2,0,0],[5,2,0,0],[3,3,0,0]],d:[4,3],par:23,sl:'URUULLDRRLLDDLDRLDRRUUU',bi:1},
-{T:'0000000000111110011100100111111001111130001111100011111000000000',h:[[38,0]],p:[],b:[[3,2,0,0],[4,3,-45,7]],d:[4,1],par:13,sl:'RRDRUUULDLDRR',bi:1},
-{T:'0000000001101110011110100011111001111000011111000111331000000000',h:[[52,0],[53,0]],p:[],b:[[2,3,0,0],[6,2,0,0],[3,3,-46,7]],d:[2,2],par:20,sl:'RDDRRRUULLDDDDLLLDRR',bi:1},
-{T:'0000000001111110011101100111111001111110011111100331111000000000',h:[[49,0],[50,0]],p:[],b:[[3,2,0,0],[2,3,0,0],[2,2,-46,7]],d:[3,1],par:17,sl:'UURDRDDRDLUULDLDD',bi:1},
-{T:'0000000001101100011211100112011001121130010213000111111000000000',h:[[38,0],[45,0]],p:[],b:[[5,4,0,0],[2,5,0,0],[4,5,-46,7]],d:[6,5],par:27,sl:'UUURUULLLDLLUURDDLDRRDRLURR',bi:1},
-{T:'0000000001133010001122200111110001011110011111100111111000000000',h:[[12,0],[11,0]],p:[],b:[[5,5,0,0],[5,2,0,0],[5,4,-44,7]],d:[6,4],par:22,sl:'URURULLDLUUUDLLDDRRDRU',bi:1},
-{T:'0000000001301110012101100121111001211110011100100011111000000000',h:[[10,0]],p:[],b:[[5,3,0,0],[5,2,-60,8]],d:[6,3],par:12,sl:'LUURUURULDLU',bi:1},
-{T:'0000000001110010010101100111111002222110003011100101111000000000',h:[[42,0]],p:[],b:[[3,3,0,0],[4,5,-63,8]],d:[3,1],par:21,sl:'UURRDDRRRDLLLULLDLULD',bi:1},
-{T:'0000000001111110001111000111001002222110011011100131011000000000',h:[[50,0]],p:[],b:[[3,3,0,0],[2,2,-46,7]],d:[2,3],par:20,sl:'ULDDDLDRRULUURRDLULD',bi:1},
-{T:'0000000001112110011121100111200000111010011111100111113000000000',h:[[54,0]],p:[],b:[[2,2,0,0],[6,3,-45,7]],d:[6,2],par:22,sl:'RURRDLLUUULURURDDDDLDR',bi:1},
-{T:'0000000000111100011111000100111001030110021222200111111000000000',h:[[35,0]],p:[],b:[[2,5,0,0],[5,2,-61,8]],d:[3,4],par:28,sl:'ULLLDDDRRRUUURURRRDDDRDLLDLU',bi:1},
-{T:'0000000000111110011111100111011001103010022221200111111000000000',h:[[36,0]],p:[],b:[[3,2,0,0],[5,5,-63,8]],d:[6,2],par:24,sl:'RRRRULLLUUULLLLDDLDRRDRU',bi:1},
-{T:'0000000001011010011111100210111002111110021011000211311000000000',h:[[52,0]],p:[],b:[[2,4,0,0],[3,4,-46,7]],d:[6,3],par:21,sl:'RUURUULDDRDLLLUURURDD',bi:1},
-{T:'0000000001101010011103000112222000111100011110100101111000000000',h:[[21,0]],p:[],b:[[4,3,0,0],[3,2,-61,8]],d:[6,1],par:24,sl:'URURDRULUULLDRRRURRDRDRU',bi:1},
-{T:'0000000000101100013211100212010002120110021211100311111000000000',h:[[49,0],[18,0]],p:[],b:[[5,5,0,0],[3,5,0,0],[2,5,-46,7]],d:[2,4],par:22,sl:'URDLDRDDRDLLRRDLLLLUUU',bi:1},
-{T:'0000000002101110021111000211110002101100011001100111131000000000',h:[[53,0]],p:[],b:[[2,4,0,0],[3,5,-46,7],[6,4,-60,8]],d:[1,6],par:20,sl:'LDDLDDRUUDLLLURRURDD',bi:1},
-{T:'0000000001311110011010000110112000111120011100200111111000000000',h:[[10,0]],p:[],b:[[2,4,0,0],[4,4,-44,7]],d:[3,4],par:26,sl:'RDLLLDLUUULURRRDDRDLLDLUUU',bi:1},
-{T:'0000000000222220011111100111011001111110011122200111031000000000',h:[[53,0]],p:[],b:[[3,2,0,0],[2,4,-46,7],[3,5,-62,8]],d:[4,1],par:20,sl:'URURRRRDDLLDDLDRURRD',bi:1},
-{T:'0000000001110010011110100112220003101100011111100311111000000000',h:[[49,0],[33,0]],p:[],b:[[5,3,0,0],[5,5,0,0],[6,5,-47,7]],d:[5,6],par:26,sl:'LRDLLLULLDLUDRRRRUUULDDRDL',bi:1},
-{T:'0000000001011110001111100100011001111110011003100111111000000000',h:[[45,0]],p:[],b:[[5,2,0,0],[6,3,-47,7],[4,2,-45,7]],d:[4,1],par:26,sl:'RRRRRDDLLLLULURDDRRRURUULD',bi:1},
-{T:'0000000002222200011111100110131001110110011101100111113000000000',h:[[29,0],[54,0]],p:[],b:[[5,2,0,0],[5,3,0,0],[6,2,-45,7]],d:[6,1],par:29,sl:'RRUUULURRRURDRDDDDLLLLUURDLDR',bi:1},
+{T:'0000000001111110010111100311111000110110011111100111111000000000',h:[[25,0]],p:[],b:[[3,5,0,0],[3,4,-47,7]],d:[5,6],par:17,sl:'ULULLULDUURRDRDLL',ac:[[4,6],[4,5],[2,4]],par5:17,sl5:'ULULLULDUURRDRDLL',bi:1},
+{T:'0000000001111110011101100111111001111110011111100331111000000000',h:[[49,0],[50,0]],p:[],b:[[3,2,0,0],[2,3,0,0],[2,2,-46,7]],d:[3,1],par:17,sl:'UURDRDDRDLUULDLDD',ac:[[2,1],[1,1],[1,2]],par5:17,sl5:'UURDRDDRDLUULDLDD',bi:1},
+{T:'0000000001111110001111000111001002222110011011100131011000000000',h:[[50,0]],p:[],b:[[3,3,0,0],[2,2,-46,7]],d:[2,3],par:20,sl:'ULDDDLDRRULUURRDLULD',ac:[[1,3],[1,2],[3,2]],par5:20,sl5:'ULDDDLDRRULUURRDLULD',bi:1},
+{T:'0000000000101100013211100212010002120110021211100311111000000000',h:[[49,0],[18,0]],p:[],b:[[5,5,0,0],[3,5,0,0],[2,5,-46,7]],d:[2,4],par:22,sl:'URDLDRDDRDLLRRDLLLLUUU',ac:[[1,4],[1,5],[4,5]],par5:22,sl5:'URDLDRDDRDLLRRDLLLLUUU',bi:1},
+{T:'0000000001011110001111100100011001111110011003100111111000000000',h:[[45,0]],p:[],b:[[5,2,0,0],[6,3,-47,7],[4,2,-45,7]],d:[4,1],par:26,sl:'RRRRRDDLLLLULURDDRRRURUULD',ac:[[4,3],[4,4],[4,5]],par5:26,sl5:'RRRRRDDLLLLULURDDRRRURUULD',bi:1},
+{T:'0000000001301110012101100121111001211110011100100011111000000000',h:[[10,0]],p:[],b:[[5,3,0,0],[5,2,-60,8]],d:[6,3],par:12,sl:'LUURUURULDLU',ac:[[6,2],[4,3],[4,4]],par5:12,sl5:'LUURUURULDLU',bi:1},
+{T:'0000000001110010010101100111111002222110003011100101111000000000',h:[[42,0]],p:[],b:[[3,3,0,0],[4,5,-63,8]],d:[3,1],par:21,sl:'UURRDDRRRDLLLULLDLULD',ac:[[2,1],[1,1],[1,2]],par5:21,sl5:'UURRDDRRRDLLLULLDLULD',bi:1},
+{T:'0000000000111110011111100111011001103010022221200111111000000000',h:[[36,0]],p:[],b:[[3,2,0,0],[5,5,-68,8]],d:[6,2],par:23,sl:'RRRRULLUUULLLLDDLDRDRRU',ac:[[6,3],[6,4],[6,5]],par5:23,sl5:'RRRRULLUUULLLLDDLDRDRRU',bi:1},
+{T:'0000000000222220011111100111011001111110011122200111031000000000',h:[[53,0]],p:[],b:[[3,2,0,0],[2,4,-46,7],[3,5,-64,8]],d:[4,1],par:25,sl:'URDRRRRULULDDLLLDDLDRURRD',ac:[[3,1],[4,2],[4,3]],par5:25,sl5:'URDRRRRULULDDLLLDDLDRURRD',bi:1},
+{T:'0000000000111100011111000100111001030110021222200111111000000000',h:[[35,0]],p:[],b:[[2,5,0,0],[5,2,-60,8]],d:[3,4],par:29,sl:'ULLLDDDRRRRUUURURRRDDDRDLLDLU',ac:[[2,4],[2,3],[2,2]],par5:29,sl5:'ULLLDDDRRRRUUURURRRDDDRDLLDLU',bi:1},
+{T:'0000000000222220011111100111011001111110011122200111031000000000',h:[[53,0]],p:[],b:[[3,2,0,0],[2,4,-46,7],[3,5,-62,8]],d:[4,1],par:20,sl:'URURRRRDDLLDDLDRURRD',ac:[[3,1],[2,2],[2,3]],par5:20,sl5:'URURRRRDDLLDDLDRURRD',bi:1},
+{T:'0000000001011010011111100210111002111110021011000211311000000000',h:[[52,0]],p:[],b:[[2,4,0,0],[3,4,-46,7]],d:[6,3],par:21,sl:'RUURUULDDRDLLLUURURDD',ac:[[5,4],[4,4],[4,5]],par5:21,sl5:'RUURUULDDRDLLLUURURDD',bi:1},
+{T:'0000000000111110011111100111011001103010022221200111111000000000',h:[[36,0]],p:[],b:[[3,2,0,0],[5,5,-63,8]],d:[6,2],par:24,sl:'RRRRULLLUUULLLLDDLDRRDRU',ac:[[6,3],[6,4],[6,5]],par5:24,sl5:'RRRRULLLUUULLLLDDLDRRDRU',bi:1},
+{T:'0000000000101100013211100212010002120110021211100311111000000000',h:[[49,0],[18,0]],p:[],b:[[5,5,0,0],[3,5,0,0],[2,5,-46,7]],d:[1,2],par:25,sl:'DRRURDLDRDDRDLLRRDLLLLUUU',ac:[[2,3],[2,4],[1,4]],par5:25,sl5:'DRRURDLDRDDRDLLRRDLLLLUUU',bi:1},
+{T:'0000000001011110001111100100011001111110011003100111111000000000',h:[[45,0]],p:[],b:[[5,2,0,0],[6,3,-47,7],[4,2,-45,7]],d:[3,1],par:27,sl:'DRRRRRDDLLLLULURDDRRRURUULD',ac:[[4,1],[4,3],[4,4]],par5:27,sl5:'DRRRRRDDLLLLULURDDRRRURUULD',bi:1},
+{T:'0000000002101110021111000211110002101100011001100111131000000000',h:[[53,0]],p:[],b:[[2,4,0,0],[3,5,-46,7]],d:[1,6],par:18,sl:'LLDRDDLLULDDDLDRRR',ac:[[1,5],[1,4],[2,5]],par5:18,sl5:'LLDRDDLLULDDDLDRRR',bi:1},
+{T:'0000000001311110011010000110112000111120011100200111111000000000',h:[[10,0]],p:[],b:[[2,4,0,0],[4,4,-44,7]],d:[3,4],par:26,sl:'RDLLLDLUUULURRRDDRDLLDLUUU',ac:[[3,5],[4,5],[4,3]],par5:26,sl5:'RDLLLDLUUULURRRDDRDLLDLUUU',bi:1},
+{T:'0000000001110010011110100112220003101100011111100311111000000000',h:[[49,0],[33,0]],p:[],b:[[5,3,0,0],[5,5,0,0],[6,5,-47,7]],d:[5,6],par:26,sl:'LRDLLLULLDLUDRRRRUUULDDRDL',ac:[[6,6],[6,4],[5,4]],par5:26,sl5:'LRDLLLULLDLUDRRRRUUULDDRDL',bi:1},
+{T:'0000000001101010011103000112222000111100011110100101111000000000',h:[[21,0]],p:[],b:[[4,3,0,0],[3,2,-61,8]],d:[3,5],par:27,sl:'DLDLLURDRULUULLDRRRURRDRDRU',ac:[[4,5],[4,4],[5,4]],par5:27,sl5:'DLDLLURDRULUULLDRRRURRDRDRU',bi:1},
+{T:'0000000002222200011111100110131001110110011101100111113000000000',h:[[29,0],[54,0]],p:[],b:[[5,2,0,0],[5,3,0,0],[6,2,-45,7]],d:[6,1],par:29,sl:'RRUUULURRRURDRDDDDLLLLUURDLDR',ac:[[4,2],[3,2],[3,1]],par5:29,sl5:'RRUUULURRRURDRDDDDLLLLUURDLDR',bi:1},
 {T:'0000000000000000011111100111101001dfff1001110df00000000000000000',h:[[41,0]],p:[],b:[[3,4,0,0]],d:[3,6],par:10,sl:'ULLDLLULDD'},
 {T:'0000000001111ge0011111e00111dff000110110001111100000000000000000',h:[[12,0]],p:[],b:[[2,5,0,0]],d:[3,2],par:13,sl:'URRRLLDLULURR'},
 {T:'0000000001111ge0011111e000111ef001111110011101100000000000000000',h:[[26,0]],p:[],b:[[4,6,0,0]],d:[5,1],par:14,sl:'URRRRDRULLLDLU'},
@@ -5089,39 +5141,39 @@ const LOG_HILL_SOLUTIONS=[
   'UUUUUUUDDDDRRRUUUUU','UUUUUUUDDDDRRRUUUUU','UUUUUUUDDDDRRRUUUUU','UUUUUUUDDDDRRRUUUUU','UUUUUUUDDDDRRRUUUUU'
 ];
 const LOG_HILL_PARS=[8,8,8,8,13,8,8,8,8,13,7,7,7,7,19,19,19,19,19,19];
-// ── CREEK_STAGES 시작 ── 냇가 61~90 재제작 판(10-08, 손으로 짠 8×10 열린 판 — docs/superpowers/specs/mock/creek-redesign/levels/all30.json).
+// ── CREEK_STAGES 시작 ── 냇가 61~90 재제작 판 v11(10-09, 손으로 짠 8×10 열린 판 — docs/superpowers/specs/mock/creek-redesign/preview/v10-learn.json + levels/v11/set-*.json).
 // 판 형식은 언덕 101~120 과 같다. 도토리(ac)는 해답 길 위 25·50·75% 잔디 칸이라 sl5=sl·par5=par. 나무다리 타일·미리 놓은 통나무 없음.
 const CREEK_STAGES={
-  61:{T:'0ve00v0011e0v00011e1001v01e1111v01e1v000v1e00v0001e00v00v1110v00v0000v0000v000v0',rows:10,open:1,h:[[59,0]],p:[],b:[[1,1,0,0],[3,3,0,9]],d:[3,6],par:16,sl:'LLLLLULURDDDDDDR',ac:[[3,1],[1,0],[6,1]],sl5:'LLLLLULURDDDDDDR',par5:16},
-  62:{T:'00v0vv000v0v111000001110000v111011000110111fffff1111111v010v0v000000v0000v00000v',rows:10,open:1,h:[[57,0]],p:[],b:[[3,6,0,0],[4,5,0,9]],d:[2,5],par:20,sl:'RDDULDDDLLULDLLUURDD',ac:[[6,5],[6,2],[5,0]],sl5:'RDDULDDDLLULDLLUURDD',par5:20},
-  63:{T:'0011111100010101ggggge110v000ev100v00e010v00010100v00101001111110v00v00000v0000v',rows:10,open:1,h:[[58,0]],p:[],b:[[1,3,0,0],[1,5,0,9]],d:[0,4],par:20,sl:'LDURRDURRDDDDDDDLLLL',ac:[[0,7],[4,7],[7,6]],sl5:'LDURRDURRDDDDDDDLLLL',par5:20},
-  64:{T:'0v001e1000111e110v1v0e0100111e110v0v1e1100v01e100v001e001111ff0000v00v0v0v0000v0',rows:10,open:1,h:[[56,0],[57,0]],p:[],b:[[3,6,0,0],[7,3,0,0],[1,6,0,9]],d:[5,6],par:22,sl:'URULRUULLLLLDDRRDDDDLL',ac:[[1,7],[2,2],[4,4]],sl5:'URULRUULLLLLDDRRDDDDLL',par5:22},
-  65:{T:'11e0v11011e111v011e1010v10e1110011e10eff11e0ve0001e00e0v00100100v01001000v10010v',rows:10,open:1,h:[[66,0],[74,0],[77,0]],p:[],b:[[3,4,0,0],[1,1,0,0],[7,5,0,0],[3,5,0,9],[4,1,0,9]],d:[3,0],par:26,sl:'UURDLDDRRRUUURRDDLLDLLDDRD',ac:[[4,0],[1,3],[2,5]],sl5:'UURDLDDRRRUUURRDDLLDLLDDRD',par5:26},
-  66:{T:'11101111v11111111111111111111111vhhggge0ghh000e1111011e1011111e11111111101v1v110',rows:10,open:1,h:[[64,0]],p:[],b:[[3,4,0,0],[3,1,0,9]],d:[0,7],par:21,sl:'DDLLLDULLLDDLRDLLLLLL',ac:[[2,4],[7,7],[8,4]],sl5:'DDLLLDULLLDDLRDLLLLLL',par5:21},
-  67:{T:'11111e0111111e1111111e0vvhhhhe111hh01e0111111e110v1v0e000001111011111110111111v0',rows:10,open:1,h:[[64,0],[72,0]],p:[],b:[[1,2,0,0],[8,3,0,0],[2,1,0,9]],d:[0,0],par:30,sl:'DRRRRLLLDDLDRDLULDLLLRRRRDLLLL',ac:[[7,5],[7,4],[9,5]],sl5:'DRRRRLLLDDLDRDLULDLLLRRRRDLLLL',par5:30},
-  68:{T:'1111e0v11111e0111v11e0011111e0110vhhhe0000h1ve111v111e1111101e1v1111111111v1v010',rows:10,open:1,h:[[78,0]],p:[],b:[[1,1,0,0],[3,2,0,9]],d:[0,0],par:18,sl:'DRRRDLDDLDDRDDRURD',ac:[[2,3],[6,3],[8,4]],sl5:'DRRRDLDDLDDRDDRURD',par5:18},
-  69:{T:'111e1v11111e111011ve000vvhhh11111hhhh0000hhhhh0111111v111v11111101v1111111v010v1',rows:10,open:1,h:[[31,0],[76,0]],p:[],b:[[1,1,0,0],[7,6,0,0],[2,1,0,9]],d:[0,0],par:27,sl:'DRRLDDLUDDRDRRRRUULDRDLLULD',ac:[[7,2],[8,5],[6,7]],sl5:'DRRLDDLUDDRDRRRRUULDRDLLULD',par5:27},
-  70:{T:'1111100010v1100011hh110010h1110011h01100gggggge0111111e00v11v1e1011101e111111111',rows:10,open:1,h:[[48,0],[72,0],[76,0]],p:[],b:[[3,5,0,0],[4,1,0,0],[6,2,0,0],[2,1,0,9],[4,4,0,9]],d:[0,0],par:56,sl:'DDDDRLUURRURRDDDRDDRRDLLLLLLURURULLRRRUUUURDDLDDRDDRRDLL',ac:[[6,4],[9,5],[7,2]],sl5:'DDDDRLUURRURRDDDRDDRRDLLLLLLURURULLRRRUUUURDDLDDRDDRRDLL',par5:56},
-  71:{T:'111e1110v11e1111101e1111v11e1111111e1000111e1111111e000011111111011111011101011v',rows:10,open:1,h:[[75,0],[63,0]],p:[],b:[[1,4,0,0],[2,5,0,0],[5,4,0,11]],d:[5,6],par:26,sl:'LLLUURRULULDRDLDDLDLUDRRRR',ac:[[3,5],[2,4],[7,3]],sl5:'LLLUURRULULDRDLDDLDLUDRRRR',par5:26},
-  72:{T:'vv110vv011111v1011111100gggggg1101111000v11111101011v11v111011001v1111v11110v111',rows:10,open:1,h:[[31,0]],p:[],b:[[2,1,0,0],[4,3,0,11]],d:[9,0],par:24,sl:'UURRUURUUUUULLDURRDRLRDR',ac:[[7,2],[2,3],[1,1]],sl5:'UURRUURUUUUULLDURRDRLRDR',par5:24},
-  73:{T:'v11v10v111efffff01e1111111e11011v1e1101111e1110101e1001111e0111101110v11vv1100vv',rows:10,open:1,h:[[45,0],[67,0]],p:[],b:[[5,3,0,0],[5,7,0,0],[4,3,0,11]],d:[7,6],par:23,sl:'URUUUULLLDDLLLLUDDDDDDR',ac:[[2,7],[3,4],[5,1]],sl5:'URUUUULLLDDLLLLUDDDDDDR',par5:23},
-  74:{T:'011e11110vve1v10v11effff011e11vv111e1111001e011v0v1e11v11v010011v00101v1vv1010vv',rows:10,open:1,h:[[7,0],[67,0]],p:[],b:[[0,6,0,0],[3,2,0,0],[4,4,0,11]],d:[5,5],par:28,sl:'ULLLLDUULURDDDRDURRUULUUUURR',ac:[[4,1],[7,3],[3,4]],sl5:'ULLLLDUULURDDDRDURRUULUUUURR',par5:28},
-  75:{T:'0vvv1ve10v1vv1e1vefffffv1e1v111v1e110111ve1100101e110110vggg110v0111001011111001',rows:10,open:1,h:[[51,0],[60,0],[61,0]],p:[],b:[[3,5,0,0],[5,2,0,0],[5,6,0,0],[4,2,0,11]],d:[9,0],par:40,sl:'RURRUUUULLDRDDRRURUUUDLUDRDDLDLLUUULLLUD',ac:[[8,3],[6,5],[3,6]],sl5:'RURRUUUULLDRDDRRURUUUDLUDRDDLDLLUUULLLUD',par5:40},
-  76:{T:'111e0111v11e111v111e0111101e111011eue111v1e1e11110e1e11101e1111110101011v1011111',rows:10,open:1,h:[[68,0]],p:[],b:[[1,4,0,0]],d:[9,6],fg:[[4,3,1]],par:25,sl:'UUULLLUUDRRUUUUULRDDDDDLD',ac:[[6,5],[5,5],[2,5]],sl5:'UUULLLUUDRRUUUUULRDDDDDLD',par5:25},
-  77:{T:'v11111011v10111v1110d1111111d0111v11ufff1v01e0v11101e011v001e10v0v011v01v01010v1',rows:10,open:1,h:[[68,0],[12,0]],p:[],b:[[3,6,0,0],[3,7,0,0]],d:[1,6],fg:[[4,4,2]],par:28,sl:'DDUULULLLDDDDRRULUUURRDDRRRD',ac:[[0,4],[2,2],[3,3]],sl5:'DDUULULLLDDDDRRULUUURRDDRRRD',par5:28},
-  78:{T:'1111111v1110d111vhhgu1111hh0e11v1110e1v11v11e1111101e0110v111v010001110vv0101v00',rows:10,open:1,h:[[76,0]],p:[],b:[[2,6,0,0],[1,1,0,9]],d:[4,5],fg:[[2,4,2]],par:20,sl:'UULURRDLLUULLLLDDLDD',ac:[[1,6],[0,5],[0,2]],sl5:'UULURRDLLUULLLLDDLDD',par5:20},
-  79:{T:'v1111111111v1v1vggge1111110e00101ffug111111100101011111111v1v11v1111111vv11v1111',rows:10,open:1,h:[[48,0],[39,0]],p:[],b:[[1,1,0,0],[4,5,0,0],[2,4,0,9]],d:[0,5],fg:[[4,3,1]],par:42,sl:'LLLLDURRRRRDDDDDDLLLUULLUULDDRRDRRRRUUUULL',ac:[[1,6],[6,5],[3,1]],sl5:'LLLLDURRRRRDDDDDDLLLUULLUULDDRRDRRRRUUUULL',par5:42},
-  80:{T:'v1010111101d1111111ufhhv110e0hh1110e0111110e11v1110e1011v01111v0v001000000v0001v',rows:10,open:1,h:[[3,0],[67,0],[58,0]],p:[],b:[[2,1,0,0],[3,1,0,0],[5,1,0,0],[1,6,0,9]],d:[6,0],fg:[[2,3,0]],par:44,sl:'UUUURRLLDDRULURRRLDDLDDRUUULURRRURRRURDDRRDL',ac:[[2,0],[1,2],[0,6]],sl5:'UUUURRLLDDRULURRRLDDLDDRUUULURRRURRRURDDRRDL',par5:44},
+  61:{T:'11e11110v1e0111111e1111v11e1111111e1111101e111v011e011111110000011111v1010101110',rows:10,open:1,h:[[74,0]],p:[],b:[[4,3,0,0],[1,4,0,9]],d:[0,6],par:16,sl:'LLDDDDLRRDLLLDDD',ac:[[3,4],[4,5],[5,3]],sl5:'LLDDDDLRRDLLLDDD',par5:16},
+  62:{T:'1v10111v1v10111111111101011001110001111111ffffff01111110v10111111011110101v1v110',rows:10,open:1,h:[[40,0]],p:[],b:[[7,4,0,0],[2,3,0,9]],d:[0,2],par:20,sl:'DDRRURDDDDDDDLUULLUL',ac:[[1,5],[6,5],[6,3]],sl5:'DDRRURDDDDDDDLUULLUL',par5:20},
+  63:{T:'1ve11111v0e1111101e1111111e1000011gggg110v110000111111v1101111111111v111v1010011',rows:10,open:1,h:[[39,0],[75,0]],p:[],b:[[4,6,0,0],[7,3,0,0],[1,4,0,9],[1,6,0,9]],d:[0,7],par:20,sl:'LDRDLLLURULLDDDDDDDD',ac:[[2,7],[0,5],[5,3]],sl5:'LDRDLLLURULLDDDDDDDD',par5:20},
+  64:{T:'1vev010011e1111011e10d0111e11d1111e11d1011e01d00v1gggd101111010v11101v1101111111',rows:10,open:1,h:[[5,0],[14,0]],p:[],b:[[3,3,0,0],[4,4,0,0],[8,1,0,9]],d:[9,7],par:22,sl:'LLLLLLUUUULURRRRULUURR',ac:[[9,1],[4,0],[3,4]],sl5:'LLLLLLUUUULURRRRULUURR',par5:22},
+  65:{T:'11e1111111e1110011e11111v1e11eff11e11e1011e11e1110e00e0011110100001001001v0v10v1',rows:10,open:1,h:[[66,0],[69,0],[59,0]],p:[],b:[[7,5,0,0],[2,3,0,0],[4,3,0,0],[1,4,0,9],[0,6,0,9]],d:[0,7],par:28,sl:'LLLDDLDRDLUUURULLLDDDDDLDDRR',ac:[[3,3],[1,3],[4,1]],sl5:'LLLDDLDRDLUUURULLLDDDDDLDDRR',par5:28},
+  66:{T:'11111111v1010110111111110111111v0vhggge0ggh000e1v11111e1111v11e11010111110110001',rows:10,open:1,h:[[68,0]],p:[],b:[[3,5,0,0],[1,3,0,9]],d:[0,7],par:20,sl:'LLLLDDRRDLLULDDLRDLL',ac:[[2,4],[2,2],[7,7]],sl5:'LLLLDDRRDLLULDDLRDLL',par5:20},
+  67:{T:'v111111111v1111v111111111110111v00hh1110gghh011100he1111111e00110111100v01100v11',rows:10,open:1,h:[[68,0]],p:[],b:[[1,4,0,9],[6,5,0,0]],d:[0,6],par:21,sl:'LLDDDRDDRDLLRUULLULDR',ac:[[3,5],[6,6],[7,2]],sl5:'LLDDDRDDRDLLRUULLULDR',par5:21},
+  68:{T:'v111111111111111111v1111111hffff111h1v10111h1110v00e1101010gg1101v00010v110v0001',rows:10,open:1,h:[[62,0],[69,0]],p:[],b:[[1,6,0,9],[5,2,0,0],[5,4,0,0]],d:[1,7],par:26,sl:'LLLLLULDDDLDRDRULURRURDDRD',ac:[[0,1],[5,1],[4,4]],sl5:'LLLLLULDDDLDRDRULURRURDDRD',par5:26},
+  69:{T:'1v11011111011v111111111111111111v111111011111111v11111000hhhhh10ghhhhh0001v100v0',rows:10,open:1,h:[[62,0]],p:[],b:[[5,3,0,9],[6,5,0,0]],d:[2,7],par:24,sl:'DLDDLDLLURULULDRDLULDDDL',ac:[[6,4],[3,3],[4,1]],sl5:'DLDDLDLLURULULDRDLULDDDL',par5:24},
+  70:{T:'11101v1e1111110e1111111e1111111evhhge00egh00e00ev110e11e0v0111111110100101100v00',rows:10,open:1,h:[[59,0],[68,0],[71,0]],p:[],b:[[1,1,0,9],[2,6,0,0],[3,2,0,0],[3,4,0,0]],d:[0,0],par:35,sl:'RDLDRDRLUURDRDURRRLLDLLULDDLRRRDLLL',ac:[[1,2],[2,5],[6,5]],sl5:'RDLDRDRLUURDRDURRRLLDLLULDDLRRRDLLL',par5:35},
+  71:{T:'111e1110v11e11v1111e1111101e1111111e1011111e1111110e000011111000111011010111111v',rows:10,open:1,h:[[60,0]],p:[],b:[[1,4,0,0],[4,4,0,11]],d:[5,6],par:22,sl:'LLUUUURLULDDDLLDULDDRR',ac:[[2,5],[5,2],[6,1]],sl5:'LLUUUURLULDDDLLDULDDRR',par5:22},
+  72:{T:'v1110v1011111v1011111100gggggg1101111000v11111101011v11v111011011v1111110110v11v',rows:10,open:1,h:[[31,0]],p:[],b:[[2,1,0,0],[4,3,0,11]],d:[7,2],par:20,sl:'UURUUUUULLDURRDRLRDR',ac:[[1,3],[1,1],[2,4]],sl5:'UURUUUUULLDURRDRLRDR',par5:20},
+  73:{T:'vv1111011v1011101111111111011eff11101e10101vve1v11111e11110v1e101101111v11100100',rows:10,open:1,h:[[70,0],[77,0]],p:[],b:[[2,6,0,0],[4,4,0,0],[2,4,0,11]],d:[1,6],par:20,sl:'DLLLLLUDDLDDRDDRRDDR',ac:[[1,2],[3,1],[6,3]],sl5:'DLLLLLUDDLDDRDDRRDDR',par5:20},
+  74:{T:'111e11111vve1v11v11effff011e11v1111e1111011e0111011e11111v111011100101v1vv1010vv',rows:10,open:1,h:[[7,0],[67,0]],p:[],b:[[0,6,0,0],[3,2,0,0],[4,4,0,11]],d:[5,5],par:28,sl:'ULLLLDUULURDDDRDURRUULUUUURR',ac:[[4,1],[6,2],[6,5]],sl5:'ULLLLDUULURDDDRDURRUULUUUURR',par5:28},
+  75:{T:'v1e11vv111e01v1v11e1101111e1d11001e1dv1111e1d011v1e0d11110ggd01v0010111111111v11',rows:10,open:1,h:[[4,0],[12,0],[20,0]],p:[],b:[[2,1,0,0],[5,3,0,0],[7,6,0,0],[3,3,0,11]],d:[9,2],par:34,sl:'RRURRUURUULDRDLLRUUULLUUDDLLLLLURD',ac:[[5,7],[3,6],[3,0]],sl5:'RRURRUURUULDRDLLRUUULLUUDDLLLLLURD',par5:34},
+  76:{T:'111e0111v11e111v111e0111101e111011eue111v1e1e11110e1e11101e1111110101011v1011111',rows:10,open:1,h:[[68,0]],p:[],b:[[1,4,0,0]],d:[7,5],fg:[[4,3,1]],par:22,sl:'ULLUUDRRUUUUULRDDDDDLD',ac:[[5,3],[2,5],[4,5]],sl5:'ULLUUDRRUUUUULRDDDDDLD',par5:22},
+  77:{T:'001111101001d0111111d0111v11ufff0110e0100110ev111111e11v01v1111001101100110v0v01',rows:10,open:1,h:[[2,0],[62,0]],p:[],b:[[2,6,0,0],[4,6,0,0]],d:[1,7],fg:[[3,4,2]],par:29,sl:'LDUULLLDDDRLDDDRRRRUUDDLLLDRR',ac:[[1,3],[6,2],[5,6]],sl5:'LDUULLLDDDRLDDDRRRRUUDDLLLDRR',par5:29},
+  78:{T:'011v1100v111d110110vd1v00hhgu111ghh0e001v111e0001110e0v011111000110v0v0001000000',rows:10,open:1,h:[[64,0]],p:[],b:[[7,1,0,0],[1,2,0,9]],d:[3,6],fg:[[3,4,2]],par:20,sl:'LLUULLLULDDDLDLLLULD',ac:[[1,3],[0,1],[7,2]],sl5:'LLUULLLULDDDLDLLLULD',par5:20},
+  79:{T:'111111e101d111ev01d101e001uffff010e0010v00e0v010v0e01v11101011011010101110010111',rows:10,open:1,h:[[0,0],[66,0]],p:[],b:[[7,2,0,0],[2,3,0,0],[1,4,0,9]],d:[0,3],fg:[[3,2,2]],par:19,sl:'DDUULLDDDRUURRRURDD',ac:[[1,1],[3,1],[0,4]],sl5:'DDUULLDDDRUURRRURDD',par5:19},
+  80:{T:'111e01v1010e111011euge1111e10e0110e1eue11011e1e1v01010100v00101011v1011vv11111v1',rows:10,open:1,h:[[50,0],[60,0],[62,0]],p:[],b:[[0,2,0,0],[1,5,0,0],[2,6,0,0],[1,1,0,9]],d:[0,0],fg:[[2,3,3],[4,5,3]],par:43,sl:'RRLDDLDRRRUDDRRURDURUUULULLRRDRDDDLLLDULULD',ac:[[4,3],[3,7],[1,6]],sl5:'RRLDDLDRRRUDDRRURDURUUULULLRRDRDDDLLLDULULD',par5:43},
   81:{T:'111111101010111111h11v1111h11111ggh11v1111h1111vv1e1101111e1v11110e1110111e10111',rows:10,open:1,h:[[10,0]],p:[],b:[[3,0,0,0]],d:[9,7],pf:[[3,2,[[5,2]]]],par:22,sl:'UUULUUULLLLURUULLLLDDD',ac:[[4,6],[2,3],[0,2]],sl5:'UUULUUULLLLURUULLLLDDD',par5:22},
-  82:{T:'1101e1111v11e1111110e0v110hhhh1111hhhh11011111011v10011111011v10011v1v1110110110',rows:10,open:1,h:[[30,0]],p:[],b:[[1,6,0,0]],d:[0,6],pf:[[4,3,[[3,3]]]],par:17,sl:'RDLLRRDDDDDLLULLU',ac:[[2,7],[5,7],[6,5]],sl5:'RDLLRRDDDDDLLULLU',par5:17},
-  83:{T:'01100e011v111e1111110e0v1hhhhe011hhhhe0v1v110e011v110e0v111101011v0101011101010v',rows:10,open:1,h:[[77,0]],p:[],b:[[6,3,0,0],[7,5,0,0],[1,6,0,9]],d:[1,7],pf:[[3,2,[[4,2]]]],par:19,sl:'LLLLDLDLLDDDDDRRRUU',ac:[[2,2],[4,0],[7,1]],sl5:'LLLLDLDLLDDDDDRRRUU',par5:19},
-  84:{T:'1101ev111v10e1011101e1v1011hh1101hhhh111111hh1110110101v1v11011101111v111v101111',rows:10,open:1,h:[[19,0],[52,0]],p:[],b:[[4,6,0,0],[6,2,0,0]],d:[9,7],pf:[[4,1,[[5,3],[3,4]]]],par:27,sl:'UULUURULLDRDDDDLLULULUULURR',ac:[[5,6],[8,6],[8,3]],sl5:'UULUURULLDRDDDDLLULULUULURR',par5:27},
-  85:{T:'11e01v1011e111111hhh1v111hhhgge1111000e1111110e10111hhh11101hhh11v10111101101111',rows:10,open:1,h:[[16,0],[55,0],[59,0]],p:[],b:[[0,1,0,0],[5,2,0,0],[8,4,0,0],[1,3,0,9]],d:[9,7],pf:[[3,1,[[2,3]]],[7,5,[[6,5]]]],par:37,sl:'LLLURURRUUUUUUULLLLLLLURDLDDDDRDRUULU',ac:[[7,7],[1,5],[4,0]],sl5:'LLLURURRUUUUUUULLLLLLLURDLDDDDRDRUULU',par5:37},
-  86:{T:'111111101111111111101000vhe1hhh1ghe0111101e1111v11e11v1111e11111111111010111111v',rows:10,open:1,h:[[27,0]],p:[],b:[[2,4,0,0],[2,1,0,9]],d:[0,4],pf:[[3,6,[[3,5]]]],par:17,sl:'DDULLLDDLRUURURRU',ac:[[1,2],[6,3],[4,4]],sl5:'DDULLLDDLRUURURRU',par5:17},
-  87:{T:'v00e00v0100e0010111e1111111e1111000e11110efugge1111111100000v0100v0000v000v00000',rows:10,open:1,h:[[48,0],[62,0]],p:[],b:[[2,1,0,0],[4,5,0,0],[3,2,0,11]],d:[2,0],fg:[[5,3,3]],par:33,sl:'RRLDRRRRRRDDDLLLURRRUULLRRDDLLLLL',ac:[[3,5],[6,6],[6,3]],sl5:'RRLDRRRRRRDDDLLLURRRUULLRRDDLLLLL',par5:33},
-  88:{T:'00v0evv00000hh1100v00e11000v0e110veffue111e111e111e011e101110111011000v000000v00',rows:10,open:1,h:[[59,0]],p:[],b:[[5,3,0,0],[1,6,0,9]],d:[1,7],fg:[[4,5,3]],par:27,sl:'DDDDDLLUULLRDRRRUUUUULLULDR',ac:[[5,7],[5,5],[6,1]],sl5:'DDDDDLLUULLRDRRRUUUUULLULDR',par5:27},
-  89:{T:'00v1e1100v11e1100001e11000h1e11000h1e1100011e1100110e110011011100v0010v000v00v00',rows:10,open:1,h:[[42,0],[68,0]],p:[],b:[[1,5,0,0],[4,3,0,0],[5,3,0,11]],d:[6,2],pf:[[3,2,[]]],par:21,sl:'URRRDRUUUUURULDDDDDLD',ac:[[5,5],[3,5],[2,6]],sl5:'URRRDRUUUUURULDDDDDLD',par5:21},
-  90:{T:'0vve000011hh000011e0000011e000001eugge1h1e111e1h1e111e111e111e1111110e1101001111',rows:10,open:1,h:[[55,0],[73,0],[76,0]],p:[],b:[[2,1,0,0],[3,1,0,0],[5,6,0,0],[1,1,0,9],[6,6,0,11]],d:[1,0],fg:[[4,2,1]],pf:[[4,7,[]]],par:44,sl:'DDRLDDDDRDURUUUDDLLUUUUURLURRURDLRUURULLLLDU',ac:[[6,0],[5,2],[7,6]],sl5:'DDRLDDDDRDURUUUDDLLUUUUURLURRURDLRUURULLLLDU',par5:44},
+  82:{T:'1101e1111v11e1111110e0v110hhhh1111hhhh11011111011v10011111011v10011v1v1110110110',rows:10,open:1,h:[[30,0]],p:[],b:[[1,6,0,0]],d:[0,6],pf:[[4,3,[[3,3]]]],par:17,sl:'RDLLRRDDDDDLLULLU',ac:[[2,7],[4,7],[5,5]],sl5:'RDLLRRDDDDDLLULLU',par5:17},
+  83:{T:'1101e1111v11e1101111e1100v11e1111110e1111hhhe0111hhhe0111110e0001v11110111001011',rows:10,open:1,h:[[69,0],[76,0]],p:[],b:[[4,2,0,0],[8,4,0,0],[2,6,0,9]],d:[0,6],pf:[[6,1,[[5,1]]]],par:31,sl:'DDLDDRRULDLURULLLDLDLLDDDRURDRR',ac:[[3,7],[2,3],[6,0]],sl5:'DDLDDRRULDLURULLLDLDLLDDDRURDRR',par5:31},
+  84:{T:'1101vv111v1011011101v1v1011hhfff1hhhh111111hh1110110101v1v11011101111v111v101111',rows:10,open:1,h:[[19,0],[52,0]],p:[],b:[[4,6,0,0],[6,2,0,0]],d:[9,7],pf:[[4,1,[[5,3],[3,4]]]],par:27,sl:'UULUURULLDRDDDDLLULULUULURR',ac:[[4,7],[8,6],[7,2]],sl5:'UULUURULLDRDDDDLLULULUULURR',par5:27},
+  85:{T:'11e0101011e111111hhh10111hhhgge1111000e1v11110e10111hhh11101hhh11v1011110v101111',rows:10,open:1,h:[[16,0],[55,0],[59,0]],p:[],b:[[0,1,0,0],[5,2,0,0],[8,4,0,0],[1,5,0,9]],d:[9,7],pf:[[3,1,[[2,3]]],[7,5,[[6,5]]]],par:37,sl:'LLLURURRUUUUUUULLLLLLLURDLDDDRDDRUULU',ac:[[5,7],[1,1],[4,0]],sl5:'LLLURURRUUUUUUULLLLLLLURDLDDDRDDRUULU',par5:37},
+  86:{T:'11111110v111111v111111111110011100101hh00vhge0h1ggh1e1111011e1111v11111v11101101',rows:10,open:1,h:[[36,0]],p:[],b:[[3,5,0,0],[2,3,0,9]],d:[0,6],pf:[[5,6,[[4,6]]]],par:18,sl:'DDLDULLULDDDDLRURU',ac:[[2,4],[1,2],[7,5]],sl5:'DDLDULLULDDDDLRURU',par5:18},
+  87:{T:'v1e11v1011e1111101e111v111e1111101e1111011e1v11111e100v10hhhh10000hhh00v0v101v00',rows:10,open:1,h:[[61,0]],p:[],b:[[3,5,0,0],[4,1,0,11]],d:[3,0],pf:[[7,3,[[7,1]]]],par:25,sl:'RDDDDLRURURRDUDDUURRRULLL',ac:[[5,0],[5,3],[4,5]],sl5:'RDDDDLRURURRDUDDUURRRULLL',par5:25},
+  88:{T:'0000vv11ggggh111v11vh1111011ev110101e11100efuge1v0ev10e101e010e1v110111001000010',rows:10,open:1,h:[[73,0],[78,0]],p:[],b:[[4,6,0,0],[8,1,0,0],[2,6,0,9]],d:[0,7],fg:[[5,4,3]],par:36,sl:'DDDLUDDRDDDLDLLUUUDDRRURUUUUUULLLULD',ac:[[6,7],[6,4],[7,1]],sl5:'DDDLUDDRDDDLDLLUUUDDRRURUUUUUULLLULD',par5:36},
+  89:{T:'0010v11100d1011110d1111111ufffff11e111v1v1e1011111e11v10011111110010v10100001v11',rows:10,open:1,h:[[66,0]],p:[],b:[[1,7,0,0],[2,4,0,11]],d:[0,6],fg:[[3,2,2]],par:41,sl:'DDLLLLULDRDRRUURRDDLLLDDRLLLDDLLUUURDDDRD',ac:[[1,5],[4,5],[6,1]],sl5:'DDLLLLULDRDRRUURRDDLLLDDRLLLDDLLUUURDDDRD',par5:41},
+  90:{T:'111ve11v1010e1111111e1111111e1010111e1110hhhue000hhh1e0000111e1v0001111100000100',rows:10,open:1,h:[[35,0],[71,0],[77,0]],p:[],b:[[1,6,0,0],[4,6,0,0],[7,3,0,0],[1,2,0,9],[3,5,0,11]],d:[1,7],fg:[[5,4,3]],pf:[[6,2,[[6,3]]]],par:58,sl:'DDDLLUUUUURDLRDLLDLLDUUULLLUURRDDRDLULDDDLLUUDDLULURRUDDRR',ac:[[0,6],[0,1],[7,4]],sl5:'DDDLLUUUUURDLRDLLDLLDUUULLLUURRDDRDLULDDDLLUUDDLULURRUDDRR',par5:58},
 };
 // ── CREEK_STAGES 끝 ──
 for(const k in CREEK_STAGES) BAKED[(k|0)-1]=CREEK_STAGES[k];
@@ -5188,6 +5240,7 @@ function fromBaked(o, lv){
        _pkCells:(pk? new Set(pk.flat()) : null),
        doors:(o.dr? o.dr.map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})) : null), doorHit:o.dh!==0, doorLock:!!o.dl,  // 문으로 공 치기는 11판부터 기본(2026-10-02 사람) — dh:0 일 때만 끈다
        forks:(o.fg? o.fg.map(x=>({k:x[0]*GN+x[1], r:x[0], c:x[1], dir:x[2]|0})) : null),   // 연잎 개구리 — fg:[[r,c,dir]], 자리는 filled 의 FROG_F
+       noBoat:!!o.nb,                                                         // 기믹 사전 끔 전용 — 배가 출발하지 않는다(MECH.boat.off)
        pfrogs:(o.pf? o.pf.map(x=>({spots:[[x[0],x[1]]].concat((x[2]||[]).map(q=>[q[0],q[1]]))})) : null)},   // 웅덩이 개구리 — pf:[[r,c,[[r2,c2],…]]] 처음 연잎 + 옮겨 갈 연잎(웅덩이 칸), 자리는 filled 의 PFROG_F
            start:{dog:{r:o.d[0],c:o.d[1]},boxes,filled:new Set(),ci:(walk?walk.i:0),cd:(walk?walk.d:1),ca:0,ck:(o.ct==null?undefined:o.ct),
                   wc:(wind==null?undefined:WIND_EVERY),
@@ -5268,7 +5321,7 @@ const MECH={
               pairs:{ ice:'가속 경로', billiard:'연쇄의 전제', pit:'굴러가 빠진다',
                       log:'굴러오는 공을 상자가 세운다' } },
   flow:     { nm:'물살',        intro:61, tiles:[FU,FD,FL,FR,FS], tags:['#Flow','#Sweep'],
-              rule:'물살에 넣은 공은 물길을 따라 흐른다. 흐르던 공·통나무가 공과 쿵 하면 자기는 그 앞에 서고 맞은 공이 막힐 때까지 간다. 맥스는 물살에 못 들어간다(모래톱 앞 끝 칸만).',
+              rule:'물살에 넣은 공은 물길을 따라 흐른다. 흐르던 공·통나무가 공과 쿵 하면 자기는 그 앞에 서고 맞은 공이 한 칸 밀려난다. 맥스는 물살에 못 들어간다(모래톱 앞 끝 칸만).',
               fail:'먼저 보낸 공이 물길을 막아 뒤 공이 못 간다.',
               has:o=>mHasTile(o,[FU,FD,FL,FR,FS]),  off:o=>mSweep(o,[FU,FD,FL,FR,FS]),
               fired:s=>s.slides,
@@ -5313,14 +5366,14 @@ const MECH={
                       crop:'작물을 아껴야 하는 판에서 두 번째 길이 된다' } },
   // ── 냇가 61~90 (10-08 재제작) — 통나무 배 · 긴 통나무 둑 · 연잎 개구리. 물살·웅덩이·다리는 flow 가 진다 ──
   boat:     { nm:'통나무 배',   intro:66, kind:14, tiles:[FS,TREE], tags:['#Ride','#Flow'],
-              rule:'웅덩이에 뜬 1칸 통나무에 맥스가 올라타 옆 보통 나무를 밀면 반대쪽으로 미끄러진다. 물살에 들면 물길을 따라가고 물가·나무다리·다른 물체 앞에서 멈춘다. 공에 닿으면 쿵 — 배는 서고 공이 막힐 때까지 간다. 멈추면 옆 땅으로 내린다.',
+              rule:'웅덩이에 뜬 1칸 통나무에 맥스가 올라타 통나무 끝 쪽의 나무·그루터기·벽을 밀면 반대쪽으로 길이 방향을 따라 미끄러진다. 타고 내리기는 사방 어느 쪽 둑에서든 된다(옆구리 쪽이 막혀 있으면 그쪽으로는 아무 일 없다). 물살에 옆구리로 닿으면 못 들어가고 웅덩이에 떠서 선다. 물살에 들면 물길을 따라가고 물가·나무다리·다른 물체 앞에서 멈춘다. 공에 닿으면 쿵 — 배는 서고 공이 한 칸 밀려난다. 멈추면 옆 땅으로 내린다.',
               fail:'내릴 땅도 밀 나무도 없는 물 한복판에 멈춘다.',
-              has:o=>(mHasKind(o,14) || mHasKind(o,9)) && mHasTile(o,[FS]) && mHasTile(o,[TREE]),   // 냇가 판은 통나무를 안 깐다(10-08) — 작은 도끼 나무(9)를 넘겨 얻는다
-              off:o=>mSwap(o,TREE,WALL),                 // 나무가 벽이 되면 출발을 못 한다 — 배가 일하는지 본다
+              has:o=>!o.nb && (mHasKind(o,14) || mHasKind(o,9)) && mHasTile(o,[FS]),   // 10-08 — 배는 나무·그루터기·벽 어디서든 밀고 떠난다(보통 나무가 꼭 있어야 하지 않는다)   // 냇가 판은 통나무를 안 깐다(10-08) — 작은 도끼 나무(9)를 넘겨 얻는다
+              off:o=>({...o, nb:1}),                     // 배 출발만 끈 판(판 데이터 nb:1 → L.noBoat) — 10-08: 나무를 벽으로 바꿔도 이제 벽에서 밀고 떠나 그걸로는 못 끈다
               fired:s=>s.boat,
               pairs:{ flow:'공은 물살로, 맥스는 배로 같은 강을 건넌다', frog:'개구리가 배도 쳐낸다 — 맥스의 길을 정한다', longlog:'배도 둑 앞에 멈춘다' } },
   longlog:  { nm:'긴 통나무 둑', intro:71, kind:12, tags:['#Bridge','#Dam','#Rotate'],
-              rule:'그루터기 축으로 도는 2칸 통나무가 물길을 가로지르면 맥스는 건너고 흘러오는 공·배는 그 앞에서 멈춘다. 돌려 치우면 다시 흐른다. 방석 위로 도는 것도 막지 않는다. 도는 자리의 공은 휘두른 쪽으로 쳐내져 막힐 때까지 간다(쳐낼 자리가 막혔으면 못 돈다).',
+              rule:'그루터기 축으로 도는 2칸 통나무가 물길을 가로지르면 맥스는 건너고 흘러오는 공·배는 그 앞에서 멈춘다. 돌려 치우면 다시 흐른다. 방석 위로 도는 것도 막지 않는다. 도는 자리의 공은 휘두른 쪽으로 한 칸 쳐내진다(쳐낼 자리가 막혔으면 못 돈다).',
               fail:'걸린 공 앞 통나무를 돌릴 끝에 손이 안 닿는다.',
               has:o=>mHasKind(o,12) || (mHasKind(o,11) && mHasTile(o,[FU,FD,FL,FR,FORK])),   // 깔아 둔 긴 통나무, 또는 물살 판의 큰 도끼 나무(11, 10-08 — 언덕 판 큰 나무는 둑이 아니다)
               off:o=>mDropKind(mDropKind(mDropKind(mDropKind(o,12),13),10),11),   // 통나무·그루터기·큰 나무를 걷어 물길이 뚫린 판으로 — 둑이 일하는지 본다
@@ -5567,7 +5620,7 @@ const ELEM={
              walk:'전부 통행 가능', props:'공이 화살표 방향으로 저절로 굴러간다. 맥스가 밑을 받치면 대기.', states:['없음'] },
   flow:    { nm:'물살',       what:'tile', role:['Environment','Hazard'], tags:['#Flow','#Sweep'],
              walk:'맥스는 못 들어간다(모래톱 바로 앞 끝 칸만 들어간다). 공만 지나간다',
-             props:'들어간 공이 물길을 따라 떠내려간다. 공·뜬 통나무가 공과 쿵 하면 자기는 서고 맞은 공이 막힐 때까지 간다(땅에선 곧게). 상자·뼈는 안 떠내려간다.',
+             props:'들어간 공이 물길을 따라 떠내려간다. 공·뜬 통나무가 공과 쿵 하면 자기는 서고 맞은 공이 한 칸 밀려난다(그다음은 그 칸 규칙). 상자·뼈는 안 떠내려간다.',
              states:['없음'] },
   pool:    { nm:'웅덩이',     what:'tile', role:['Environment'], tags:['#Flow','#Stop'],
              walk:'맥스는 못 들어간다 — 뜬 통나무 배로만 선다',
@@ -11886,7 +11939,7 @@ function loadLevel(lv, moon, keepTries){
   syncHintAct();                                       // 뭘 켜고 들어왔는지 상단에 남긴다
   if(!moonMode) showHint(lv);                            // 첫 두 판 + 기믹 첫 등장 판
   syncRuleChip();
-  if(!moonMode && hintKey && GI_TXT[hintKey] && !giSeen[hintKey] && !menuMode) showGintro(hintKey);
+  if(!moonMode && hintKey && GI_TXT[hintKey] && !giSeen[hintKey] && !menuMode && !CREEK_PILLS[lv]) showGintro(hintKey);   // 냇가 알약은 상황이 오면 creekPillTick 이 띄운다
   else { gintroOn=false; el("gintro").classList.remove("show"); }
   const guideView=guidePresentationForLevel(lv);
   if(!moonMode && !menuMode && guideView && guideView.mode==='callout' && !giSeen[guideView.key])
@@ -24232,13 +24285,27 @@ function tryMove(dr,dc){
   if(res.boat){                                                  // 통나무 배 — 맥스는 통나무와 함께 미끄러진다. extras 루프가 통나무에 경로를 주면 맥스가 그 좌표를 따라간다(render 의 dog.ride)
     const lb=boxes.find(x=>x.sink===0 && x.kind==='hillLog' && x.r===res.boat.fromR && x.c===res.boat.fromC);
     if(lb) dog.ride={box:lb};
-    dog.face=res.boat.path.length && res.boat.path[0].c!==res.boat.fromC? Math.sign(res.boat.path[0].c-res.boat.fromC) : dog.face;
+    // 출발 연출(10-08 사람) — 맥스가 먼저 나무 쪽으로 미는 몸짓(얼굴도 나무 쪽), 나무가 흔들리며 잎이 튄다. 배는 BOAT_PUSH_T 뒤에 천천히 떠난다(아래 res.extra 순회의 delay).
+    dog.face=dc<0?-1:dc>0?1:dog.face;
+    boatPushFx={r:nr, c:nc, dr, dc, t0:animT, lv:level};
+    if(res.boat.off==='tree') spark(nr,nc,'#7DB85E',10,2.2); else { spark(nr,nc,'#D8C6A4',8,1.4); spark(nr,nc,'#BBA67E',5,1); }   // 나무는 잎이 튀고, 그루터기·벽은 흙먼지
     tone(260,0.14,'sine',0.04,180); buzz([10,24,10]);
   }
+  if(res.logKnock){ const lk=res.logKnock, lg=boxes.find(x=>x.sink===0 && x.kind==='hillLog' && x.r===lk.r && x.c===lk.c);   // 땅 통나무 쿵 — 통나무는 공 쪽으로 짧게 기울었다 돌아오고(제자리), 공은 아래 res.extra 순회가 LOG_KNOCK_T 뒤에 한 칸 보낸다
+    if(lg){ lg.bump=1; lg.bumpK=0.5; lg.bumpR=lk.dr; lg.bumpC=lk.dc; }
+    fxAfter(LOG_KNOCK_T*0.6,()=>{ tone(210,0.1,'triangle',0.04,140); shake=Math.min(1,shake+0.12); buzz([10,22,10]); }); }
   if(res.frogHop){ filled=new Set(res.filled); frogFx={i:res.frogHop.i, from:res.frogHop.from, to:res.frogHop.to, t0:animT}; tone(640,0.08,'triangle',0.03,900); }
   if(res.poolFrogHop){ filled=new Set(res.filled); pfrogFx={i:res.poolFrogHop.i, from:res.poolFrogHop.from, to:res.poolFrogHop.to, t0:animT}; tone(640,0.08,'triangle',0.03,900); }   // 웅덩이 개구리 폴짝   // 개구리 폴짝 — 그림은 render 의 creekFrogDraw
   if(res.treeFall || res.treeLean || res.logTurn){     // 벌목·긴 통나무 회전은 물체 종류/여러 좌표가 함께 바뀐다
     boxes=res.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,rr:b.r,cc:b.c,roll:0,sqT:0,sdr:0,sdc:0,landT:0,sink:0,carried:false,buried:!!b.buried}));
+    // 같은 수에 굴러간 것(떠내려가는 새 통나무·그 통나무에 맞은 공·도끼 나무가 쳐낸 공)은 **출발 칸**에 다시 세운다 — 아래 res.extra 순회가
+    // 출발 칸으로 물체를 찾아 경로를 붙인다. 끝 칸에 세워 두면 못 찾아 경로 없이 순간이동했다(63판 실측, 10-08).
+    if(res.treeFall && res.treeFall.ballHit){ const bh=res.treeFall.ballHit, j=boxes.findIndex(x=>x.r===bh.to.r && x.c===bh.to.c && x.kind==='ball');
+      if(j>=0){ const ex=(res.extra=res.extra||[]), e=ex.find(x=>x.bi===j);
+        if(e){ e.path=[{r:bh.to.r,c:bh.to.c}].concat(e.path); e.fromR=bh.from.r; e.fromC=bh.from.c; e.slid=(e.slid|0)+1; }   // 쳐낸 칸에서 또 굴렀다 — 한 길로 잇는다
+        else ex.unshift({bi:j, fromR:bh.from.r, fromC:bh.from.c, path:[{r:bh.to.r,c:bh.to.c}], restR:bh.to.r, restC:bh.to.c, sunk:false, recolored:false, color:boxes[j].color, landCell:null, slid:1, main:false, chain:false}); } }
+    const seenBi=new Set();
+    for(const e of (res.extra||[])){ const b=boxes[e.bi]; if(!b || seenBi.has(e.bi)) continue; seenBi.add(e.bi); b.r=b.rr=e.fromR; b.c=b.cc=e.fromC; }
     if(res.treeFall){ if(creekOn()) treeFallFx={...res.treeFall, big:res.treeFall.len===2, t0:animT, lv:level, landed:0};   // 냇가 — 넘어가는 연출(그림만)
       spark(res.treeFall.r,res.treeFall.c,'#CFA66A',18,2.8); tone(150,0.16,'triangle',0.05,85); shake=Math.min(1,shake+0.28); buzz([14,30,14]); }
     else if(res.logTurn){ tone(190,0.12,'triangle',0.04,125); shake=Math.min(1,shake+0.16); buzz([10,22,10]); }
@@ -24269,9 +24336,10 @@ function tryMove(dr,dc){
     dog.moving=true;
   }
   // 흙더미는 상자보다 무겁다 — 더 오래 뻗고 더 깊이 눌린다. 걷기(0.7)·상자(1)와 층이 갈린다.
-  dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=res.dug? 1.35 : ((res.pushed||res.door)?1:0.7); dog.hop=1;
-  dog.protoPush=(res.pushed||res.door)?1:0;                     // 문짝도 몸으로 민다
-  if(!chapterMaxMasterMotionRuntimeEnabled() && res.pushed){
+  dog.lungeR=dr; dog.lungeC=dc; dog.lungeT=res.dug? 1.35 : ((res.pushed||res.door||res.boat||res.logKnock)?1:0.7); dog.hop=res.boat? 0 : 1;   // 배 출발 = 나무를 미는 몸짓(제자리)
+  dog.lungeSlow=res.boat? 1/(60*0.065*BOAT_PUSH_T*1.6) : 1;    // 배 출발 — 몸짓 전체 ≈ 1초(밀기 정점 ≈ 0.48초, 배는 BOAT_PUSH_T=0.6초 뒤 정점 지나서 떠난다)
+  dog.protoPush=(res.pushed||res.door||res.boat||res.logKnock)?1:0;           // 문짝·배 출발도 몸으로 민다
+  if(!chapterMaxMasterMotionRuntimeEnabled() && (res.pushed||res.boat||res.logKnock)){
     dog.maxEvent='push'; dog.maxEventT=0;
   }
   // 미는 순간엔 몸이 세로로 늘어난다(앞으로 뻗음) — 그냥 걷는 걸음은 아주 약하게만.
@@ -24475,7 +24543,9 @@ function tryMove(dr,dc){
           b.delay=Math.max(b.delay||0,(dog.protoMoveDur||.34)*.42);
         b.bridgeUnder=ballUsesBridgeUnderpass(L,filled,b.rr,b.cc,res.path); } // 물살에서 다리로 들면 상판 아래
       if(b.kind==='hillLog'){ const f0=res.boxes.find(x=>x.r===res.restR&&x.c===res.restC);   // 냇가 통나무 굴림·세움·넘어짐 그림(creekLandLog) — 출발 칸·첫 걸음·전후 상태
-        b.logFx={from:b.color, to:f0 && f0.kind==='hillLog'? f0.color : b.color, fr:nr, fc:nc, dr, dc, t0:animT}; }
+        b.logFx={from:b.color, to:f0 && f0.kind==='hillLog'? f0.color : b.color, fr:nr, fc:nc, dr, dc, t0:animT};
+        // 밀린 첫 칸의 축(그림만, 10-09) — 누운 것은 옆으로 굴려도·길이로 밀어도 제 축 그대로, 선 것은 민 쪽으로 넘어져 눕는다. 움직이는 방향을 축으로 읽으면 옆으로 굴린 통나무가 90° 돌아 보였다(63판).
+        b.rollAx=null; if(b.path && b.path[0]){ const ax=b.color<4? DOOR_CV[b.color&3] : [dr,dc]; b.rollAx=ax[1]!==0? 'h' : 'v'; b.rollTo={r:b.path[0].r, c:b.path[0].c}; } }
       b.r=res.restR; b.c=res.restC;
       const fb=res.boxes.find(x=>x.r===res.restR&&x.c===res.restC);
       if(fb && fb.kind===b.kind) b.color=fb.color;
@@ -24486,20 +24556,26 @@ function tryMove(dr,dc){
       filled=new Set(res.filled);              // 침몰·물감 소모 등 지형 변화 즉시 반영
       if(res.slid>1){ const m=chainStep(); tone(520*m,0.12,"sine",0.04,900*m); }
     }
-  } else if(!res.buriedNow && !res.packed && !res.dug && !res.picked && !res.door && !res.mowTurn && !res.tubPour && !res.pumpTurn && !res.pumpShot){ sfxStep(); }
+  } else if(!res.buriedNow && !res.packed && !res.dug && !res.picked && !res.door && !res.logKnock && !res.mowTurn && !res.tubPour && !res.pumpTurn && !res.pumpShot){ sfxStep(); }
   const pathTime=pathTimeOf;                                   // 경로 소요 시간 (경사=멈칫+감속 반영)
   let acc = (res.kind==='log'||res.kind==='cartV'||res.kind==='cartH') ? 0.7 : pathTime(res.path); // 앞선 것이 멈출 때까지의 시간
+  if(res.treeFall) acc=TREE_FALL_T*TREE_FALL_SHOW;                // 벌목 — 나무가 다 넘어가 통나무가 보인 뒤에 떠내려가고 공을 친다
+  if(res.logKnock) acc=LOG_KNOCK_T;                               // 땅 통나무 쿵 — 통나무가 기울어 닿은 뒤에 공이 떠난다
+  if(res.boat) acc=BOAT_PUSH_T;                                   // 배 출발 — 맥스가 나무를 민 뒤에 떠난다
   const assigned=new Set();                                    // 이미 경로 배정된 공 (밀린 공 포함 — 중복 배정 방지)
   { const mb=boxes.find(x=>x.sink===0 && x.path && x.pathI===0 && x.kind!=='log' && x.kind!=='bone' && x.kind!=='cartV' && x.kind!=='cartH'); if(mb) assigned.add(mb); }
   for(const e of (res.extra||[])){                            // 당구로 밀린 공 · 경사에서 풀린 공
-    const bb=boxes.find(x=>!assigned.has(x) && x.sink===0 && x.r===e.fromR && x.c===e.fromC && x.kind!=='log' && x.kind!=='bone' && x.kind!=='cartV' && x.kind!=='cartH');
+    // 굴러가는 건 공과 1칸 통나무(hillLog)뿐 — 위치로만 찾으면 같은 칸에 막 선 긴 통나무 조각(log2/log2End: 휘둘러 공을 친 자리)이 공 경로를 가져갔다(10-08)
+    const bb=boxes.find(x=>!assigned.has(x) && x.sink===0 && x.r===e.fromR && x.c===e.fromC && (x.kind==='ball' || x.kind==='hillLog'));
     if(!bb) continue;
     assigned.add(bb);
     const d0=e.path[0];
     bb.sdr=Math.sign(d0.r-e.fromR); bb.sdc=Math.sign(d0.c-e.fromC);
     e.path=valleyTrim(e.path,e.restR,e.restC); bb.path=e.path; bb.pathI=0; bb.r=e.restR; bb.c=e.restC;
     bb.bridgeUnder=ballUsesBridgeUnderpass(L,filled,e.fromR,e.fromC,e.path);
-    if(bb.kind==='hillLog'){ bb.color=e.color; }                      // 떠내려간 통나무의 축(마지막 진행 방향) — 안 맞추면 화면은 다리, 규칙은 배로 갈린다
+    let pivot=null;
+    if(bb.kind==='hillLog'){ pivot=logPivotPlan(L, filled, e.fromR, e.fromC, res.treeFall? res.treeFall.face : bb.color, d0); bb.pivot=null;   // 물길을 가로질러 놓인 통나무 — 떠나기 전에 땅 끝을 축으로 물길 쪽으로 돈다(그림만, 10-09)
+      bb.color=e.color; if(res.boat && e.bi===res.boat.bi) bb.boatRun={t:0}; }   // 배 — 천천히 출발해 끝 칸에서 천천히 선다(render)                      // 떠내려간 통나무의 축(마지막 진행 방향) — 안 맞추면 화면은 다리, 규칙은 배로 갈린다
     bb.pend={ sunk:e.sunk, land:e.landCell, recolor:e.recolored? e.color:null, slid:e.slid, openNow:false };
     filled=new Set(res.filled);
     // 바람·받침 해제 등 충돌 없는 자동 굴림만 기존 순서 대기를 사용한다.
@@ -24508,6 +24584,7 @@ function tryMove(dr,dc){
     bb.delay = cut>=0? pathTime(res.path.slice(0,cut)) : acc;
     bb.startSfx=!e.path[0].contactIn;
     if(e.path[0].contactIn) bb.delay=0; // 시간 추정 대신 친 공의 실제 접촉을 기다린다
+    if(pivot){ bb.pivot={...pivot, r0:e.fromR, c0:e.fromC, t0:animT+bb.delay}; bb.delay+=LOG_PIVOT_T; if(cut<0) acc+=LOG_PIVOT_T; }   // 돌고 나서 떠난다
     if(cut<0) acc+=pathTime(e.path);
   }
   if(res.door && res.door.hit){                       // 문으로 친 공은 문짝이 닿는 순간 떠난다
@@ -25494,7 +25571,10 @@ function deadlockNow(){
   const flowStuck=(b, seen)=>{
     const t=tileAt(L,filled,b.r,b.c);
     if(L.wind!=null) return false;                               // 바람은 물 위 공도 밀어 준다
-    if(t===FS) return !pfrogReach(L, b.r, b.c);                  // 웅덩이 공 — 맥스가 못 들어가 손을 못 댄다(웅덩이 개구리가 옆 연잎에 올 수 있으면 산 것)
+    if(t===FS){                                                  // 웅덩이 공 — 맥스가 못 들어가 손을 못 댄다(웅덩이 개구리가 옆 연잎에 올 수 있으면 산 것)
+      if(pfrogReach(L, b.r, b.c)) return false;
+      // 배가 칠 수도 있다 — 1칸 통나무가 판에 있거나 작은 나무가 서 있으면(밀어 쓰러뜨려 배를 만든다) 웅덩이 공은 산 것(모르면 산 것, 탐색 없음)
+      return !boxes.some(x=>x.sink===0 && (x.kind==='hillLog' || x.kind==='treeSmall')); }
     if(!isCurrent(t)) return false;
     const v = t===FORK? forkVec(L,filled,b.r,b.c) : FLOWV[t]; if(!v) return true;
     const ar=b.r+v[0], ac=b.c+v[1];
@@ -29257,7 +29337,7 @@ function drawLog(x,y,s,sx,sy,rot){      // 택배 박스 — 한 칸만 밀리�
   rr(-q,-q+d,q*2,q*2-d,s*0.045); ctx.stroke();
   ctx.restore();
 }
-function drawHillStump(x,y,s,b){
+function drawHillStump0(x,y,s,b){
   if(b && typeof creekOn==='function' && creekOn()){                 // 냇가 — 그루터기 굵기 = 넘어간 줄기 굵기(작은 .40 · 큰 .44), 밑동 자리도 나무와 같다
     const big=boxes.some(o=>o.kind==='log2' && Math.abs(o.r-b.r)+Math.abs(o.c-b.c)===1) || (treeFallFx && treeFallFx.lv===level && treeFallFx.r===b.r && treeFallFx.c===b.c && treeFallFx.big);
     const W=creekAxeDims(big).W;
@@ -29273,6 +29353,30 @@ function drawHillStump(x,y,s,b){
   for(const k of [.08,.145]){ ctx.beginPath(); ctx.ellipse(0,s*.04,s*k,s*k*.62,0,0,7); ctx.stroke(); }
   ctx.restore();
 }
+// ── 그루터기 위로 오르기(B안, 10-08 사람 확정) — 맥스가 서는 칸이 그루터기면 0.28칸 폴짝 올라서(0.25초, 호 0.07칸) 윗면에 발을 두고, 나갈 때 폴짝 내려선다. 규칙·걸을 수 있는 칸은 그대로(그림만).
+// 착지 때 그루터기 윗면이 30% 눌리고 먼지 네 점, 맥스도 0.3초쯤 살짝 눌린다. 통나무 배·다리와 오갈 땐 그쪽 발 자리가 이어받게 (1-cf.k) 로 줄인다.
+const CREEK_STUMP_HOP=.25, CREEK_STUMP_H=.28, CREEK_STUMP_ARC=.07;
+const creekStump={t:-1, p:0, k:null, landT:-9, on:false};
+function creekStumpAt(r,c){ return boxes.find(b=>b.kind==='stump' && b.sink===0 && b.r===r && b.c===c); }
+function creekStumpClimb(){ const S=creekStump; if(S.t===animT) return S; const dt=Math.max(0,Math.min(.05,animT-S.t)); if(S.t<0) S.p=0; S.t=animT;   // 한 프레임에 한 번: p = 0(땅) … 1(윗면)
+  const st=creekOn()? creekStumpAt(dog.r,dog.c) : null;
+  if(st){ if(S.k!==st) S.p=Math.min(S.p,.0001); S.k=st; S.p=Math.min(1,S.p+dt/CREEK_STUMP_HOP); } else S.p=Math.max(0,S.p-dt/CREEK_STUMP_HOP);
+  const on=S.p>=1; if(on && !S.on) S.landT=animT; S.on=on; return S; }
+// 맥스를 그리기 전에 — 올려야 할 높이·눌림을 주고 윗면 접촉 그늘·먼지를 깐다. 오를 일 없으면 null
+function creekStumpMax(cf){ const q=creekStumpClimb(); if(q.p<=0) return null;
+  const f=cf? 1-cf.k : 1, ss=creekSS, lift=cell*(CREEK_STUMP_H*ss(q.p)+CREEK_STUMP_ARC*Math.sin(Math.PI*q.p)*(q.p<1&&q.p>0?1:0))*f;
+  const topY=cy(dog.rr)+cell*(.22-.13+.03);                                       // 윗면 가운데 높이
+  if(q.p>.05){ ctx.fillStyle='rgba(60,35,12,'+(.30*ss(q.p)*f)+')'; ctx.beginPath(); ctx.ellipse(cx(dog.cc),topY+cell*.01,cell*.15,cell*.045,0,0,7); ctx.fill(); }   // 접촉 그늘 — 오르는 동안 진해진다
+  let sx=1, sy=1, bob=0;
+  if(q.p>=1){ const u=(animT-q.landT)/.40; if(u>=0&&u<1){ const e=Math.sin(Math.PI*Math.min(1,u*1.2)); sx=1+.07*e; sy=1-.09*e; bob=Math.sin(u*Math.PI*2.4)*(1-u)*cell*.012; }
+    const u2=(animT-q.landT)/.5; if(u2>=0&&u2<1){ for(const sg of [-1,1,-.5,.5]){ const rr0=cell*(.03+.05*u2)*(Math.abs(sg)<1?.8:1), px=cx(dog.cc)+sg*cell*(.13+.13*u2), py=topY-cell*.02*u2*(1.4-Math.abs(sg)*.5)+cell*.02;   // 먼지 — 윗면 가장자리에서 양옆으로 번지며 사라진다
+      ctx.fillStyle='rgba(240,226,196,'+(.75*(1-u2)*(1-u2))+')'; ctx.beginPath(); ctx.arc(px,py,rr0,0,7); ctx.fill(); } } }
+  return {lift, sx, sy, bob}; }
+function drawHillStump(x,y,s,b){                                                  // 착지 때 윗면이 눌린다(그루터기는 제자리 — 밀림 없음)
+  const q=creekStump; let k=0;
+  if(b && b===q.k && q.p>=1 && creekOn()){ const u=(animT-q.landT)/.32; if(u>=0 && u<1) k=Math.sin(Math.PI*Math.min(1,u*1.15))*(1-u*.4); }
+  if(!k) return drawHillStump0(x,y,s,b);
+  ctx.save(); ctx.translate(x,y+s*.22); ctx.scale(1+.07*k,1-.30*k); ctx.translate(-x,-(y+s*.22)); drawHillStump0(x,y,s,b); ctx.restore(); }
 function drawHillTreeObject(x,y,s,b){
   const big=b.kind==='treeBig', lean=big&&b.color>0? DOOR_CV[b.color-1] : [0,0];
   if(typeof creekOn==='function' && creekOn()){ ctx.save(); ctx.translate(x,y); creekAxeTree(ctx,s,big,lean); ctx.restore(); return; }   // 냇가 — 보통 나무(TREE)와 갈리는 도끼 나무, 통나무 크기에 맞춘 키(언덕 판 그림은 그대로)
@@ -29328,26 +29432,35 @@ function creekAxeTree(g,s,big,lean){                                // 원점 = 
   creekUpperLocal(g,s,big); g.restore(); }
 // 벌목 연출(10-08 넷째: 경첩 넘어짐) — 윗부분이 벤 자리에 붙은 채(경첩) 그루터기 위에서 돌아 눕고, 끝에서야 통나무 자리로 미끄러져 내려앉는다.
 // 위·아래로 넘어갈 땐 옆으로 비껴 돌아(대각선) 납작한 장면이 없고, 끝은 곧게 아래/위 칸. 앞 72% = 경첩 돌기, 뒤 28% = 내려앉기(길이도 통나무 길이로).
-let treeFallFx=null;                                               // {r,c,face,len,big,t0,lv,landed}
+let treeFallFx=null;
+let boatPushFx=null;                                                // 배 출발 — 민 나무 흔들림 {r,c,dr,dc,t0,lv}
+const BOAT_ACC_T=.4;                 // 웅덩이↔물살 속도가 바뀌는 데 걸리는 시간(초)
+const LOG_KNOCK_T=.15;   // 땅 통나무 쿵 — 통나무가 공 쪽으로 기우뚱했다 돌아오는 동안(초), 그 뒤 공이 쿵 속도로 한 칸 간다(10-09)
+const BOAT_PUSH_T=.6;   const BOAT_SPD=.9;                 // 배 속도(칸/초) — 떠가는 공(2.25)의 절반도 안 되게, 웅덩이·물살 같은 속도(10-08 사람: 아주 천천히·차분히)                                               // 맥스가 나무를 밀고 배가 떠나기까지(초)
+function creekTreeShake(r,c){ const f=boatPushFx; if(!f || f.lv!==level || f.r!==r || f.c!==c) return 0; const u=(animT-f.t0-BOAT_PUSH_T*.45)/.8; if(u<0||u>=1) return 0;
+  return Math.sin(u*Math.PI*3)*(1-u)*cell*.035; }                   // 맞은 나무가 좌우로 짧게 떤다                                               // {r,c,face,len,big,t0,lv,landed}
 const TREE_FALL_T=.62, TREE_FALL_HINGE=.72, TREE_FALL_SHOW=.86;
 function treeFallP(){ const f=treeFallFx; if(!f || f.lv!==level) return 1; return Math.max(0,Math.min(1,(animT-f.t0)/TREE_FALL_T)); }
 function treeFallHides(b){ const f=treeFallFx; if(!f || f.lv!==level || treeFallP()>=TREE_FALL_SHOW) return false;   // 내려앉기 중간까진 새 통나무를 숨긴다(넘어가는 나무가 그 자리를 그린다)
-  return (b.kind==='hillLog'||b.kind==='log2'||b.kind==='log2End') && f.cells.some(q=>q.r===b.r&&q.c===b.c); }
+  return (b.kind==='hillLog'||b.kind==='log2'||b.kind==='log2End') && f.cells.some(q=>(q.r===b.r&&q.c===b.c) || (q.r===Math.round(b.rr)&&q.c===Math.round(b.cc))); }   // 떠내려갈 통나무는 끝 칸(r,c)이 아니라 지금 그리는 자리(rr,cc)로
 function creekTreeFallDraw(x,y,s,b,front){                         // 그루터기 위에 — 그루터기를 그린 바로 뒤. 아래(앞)로 넘어가는 나무는 맥스보다 앞이라 creekReedsFront 에서(front)
   const f=treeFallFx; if(!f || f.lv!==level || f.r!==b.r || f.c!==b.c || !!front!==(f.face===2)) return; const p=treeFallP(); if(p>=1) return;
   const v=DOOR_CV[f.face], dr=v[0], dc=v[1], th0=f.big? .2 : 0, {H}=creekAxeDims(f.big), hy=CREEK_TREE_BASE-CREEK_CUT;
   let th, psi=0, px=0, py=hy, lenK=1, alpha=1;
   if(p<TREE_FALL_HINGE){ const e=(p/TREE_FALL_HINGE)**2; th=th0+(Math.PI/2-th0)*e; if(!dc) psi=.85*Math.sin(Math.PI*e); }
   else { const q=(p-TREE_FALL_HINGE)/(1-TREE_FALL_HINGE), sm=q*q*(3-2*q); th=Math.PI/2;
-    px=dc*.52*sm; py=hy+((dc? 0 : dr*.52)-hy)*sm; lenK=1+((f.big?1.96:.96)/(H-CREEK_CUT)-1)*sm; alpha=q<.5? 1 : 1-(q-.5)/.5; }
+    px=dc*.52*sm; py=hy+((dc? 0 : dr*.52)-hy)*sm; lenK=1+((f.big?1.96:.816)/(H-CREEK_CUT)-1)*sm; alpha=q<.5? 1 : 1-(q-.5)/.5; }
   if(p>=TREE_FALL_SHOW && !f.landed){ f.landed=1; const end=f.cells[f.cells.length-1]; spark(end.r,end.c,'#8FC86A',14,2.4); spark(end.r,end.c,'#CFA66A',8,2); shake=Math.min(1,shake+.18); }
   ctx.save(); ctx.globalAlpha=alpha; ctx.translate(x+px*s,y+py*s); creekAxisXf(ctx,creekFallAxis(dr,dc,th,psi),lenK);
   creekUpperLocal(ctx,s,f.big,true); ctx.restore(); }
 function logDriftAxis(b){   // 가는 중인 통나무의 지금 구간 축 — 다음 점까지 열이 더 달라지면 가로('h'), 행이면 세로('v'), 모르면 null(→ b.color 규칙값)
   if(!b.path || !(b.pathI<b.path.length)) return null; const tg=b.path[b.pathI]; if(!tg) return null;
+  if(b.rollAx && b.pathI===0 && b.rollTo && tg.r===b.rollTo.r && tg.c===b.rollTo.c) return b.rollAx;   // 맥스가 민 첫 칸(굴림·넘어짐) — 가는 방향이 아니라 통나무 제 축(경로는 뒤에서 새 배열로 바뀔 수 있어 칸으로 맞춘다)
   const dx=Math.abs((Array.isArray(tg)? tg[1] : tg.c)-b.cc), dy=Math.abs((Array.isArray(tg)? tg[0] : tg.r)-b.rr);
   return dx>dy+1e-6? 'h' : dy>dx+1e-6? 'v' : null; }
+const CREEK_LL={noShadow:false,noRing:false};                   // 긴 통나무 그림 옵션 — creekLongLogWater 가 물 위 합성 때만 켠다
 function drawHillLogObject(x,y,s,b,long){
+  if(long && !CREEK_LL.on && typeof L!=='undefined' && L && creekOn() && creekLongLogWater(x,y,s,b)) return;   // 물에 걸친 긴 통나무 — 둑 밑으로 들어가고 물 자리에서만 보인다
   if(!long && typeof L!=='undefined' && L && creekOn()){              // 냇가 1칸 통나무 — 3D 원기둥(땅: 누움·섬·굴림·세움·넘어짐 / 물: 배·낀 다리). 언덕 판은 아래 예전 그림
     if(logOnWater(L, filled, b)){ if(logFloats(L, filled, b)) creekBoatLog(x,y,s,b); else creekBridgeLog(x,y,s,b); }
     else creekLandLog(x,y,s,b);
@@ -29368,16 +29481,18 @@ function drawHillLogObject(x,y,s,b,long){
   const off=ck&&long? DOOR_CV[face] : [0,0];
   ctx.save(); ctx.translate(x+off[1]*s*.5,y+off[0]*s*.5); if(vertical) ctx.rotate(Math.PI/2);
   if(ck && (face===0||face===3)) ctx.scale(-1,1);                 // 냇가 — 벤 밑동 끝(-x)이 그루터기 쪽을 보게
-  ctx.fillStyle='rgba(45,35,20,.2)'; ctx.beginPath(); ctx.ellipse(0,s*(ck?R+.01:.19),s*len*.48,s*(ck?R*.55:.105),0,0,7); ctx.fill();
+  if(!(long && CREEK_LL.noShadow)){ ctx.fillStyle='rgba(45,35,20,.2)'; ctx.beginPath(); ctx.ellipse(0,s*(ck?R+.01:.19),s*len*.48,s*(ck?R*.55:.105),0,0,7); ctx.fill(); }
   const g=ctx.createLinearGradient(0,-s*R,0,s*R); g.addColorStop(0,'#B77A43'); g.addColorStop(1,'#7E4C2B');
   rr(-s*len*.5,-s*R,s*len,s*R*2,s*(ck?R*.9:.16)); ctx.fillStyle=g; ctx.fill();
-  if(ck){ const bx0=-s*len*.5+s*R*.35;                            // 밑동 끝 = 벤 자리의 다른 반쪽 — 그루터기 윗면과 같은 속살·나이테 + 비스듬한 홈 면
+  const noRing=!!(long && CREEK_LL.noRing);                       // 물 위 가로 통나무 — 정면이라 나이테 없음(다리·1칸 통나무와 같다, 10-09)
+  if(ck && noRing){}
+  else if(ck){ const bx0=-s*len*.5+s*R*.35;                            // 밑동 끝 = 벤 자리의 다른 반쪽 — 그루터기 윗면과 같은 속살·나이테 + 비스듬한 홈 면
     ctx.fillStyle='#F2D29A'; ctx.beginPath(); ctx.moveTo(-s*len*.5+s*R*.2,-s*R*.98); ctx.lineTo(-s*len*.5+s*R*.2+s*.13,-s*R*.98); ctx.lineTo(-s*len*.5+s*R*.2,-s*R*.98+s*R*.66); ctx.closePath(); ctx.fill();
     ctx.strokeStyle='#3E2410'; ctx.lineWidth=s*.016; ctx.beginPath(); ctx.moveTo(-s*len*.5+s*R*.2+s*.13,-s*R*.98); ctx.lineTo(-s*len*.5+s*R*.2,-s*R*.98+s*R*.66); ctx.stroke();
     ctx.fillStyle='#E8C48A'; ctx.beginPath(); ctx.ellipse(bx0,0,s*R*.6,s*R,0,0,7); ctx.fill();
     ctx.strokeStyle='rgba(62,36,16,.55)'; ctx.lineWidth=s*.014; ctx.beginPath(); ctx.ellipse(bx0,0,s*R*.6,s*R,0,0,7); ctx.stroke(); }
   else { ctx.fillStyle='#D8AA6B'; ctx.beginPath(); ctx.ellipse(-s*len*.5,0,s*.15,s*R,0,0,7); ctx.fill(); }
-  ctx.strokeStyle='rgba(105,65,32,.55)'; ctx.lineWidth=s*.02; ctx.beginPath(); ctx.ellipse(-s*len*.5+(ck?s*R*.35:0),0,ck?s*R*.32:s*.08,ck?s*R*.58:s*.105,0,0,7); ctx.stroke();
+  if(!noRing){ ctx.strokeStyle='rgba(105,65,32,.55)'; ctx.lineWidth=s*.02; ctx.beginPath(); ctx.ellipse(-s*len*.5+(ck?s*R*.35:0),0,ck?s*R*.32:s*.08,ck?s*R*.58:s*.105,0,0,7); ctx.stroke(); }
   ctx.strokeStyle='rgba(239,199,137,.42)'; ctx.lineWidth=s*.025; for(const q of (ck&&long? [-.3,-.12,.08,.26] : [-.18,.08,.28])){ ctx.beginPath(); ctx.moveTo(s*len*q,-s*(ck?R*.72:.13)); ctx.lineTo(s*len*(q+(long&&ck?.035:.07)),s*(ck?R*.72:.13)); ctx.stroke(); }
   ctx.restore();
 }
@@ -29385,9 +29500,10 @@ function drawHillLogObject(x,y,s,b,long){
 // 축 두 끝 S·E 를 (땅 x, 땅 y, 높이) 칸 단위로 주면 화면 (x, y − 높이·KH)로 투영한다(높이는 3/4 남짓 — 선 통나무가 세로로 누운 것보다 짧고 굵어 보인다).
 // 보이는 벤 면은 보는 쪽(위·앞에서 내려다봄)을 향한 끝 하나 — 섬 = 윗면, 세로로 누움 = 가까운(아래) 끝, 가로로 누움 = 양 끝 옆모습.
 // 굴림각 th 로 껍질 줄·옹이가 축을 돌며 지나가고 벤 면의 금이 돈다. 판 규칙(옆=굴림 / 길이 방향=섬 / 선 것=민 쪽으로 넘어짐)은 applyMoveCore 그대로.
-const LOG3D={LEN:.96, R:.20, KH:.62, V:[0,.6,.8], TURN_T:.36};
+const LOG3D={LEN:.816, R:.17, KH:.62, V:[0,.6,.8], TURN_T:.36};
+const BOAT_LOG={LEN:.96, R:.17};                                                                   // 배 — 길이 .96 고정(물길 폭·맥스 발 자리), 굵기만 .17
 function log3dEll(g,x,y,rx,ry,rot){ g.beginPath(); g.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,7); }
-function log3dCyl(g,s,o,S,E,th,opt){ opt=opt||{};
+function log3dCyl0(g,s,o,S,E,th,opt){ opt=opt||{};
   const {R,KH,V}=LOG3D, P=q=>[o[0]+q[0]*s, o[1]+(q[1]-q[2]*KH)*s];
   const A=P(S), B=P(E), ax=E[0]-S[0], ay=E[1]-S[1], ah=E[2]-S[2], al=Math.hypot(ax,ay,ah)||1, dv=(ax*V[0]+ay*V[1]+ah*V[2])/al;
   const dx=B[0]-A[0], dy=B[1]-A[1], dl=Math.hypot(dx,dy), ux=dl>1e-3? dx/dl : 0, uy=dl>1e-3? dy/dl : -1;
@@ -29412,6 +29528,22 @@ function log3dCyl(g,s,o,S,E,th,opt){ opt=opt||{};
     g.strokeStyle='rgba(105,65,32,.5)'; g.lineWidth=s*.012; log3dEll(g,X,Y,minor*.55,r*.55,rot); g.stroke(); log3dEll(g,X,Y,minor*.22,r*.22,rot); g.stroke();
     const a=th*sg, px=Math.cos(a)*minor*.9, py=Math.sin(a)*r*.9; g.strokeStyle='rgba(80,45,18,.75)'; g.lineWidth=s*.016; g.beginPath(); g.moveTo(X,Y); g.lineTo(X+px*Math.cos(rot)-py*Math.sin(rot), Y+px*Math.sin(rot)+py*Math.cos(rot)); g.stroke(); };
   if(Math.abs(dv)<.25){ face(A[0],A[1],-1); face(B[0],B[1],1); } else if(dv>0) face(B[0],B[1],1); else face(A[0],A[1],-1); }
+// 땅 위 통나무 세 상태가 그림으로 확실히 갈리게(design-v2, 10-08 사람 확정) — 가로 누움 = 양 끝 나이테 없음(둥근 껍질 끝 + 옅은 그늘) · 세로 누움 = 가까운 끝 나이테, 먼 끝 어둡게, 바닥 그늘 길게 ·
+// 섬 = 짧고 굵은 통(굵기 .27 · 키 .62)에 큰 윗면과 긴 그늘. 세움·넘어짐 중엔 굵기·길이를 누움↔섬 사이로 이어 튀지 않게(log3dDims).
+const LOG3D_LIE={R:.17,LEN:.816}, LOG3D_STAND={R:.2295,LEN:.527};
+function log3dCyl(g,s,o,S,E,th,opt){ opt=Object.assign({},opt||{});
+  const ah=E[2]-S[2], horiz=Math.abs(E[0]-S[0])>Math.abs(E[1]-S[1]) && Math.abs(ah)<.05;
+  if(horiz && !opt.noFace){ opt.noFace=true; log3dCyl0(g,s,o,S,E,th,opt);       // 가로 누움 — 나이테 대신 끝 그늘만(둥근 껍질 끝이 감싸 돈다)
+    const {R,KH}=LOG3D, P=q=>[o[0]+q[0]*s, o[1]+(q[1]-q[2]*KH)*s], A=P(S), B=P(E), r=R*s;
+    for(const [p,sg] of [[A,-1],[B,1]]){ const gr=g.createRadialGradient(p[0]-sg*r*.1,p[1]-r*.25,1,p[0],p[1],r*1.05); gr.addColorStop(0,'rgba(60,32,12,0)'); gr.addColorStop(.75,'rgba(60,32,12,.18)'); gr.addColorStop(1,'rgba(60,32,12,.42)');
+      g.fillStyle=gr; g.beginPath(); g.ellipse(p[0],p[1],r*.42,r,0,sg<0? Math.PI*.5 : -Math.PI*.5, sg<0? Math.PI*1.5 : Math.PI*.5); g.fill(); }
+    return; }
+  const vlie=Math.abs(E[1]-S[1])>Math.abs(E[0]-S[0]) && Math.max(S[2],E[2])<LOG3D.R*1.5;
+  if(vlie && !opt.noShadow){ const {R}=LOG3D, y0=o[1]+Math.min(S[1],E[1])*s, y1=o[1]+Math.max(S[1],E[1])*s+R*s*.6;   // 세로 누움 — 몸 밑 길쭉한 그늘(땅에 누운 길이)
+    g.fillStyle='rgba(45,35,20,.22)'; g.beginPath(); g.ellipse(o[0]+S[0]*s+R*s*.25,(y0+y1)/2+R*s*.35,R*s*1.15,(y1-y0)/2+R*s*.2,0,0,7); g.fill(); opt.noShadow=true; }
+  log3dCyl0(g,s,o,S,E,th,opt); }
+function log3dWithDims(d,f){ const o={R:LOG3D.R,LEN:LOG3D.LEN}; LOG3D.R=d.R; LOG3D.LEN=d.LEN; try{ return f(); } finally{ LOG3D.R=o.R; LOG3D.LEN=o.LEN; } }
+function log3dDims(u){ return {R:LOG3D_LIE.R+(LOG3D_STAND.R-LOG3D_LIE.R)*u, LEN:LOG3D_LIE.LEN+(LOG3D_STAND.LEN-LOG3D_LIE.LEN)*u}; }
 // 상태 — 칸 가운데 원점(칸 단위). 누움은 땅에 닿게 축을 R 만큼 띄우고 앞으로 R 만큼 민다
 function log3dLying(vert){ const {LEN,R}=LOG3D; return vert? [[0,-LEN/2+R,R],[0,LEN/2+R,R]] : [[-LEN/2,R,R],[LEN/2,R,R]]; }
 function log3dStanding(){ const {LEN,R}=LOG3D; return [[0,R,0],[0,R,LEN]]; }
@@ -29428,73 +29560,235 @@ function log3dTopple(d,t){ const {LEN,R}=LOG3D, e=t*t, ph=Math.PI/2*(1-e);      
 function creekLandLog(x,y,s,b){
   const th=(b.roll||0)*1.5+.7, f=b.logFx;                                         // 굴림각 — 이동 거리 / 반지름(공과 같은 b.roll 을 통나무 반지름으로)
   if(f && (f.from>=4 || f.to>=4)){ const u=Math.max(0,Math.min(1,(animT-f.t0)/LOG3D.TURN_T));   // 세움·넘어짐은 시간으로 — 칸 이동(공 속도)보다 천천히 읽히게
-    if(u<1){ const d=[f.dc,f.dr], o=[cx(f.fc), cy(f.fr)], q=f.from>=4? log3dTopple(d,u) : log3dTip(d,u); log3dCyl(ctx,s,o,q[0],q[1],th); return; } }
-  const se=b.color>=4? log3dStanding() : log3dLying((b.color&3)===0||(b.color&3)===2);
-  log3dCyl(ctx,s,[x,y],se[0],se[1],th); }
+    if(u<1){ const d=[f.dc,f.dr], o=[cx(f.fc), cy(f.fr)], up=f.from>=4? 1-u*u : (u<.5? 2*u*u : 1-2*(1-u)*(1-u));   // 서 있는 몫 — 굵기·길이를 누움↔섬 사이로
+      return log3dWithDims(log3dDims(up),()=>{ const q=f.from>=4? log3dTopple(d,u) : log3dTip(d,u); log3dCyl(ctx,s,o,q[0],q[1],th); }); } }
+  if(b.color>=4) return log3dWithDims(LOG3D_STAND,()=>{ const se=log3dStanding(); log3dCyl(ctx,s,[x,y],se[0],se[1],th); });   // 섬 — 짧고 굵은 통
+  const se=log3dLying((b.color&3)===0||(b.color&3)===2); log3dCyl(ctx,s,[x,y],se[0],se[1],th); }
 // 배(뜬 1칸 통나무) — 반쯤 잠김: 아랫부분은 물빛 + 물낯 선, 둘레 물결 고리 둘이 천천히 퍼지고, 맥스와 함께 출렁. 세로는 가까운 끝에 벤 면.
 const CREEK_BOB=()=>Math.sin(animT*2.2)*cell*.018, CREEK_BOAT_DROP=.04;          // 둑이 높아 물낯이 낮다 — 배는 조금 아래에 뜬다
-function creekBoatVert(b){ let v=(b.color&3)===0||(b.color&3)===2; const a=logDriftAxis(b); if(a) v=a==='v'; return v; }
-function creekBoatLog(x,y,s,b){
-  const vert=creekBoatVert(b), {LEN,R}=LOG3D, L2=s*LEN/2, r=s*R, g=ctx;
-  g.save(); g.translate(x,y); if(vert) g.rotate(Math.PI/2);                       // 물결 고리 — 그늘 + 하얀 고리 둘
+function creekBoatVert(b){ let v=(b.color&3)===0||(b.color&3)===2; const a=logDriftAxis(b); if(a) v=a==='v'; return v; }   // 가는 중엔 지금 구간의 축(b.color 는 끝 규칙값) — 배는 길이 방향으로만 떠나니 출발 때 안 돈다
+// 배 머리 돌리기(10-08 사람, 그림만) — 그리는 각 b.bAng(0 가로 · π/2 세로)이 목표 축으로 0.22초에 90° 돈다. 출발·굽이·개구리에 쳐낼 때 옆으로 미끄러지지 않고 머리를 튼다.
+const BOAT_TURN_T=.35;
+// 막 넘어진 나무가 물에 뜬 통나무는 넘어진 쪽 축으로 처음 그린다(왼쪽으로 넘기면 동서) — 엔진은 넘어진 face 로 세운 뒤 떠내려간 마지막 방향으로 b.color 를 바꿔 두므로,
+// 처음부터 b.color·다음 구간 축을 쓰면 물살 굽이 칸에서 세로로 나타나 넘어가는 가로 줄기와 어긋났다(5b, 10-08). 떠나면서 아래 회전으로 물길 축으로 튼다.
+function creekFellAng(b){ const f=treeFallFx; if(!f || f.lv!==level || !f.cells.some(q=>q.r===Math.round(b.rr) && q.c===Math.round(b.cc))) return null; return (f.face&1)? 0 : Math.PI/2; }
+function creekBoatAng(b){ const tg=creekBoatVert(b)? Math.PI/2 : 0; if(b.bAng==null || b.bAngT===animT) { if(b.bAng==null){ const fa=b.pivot? null : creekFellAng(b); b.bAng=fa==null? tg : fa; b.bAngT=animT; } return b.bAng; }
+  const dtA=Math.max(0,Math.min(.1,animT-(b.bAngT==null? animT : b.bAngT))); b.bAngT=animT; const st=dtA*(Math.PI/2)/BOAT_TURN_T;
+  b.bAng = Math.abs(tg-b.bAng)<=st? tg : b.bAng+Math.sign(tg-b.bAng)*st; return b.bAng; }
+// ── 물 위 통나무 합성(10-08 사람 확정 v5·B4) — 물결 고리·물빛·밴드는 물 자리에만, 통나무는 먼 둑 위·가까운 둑 밑. 땅 픽셀을 매 프레임 읽지 않는다:
+//    통나무 둘레 작은 임시 캔버스에 그린 뒤 구운 물낯 가리개(CREEK.wm)로 잘라(destination-in) 붙인다. 물 자리 판정·물빛은 구울 때 남긴 픽셀(CREEK.wdd·od)에서.
+const creekLay=[null,null,null];
+function creekMaskOK(){ const tr=CREEK.tr; if(!CREEK.wm || !CREEK.wdd || !tr) return false; const T=ctx.getTransform(); return Math.abs(T.a-tr[0])<1e-3 && Math.abs(T.e-tr[1])<.5 && Math.abs(T.f-tr[2])<.5 && T.b===0 && T.c===0; }
+function creekLayer(i,x0,y0,w,h){ const T=ctx.getTransform(), X=Math.floor(T.a*x0+T.e), Y=Math.floor(T.d*y0+T.f), W=Math.ceil(w*T.a)+2, H=Math.ceil(h*T.d)+2; if(W<2||H<2) return null;
+  let c=creekLay[i]; if(!c) c=creekLay[i]=document.createElement('canvas'); if(c.width<W||c.height<H){ c.width=Math.max(c.width,W); c.height=Math.max(c.height,H); }
+  const g=c.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,c.width,c.height); g.setTransform(T.a,0,0,T.d,T.e-X,T.f-Y);
+  return {c,g,X,Y,W,H}; }
+function creekWaterOnly(lay){ const c=creekLay[2]||(creekLay[2]=document.createElement('canvas')); if(c.width<lay.W||c.height<lay.H){ c.width=Math.max(c.width,lay.W); c.height=Math.max(c.height,lay.H); }
+  const g=c.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,c.width,c.height); g.drawImage(lay.c,0,0,lay.W,lay.H,0,0,lay.W,lay.H);
+  g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm,lay.X,lay.Y,lay.W,lay.H,0,0,lay.W,lay.H); g.globalCompositeOperation='source-over'; return {c}; }
+function creekBlit(lay,src,clip){ ctx.save(); if(clip) clip(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage((src||lay).c,0,0,lay.W,lay.H,lay.X,lay.Y,lay.W,lay.H); ctx.restore(); }
+function creekRrp(g,x,y,w,h,r){ g.beginPath(); g.moveTo(x+r,y); g.arcTo(x+w,y,x+w,y+h,r); g.arcTo(x+w,y+h,x,y+h,r); g.arcTo(x,y+h,x,y,r); g.arcTo(x,y,x+w,y,r); g.closePath(); }
+function creekWetPx(X,Y){ const W=CREEK.Wd; return X>=0 && Y>=0 && X<W && Y<CREEK.Ht && CREEK.wdd[(Y*W+X)*4+3]>200; }
+// 배 자리의 지금 물빛 — 구운 그림에서 배 밑 몇 곳을 평균(푸른 픽셀만) + 배 밑 옅은 그늘. 물낯 아래 잠긴 띠를 이 색으로 채워 "물에 잠긴" 반 통나무로 읽힌다.
+function creekWaterColor(x,y,def){ const od=CREEK.od, tr=CREEK.tr; if(!od||!tr) return def; const T=ctx.getTransform(), W=CREEK.Wd, X0=Math.round(T.a*x+T.e), Y0=Math.round(T.d*(y+cell*.08)+T.f); let R=0,G=0,B=0,N=0;
+  for(let dy=-3;dy<=3;dy++) for(let dx=-6;dx<=6;dx++){ const i=((Y0+dy*2)*W+X0+dx*3)*4; if(i<0||i>=od.length||od[i+3]<200||od[i+2]<od[i]+30) continue; R+=od[i];G+=od[i+1];B+=od[i+2];N++; }
+  if(!N) return def; const c=[R/N,G/N,B/N].map((v,j)=>(v*.9+[30,70,90][j]*.1)|0); return `rgb(${c[0]},${c[1]},${c[2]})`; }
+// 배가 둑에서 떨어져 뜨는 자리(그림만) — 통나무가 차지할 띠에서 물이 꽉 찬 폭을 재 둑과 끝 사이에 물 틈을 둔다. 굽은·대각선 둑·웅덩이 윗줄·귀퉁이는 가로·세로 둘 다 민다(칸 단위)
+const CREEK_BOAT_GAP=.07, CREEK_BOAT_LEN2=.48;
+function creekBoatSpan(b,vert,offs){ const T=ctx.getTransform(), S=cell*T.a, X0=T.e+(b.cc+.5)*S, Y0=T.f+(b.rr+.5)*S; let lo=-1.2, hi=1.2;
+  for(const o of (offs || (vert? [-.22,-.1,0,.1,.22] : [-.3,-.2,-.1,0,.1,.24]))){   // 가로 배는 위로 더 — 윗면·끝이 굽은 둑 옆면 밑에 닿지 않게
+    const sc=sg=>{ let k=0; while(k<S*1.2 && creekWetPx(Math.round(vert? X0+o*S : X0+sg*k), Math.round(vert? Y0+sg*k : Y0+o*S))) k++; return k/S; };
+    if(!creekWetPx(Math.round(vert? X0+o*S : X0), Math.round(vert? Y0 : Y0+o*S))) continue; lo=Math.max(lo,-sc(-1)); hi=Math.min(hi,sc(1)); }
+  return [lo,hi]; }
+function creekBoatNudge(b){ if(!creekMaskOK()) return [0,0];
+  const vert=creekBoatVert(b), [a0,a1]=creekBoatSpan(b,vert), h0=-CREEK_BOAT_LEN2, h1=vert? CREEK_BOAT_LEN2+.06 : CREEK_BOAT_LEN2;   // 세로 배는 가까운 끝 벤 면이 아래로 조금 더 나온다
+  const lo=a0+CREEK_BOAT_GAP-h0, hi=a1-CREEK_BOAT_GAP-(vert? .06 : 0)-h1, k=Math.max(-.45,Math.min(.45, lo<=hi? Math.min(Math.max(0,lo),hi) : (lo+hi)/2));
+  const [p0,p1]=creekBoatSpan(b,!vert,[-.44,-.3,-.15,0,.15,.3,.44]), half=vert? .24 : .26, lo2=p0+CREEK_BOAT_GAP+half, hi2=p1-CREEK_BOAT_GAP-half;
+  const kp=Math.max(-.3,Math.min(.3, lo2<=hi2? Math.min(Math.max(0,lo2),hi2) : (lo2+hi2)/2));
+  return vert? [kp,k] : [k,kp]; }
+// 배 둘레 연출 — 가는 길 V 물결·물방울 + 물결 고리 둘(물 자리에만 붙는다)
+function creekBoatFx(g,x,y,s,b,ang,turning,vert){
+  if(b.path && !(b.delay>0)){ const tg=b.path[b.pathI]; if(tg){ const dx=tg.c-b.cc, dy=tg.r-b.rr, dl=Math.hypot(dx,dy); if(dl>.01){   // 물 가르는 자국 — 가는 반대쪽으로 V 두 줄
+    const ux=dx/dl, uy=dy/dl; g.save(); g.strokeStyle='rgba(255,255,255,.8)'; g.lineWidth=s*.025; g.lineCap='round';
+    for(const sg of [-1,1]){ g.beginPath(); g.moveTo(x-ux*s*.42, y-uy*s*.42); g.lineTo(x-ux*s*.78-uy*sg*s*.22, y-uy*s*.78+ux*sg*s*.22); g.stroke(); }
+    for(let k=0;k<3;k++){ const u=((animT*1.6+k/3)%1); g.fillStyle=`rgba(255,255,255,${(.6*(1-u)).toFixed(2)})`; g.beginPath(); g.arc(x-ux*s*(.45+u*.4), y-uy*s*(.45+u*.4), s*.025*(1+u), 0, 7); g.fill(); }
+    g.restore(); } } }
+  g.save(); g.translate(x,y); g.rotate(turning? ang : vert? Math.PI/2 : 0);         // 물결 고리 — 그늘 + 하얀 고리 둘
   g.fillStyle='rgba(30,70,90,.26)'; g.beginPath(); g.ellipse(0,s*.06,s*.56,s*.24,0,0,7); g.fill();
   for(const k of [0,.5]){ const u=(animT*.35+k)%1; g.strokeStyle=`rgba(255,255,255,${(.75*(1-u)).toFixed(3)})`; g.lineWidth=s*.02; g.beginPath(); g.ellipse(0,s*.04,s*(.52+u*.12),s*(.22+u*.06),0,0,7); g.stroke(); }
-  g.restore();
-  g.save(); g.translate(x,y+CREEK_BOB()+s*CREEK_BOAT_DROP); if(!vert) g.rotate(Math.sin(animT*1.7)*.025);
+  g.restore(); }
+// 배 몸통 — 반쯤 잠긴 통나무. 가로는 옆모습(벤 면 없이 왼쪽 끝만 살짝 어둡게), 세로는 가까운 끝에 벤 면. 잠긴 띠는 그 자리 물빛 그대로(물낯에서 잘린 반 통나무)
+function creekBoatBody(g,x,y,s,b,ang,turning,vert){
+  const {LEN,R}=BOAT_LOG, L2=s*LEN/2, r=s*R, wc=creekWaterColor(x,y,'rgba(110,185,220,.82)');
+  g.save(); g.translate(x,y+CREEK_BOB()+s*CREEK_BOAT_DROP); if(turning) g.rotate(ang); else if(!vert) g.rotate(Math.sin(animT*1.7)*.025);
+  g.beginPath(); if(vert) g.rect(-r*1.08,-L2-2,r*2.16,2*L2+r*.45); else g.rect(-L2-2,-r*1.08,2*L2+4,r*2.2); g.clip();   // 몸통만(고리·물결은 따로)
   const wood=(x0,y0,x1,y1)=>{ const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#B77A43'); gr.addColorStop(1,'#7E4C2B'); return gr; };
   const cut=(cx0,cy0,rx,ry)=>{ g.fillStyle='#E8C48A'; g.beginPath(); g.ellipse(cx0,cy0,rx,ry,0,0,7); g.fill(); g.strokeStyle='rgba(62,36,16,.55)'; g.lineWidth=s*.014; g.stroke();
     g.strokeStyle='rgba(105,65,32,.5)'; g.beginPath(); g.ellipse(cx0,cy0,rx*.5,ry*.5,0,0,7); g.stroke(); };
-  if(!vert){                                                                     // 가로 — 옆모습: 끝 둘이 좌우, 아래 45% 가 물에
-    g.fillStyle=wood(0,-r,0,r); rr(-L2,-r,2*L2,2*r,r*.9); g.fill();
+  if(!vert){
+    g.fillStyle=wood(0,-r,0,r); creekRrp(g,-L2,-r,2*L2,2*r,r*.9); g.fill();
     g.strokeStyle='rgba(239,199,137,.42)'; g.lineWidth=s*.025; for(const q of [-.3,-.05,.22]){ g.beginPath(); g.moveTo(s*LEN*q,-r*.72); g.lineTo(s*LEN*(q+.07),r*.2); g.stroke(); }
-    cut(-L2+r*.35,0,r*.6,r);
-    g.save(); rr(-L2,-r,2*L2,2*r,r*.9); g.clip(); g.fillStyle='rgba(110,185,220,.82)'; g.fillRect(-L2-2,r*.12,2*L2+4,r*2); g.restore();
+    g.save(); creekRrp(g,-L2,-r,2*L2,2*r,r*.9); g.clip(); const eg=g.createLinearGradient(-L2,0,-L2+r*1.1,0); eg.addColorStop(0,'rgba(60,32,12,.45)'); eg.addColorStop(1,'rgba(60,32,12,0)'); g.fillStyle=eg; g.fillRect(-L2,-r,r*1.1,2*r); g.restore();   // 가로 배 — 나이테 없이 끝만 살짝 어둡게
+    g.save(); creekRrp(g,-L2,-r,2*L2,2*r,r*.9); g.clip(); g.fillStyle=wc; g.fillRect(-L2-2,r*.12,2*L2+4,r*2); g.restore();
     g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=s*.022; g.lineCap='round'; g.beginPath(); g.moveTo(-L2+r*.2,r*.12); g.lineTo(L2-r*.2,r*.12); g.stroke(); }
-  else {                                                                         // 세로 — 멀리 누움: 위 끝은 둥글게, 가까운(아래) 끝에 벤 면, 양옆 아랫단이 물에
-    g.fillStyle=wood(-r,0,r,0); rr(-r,-L2,2*r,2*L2-r*.3,r*.9); g.fill();
+  else {
+    g.fillStyle=wood(-r,0,r,0); creekRrp(g,-r,-L2,2*r,2*L2-r*.3,r*.9); g.fill();
     g.strokeStyle='rgba(239,199,137,.42)'; g.lineWidth=s*.025; for(const q of [-.32,-.08,.16]){ g.beginPath(); g.moveTo(-r*.5,s*LEN*q); g.lineTo(r*.5,s*LEN*(q+.06)); g.stroke(); }
-    g.save(); rr(-r,-L2,2*r,2*L2-r*.3,r*.9); g.clip(); g.fillStyle='rgba(110,185,220,.78)'; g.fillRect(-r-2,-L2,r*.2,2*L2); g.fillRect(r*.8,-L2,r*.2+2,2*L2); g.restore();
+    g.save(); creekRrp(g,-r,-L2,2*r,2*L2-r*.3,r*.9); g.clip(); g.fillStyle=wc; g.fillRect(-r-2,-L2,r*.2,2*L2); g.fillRect(r*.8,-L2,r*.2+2,2*L2); g.restore();
     g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; g.lineCap='round'; for(const sx of [-1,1]){ g.beginPath(); g.moveTo(sx*r*.8,-L2+r*.6); g.lineTo(sx*r*.8,L2-r*.6); g.stroke(); }
     const ey=L2-r*.3; cut(0,ey,r,r*.62);
-    g.save(); g.beginPath(); g.ellipse(0,ey,r+1,r*.62+1,0,0,7); g.clip(); g.fillStyle='rgba(110,185,220,.85)'; g.fillRect(-r-2,ey+r*.05,2*r+4,r); g.restore();
+    g.save(); g.beginPath(); g.ellipse(0,ey,r+1,r*.62+1,0,0,7); g.clip(); g.fillStyle=wc; g.fillRect(-r-2,ey+r*.05,2*r+4,r); g.restore();
     g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=s*.022; g.beginPath(); g.moveTo(-r*.95,ey+r*.05); g.lineTo(r*.95,ey+r*.05); g.stroke(); }
   g.restore(); }
-// 다리(물살 위 1칸 통나무, 양 끝이 둑) — 둑 사이에 낀 꼴: 길이 = 보이는 물 폭(creekBake 가 잰 CREEK.gap), 두 끝은 둑 속(그 폭으로 잘라 그린다 — 벤 면 없음),
-// 낀 자리 이음매, 반쯤 잠겨 물낯 선 + 젖은 껍질, 위쪽(상류)엔 물이 몰려 거품 줄, 아래쪽(하류)엔 물결이 이어 나간다.
+// 물길을 가로질러 놓인 1칸 통나무가 떠날 때(10-09 사람 A안 — 엔진은 그대로: 다리가 아니면 물길로 돌아 떠내려간다) — 그림만 땅 쪽 끝을 축으로 돈다.
+// 물 위 끝이 먼저 하류 쪽으로 쓸려 내려가 물길과 나란해진 뒤 떨어져 흐른다. 양 끝이 다 물이면(땅 끝이 없으면) 가운데를 축으로 돈다.
+// 계획은 칸 단위 — P = 축 점(칸 가운데 기준), F0·F1 = 축 점에서 자유 끝까지(처음·끝), len = 축 점에서 보는 통나무 길이(가운데 축이면 절반).
+const LOG_PIVOT_T=.4, LOG_PIVOT_IN=.6;
+function logPivotPlan(L, filled, r0, c0, face, d0){
+  if(face==null || face>=4 || !d0) return null;
+  const ax=DOOR_CV[face&3], dv=[d0.r-r0, d0.c-c0];
+  if(Math.abs(dv[0])+Math.abs(dv[1])!==1 || ax[0]*dv[0]+ax[1]*dv[1]!==0) return null;            // 이미 물길과 나란하면 돌 것 없다
+  const land=k=>{ const t=tileAt(L, filled, r0+ax[0]*k, c0+ax[1]*k); return !(isWater(t) || t===WATER); };
+  const sg=land(1)&&!land(-1)? 1 : land(-1)&&!land(1)? -1 : 0, H=BOAT_LOG.LEN/2;
+  if(sg) return {P:[ax[0]*sg*H, ax[1]*sg*H], F0:[-ax[0]*sg, -ax[1]*sg], F1:dv, len:2*H};
+  return {P:[0,0], F0:[ax[0],ax[1]], F1:dv, len:H};                                               // 양 끝이 물 — 가운데 축(어느 끝이든 90°)
+}
+// 지금 그릴 자세 — {ang(화면 각, 가로 그림을 이만큼 돌림), oy·ox(칸 가운데에서 몸통 가운데까지, 칸), active(도는 중)}. 다 돌고 나면 떠나며 첫 칸 동안 어긋남을 0으로 줄인다.
+function creekLogPivot(b){
+  const p=b.pivot; if(!p) return null;
+  const a0=Math.atan2(p.F0[0],p.F0[1]); let d=Math.atan2(p.F1[0],p.F1[1])-a0; while(d>Math.PI) d-=2*Math.PI; while(d<=-Math.PI) d+=2*Math.PI;
+  const u=Math.max(0,Math.min(1,(animT-p.t0)/LOG_PIVOT_T)), e=1-(1-u)**3, th=a0+d*e;                // 끝이 물에 쓸리듯 — 빨리 돌다 천천히 맞춘다
+  const fr=Math.sin(th)*p.len, fc=Math.cos(th)*p.len, half=p.len===BOAT_LOG.LEN? .5 : 0;
+  const pk=1-LOG_PIVOT_IN*e, Pr=p.P[0]*pk, Pc=p.P[1]*pk;                                          // 땅 끝은 둑 턱에 걸린 채 물 쪽으로 조금 끌려 든다 — 다 돈 통나무가 둑 위가 아니라 물 위에 눕게
+  let oy=Pr+fr*half, ox=Pc+fc*half;
+  if(u>=.5 && !p.splash){ p.splash=1; spark(p.r0+Pr+fr, p.c0+Pc+fc, '#D6F1FF', 7, 1.4); }         // 쓸리는 끝에 물방울
+  b.pvDraw={u, land:[p.r0+Pr, p.c0+Pc], free:[p.r0+Pr+fr, p.c0+Pc+fc]};                            // 테스트가 읽는다(축 끝은 거의 제자리, 자유 끝은 하류로)
+  if(u<1) return {ang:th, oy, ox, active:true};
+  const k=Math.max(0,1-Math.abs(b.rr-p.r0)-Math.abs(b.cc-p.c0)); if(k<=0){ b.pivot=null; b.pvDraw=null; return null; }
+  return {ang:null, oy:oy*k, ox:ox*k, active:false}; }
+// 배(뜬 1칸 통나무). 그리는 차례(10-08 사람: 가까운 것이 위) — ① 물결 고리·물빛은 물 자리에만 ② 통나무는 둑에서 떨어져 통째로, 먼 둑 위에 ③ 가까운(아래) 쪽 땅은 통나무 앞.
+function creekBoatLog(x,y,s,b){
+  const pv=creekLogPivot(b);
+  let ang, turning, vert, nx, ny;
+  let bAng, bVert;                                                                                 // 몸통 그림 — 세로 쪽에 가까우면 세로 그림을 조금 돌린다(가로 그림을 90° 가까이 돌리면 잠긴 아래 띠가 옆으로 누워 반쪽이 물빛이 된다)
+  if(pv && pv.active){ ang=pv.ang; turning=true; vert=false; nx=pv.ox; ny=pv.oy; b.bAng=null;
+    const a=((ang%Math.PI)+Math.PI)%Math.PI; bVert=Math.abs(a-Math.PI/2)<Math.PI/4; bAng=bVert? a-Math.PI/2 : (a>Math.PI/2? a-Math.PI : a); }   // 땅 끝을 축으로 도는 중 — 가로 그림을 그 각으로, 몸통 가운데는 축 점 둘레로
+  else { ang=creekBoatAng(b); turning=ang>.03 && ang<Math.PI/2-.03; vert=!turning && ang>=Math.PI/4;   // 도는 중엔 가로 그림을 그 각으로 돌려 그린다
+    [nx,ny]=creekBoatNudge(b); if(pv){ nx+=pv.ox; ny+=pv.oy; } }
+  if(bAng==null){ bAng=ang; bVert=vert; }
+  const X=x+nx*s, Y=y+ny*s, W=.85*s;
+  if(!creekMaskOK()){ creekBoatFx(ctx,X,Y,s,b,ang,turning,vert); creekBoatBody(ctx,X,Y,s,b,bAng,turning,bVert); return; }
+  let lay=creekLayer(0,X-W,Y-W,2*W,2*W); if(!lay) return;
+  creekBoatFx(lay.g,X,Y,s,b,ang,turning,vert); creekBlit(lay,creekWaterOnly(lay));
+  lay=creekLayer(0,X-W,Y-W,2*W,2*W); creekBoatBody(lay.g,X,Y,s,b,bAng,turning,bVert);
+  const yb=Y+CREEK_BOB()+s*CREEK_BOAT_DROP;
+  creekBlit(lay,null,()=>{ ctx.beginPath(); ctx.rect(X-W,Y-W,2*W,yb-(Y-W)); ctx.clip(); });                 // 위 절반 — 먼 둑 위에도
+  if(pv && pv.active){ creekBlit(lay,null,()=>{ ctx.beginPath(); ctx.rect(X-W,yb,2*W,W+s*.1); ctx.clip(); }); return; }   // 땅 끝을 축으로 도는 중 — 그 끝은 둑 위에 걸쳐 있으니 둑에 가리지 않는다
+  creekBlit(lay,creekWaterOnly(lay),()=>{ ctx.beginPath(); ctx.rect(X-W,yb,2*W,W+s*.1); ctx.clip(); }); }  // 아래 절반 — 가까운 땅이 앞
+// 다리(물살 위 1칸 통나무, 양 끝이 둑) — B4(10-08 사람 확정): 배 통나무 모양 그대로 걸친 꼴. 길이 = 보이는 물 폭(creekBake 가 잰 CREEK.gap), 두 끝은 둑 턱 밑으로 들어가고
+// 가까운 끝의 벤 면은 가까운 턱이 거의 덮어 조각만 보인다. 반쯤 잠겨 물낯 선 + 양옆 물선, 위쪽(상류)엔 물이 몰려 거품 줄. 가로로 걸친 통나무는 나이테 없음.
 function creekBridgeSpan(b){ const ax=logAxis(b), horiz=ax[1]!==0, gp=CREEK.gap && CREEK.gap.get(kk(b.r,b.c)), s=cell;
   let a0, a1; if(gp){ a0=(horiz? gp.x0 : gp.y0)*s; a1=(horiz? gp.x1 : gp.y1)*s; } if(!gp || !(a1-a0>s*.2)){ a0=-.36*s; a1=.36*s; }
   return {horiz,a0,a1}; }
+function creekBridgeWood(g,x0,y0,x1,y1){ const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#704328'); gr.addColorStop(.45,'#B77A43'); gr.addColorStop(.7,'#A56A39'); gr.addColorStop(1,'#6A3F24'); return gr; }
+function creekBridgeRing(g,cx0,cy0,rx,ry,s){ g.fillStyle='#E8C48A'; g.beginPath(); g.ellipse(cx0,cy0,rx,ry,0,0,7); g.fill(); g.strokeStyle='rgba(62,36,16,.6)'; g.lineWidth=s*.014; g.stroke();
+  g.strokeStyle='rgba(105,65,32,.5)'; g.lineWidth=s*.012; for(const k of [.62,.3]){ g.beginPath(); g.ellipse(cx0,cy0,rx*k,ry*k,0,0,7); g.stroke(); } }
 function creekBridgeLog(x,y,s,b){
-  const {horiz,a0,a1}=creekBridgeSpan(b), t=tileAt(L,filled,b.r,b.c), f=FLOWV[t] || (horiz? [1,0] : [0,1]), {R,KH}=LOG3D, r=R*s, W=.36, g=ctx;
-  g.save(); g.translate(x,y);                                                     // 상류 물 몰림 + 거품 줄, 하류 물결(물길 폭 안에서만)
-  const up=[-f[1],-f[0]];
-  g.save(); g.beginPath(); if(horiz) g.rect(-W*s,-s*.5,2*W*s,s); else g.rect(-s*.5,-W*s,s,2*W*s); g.clip();
-  g.fillStyle='rgba(210,240,250,.55)'; g.beginPath(); if(horiz) g.ellipse(0,up[1]*r*1.25,W*s,r*.55,0,0,7); else g.ellipse(up[0]*r*1.25,0,r*.55,W*s,0,0,7); g.fill();
-  g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=s*.03; g.lineCap='round'; g.beginPath();
-  for(let i=0;i<=12;i++){ const u=-W+2*W*i/12, w=Math.sin(i*1.7+animT*3)*s*.012, k=r*1.05+w, px=horiz? u*s : up[0]*k, py=horiz? up[1]*k : u*s; i? g.lineTo(px,py) : g.moveTo(px,py); } g.stroke();
-  g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=s*.018;
-  for(const u of [-.2,0,.2]) for(let j=0;j<2;j++){ const o0=r*1.3+j*s*.16+((animT*.5*s)%(s*.16)), o1=o0+s*.09; g.beginPath();
-    if(horiz){ g.moveTo(u*s,-up[1]*o0); g.lineTo(u*s,-up[1]*o1); } else { g.moveTo(-up[0]*o0,u*s); g.lineTo(-up[0]*o1,u*s); } g.stroke(); }
-  g.restore();
-  g.beginPath(); if(horiz) g.rect(a0,-s,a1-a0,2*s); else g.rect(-s,a0,2*s,a1-a0); g.clip();   // 둑 속으로 든 두 끝은 안 보인다
-  const h=R*.42, lift=h*KH*s, S=horiz? [(a0-r)/s,lift/s,h] : [0,(a0-r+lift)/s,h], E=horiz? [(a1+r)/s,lift/s,h] : [0,(a1+r+lift)/s,h];
-  log3dCyl(g,s,[0,0],S,E,.4,{noShadow:true,noFace:true});
-  if(horiz){ const yl=r*.3; g.fillStyle='rgba(60,32,12,.35)'; g.fillRect(a0,yl-r*.3,a1-a0,r*.3); g.fillStyle='rgba(110,185,220,.88)'; g.fillRect(a0,yl,a1-a0,r*1.2);
-    g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=s*.025; g.beginPath(); g.moveTo(a0,yl); g.lineTo(a1,yl); g.stroke(); }
-  else { for(const sg of [-1,1]){ g.fillStyle='rgba(60,32,12,.35)'; g.fillRect(sg>0? r*.45 : -r*.75,a0,r*.3,a1-a0); g.fillStyle='rgba(110,185,220,.85)'; g.fillRect(sg>0? r*.75 : -r*1.2,a0,r*.45,a1-a0);
-    g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=s*.02; g.beginPath(); g.moveTo(sg*r*.75,a0); g.lineTo(sg*r*.75,a1); g.stroke(); } }
-  g.fillStyle='rgba(60,35,15,.38)';                                                // 낀 자리 이음매
-  if(horiz){ g.fillRect(a0,-r*.9,s*.03,r*1.8); g.fillRect(a1-s*.03,-r*.9,s*.03,r*1.8); } else { g.fillRect(-r,a0,2*r,s*.03); g.fillRect(-r,a1-s*.03,2*r,s*.03); }
-  g.restore(); }
+  const {horiz,a0,a1}=creekBridgeSpan(b), r=.17*s, t=tileAt(L,filled,b.r,b.c), fv=FLOWV[t]||[0,0], mask=creekMaskOK();
+  const lay=mask? creekLayer(1,x-1.2*s,y-1.3*s,2.4*s,2.6*s) : null, g=lay? lay.g : ctx;
+  // 둑 턱이 통나무 끝을 덮는 자리(모양 그대로) — 이 안에선 물 자리만 통나무가 보이고 땅 픽셀은 둑이 앞
+  const shapes=[]; let post;
+  if(!horiz){                                                                // 가로 물살 위 세로 통나무
+    const face=CREEK_BANK_H*s, lipY=y+a0-face, yF=lipY-s*.03, yN=y+a1+r*1.35, nearLip=y+a1+s*.012;
+    shapes.push(c=>{ c.moveTo(x-r*1.6,lipY-s*.25); c.lineTo(x+r*1.6,lipY-s*.25); c.lineTo(x+r*1.6,lipY+s*.03); c.quadraticCurveTo(x,lipY+s*.06,x-r*1.6,lipY+s*.03); c.closePath(); });   // 먼 둑 턱이 먼 끝을 덮는다
+    shapes.push(c=>{ c.moveTo(x-r*1.6,nearLip+s*.35); c.lineTo(x-r*1.6,nearLip+s*.01); c.quadraticCurveTo(x,nearLip+r*.55,x+r*1.6,nearLip+s*.01); c.lineTo(x+r*1.6,nearLip+s*.35); c.closePath(); });   // 가까운 턱 — 벤 면을 거의 덮고 위 조각만
+    g.save(); g.beginPath(); g.rect(x-s,y+a0,2*s,a1-a0); g.clip(); g.fillStyle='rgba(20,60,90,.26)'; creekRrp(g,x-r+s*.07,y+a0-2,r*2.1,a1-a0+4,r*.6); g.fill(); g.restore();   // 물 위 그림자
+    g.fillStyle=creekBridgeWood(g,x-r,0,x+r,0); creekRrp(g,x-r,yF,2*r,yN-yF,r*.9); g.fill();
+    g.save(); creekRrp(g,x-r,yF,2*r,yN-yF,r*.9); g.clip(); g.strokeStyle='rgba(245,210,150,.5)'; g.lineWidth=s*.022; g.lineCap='round';
+    for(let i=0;i<4;i++){ const yy=yF+r*1.2+(yN-yF-r*2.4)*i/3.2; g.beginPath(); g.moveTo(x-r*.55,yy); g.lineTo(x+r*.3,yy+s*.06); g.stroke(); }
+    g.strokeStyle='rgba(60,32,12,.6)'; g.lineWidth=s*.03; g.beginPath(); g.moveTo(x-r*.3,yF+r*1.2); g.lineTo(x-r*.25,yN-r*1.4); g.stroke(); g.restore();
+    creekBridgeRing(g,x,yN-r*.62,r*.98,r*.62,s);
+    g.save(); g.beginPath(); g.rect(x-s,y+a0,2*s,a1-a0); g.clip(); g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; for(const sg of [-1,1]){ g.beginPath(); g.moveTo(x+sg*(r+s*.02),y+a0+s*.03); g.lineTo(x+sg*(r+s*.02),y+a1-s*.02); g.stroke(); } g.restore();   // 양옆 물선
+    post=()=>{ ctx.fillStyle='rgba(60,35,15,.3)'; ctx.beginPath(); ctx.ellipse(x,lipY+s*.04,r*1.05,s*.018,0,0,Math.PI); ctx.fill();
+      ctx.strokeStyle='rgba(238,218,172,.95)'; ctx.lineWidth=s*.03; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(x-r*1.3,nearLip+s*.012); ctx.quadraticCurveTo(x,nearLip+r*.58,x+r*1.3,nearLip+s*.012); ctx.stroke();
+      ctx.fillStyle='rgba(60,35,15,.22)'; ctx.beginPath(); ctx.ellipse(x,nearLip+r*.62,r*.9,s*.02,0,0,Math.PI); ctx.fill();
+      for(let i=0;i<5;i++){ const q=b.r*7+b.c*3+i, cx_=x+(i<3? -1 : 1)*r*(1.05+.25*creekHs(q)), cy_=nearLip+r*(.25+.4*creekHs(q+1)); ctx.fillStyle=creekHs(q+2)>.5? '#D7BF8E' : '#C2A374'; ctx.beginPath(); ctx.ellipse(cx_,cy_,s*.022,s*.016,0,0,7); ctx.fill(); } };
+  } else {                                                                   // 세로 물살 위 가로 통나무 — 두 끝이 옆 둑 밑으로, 나이테 없음
+    const xL=x+a0-r*.9, xR=x+a1+r*.9, yc=y-r*.1;
+    shapes.push(c=>{ c.moveTo(x+a0-s*.02-r*1.2,yc-r*1.8); c.lineTo(x+a0+s*.005,yc-r*1.8); c.quadraticCurveTo(x+a0+s*.06,yc,x+a0+s*.005,yc+r*1.8); c.lineTo(x+a0-s*.02-r*1.2,yc+r*1.8); c.closePath(); });   // 왼쪽 끝
+    shapes.push(c=>{ c.moveTo(x+a1+s*.02+r*1.2,yc-r*1.8); c.lineTo(x+a1-s*.005,yc-r*1.8); c.quadraticCurveTo(x+a1-s*.06,yc,x+a1-s*.005,yc+r*1.8); c.lineTo(x+a1+s*.02+r*1.2,yc+r*1.8); c.closePath(); });
+    g.save(); g.beginPath(); g.rect(x+a0,y-s,a1-a0,2*s); g.clip(); g.fillStyle='rgba(20,60,90,.26)'; creekRrp(g,x+a0-2,yc-r+s*.06,a1-a0+4,r*2.1,r*.6); g.fill(); g.restore();
+    g.fillStyle=creekBridgeWood(g,0,yc-r,0,yc+r); creekRrp(g,xL,yc-r,xR-xL,2*r,r*.9); g.fill();
+    g.save(); creekRrp(g,xL,yc-r,xR-xL,2*r,r*.9); g.clip(); g.strokeStyle='rgba(245,210,150,.5)'; g.lineWidth=s*.022; g.lineCap='round';
+    for(let i=0;i<4;i++){ const xx=xL+r*1.4+(xR-xL-r*2.8)*i/3; g.beginPath(); g.moveTo(xx,yc-r*.6); g.lineTo(xx+s*.06,yc+r*.3); g.stroke(); }
+    g.strokeStyle='rgba(60,32,12,.6)'; g.lineWidth=s*.03; g.beginPath(); g.moveTo(xL+r*1.3,yc-r*.3); g.lineTo(xR-r*1.3,yc-r*.25); g.stroke(); g.restore();
+    g.save(); g.beginPath(); g.rect(x+a0,y-s,a1-a0,2*s); g.clip(); g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; g.beginPath(); g.moveTo(x+a0+s*.02,yc+r+s*.02); g.lineTo(x+a1-s*.02,yc+r+s*.02); g.stroke();
+      if(fv[0]){ const up=-fv[0]; g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=s*.016; for(let i=0;i<3;i++){ const yy=yc+up*(r+s*(.08+i*.06)); g.beginPath(); g.moveTo(x+a0+s*.05,yy); g.quadraticCurveTo(x,yy+up*s*.02,x+a1-s*.05,yy); g.stroke(); } } g.restore();
+    post=()=>{ ctx.strokeStyle='rgba(238,218,172,.9)'; ctx.lineWidth=s*.026; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x+a0+s*.012,yc-r*1.3); ctx.quadraticCurveTo(x+a0+s*.045,yc,x+a0+s*.012,yc+r*1.3); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+a1-s*.012,yc-r*1.3); ctx.quadraticCurveTo(x+a1-s*.045,yc,x+a1-s*.012,yc+r*1.3); ctx.stroke(); };
+  }
+  if(lay){                                                                   // 합성 — 턱 모양 밖은 그대로, 턱 안은 물 자리만(땅은 둑이 앞)
+    creekBlit(lay,null,()=>{ ctx.beginPath(); ctx.rect(x-1.2*s,y-1.3*s,2.4*s,2.6*s); for(const sh of shapes) sh(ctx); ctx.clip('evenodd'); });
+    creekBlit(lay,creekWaterOnly(lay),()=>{ ctx.beginPath(); for(const sh of shapes) sh(ctx); ctx.clip(); }); }
+  post(); }
+// 물에 걸친 긴 통나무(10-09 사람) — B4 다리와 같은 합성: 통나무를 임시 캔버스에 그려 둑 턱 모양 밖은 그대로, 턱 안(둑 밑으로 들어가는 끝)은 물 자리만 붙인다.
+// 가로 통나무는 정면이라 나이테 없음(물 위 칸이 나이테 끝일 때), 물 위엔 물 그림자·양옆 물선. 물 칸 하나하나마다 둑 쪽 이웃(물 아닌 칸)에만 턱을 건다. 서 있거나 도는 중(칸 사이)이면 false → 예전 그림.
+function creekLongLogWater(x,y,s,b){
+  if(b.rr==null || Math.abs(b.rr-b.r)>.01 || Math.abs(b.cc-b.c)>.01) return false;
+  const v=DOOR_CV[b.color&3], horiz=v[1]!==0, wet=t=>isWater(t)||t===WATER, R=.22*s;
+  const cells=[[b.r,b.c,x,y],[b.r+v[0],b.c+v[1],x+v[1]*s,y+v[0]*s]], wc=cells.filter(q=>wet(tileAt(L,filled,q[0],q[1])));
+  if(!wc.length || !creekMaskOK()) return false;
+  const lay=creekLayer(1,x-2.3*s,y-2.3*s,4.6*s,4.6*s); if(!lay) return false;
+  const bank=(r,c)=>!wet(tileAt(L,filled,r,c)) && !cells.some(q=>q[0]===r && q[1]===c);   // 턱은 통나무가 끝나는 쪽 둑에만 — 통나무가 둑 위로 이어지는 쪽(다른 한 칸)은 그대로 둑 위에 누워 있다
+  const shapes=[], posts=[], g=lay.g, face=CREEK_BANK_H*s, bx=(cells[0][2]+cells[1][2])/2, by=(cells[0][3]+cells[1][3])/2;
+  const spans=wc.map(q=>{ const gp=CREEK.gap && CREEK.gap.get(kk(q[0],q[1])); let a0, a1; if(gp){ a0=(horiz? gp.x0 : gp.y0)*s; a1=(horiz? gp.x1 : gp.y1)*s; } if(!gp || !(a1-a0>s*.2)){ a0=-.36*s; a1=.36*s; } return {q,a0,a1}; });
+  for(const {q,a0,a1} of spans){ const qx=q[2], qy=q[3];
+    if(horiz){ const yc=qy-R*.1;
+      if(bank(q[0],q[1]-1)){ shapes.push(c=>{ c.moveTo(qx+a0-s*.02-R*1.2,yc-R*1.8); c.lineTo(qx+a0+s*.005,yc-R*1.8); c.quadraticCurveTo(qx+a0+s*.06,yc,qx+a0+s*.005,yc+R*1.8); c.lineTo(qx+a0-s*.02-R*1.2,yc+R*1.8); c.closePath(); });
+        posts.push(()=>{ ctx.strokeStyle='rgba(238,218,172,.9)'; ctx.lineWidth=s*.026; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(qx+a0+s*.012,yc-R*1.3); ctx.quadraticCurveTo(qx+a0+s*.045,yc,qx+a0+s*.012,yc+R*1.3); ctx.stroke(); }); }
+      if(bank(q[0],q[1]+1)){ shapes.push(c=>{ c.moveTo(qx+a1+s*.02+R*1.2,yc-R*1.8); c.lineTo(qx+a1-s*.005,yc-R*1.8); c.quadraticCurveTo(qx+a1-s*.06,yc,qx+a1-s*.005,yc+R*1.8); c.lineTo(qx+a1+s*.02+R*1.2,yc+R*1.8); c.closePath(); });
+        posts.push(()=>{ ctx.strokeStyle='rgba(238,218,172,.9)'; ctx.lineWidth=s*.026; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(qx+a1-s*.012,yc-R*1.3); ctx.quadraticCurveTo(qx+a1-s*.045,yc,qx+a1-s*.012,yc+R*1.3); ctx.stroke(); }); }
+    } else {
+      const lipY=qy+a0-face, nearLip=qy+a1+s*.012;
+      if(bank(q[0]-1,q[1])){ shapes.push(c=>{ c.moveTo(qx-R*1.6,lipY-s*.25); c.lineTo(qx+R*1.6,lipY-s*.25); c.lineTo(qx+R*1.6,lipY+s*.03); c.quadraticCurveTo(qx,lipY+s*.06,qx-R*1.6,lipY+s*.03); c.closePath(); });
+        posts.push(()=>{ ctx.fillStyle='rgba(60,35,15,.3)'; ctx.beginPath(); ctx.ellipse(qx,lipY+s*.04,R*1.05,s*.018,0,0,Math.PI); ctx.fill(); }); }
+      if(bank(q[0]+1,q[1])){ shapes.push(c=>{ c.moveTo(qx-R*1.6,nearLip+s*.35); c.lineTo(qx-R*1.6,nearLip+s*.01); c.quadraticCurveTo(qx,nearLip+R*.55,qx+R*1.6,nearLip+s*.01); c.lineTo(qx+R*1.6,nearLip+s*.35); c.closePath(); });
+        posts.push(()=>{ ctx.strokeStyle='rgba(238,218,172,.95)'; ctx.lineWidth=s*.03; ctx.lineCap='round'; ctx.beginPath(); ctx.moveTo(qx-R*1.3,nearLip+s*.012); ctx.quadraticCurveTo(qx,nearLip+R*.58,qx+R*1.3,nearLip+s*.012); ctx.stroke(); }); } } }
+  const saved=ctx; ctx=g; CREEK_LL.on=true; CREEK_LL.noShadow=true; CREEK_LL.noRing=horiz && wet(tileAt(L,filled,b.r,b.c));
+  try{ drawHillLogObject(x,y,s,b,true); } finally{ ctx=saved; CREEK_LL.on=false; CREEK_LL.noShadow=false; CREEK_LL.noRing=false; }
+  for(const {q,a0,a1} of spans){ const qx=q[2], qy=q[3];                      // 물 자리에만 — 그림자와 양옆 물선(둑 위엔 안 번진다)
+    g.save(); g.beginPath(); if(horiz) g.rect(qx+a0,qy-s,a1-a0,2*s); else g.rect(qx-s,qy+a0,2*s,a1-a0); g.clip();
+    g.globalCompositeOperation='destination-over'; g.fillStyle='rgba(20,60,90,.26)'; if(horiz) creekRrp(g,bx-.98*s,by-R+s*.06,1.96*s,R*2.1,R*.6); else creekRrp(g,bx-R+s*.07,by-.98*s,R*2.1,1.96*s,R*.6); g.fill();
+    g.globalCompositeOperation='source-over'; g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; g.lineCap='round';
+    if(horiz){ g.beginPath(); g.moveTo(qx+a0+s*.02,by+R+s*.02); g.lineTo(qx+a1-s*.02,by+R+s*.02); g.stroke(); }
+    else for(const sg of [-1,1]){ g.beginPath(); g.moveTo(qx+sg*(R+s*.02),qy+a0+s*.03); g.lineTo(qx+sg*(R+s*.02),qy+a1-s*.02); g.stroke(); }
+    g.restore(); }
+  if(shapes.length){ creekBlit(lay,null,()=>{ ctx.beginPath(); ctx.rect(x-2.3*s,y-2.3*s,4.6*s,4.6*s); for(const sh of shapes) sh(ctx); ctx.clip('evenodd'); });
+    creekBlit(lay,creekWaterOnly(lay),()=>{ ctx.beginPath(); for(const sh of shapes) sh(ctx); ctx.clip(); }); }
+  else creekBlit(lay);
+  for(const p of posts) p();
+  return true; }
 // 통나무 위 맥스 — 배·다리 칸이면 발 자리(화면 y)와 축(세로 통나무면 x)을 준다. render 가 맥스를 그 위에 세우고 껍질 위 접촉 그늘을 깐다.
 const CREEK_MAX_FEET=.40;                                                         // 맥스 그림 원점에서 발까지(냇가 80% 맥스 실측)
+// k = 맥스가 통나무 칸에 얼마나 올라 있나(1 위 · 0 옆 칸) — 오르내리는 걸음 동안 발 자리가 통나무 가운데에서 곧게 이어지게(10-08 사람: 가운데로 내린다)
 function creekLogFoot(){ if(!creekOn()) return null;
-  const b=boxes.find(x=>x.sink===0 && x.kind==='hillLog' && !x.gone && Math.round(x.rr)===Math.round(dog.rr) && Math.round(x.cc)===Math.round(dog.cc) && logOnWater(L, filled, x)); if(!b) return null;
+  let b=null, dmin=1; for(const x of boxes){ if(x.sink!==0 || x.kind!=='hillLog' || x.gone || !logOnWater(L, filled, x)) continue; const d=Math.max(Math.abs(x.rr-dog.rr),Math.abs(x.cc-dog.cc)); if(d<dmin){ dmin=d; b=x; } }
+  if(!b){ // 긴 통나무(log2·log2End) — 물 칸에 걸친 조각 위의 맥스도 윗면에 선다(10-09 사람: 물속에 서 있는 것처럼 보였다). 가로는 굵기 가운데, 세로는 칸 가운데.
+    let lb=null, ld=1; for(const x of boxes){ if(x.sink!==0 || (x.kind!=='log2' && x.kind!=='log2End') || x.gone) continue; const t=tileAt(L, filled, Math.round(x.rr), Math.round(x.cc)); if(!(isWater(t)||t===WATER)) continue;
+      const d=Math.max(Math.abs(x.rr-dog.rr),Math.abs(x.cc-dog.cc)); if(d<ld){ ld=d; lb=x; } }
+    if(!lb) return null; const k2=1-ld, lx2=cx(lb.cc), ly2=cy(lb.rr);
+    if(logAxis(lb)[1]!==0) return {x:lx2, xk:0, y:ly2-cell*.04, sy:ly2-cell*.06, w:.19, k:k2};
+    const gp=CREEK.gap && CREEK.gap.get(kk(Math.round(lb.rr),Math.round(lb.cc))), yc=ly2+(gp && gp.y1-gp.y0>.2? (gp.y0+gp.y1)/2*cell : 0);
+    return {x:lx2, xk:k2, y:yc+cell*.08, sy:yc+cell*.06, w:.17, k:k2}; }
+  const k=1-dmin;
   const lx=cx(b.cc), ly0=cy(b.rr);
-  if(logFloats(L, filled, b)){ const vert=creekBoatVert(b), ly=ly0+CREEK_BOB()+cell*CREEK_BOAT_DROP;
-    const fy=vert? ly+cell*.06 : ly-cell*.11; return {x:vert? lx : null, y:fy, sy:fy+cell*.01, w:vert? .16 : .2}; }
-  const {horiz,a0,a1}=creekBridgeSpan(b), {R,KH}=LOG3D, top=ly0+(horiz? 0 : (a0+a1)/2)-R*.42*KH*cell-R*.85*cell;
-  return {x:horiz? null : lx, y:top+cell*.14, sy:top+cell*.05, w:.17}; }
+  if(logFloats(L, filled, b)){ const t=Math.sin(creekBoatAng(b)), ly=ly0+CREEK_BOB()+cell*CREEK_BOAT_DROP, [nx,ny]=creekBoatNudge(b);   // t 0 가로 · 1 세로 — 도는 중엔 사이. (nx,ny) = 배를 둑에서 띄운 만큼 — 맥스도 통나무 가운데에
+    const fy=ly+cell*(-.11+.31*t-.14*t)+ny*cell;                                                     // 세로 배 — 발을 통나무 가운데 아래쪽에 둬 몸이 한가운데 서게(10-08 사람), 세로 배는 발을 0.14칸 더 위로(design-v2)
+    return {x:lx+nx*cell, xk:nx? k : k*t, y:fy, sy:fy+cell*.01, w:.2-.04*t, k}; }
+  const {horiz,a0,a1}=creekBridgeSpan(b), y=ly0;                                                     // 다리 위 — 통나무 가운데 윗면
+  if(!horiz){ const yc=y+(a0+a1)/2; return {x:lx, xk:k, y:yc+cell*.08, sy:yc+cell*.06, w:.15, k}; }
+  return {x:lx, xk:0, y:y-cell*.02, sy:y-cell*.04, w:.17, k}; }
 function drawCart(x,y,s,vertical,sx,sy,rot){ // 농장 대차 C — 빈 목재 평판 + 초록 손잡이 + 네 바퀴
   // 화물을 비워 공·맥스를 덜 가리고, 긴 평판과 한쪽 손잡이가 고정된 이동 축을 말한다.
   // 논리 크기는 한 칸 그대로다. 가로형은 윗판·앞면·바퀴 높이가 보이는 2.5D로 그려
@@ -36512,6 +36806,21 @@ function creekFrogDraw(){
     if(onFork && paw){ ctx2.save(); ctx2.strokeStyle='#FFF3B0'; ctx2.lineWidth=S*.05; ctx2.lineCap='round';   // 맞은 자리 번쩍
       const x=(f.c+.5)*S, y=(f.r+.5)*S; for(let k=0;k<7;k++){ const an=k/7*Math.PI*2+.3, r0=S*.1, r1=S*(k%2?.2:.27); ctx2.beginPath(); ctx2.moveTo(x+Math.cos(an)*r0,y+Math.sin(an)*r0); ctx2.lineTo(x+Math.cos(an)*r1,y+Math.sin(an)*r1); ctx2.stroke(); } ctx2.restore(); } }
 }
+// 막힘 칸(벽, tile 0) — 이끼 바위(10-08 사람 확정 A). 맥스가 못 지나는 자리는 확실히 막혀 보이는 묵직한 바위, 갈대는 물가 장식(creekReeds)으로만. (x,y) = 발밑 가운데, S = 칸*.9
+function creekRock(g,x,y,S,rx,ry,top,bot,hl){ const gr=g.createLinearGradient(x,y-ry,x,y+ry); gr.addColorStop(0,top); gr.addColorStop(1,bot); g.fillStyle=gr;
+  g.beginPath(); g.moveTo(x-rx,y+ry*.35); g.bezierCurveTo(x-rx*1.05,y-ry*.55,x-rx*.45,y-ry*1.05,x+rx*.1,y-ry); g.bezierCurveTo(x+rx*.75,y-ry*.95,x+rx*1.05,y-ry*.3,x+rx,y+ry*.35);
+  g.quadraticCurveTo(x,y+ry*.75,x-rx,y+ry*.35); g.closePath(); g.fill();
+  g.strokeStyle='rgba(70,62,52,.35)'; g.lineWidth=Math.max(1,rx*.05); g.stroke();
+  if(hl){ g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(x-rx*.35,y-ry*.55,rx*.28,ry*.16,-.35,0,7); g.fill(); } }
+function creekBlock(g,x,y,S0){ const S=S0*1.2;                    // 갈대보다 묵직하게 — 칸을 거의 채운다
+  g.fillStyle='rgba(60,45,25,.24)'; g.beginPath(); g.ellipse(x+S*.03,y+S*.02,S*.42,S*.1,0,0,7); g.fill();
+  creekRock(g,x+S*.2,y-S*.08,S,S*.17,S*.14,'#C9C1B1','#958C7C',true);                  // 옆 작은 돌
+  creekRock(g,x-S*.03,y-S*.2,S,S*.36,S*.3,'#D3CBBB','#978E7D',true);                   // 큰 바위
+  g.strokeStyle='rgba(110,98,84,.55)'; g.lineWidth=S*.018; g.beginPath(); g.moveTo(x+S*.02,y-S*.42); g.quadraticCurveTo(x+S*.08,y-S*.3,x+S*.02,y-S*.2); g.stroke();   // 금
+  g.fillStyle='#86B05A'; g.beginPath(); g.moveTo(x-S*.3,y-S*.36); g.bezierCurveTo(x-S*.2,y-S*.52,x+S*.06,y-S*.56,x+S*.2,y-S*.46);   // 이끼 모자
+  g.bezierCurveTo(x+S*.1,y-S*.42,x+S*.02,y-S*.4,x-S*.06,y-S*.36); g.bezierCurveTo(x-S*.14,y-S*.32,x-S*.22,y-S*.3,x-S*.3,y-S*.36); g.fill();
+  g.fillStyle='#A3C774'; for(const [dx,dy,r] of [[-.12,-.47,.04],[.04,-.5,.035],[-.22,-.4,.03]]){ g.beginPath(); g.arc(x+dx*S,y+dy*S,r*S,0,7); g.fill(); }
+  g.fillStyle='#6E9E4C'; for(const dx of [-.33,.32]){ g.beginPath(); g.ellipse(x+dx*S,y-S*.02,S*.07,S*.035,0,0,7); g.fill(); } }   // 밑동 풀
 function creekReeds(g,x,y,S){                                     // 벽 — 갈대 한 포기, (x,y) = 발밑 가운데
   g.fillStyle='rgba(40,70,30,.22)'; g.beginPath(); g.ellipse(x,y,S*.34,S*.08,0,0,7); g.fill();
   g.fillStyle='#6E9E4C'; g.beginPath(); g.ellipse(x,y-S*.02,S*.3,S*.1,0,0,7); g.fill();
@@ -36553,6 +36862,37 @@ function creekGaps(wd,Wd,Ht,T,S,cells){ const out=new Map(), wet=(x,y)=>x>=0 && 
     const scan=(dx,dy)=>{ let k=0; while(k<S*1.2 && wet(X0+dx*k,Y0+dy*k)) k++; return k/S; };
     out.set(kk(r,c),{x0:-scan(-1,0), x1:scan(1,0), y0:-scan(0,-1), y1:scan(0,1)}); }
   return out; }
+// ── M1 여울(10-08 사람 확정) — 물살 끝 칸(flowMouth)은 모래 비탈로 이어지는 얕은 여울: 흙 옆면·테가 0 으로 사라지고 바닥 모래·자갈이 비친다. 맥스는 발목 물결로 걷는다.
+const creekSS=t=>{ t=t<0?0:t>1?1:t; return t*t*(3-2*t); };
+function creekFords(){ const out=[], f0=new Set(); for(let r=0;r<boardRows(L);r++) for(let c=0;c<GN;c++){ const t=L.T[r][c]; if(isFlow(t) && flowMouth(L,f0,r,c)) out.push({r,c,dr:FLOWV[t][0],dc:FLOWV[t][1]}); } return out; }
+// 여울 좌표 — a: 여울 칸 가운데에서 하류 쪽(+)으로, lat: 옆으로(칸 단위)
+function creekFordAt(F,u,v){ let best=null; for(const f of F){ const du=u-(f.c+.5), dv=v-(f.r+.5), a=du*f.dc+dv*f.dr, lat=Math.abs(f.dc? dv : du); if(lat<.75 && a>-1.6 && a<1.3 && (!best || Math.abs(a)<Math.abs(best.a))) best={a,lat,f}; } return best; }
+function creekBankFaceFord(d,wd,Wd,T,S,y0,y1,x0,x1,OE){
+  const F=creekFords(); if(!F.length) return creekBankFace(d,wd,Wd,T,S,y0,y1,x0,x1,OE);
+  const keep=new Uint8ClampedArray(d), keepW=new Uint8ClampedArray(wd);
+  creekBankFace(d,wd,Wd,T,S,y0,y1,x0,x1,OE);                       // 흙 옆면을 다 그린 뒤 여울 쪽 옆면 픽셀을 물로 되돌린다
+  for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++){ const i=y*Wd+x, p=i*4, fa=creekFordAt(F,(x-T.e)/S,(y-T.f)/S); if(!fa) continue;
+    const m=1-creekSS((fa.a+1.0)/.5), wasW=keepW[p+3]>127;               // 옆면이 남는 몫 — 여울 한 칸 앞에서 다 서고 여울에선 0
+    if(wasW && wd[p+3]===0 && m<1){ const k=1-m; for(let j=0;j<4;j++) d[p+j]=d[p+j]*(1-k)+keep[p+j]*k; wd[p+3]=keepW[p+3]*k; }
+    if(wasW){ const sh=creekSS((fa.a+.55)/.35), fade=creekSS((fa.a+.05)/.5);   // 여울 물빛 — 옅고 맑게, 하류 끝으로 갈수록 투명해져 모래 바닥이 비친다
+      if(sh>0){ for(let j=0;j<3;j++) d[p+j]+=([176,226,242][j]-d[p+j])*.6*sh; d[p+3]*=1-.55*sh-.4*fade; wd[p+3]*=1-.75*sh; } }
+    else if(d[p+3]>0){ const k=creekSS((fa.a+.35)/.45); d[p+3]*=1-k; } } }   // 물가 테·턱 — 여울 하류 끝에선 없앤다(테 없이 모래로 녹는다)
+function creekFordDecor(g,T){ const s=cell, hs=creekHs; g.save(); g.setTransform(T);
+  for(const f of creekFords()){ const cx0=(f.c+.5)*s, cy0=(f.r+.5)*s, ux=f.dc, uy=f.dr, lx=-uy, ly=ux, P=(a,l)=>[cx0+ux*a*s+lx*l*s, cy0+uy*a*s+ly*l*s];
+    g.save(); g.translate(...P(.62,0)); g.rotate(Math.atan2(uy,ux)); const fan=g.createRadialGradient(0,0,2,0,0,s*.7);   // 젖은 모래 부채 — 모래톱으로 이어진다
+    fan.addColorStop(0,'rgba(170,138,92,.2)'); fan.addColorStop(.55,'rgba(185,155,110,.08)'); fan.addColorStop(1,'rgba(185,155,110,0)'); g.fillStyle=fan; g.beginPath(); g.ellipse(-s*.05,0,s*.62,s*.46,0,0,7); g.fill(); g.restore();
+    for(let i=0;i<14;i++){ const k=f.r*31+f.c*17+i, [x,y]=P(-.42+.8*hs(k),(-.28+.56*hs(k+3))); g.fillStyle=hs(k+5)>.5? 'rgba(150,135,110,.45)' : 'rgba(215,195,155,.6)'; g.beginPath(); g.ellipse(x,y,s*(.016+.012*hs(k+7)),s*.012,0,0,7); g.fill(); }   // 바닥 자갈·모래
+    for(const [a,l,rx] of [[-.22,-.18,.065],[.16,.2,.06]]){ const [x,y]=P(a,l); g.fillStyle='rgba(60,50,40,.22)'; g.beginPath(); g.ellipse(x+rx*s*.15,y+rx*s*.3,rx*s,rx*s*.55,0,0,7); g.fill();   // 디딤돌
+      const gr=g.createLinearGradient(x,y-rx*s,x,y+rx*s); gr.addColorStop(0,'#DCD5C8'); gr.addColorStop(1,'#A8A093'); g.fillStyle=gr; g.beginPath(); g.ellipse(x,y,rx*s,rx*s*.62,0,0,7); g.fill(); g.fillStyle='rgba(255,255,255,.4)'; g.beginPath(); g.ellipse(x-rx*s*.3,y-rx*s*.25,rx*s*.35,rx*s*.2,0,0,7); g.fill(); }
+    g.strokeStyle='rgba(255,255,255,.7)'; g.lineWidth=s*.016; g.lineCap='round';           // 얕은 물이 바닥 위로 넘는 짧은 잔물결
+    for(const [a,l,len] of [[-.35,.05,.12],[-.05,-.22,.1],[.05,.08,.14],[.3,-.05,.1]]){ const [x0,y0]=P(a,l-len/2), [x1,y1]=P(a,l+len/2), [xm,ym]=P(a-.04,l); g.beginPath(); g.moveTo(x0,y0); g.quadraticCurveTo(xm,ym,x1,y1); g.stroke(); } }
+  g.restore(); }
+// 여울에 선 맥스 — 발목 물낯 + 잔물결 고리(맥스를 그린 직후). (x,y) = 맥스를 그린 원점
+function creekFordWade(x,y){ if(!creekOn()) return; const t=L.T[dog.r] && L.T[dog.r][dog.c]; if(!(isFlow(t) && flowMouth(L,filled,dog.r,dog.c))) return;
+  if(boxes.some(b=>b.kind==='hillLog' && !b.gone && b.r===dog.r && b.c===dog.c)) return;
+  const fy=y+cell*.38, g=ctx; g.save(); g.fillStyle='rgba(196,234,247,.8)'; g.beginPath(); g.ellipse(x,fy,cell*.17,cell*.045,0,0,7); g.fill();
+  g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=cell*.016; g.beginPath(); g.ellipse(x,fy-cell*.004,cell*.165,cell*.042,0,Math.PI*.05,Math.PI*.95,true); g.stroke();
+  const u=(animT*.6)%1; g.strokeStyle=`rgba(255,255,255,${(.6*(1-u)).toFixed(3)})`; g.lineWidth=cell*.012; g.beginPath(); g.ellipse(x,fy+cell*.01,cell*(.22+u*.08),cell*(.06+u*.02),0,0,7); g.stroke(); g.restore(); }
 function creekBake(){                                             // 물길 한 장 — 판이 바뀔 때 한 번. o=그림, wm=물낯 가리개
   const OE=!!L.openEdge, s=cell, cv=ctx.canvas, T=ctx.getTransform(), dpr=T.a, Wd=cv.width, Ht=cv.height, A=OE?0:cell, B=(OE?GN:GN-1)*cell, hs=creekHs;
   const mk=()=>{ const m=document.createElement('canvas'); m.width=Wd; m.height=Ht; return [m,m.getContext('2d')]; };
@@ -36589,31 +36929,24 @@ function creekBake(){                                             // 물길 한 
       over(c2,wv); wd[i*4]=wd[i*4+1]=wd[i*4+2]=255; wd[i*4+3]=wv*255; }
     if(fc>0){ let k=0; for(let q=1;q<=fp;q++){ if(y-q<yMin || cov(i-q*Wd)<.5){ k=q/fp; break; } } over([0,1,2].map(j=>soilT[j]+(soilB[j]-soilT[j])*(1-k)),fc); }
     const p=i*4; d[p]=R; d[p+1]=G; d[p+2]=Bb; d[p+3]=Aa*255; }
-  creekBankFace(d,wd,Wd,T,S,yMin,yMax,xMin,xMax,OE);                 // 둑 단면 — 물이 모래보다 낮게(한 번 굽는다)
+  creekBankFaceFord(d,wd,Wd,T,S,yMin,yMax,xMin,xMax,OE);             // 둑 단면 — 물이 모래보다 낮게(한 번 굽는다)
   og.putImageData(img,0,0); wg.putImageData(wimg,0,0);
   const gap=creekGaps(wd,Wd,Ht,T,S,cells);                          // 다리 통나무가 낄 물 폭
-  { og.save(); og.setTransform(T);                                   // 모래톱 — 물살 끝 다음 땅 칸의 물 들어오는 쪽: 얕은 물 혀 + 젖은 모래 + 거품 줄(설계서 B안). 흐름 방향대로 돌린다(10-08 — 가로 물길 끝이 위로 볼록하던 것)
-    for(const [r,c] of creekShores(L)){ const v=creekShoreDir(L,r,c), g=og, x=-s/2, y=-s/2;   // 물이 들어오는 쪽(흐름 v)을 위로 둔 칸 좌표로 그린다 — 아래로 흐르는 물이 기준
-      g.save(); g.translate((c+.5)*s,(r+.5)*s); g.rotate(Math.atan2(v[0],v[1])-Math.PI/2);
-      const ws=g.createLinearGradient(0,y,0,y+s*.62); ws.addColorStop(0,'rgba(170,140,95,.55)'); ws.addColorStop(1,'rgba(170,140,95,0)');
-      g.fillStyle=ws; g.beginPath(); g.moveTo(x+s*.04,y); g.lineTo(x+s*.96,y); g.quadraticCurveTo(x+s*.98,y+s*.45,x+s*.5,y+s*.6); g.quadraticCurveTo(x+s*.02,y+s*.45,x+s*.04,y); g.fill();
-      const sh2=g.createLinearGradient(0,y-s*.3,0,y+s*.3); sh2.addColorStop(0,'rgba(150,212,238,1)'); sh2.addColorStop(.5,'rgba(176,225,242,1)'); sh2.addColorStop(1,'rgba(210,238,246,.9)');
-      g.fillStyle=sh2; g.beginPath(); g.moveTo(x+s*.1,y-s*.3); g.lineTo(x+s*.9,y-s*.3); g.quadraticCurveTo(x+s*.92,y+s*.26,x+s*.5,y+s*.3); g.quadraticCurveTo(x+s*.08,y+s*.26,x+s*.1,y-s*.3); g.fill();
-      g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=s*.035; g.lineCap='round'; g.beginPath();
-      for(let i=0;i<=16;i++){ const u=i/16, a2=Math.PI*u, xx=x+s*.5-Math.cos(a2)*s*.4, yy=y+s*.02+Math.sin(a2)*s*.28+Math.sin(u*22)*s*.012; i? g.lineTo(xx,yy) : g.moveTo(xx,yy); } g.stroke(); g.restore(); }
-    og.restore(); }
+  // 모래톱(옛 물 혀+거품 줄)은 M1 여울로 바뀌었다 — 아래 creekFordDecor 가 맨 끝에 얹는다
   { const [t,tg]=mk(); tg.setTransform(T);                         // 연잎 — 물낯에만
     for(const [r,c] of cells){ if(!creekInner(r,c)||hs(r*9+c*5)>.45) continue; const x=(c+.22+.56*(hs(r+c)>.5?1:0))*s, y=(r+.25+.5*hs(r*3+c))*s, R=s*.125;
       tg.fillStyle='rgba(30,80,90,.18)'; tg.beginPath(); tg.ellipse(x+R*.1,y+R*.2,R*1.05,R*.75,0,0,7); tg.fill();
       tg.fillStyle='#74B35B'; tg.beginPath(); tg.ellipse(x,y,R,R*.72,0,.5,6.0); tg.lineTo(x,y); tg.closePath(); tg.fill();
       if(hs(r*2+c)>.55){ tg.fillStyle='#F7C6D6'; tg.beginPath(); tg.arc(x+R*.15,y-R*.25,R*.32,0,7); tg.fill(); tg.fillStyle='#FFE58A'; tg.beginPath(); tg.arc(x+R*.15,y-R*.25,R*.1,0,7); tg.fill(); } }
     tg.setTransform(1,0,0,1,0,0); tg.globalCompositeOperation='destination-in'; tg.drawImage(wm,0,0); og.drawImage(t,0,0); }
-  return {o, wm, gap};
+  creekFordDecor(og,T);                                              // M1 여울 — 젖은 모래 부채·바닥 자갈·디딤돌·잔물결
+  return {o, wm, gap, od:d, wdd:wd, Wd, Ht};                         // od·wdd: 구운 물 픽셀·가리개 알파(배 간격·물빛을 매 프레임 읽기 없이 잰다)
 }
 function creekPaint(){                                            // tileLayerPaint 끝에서 — 물길·물결·갈대·섬 마감
   const s=cell, B=(boardRows(L)-1)*cell, hs=creekHs, T=ctx.getTransform();
   const key=level+'|'+ctx.canvas.width+'x'+ctx.canvas.height+'|'+T.a+','+T.e+','+T.f+'|'+L.T.map(r=>r.join(',')).join(';');
-  if(CREEK.key!==key){ try{ Object.assign(CREEK,{key},creekBake()); }catch(e){ CREEK.key=key; CREEK.o=null; } }
+  if(CREEK.key!==key){ try{ Object.assign(CREEK,{key},creekBake()); }catch(e){ CREEK.key=key; CREEK.o=null; CREEK.od=null; CREEK.wdd=null; } }
+  CREEK.tr=[T.a,T.e,T.f];                                           // 배·다리 합성이 지금 변환과 구운 가리개가 맞는지 본다(creekMaskOK)
   if(CREEK.o){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(CREEK.o,0,0); ctx.restore(); }
   const wet=creekWet();
   if(CREEK.wm){                                                   // 움직이는 층 — 물결·물길 방향·윤슬, 물낯 안쪽만
@@ -36635,7 +36968,7 @@ function creekPaint(){                                            // tileLayerPa
     g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm,0,0); g.globalCompositeOperation='source-over';
     ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(creekTmp,0,0); ctx.restore(); }
   const e=creekE(L);
-  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekReeds(ctx,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s,(r+.86)*s,s);
+  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekBlock(ctx,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s+creekTreeShake(r,c),(r+.86)*s,s);
   hillIsland(ctx,['#D9C79C','rgba(150,120,70,.35)']);              // 둥근 귀 + 흙 단면, 테는 모래색(열린 판은 모래색 테 한 줄)
   for(let c=1;c<GN-1&&!L.openEdge;c++){ if(!wet.has((boardRows(L)-1)*GN+c)) continue; const x=c*s, Hh=s*.34;   // 섬 아래로 나가는 물 — 작은 폭포
     const gr=ctx.createLinearGradient(0,B,0,B+Hh+s*.1); gr.addColorStop(0,'#8ACDE8'); gr.addColorStop(1,'#D6F0F8'); ctx.fillStyle=gr;
@@ -36646,7 +36979,7 @@ function creekPaint(){                                            // tileLayerPa
 function creekReedsFront(){                                       // 공·맥스를 다 그린 뒤 갈대를 한 번 더 — 뒷줄 물건은 갈대 뒤로(제 칸 3/4 줄까지)
   if(!creekOn()) return;
   const e=creekE(L);
-  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekReeds(ctx,(c+.5)*cell,(r+.84)*cell,cell*.9); ctx.restore(); } else if(L.T[r][c]===TREE){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekTree(ctx,(c+.5)*cell,(r+.86)*cell,cell); ctx.restore(); }
+  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekBlock(ctx,(c+.5)*cell,(r+.84)*cell,cell*.9); ctx.restore(); } else if(L.T[r][c]===TREE){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekTree(ctx,(c+.5)*cell+creekTreeShake(r,c),(r+.86)*cell,cell); ctx.restore(); }
   for(const b of boxes) if((b.kind==='treeSmall'||b.kind==='treeBig') && !b.carried && !(b.sink>=1) ){   // 윗줄(뒤)의 맥스·공도 나무가 가린다 — 깊이가 맞다(10-08 사람)
       // 도끼 나무는 윗줄 갈대보다 앞 — 윗줄로 솟은 부분만 다시(제 칸은 위 갈대 패스가 안 덮는다)
     ctx.save(); ctx.beginPath(); ctx.rect(b.cc*cell-cell, b.rr*cell-cell*3, cell*3, cell*3); ctx.clip(); drawHillTreeObject(cx(b.cc),cy(b.rr),cell,b); ctx.restore(); }
@@ -38454,16 +38787,25 @@ function render(){
           }else if(tg.postHop || (tg.waitContact&&tg.waitContact.hop)) step=Math.min(step,dt/.24);
           // 미끄럼 자국은 liquidFx 가 맡는다(10-05 — 비눗물은 거품 꼬리, 맑은 물은 물살).
           // 마지막 한 수 — 판을 푸는 공은 방석에 가까울수록 느려진다(0.35배까지). 입력은 안 막는다.
+          if(b.boatRun){                                            // 배(10-08) — 웅덩이·물살 같은 속도(BOAT_SPD), 처음 1.2초는 천천히 붙고 마지막 한 칸에서 천천히 선다
+            let rem=dist; for(let k=b.pathI+1;k<b.path.length;k++) rem+=Math.abs(b.path[k].r-b.path[k-1].r)+Math.abs(b.path[k].c-b.path[k-1].c);
+            b.boatRun.t+=step>0? dt : 0;
+            // 웅덩이는 BOAT_SPD(천천히), 물살은 물이 데려가는 속도(FLOW_BALL — 공·빈 통나무와 같다). 바뀔 때는 BOAT_ACC_T 동안 부드럽게(10-08 사람)
+            const wantV=isCurrent(tileAt(L,filled,Math.round(tg.r),Math.round(tg.c)))? Math.max(BOAT_SPD,FLOW_BALL) : BOAT_SPD, br=b.boatRun;   // 쿵 접점 칸(prepareBallContacts 의 r:4.4 같은 반 칸)은 정수가 아니다 — 세로면 L.T[4.4] 가 던져 매 프레임 render 가 끊겼다(68판, 10-09)
+            if(br.v==null) br.v=BOAT_SPD; const dv=Math.abs(FLOW_BALL-BOAT_SPD)*dt/BOAT_ACC_T;
+            br.v=Math.abs(wantV-br.v)<=dv? wantV : br.v+Math.sign(wantV-br.v)*dv;
+            step=dtF*br.v/60*(.12+.88*Math.min(1,(br.t/1.2)**1.5))*Math.max(.06,Math.sqrt(Math.min(1,rem))); }   // 처음 1.2초 기어가듯 붙고, 마지막 한 칸에서 고르게 늦춰 선다(끝에서 툭 서지 않게)
           if(finalFx && !finalFx.hit && finalFx.slow && b.pend && b.pend.land===finalFx.k)
             step*=0.35+0.65*Math.min(1,(Math.abs(b.r-b.rr)+Math.abs(b.c-b.cc))/1.5);
           if(dist<=step){ b.rr=tg.r; b.cc=tg.c; b.pathI++;
             if(tg.emitContact){b.air=0;fireBallContact(b,tg.emitContact);}
             if(b.pathI>=b.path.length){ if(b.kind==='mower'){ if(doorFx && doorFx.t<-1) doorFx.t=0; sfxThud(); buzz([12,24,12]); }   // 깎이 도착 — 친 문이 이제 돈다
-              b.path=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
+              b.path=null; b.rollAx=null; b.air=0; b.reb=null; b.bridgeUnder=bridgeUnderAfterPath(b.bridgeUnder,tileAt(L,filled,Math.round(b.rr),Math.round(b.cc)));
               if(b.kind==='ball' && slopeValleyDir(b.r,b.c)) b.vbT=animT;   // 골짜기 — 돌턱에 톡
               if(b.kind==='ball' && !b.tramp){ b.stopT=1; tone(210,0.06,"sine",0.03,150); }   // 멈추며 통 — 방석에 들면 firePend 가 거둔다
               firePend(b); }
-            else if(!tg.contactApproach && !tg.contactReturn){ const t=tileAt(L,filled,tg.r,tg.c); if(isSlope(t)){ b.holdT=SLOPE_HOLD; sfxSlide(); } }  // 접촉 반동에는 별도 멈칫을 넣지 않는다
+            else if(!tg.contactApproach && !tg.contactReturn){ const t=tileAt(L,filled,tg.r,tg.c); if(isSlope(t)){ b.holdT=SLOPE_HOLD; sfxSlide(); } }
+            if(b.boatRun && b.path && !tg.emitContact){ const n2=b.path[b.pathI], left=step-dist; if(n2 && left>0){ const ex=n2.c-b.cc, ey=n2.r-b.rr, ed=Math.hypot(ex,ey); if(ed>left){ b.cc+=ex/ed*left; b.rr+=ey/ed*left; } } }   // 배 — 칸 경계에서 남은 걸음을 이어 간다(칸마다 멈칫하지 않게)  // 접촉 반동에는 별도 멈칫을 넣지 않는다
           }
           else { b.cc+=dx/dist*step; b.rr+=dy/dist*step; }
         }
@@ -38585,7 +38927,7 @@ function render(){
         const v=rollVec(tt), vd=slopeValleyDir(Math.round(b.rr),Math.round(b.cc));
         if(vd){ const o=valleyRestOff(b.vbT!=null? animT-b.vbT : 9); bx+=vd[1]*cell*o; by+=vd[0]*cell*o; }   // 골짜기 — 돌턱 쪽 바닥에 기댄다
         else { bx-=v[1]*cell*0.09; by-=v[0]*cell*0.09; } } }      // 흐름(내리막) 방향의 반대 = 오르막 쪽으로 붙임
-    if(b.r===dog.r && b.c===dog.c && b.sink===0 && !b.carried && b.kind!=='hillLog'){   // 맥스 발밑까지 굴러온 공: 갈라서 그림. 통나무 배는 맥스가 올라탄 것이라 제자리에(render 의 dogY 띄움이 맡는다)
+    if(b.r===dog.r && b.c===dog.c && b.sink===0 && !b.carried && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump'){   // (긴 통나무도 맥스가 올라선 것 — 안 밀어낸다, 10-09) 맥스 발밑까지 굴러온 공: 갈라서 그림. 통나무 배는 맥스가 올라탄 것이라 제자리에(render 의 dogY 띄움이 맡는다)
       bsc=Math.min(bsc,0.72); bx-=cell*0.2; by-=cell*0.16; }
     // 빈 주차 상자 위에 멈춘 공 — 맥스와 같은 문법으로 띄운다(뚫고 있는 그림 방지).
     if(L && L._pkCells && !b.path && L._pkCells.has(kk(b.r,b.c))) by-=cell*0.20;
@@ -38636,7 +38978,8 @@ function render(){
     dog.rr=dog.r; dog.cc=dog.c;
   } else if(!frozen && dog.ride && dog.ride.box && dog.ride.box.path && boxes.includes(dog.ride.box)){      // 배 타고 가는 중 — 통나무의 보간 좌표가 곧 맥스 자리
     dog.rr=dog.ride.box.rr; dog.cc=dog.ride.box.cc; dog.moving=false;
-    { const bx=dog.ride.box, tg=bx.path[bx.pathI]; if(tg){ const dr=(Array.isArray(tg)? tg[0] : tg.r)-bx.rr, dc=(Array.isArray(tg)? tg[1] : tg.c)-bx.cc;   // 배 탄 맥스는 가는 쪽을 본다
+    // 출발 전(delay)엔 나무를 미는 몸짓 그대로
+    { const bx=dog.ride.box, tg=bx.delay>0? null : bx.path[bx.pathI]; if(tg){ const dr=(Array.isArray(tg)? tg[0] : tg.r)-bx.rr, dc=(Array.isArray(tg)? tg[1] : tg.c)-bx.cc;   // 배 탄 맥스는 가는 쪽을 본다
       if(Math.abs(dc)>Math.abs(dr)+.01){ dog.lungeC=Math.sign(dc); dog.lungeR=0; dog.face=Math.sign(dc); } else if(Math.abs(dr)>.01){ dog.lungeR=Math.sign(dr); dog.lungeC=0; } } }
   } else if(!frozen && chapterMaxAppliesToLevel(level) && dog.protoMoveT!=null && dog.protoMoveT<1){
     const pr0=dog.rr, pc0=dog.cc;
@@ -38675,7 +39018,7 @@ function render(){
     }
   } else if(!(state==="win" && dog.entered) && !houseTentIn()) {       // 텐트 안에 든 맥스는 drawHouseActTop 이 문 사이로 그린다
     let shX=0, shY=0;                                        // 공이 발밑에 굴러온 칸: 맥스는 반대편으로 비켜 그림
-    if(boxes.some(b2=>b2.sink===0 && !b2.carried && b2.r===dog.r && b2.c===dog.c)){ shX=cell*0.16; shY=cell*0.1; }
+    { const under=boxes.find(b2=>b2.sink===0 && !b2.carried && b2.r===dog.r && b2.c===dog.c); if(under && under.kind!=='stump'){ shX=cell*0.16; shY=cell*0.1; } }   // 그루터기는 올라서는 것 — 비켜 그리지 않는다(creekStumpMax 가 윗면으로 올린다)
     // 쭈그린 자세 지원은 drawDog 에 남아 있다(dog.squat/squatKind) — 지금은 아무도 안 켠다.
     // 예전엔 등급이 떨어질 때 켜졌는데, 그 벌주는 연출을 걷어내면서 트리거만 사라졌다.
     dog.squat=0; dog.squatKind=null;
@@ -38705,8 +39048,11 @@ function render(){
     let dogX=cx(dog.cc)+dog.lungeC*lg+shX+backX;
     let dogY=cy(dog.rr)+dog.lungeR*lg-hopY+shY-pkLift+backY;
     // 배·다리 위 맥스(10-08 사람) — 통나무 **윗면**에 발을 두고(눌러 넣거나 덮지 않는다) 껍질 위 접촉 그늘, 세로 통나무면 축 위. 배는 통나무와 같이 출렁인다.
-    { const cf=creekLogFoot(); if(cf){ dogY=cf.y-cell*CREEK_MAX_FEET; if(cf.x!=null) dogX=cf.x;
-      ctx.save(); ctx.fillStyle='rgba(40,25,10,.32)'; ctx.beginPath(); ctx.ellipse(dogX,cf.sy,cell*cf.w,cell*.05,0,0,7); ctx.fill(); ctx.restore(); } }
+    const cf=creekLogFoot();
+    { if(cf){ dogY+=(cf.y-cell*CREEK_MAX_FEET-dogY)*cf.k; dogX+=(cf.x-dogX)*cf.xk;   // 오르내리는 중엔 통나무 위 자리와 땅 자리 사이를 곧게
+      if(cf.k>.5){ ctx.save(); ctx.fillStyle='rgba(40,25,10,.32)'; ctx.beginPath(); ctx.ellipse(dogX,cf.sy,cell*cf.w,cell*.05,0,0,7); ctx.fill(); ctx.restore(); } } }
+    const stSq=creekOn()? creekStumpMax(cf) : null;                      // 그루터기 위로 오르기 — 윗면 높이·접촉 그늘·먼지
+    if(stSq) dogY-=stSq.lift;
     const maxReact=maxReactionPose();
     dogX+=maxReact.x; dogY+=maxReact.y;
     if(labMode) dogY-=labJumpY();                          // 실험 판 — 스프링 신발로 공을 뛰어넘는 호
@@ -38724,8 +39070,12 @@ function render(){
         ctx.save();ctx.translate(dogX,feet);ctx.scale(jump.sx,jump.sy);ctx.translate(-dogX,-feet);
       }
       if(houseMode && houseIn) houseMaxAt={x:dogX, y:dogY, s:cell*dogScale*maxReact.scale, T:ctx.getTransform()};   // 후디 사진이 맥스를 같은 자리·크기로 찍는다
+      const stSqOn=!!(stSq && (stSq.sx!==1 || stSq.sy!==1 || stSq.bob));
+      if(stSqOn){ ctx.save(); ctx.translate(0,stSq.bob); ctx.translate(dogX,dogY+cell*.40); ctx.scale(stSq.sx,stSq.sy); ctx.translate(-dogX,-(dogY+cell*.40)); }   // 착지 때 맥스도 살짝 눌린다
       if(!drawChapterMaxPrototype(dogX,dogY,cell*dogScale*maxReact.scale))
         drawDog(dogX,dogY,cell*dogScale*maxReact.scale,dogFaceV(),sxD,syD);
+      creekFordWade(dogX,dogY);                                              // 냇가 — 여울에 선 맥스의 발목 물결
+      if(stSqOn) ctx.restore();
       if(jump)ctx.restore();
     }
   }
@@ -39215,6 +39565,7 @@ function frameInner(ts){
   yardStep();                                                      // 마당 어슬렁
   syncHud();                                                       // 통화 HUD (별·도토리)
   tsStep();                                                        // 보물 산책 수집·예산 판정
+  try{ creekPillTick(); }catch(e){}                                // 냇가 첫 쓰임 알약 — 판이 그 상황에 닿으면(그리기 예외와 무관하게)
   if(moonMode && state==="play"){                                  // 반딧불 — 밤의 앰비언트
     const catching = level===FLY_CATCH_LV;                         // 잡기 판은 빨리 다 나온다
     if(flies.length<3 && Math.random()<dt*(catching?2.2:0.5))
@@ -39295,7 +39646,7 @@ function frameInner(ts){
     if(kitty.turnT>0) kitty.turnT=Math.max(0,kitty.turnT-dt/0.5);
   }
   if(catLeaveT>0&&catLeaveT<1) catLeaveT=Math.min(1,catLeaveT+dt/2.4);   // 기지개 0.6s + 걸어나가기 1.8s
-  if(dog.lungeT>0) dog.lungeT=Math.max(0,dog.lungeT-0.065*dtF);
+  if(dog.lungeT>0) dog.lungeT=Math.max(0,dog.lungeT-0.065*dtF*(dog.lungeSlow||1)); else dog.lungeSlow=1;   // lungeSlow — 배 출발은 천천히 기대어 민다
   dog.blinkIn-=dt; if(dog.blink>0) dog.blink=Math.max(0,dog.blink-dt); else if(dog.blinkIn<=0){ dog.blink=0.12; dog.blinkIn=1.5+Math.random()*4; }
   // ---- 생동감: 2차 모션 ----
   // 인형과 생물을 가르는 건 부위가 몸을 **한 박자 늦게** 따라오는가다. 귀가 머리와

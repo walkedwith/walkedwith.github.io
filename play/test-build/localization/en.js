@@ -824,7 +824,7 @@
     "guide.bridge.under": "A ball in the current passes <b>under the bridge</b>",
     "guide.creek61.text": "Fell the tree into a bridge!",
     "guide.creek62.text": "Max can step into the end of a current",
-    "guide.creek63.text": "Fell it downstream and it floats away",
+    "guide.creek63.text": "Roll it in alongside the flow and it drifts away",
     "guide.creek64.text": "A ball knocks a ball away",
     "guide.creek66.text": "A log in a pool is a boat!",
     "guide.creek68.text": "Ram balls with the boat",
