@@ -232,7 +232,7 @@
      크면 wrap 이 따라 늘어난다. 그러면 fit() 이 늘어난 높이를 재서 캔버스를 더 키우고,
      마당이 24vh 만큼 어긋난 채 그려졌다(위가 텅 비고 아래가 잘리던 보고).
      overflow:hidden 은 그래도 커진 캔버스가 화면 밖으로 삐져나가는 걸 막는 안전판. */
-  #boardWrap { position:relative; flex:1; min-height:0; min-width:0; overflow:hidden;
+  #boardWrap { position:relative; flex:1; min-height:0; min-width:0; overflow:hidden; touch-action:none;
     display:flex; align-items:center; justify-content:center; }
   canvas { touch-action:none; display:block; }
   /* 목록 안 그림은 손가락을 받아 주면 안 된다. 위 규칙은 판(보드)을 위한 것인데
