@@ -250,7 +250,7 @@ window.MaxComicIntro = (function () {
   const safeLoad=(src,fallback)=>load(src).catch(()=>load(fallback));
   images=await Promise.all([
     safeLoad('art/onboarding-comic-v3/page-01.webp','art/onboarding-comic-v3/page-01.webp'),safeLoad('art/onboarding-comic-v3/page-02.webp','art/onboarding-comic-v3/page-01.webp'),safeLoad('art/onboarding-comic-v3/page-03.webp','art/onboarding-comic-v3/page-01.webp'),
-    load('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif','art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.png'),load('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png'),
+    load('art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif','art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp'),load('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp'),
     safeLoad('art/onboarding-comic-v3/page-04.webp','art/onboarding-comic-v3/page-01.webp'),
     safeLoad('art/onboarding-comic-v4/door-01.webp','art/onboarding-comic-v4/door-01.webp'),safeLoad('art/onboarding-comic-v4/door-02.webp','art/onboarding-comic-v4/door-01.webp'),
     safeLoad('art/onboarding-comic-v4/door-03.webp','art/onboarding-comic-v4/door-01.webp'),safeLoad('art/onboarding-comic-v4/door-04.webp','art/onboarding-comic-v4/door-01.webp')
