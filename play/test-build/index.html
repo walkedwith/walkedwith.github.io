@@ -33974,6 +33974,13 @@ function tileLayerMoves(w,h,dpr){
     return false;
   }catch(e){ return true; }                                 // 못 재면 예전처럼 계속 다시 그린다
 }
+// 첨벙통·펌프 물이 지금까지 닿은 칸 수 — 바닥 그림은 이 값이 바뀔 때만 달라진다(tubSpillShown·pumpRinseShown 과 같은 문턱).
+function tileWaterSig(){
+  let t='-', q='-';
+  if(tubPourFx){ const u=animT-tubPourFx.t0; let n=0; for(let i=0;i<tubPourFx.cells.length;i++) if(u>0.2+i*TUB_POUR_STEP) n++; t='t'+n; }
+  if(pumpShotFx) q=(animT-pumpShotFx.t0>PUMP_FLY)? 'p1' : 'p0';
+  return t+q;
+}
 function drawTilesCached(){
   if(!cell){ return; }                                   // 보드가 아직 안 잡힘(레이아웃 과도기) — 그릴 게 없다.
   // 0×0 캔버스에 drawImage 하면 InvalidStateError 로 던진다. 실제로 이 크래시가
@@ -33987,12 +33994,13 @@ function drawTilesCached(){
   // 바스락은 sin³ 이라 대부분의 시간 진폭이 0 이다 — 진폭이 있을 때만 위상을 키에 넣어 바닥 전체를 다시 굽는다(예전엔 켜져 있는 동안 매 프레임).
   const rustleMoving=rustleOn && acornSt.some(m=>m.w && !m.got && matRustleAt(m.r,m.c)!==0);
   const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
-    +'|'+(rustleMoving? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '');   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
+    +'|'+(rustleMoving? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '')   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
+    +'|'+tileWaterSig();                                   // 첨벙통·펌프 — 물이 칸에 닿는 순간에만 바닥이 바뀐다(예전엔 물줄기 2초 내내 초당 20번 다시 구웠다, 10-12)
   const keyBase=rustleMoving? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
   // 바닥은 원래 50ms 마다 통째로 다시 그렸다(일렁이는 비눗물·흔들리는 꽃). 정지한 바닥까지 초당 20번 다시 그려
   // 폰 GPU 로 큰 그림을 매번 올리는 게 발열의 한 몫이었다(10-05). 판(키)이 바뀌면 한 번 재서 움직이는 게 없으면 멈춘다.
   // 시간에 따라 드러나는 연출(첨벙통·펌프 물·깎이·구덩이)이 도는 동안은 예전처럼 계속 다시 그린다.
-  const busy=!!tubPourFx || !!pumpShotFx || !!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower');   // 바닥 그림이 시간 연출을 따라가는 것만(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
+  const busy=!!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower') || !!(boatPushFx && boatPushFx.lv===level && animT-boatPushFx.t0<BOAT_PUSH_T*.45+.85);   // 바닥 그림이 시간 연출을 따라가는 것만(냇가 — 맞은 나무가 떠는 동안 포함)(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
   // 테두리 장식(빨래·바람개비·풀)은 느린 흔들림이라 초당 10번이면 충분하다 — 손을 쉬면 6~7번. 연출이 도는 동안만 20번.
   const every=busy? 0.05 : frameIdle(performance.now())? 0.15 : 0.1;
   // 정지 판정 차례 — 판이 바뀌었거나, 움직인다고 본 지 2초가 지났을 때(장식 그림이 늦게 뜨면 처음엔 움직이는 것처럼 보인다).
@@ -37788,17 +37796,26 @@ function creekBake(){                                             // 물길 한 
   creekFordDecor(og,T);                                              // M1 여울 — 젖은 모래 부채·바닥 자갈·디딤돌·잔물결
   return {o, wm, gap, od:d, wdd:wd, Wd, Ht};                         // od·wdd: 구운 물 픽셀·가리개 알파(배 간격·물빛을 매 프레임 읽기 없이 잰다)
 }
-function creekPaint(){                                            // tileLayerPaint 끝에서 — 물길·물결·갈대·섬 마감
-  const s=cell, B=(boardRows(L)-1)*cell, hs=creekHs, T=ctx.getTransform();
-  const key=level+'|'+ctx.canvas.width+'x'+ctx.canvas.height+'|'+T.a+','+T.e+','+T.f+'|'+L.T.map(r=>r.join(',')).join(';');
-  if(CREEK.key!==key){ try{ Object.assign(CREEK,{key},creekBake()); }catch(e){ CREEK.key=key; CREEK.o=null; CREEK.od=null; CREEK.wdd=null; } }
-  CREEK.tr=[T.a,T.e,T.f];                                           // 배·다리 합성이 지금 변환과 구운 가리개가 맞는지 본다(creekMaskOK)
-  if(CREEK.o){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(CREEK.o,0,0); ctx.restore(); }
-  const wet=creekWet();
-  if(CREEK.wm){                                                   // 움직이는 층 — 물결·물길 방향·윤슬, 물낯 안쪽만
-    if(!creekTmp) creekTmp=document.createElement('canvas');
-    if(creekTmp.width!==ctx.canvas.width||creekTmp.height!==ctx.canvas.height){ creekTmp.width=ctx.canvas.width; creekTmp.height=ctx.canvas.height; }
-    const g=creekTmp.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,creekTmp.width,creekTmp.height); g.setTransform(T);
+// 냇물의 움직이는 층 — 물결·물길 방향·윤슬. 예전엔 바닥 사본(tileLayer) 안에서 그려, 물이 일렁이는 동안 바닥 전체를
+// 초당 10번 다시 굽고 2초마다 움직임 검사(두 번 굽기+픽셀 읽기)까지 돌았다(냇가 한 판에 198번, 느린 폰에서 한 번 1.8초 — 10-12 실측).
+// 이제 이 층만 작은 일로 초당 10번 새로 그려 두고, 매 프레임은 그 한 장을 얹기만 한다.
+function creekRipples(){
+  if(!creekOn() || !CREEK.wm || !CREEK.tr) return;
+  const T=ctx.getTransform(), tr=CREEK.tr;
+  if(Math.abs(T.a-tr[0])>1e-3 || Math.abs(T.e-tr[1])>.5 || Math.abs(T.f-tr[2])>.5) return;      // 판이 밀리거나 당겨진 순간엔 가리개가 안 맞는다 — 건너뛴다
+  const W=CREEK.wm.width, H=CREEK.wm.height, s=cell, hs=creekHs;
+  if(CREEK.wmKey!==CREEK.key){                                    // 물낯 가리개에서 바위·나무 자리를 뺀다 — 물결이 그 위로 올라오지 않게(한 번)
+    const m=CREEK.wm2||(CREEK.wm2=document.createElement('canvas')); m.width=W; m.height=H;
+    const mg=m.getContext('2d'); mg.setTransform(1,0,0,1,0,0); mg.globalCompositeOperation='source-over'; mg.clearRect(0,0,W,H); mg.drawImage(CREEK.wm,0,0);
+    mg.globalCompositeOperation='destination-out'; mg.setTransform(T); const e=creekE(L);
+    for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekBlock(mg,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(mg,(c+.5)*s,(r+.86)*s,s);
+    mg.globalCompositeOperation='source-over'; CREEK.wmKey=CREEK.key; CREEK.rT=-1;
+  }
+  if(!creekTmp) creekTmp=document.createElement('canvas');
+  if(creekTmp.width!==W||creekTmp.height!==H){ creekTmp.width=W; creekTmp.height=H; CREEK.rT=-1; }
+  if(CREEK.rT<0 || animT-CREEK.rT>0.1 || animT<CREEK.rT || CREEK.rKey!==CREEK.key){
+    CREEK.rT=animT; CREEK.rKey=CREEK.key; const wet=creekWet();
+    const g=creekTmp.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,W,H); g.setTransform(T);
     for(const k of wet){ const r=(k/GN)|0, c=k%GN; if(!(L.T[r] && L.T[r][c]===FORK)) continue;   // 갈림 칸 — 흐름 화살표 대신 양쪽으로 갈리는 물결 둘. 어느 쪽으로 나가는지는 개구리가 말한다
       const x=c*s+s/2, y=r*s+s/2, ph=(animT*.6+hs(r*5+c))%1, i=forkIdxAt(L,r,c), d=i>=0? L.forks[i].dir : 0;
       g.save(); g.translate(x,y); g.rotate(Math.atan2(DOOR_CV[d][0],DOOR_CV[d][1])); g.strokeStyle='rgba(255,255,255,.72)'; g.lineWidth=s*.03; g.lineCap='round';
@@ -37811,8 +37828,18 @@ function creekPaint(){                                            // tileLayerPa
     for(const k of wet){ const r=(k/GN)|0, c=k%GN; for(let j=0;j<3;j++){ const q=k*7+j, a=Math.sin(((animT*.8+hs(q))%1)*Math.PI); if(a<.2) continue;
       const x=(c+.15+.7*hs(q+1))*s, y=(r+.15+.7*hs(q+2))*s, R=s*(.03+.03*a);
       g.fillStyle=`rgba(255,255,255,${(.9*a).toFixed(2)})`; g.beginPath(); g.moveTo(x,y-R*1.6); g.quadraticCurveTo(x,y,x+R*1.6,y); g.quadraticCurveTo(x,y,x,y+R*1.6); g.quadraticCurveTo(x,y,x-R*1.6,y); g.quadraticCurveTo(x,y,x,y-R*1.6); g.fill(); } }
-    g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm,0,0); g.globalCompositeOperation='source-over';
-    ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(creekTmp,0,0); ctx.restore(); }
+    g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm2,0,0); g.globalCompositeOperation='source-over';
+  }
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(creekTmp,0,0); ctx.restore();
+}
+function creekPaint(){                                            // tileLayerPaint 끝에서 — 물길·물결·갈대·섬 마감
+  const s=cell, B=(boardRows(L)-1)*cell, hs=creekHs, T=ctx.getTransform();
+  const key=level+'|'+ctx.canvas.width+'x'+ctx.canvas.height+'|'+T.a+','+T.e+','+T.f+'|'+L.T.map(r=>r.join(',')).join(';');
+  if(CREEK.key!==key){ try{ Object.assign(CREEK,{key},creekBake()); }catch(e){ CREEK.key=key; CREEK.o=null; CREEK.od=null; CREEK.wdd=null; } }
+  CREEK.tr=[T.a,T.e,T.f];                                           // 배·다리 합성이 지금 변환과 구운 가리개가 맞는지 본다(creekMaskOK)
+  if(CREEK.o){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(CREEK.o,0,0); ctx.restore(); }
+  const wet=creekWet();
+  // 움직이는 물결 층은 바닥 사본에 안 굽는다(10-12) — creekRipples() 가 판 위에 따로 얹는다. 바닥은 한 번만 구워 두고 다시 안 그린다.
   const e=creekE(L);
   for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekBlock(ctx,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s+creekTreeShake(r,c),(r+.86)*s,s);
   hillIsland(ctx,['#D9C79C','rgba(150,120,70,.35)']);              // 둥근 귀 + 흙 단면, 테는 모래색(열린 판은 모래색 테 한 줄)
@@ -39246,6 +39273,7 @@ function render(){
   drawBathWallCached();                                    // 2동네 욕실 — 고정 벽 띠는 오프스크린 캐시에서 한 번만 합성한다.
                                                            //   첫 줄 칸막이 위 소품(오리·화분)이 띠 위로 올라와 안 잘린다(10-07 사람)
   drawTilesCached();
+  creekRipples();                                          // 냇가 — 물결 층(바닥 사본 위, 물건 아래)
   floorsNext=0; floorsDecalFn=null;                        // 1층/2층 — 2층 줄을 물건 사이에 끼워 그리는 순번(floorsPlatTo)
   creekFrogDraw();                                       // 졸졸 냇가 — 연잎 개구리(바닥 위·물체 아래, 매 프레임)
   drawHouseOverlay();
