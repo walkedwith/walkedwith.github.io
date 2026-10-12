@@ -5906,6 +5906,8 @@ let dog, boxes, filled;
 // 2026-10-12: 공 밀기·충돌·골인 때 판 전체가 무작위로 떨리고(shake) 공·맥스가 0.05~0.14초 멈추는(hitstop) 연출이
 // 폰에서 '렉 걸린 것'처럼 읽혔다 — 둘 다 끈다. 손맛은 소리·진동·스파크·공 찌그러짐(sqT)이 맡는다.
 const BOARD_SHAKE_ON=false, HITSTOP_ON=false;
+// 2026-10-12(사람): 판은 플레이 중 아예 안 움직인다 — 막힘 때 판 밀림(nudge)과 마지막 수·승리 줌도 끈다. 막힘은 막은 물건·공·맥스의 반응이 말한다.
+const BOARD_FIXED=true;
 let fx=[], hitstop=0, shake=0, holePulse={}, pendingWin=false, animT=0, deadPend=false;
 // 이동 속도 (힌트 데모와 비슷한 템포로 천천히). 클수록 빠름
 const MOVE_K=0.24, DOG_K=0.28, SLIDE_STEP=0.105, SLOPE_HOLD=0.22;
@@ -39233,13 +39235,13 @@ function render(){
   if(houseTop) ctx.translate(0, houseTop);                 // 마당: 개집 띠 아래에 판
   if(tutSlide) ctx.translate(tutSlideX(), 0);
   if(BOARD_SHAKE_ON && shake>0.02){ ctx.translate((Math.random()-0.5)*shake*cell*0.25,(Math.random()-0.5)*shake*cell*0.25); }
-  if(nudgeFx && nudgeFx.t<0.16){ const k=Math.sin(nudgeFx.t/0.16*Math.PI)*cell*0.035; ctx.translate(nudgeFx.dc*k, nudgeFx.dr*k); }
+  if(!BOARD_FIXED && nudgeFx && nudgeFx.t<0.16){ const k=Math.sin(nudgeFx.t/0.16*Math.PI)*cell*0.035; ctx.translate(nudgeFx.dc*k, nudgeFx.dr*k); }
   // C: 방석 중심 줌. 마지막 한 수가 먼저 조금 당겨 두고(0.08), 승리 줌(0.14)이 이어받는다 —
   // 둘 중 큰 쪽을 써야 이어받는 순간 화면이 튀지 않는다.
   { let z=0, zk=null;
     if(finalFx && finalFx.z>0.001){ z=finalFx.z*0.08; zk=finalFx.k; }
     if(winFx && winFx.t<1){ const zw=Math.sin(winFx.t*Math.PI)*0.14; if(zw>=z){ z=zw; zk=winFx.k; } }
-    if(zk!=null && z>0){ const zr=(zk/GN)|0, zc=zk%GN;
+    if(!BOARD_FIXED && zk!=null && z>0){ const zr=(zk/GN)|0, zc=zk%GN;
       ctx.translate(cx(zc),cy(zr)); ctx.scale(1+z,1+z); ctx.translate(-cx(zc),-cy(zr)); } }
   drawBathWallCached();                                    // 2동네 욕실 — 고정 벽 띠는 오프스크린 캐시에서 한 번만 합성한다.
                                                            //   첫 줄 칸막이 위 소품(오리·화분)이 띠 위로 올라와 안 잘린다(10-07 사람)
