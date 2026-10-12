@@ -57,22 +57,22 @@
 <audio id="bgmGame" preload="none" src="sound/bgm-game-lite.mp3"></audio>
 <audio id="bgmGameAlt" preload="none" src="sound/bgm-game-9am.mp3"></audio>
 <audio id="bgmYard" loop preload="none" src="sound/bgm-yard-7am.mp3"></audio>
-<audio id="sfxBallRoll" preload="auto" src="sound/ball-roll-short.mp3"></audio>
-<audio id="sfxWallBlock" preload="auto" src="sound/wall-block-short.mp3"></audio>
-<audio id="sfxGoalAudio" preload="auto" src="sound/goal-catch1.mp3"></audio>
-<audio id="sfxSelected-grass" preload="auto" src="sound/grass-light-step1.mp3"></audio>
-<audio id="sfxSelected-boxPush" preload="auto" src="sound/box-push3.mp3"></audio>
-<audio id="sfxSelected-boxOpen" preload="auto" src="sound/box-open4.mp3"></audio>
-<audio id="sfxSelected-pour" preload="auto" src="sound/water-pour4.mp3"></audio>
-<audio id="sfxSelected-dirt" preload="auto" src="sound/dirt-land3.mp3"></audio>
-<audio id="sfxSelected-guide" preload="auto" src="sound/guide-paper7.mp3"></audio>
-<audio id="sfxSelected-pit" preload="auto" src="sound/pit-whistle12.mp3"></audio>
-<audio id="sfxSelected-stream" preload="auto" src="sound/stream-splash9.mp3"></audio>
-<audio id="sfxSelected-treatPop" preload="auto" src="sound/treat-pop2.mp3"></audio>
-<audio id="sfxSelected-treat1" preload="auto" src="sound/treat-xylophone-1.mp3"></audio>
-<audio id="sfxSelected-treat2" preload="auto" src="sound/treat-xylophone-2.mp3"></audio>
-<audio id="sfxSelected-treat3" preload="auto" src="sound/treat-xylophone-3.mp3"></audio>
-<audio id="sfxSelected-ballChew" preload="auto" src="sound/ball-chew2.mp3"></audio>
+<audio id="sfxBallRoll" preload="none" src="sound/ball-roll-short.mp3"></audio>
+<audio id="sfxWallBlock" preload="none" src="sound/wall-block-short.mp3"></audio>
+<audio id="sfxGoalAudio" preload="none" src="sound/goal-catch1.mp3"></audio>
+<audio id="sfxSelected-grass" preload="none" src="sound/grass-light-step1.mp3"></audio>
+<audio id="sfxSelected-boxPush" preload="none" src="sound/box-push3.mp3"></audio>
+<audio id="sfxSelected-boxOpen" preload="none" src="sound/box-open4.mp3"></audio>
+<audio id="sfxSelected-pour" preload="none" src="sound/water-pour4.mp3"></audio>
+<audio id="sfxSelected-dirt" preload="none" src="sound/dirt-land3.mp3"></audio>
+<audio id="sfxSelected-guide" preload="none" src="sound/guide-paper7.mp3"></audio>
+<audio id="sfxSelected-pit" preload="none" src="sound/pit-whistle12.mp3"></audio>
+<audio id="sfxSelected-stream" preload="none" src="sound/stream-splash9.mp3"></audio>
+<audio id="sfxSelected-treatPop" preload="none" src="sound/treat-pop2.mp3"></audio>
+<audio id="sfxSelected-treat1" preload="none" src="sound/treat-xylophone-1.mp3"></audio>
+<audio id="sfxSelected-treat2" preload="none" src="sound/treat-xylophone-2.mp3"></audio>
+<audio id="sfxSelected-treat3" preload="none" src="sound/treat-xylophone-3.mp3"></audio>
+<audio id="sfxSelected-ballChew" preload="none" src="sound/ball-chew2.mp3"></audio>
 <div id="rotateNotice" role="status" aria-live="polite">
   <span>🐾</span><b data-i18n="rotate.title">휴대폰을 세로로 돌려주세요</b><i data-i18n="rotate.body">맥스의 산책길은 세로 화면에 가장 잘 보여요</i>
 </div>
@@ -5450,12 +5450,58 @@ const HILL_STAGES={
 // ── HILL_STAGES 끝 ──
 for(const k in HILL_STAGES) BAKED[(k|0)-1]=HILL_STAGES[k];
 const KINDS=['ball','log','bone','cartV','cartH','crop','mower','tub','pump','treeSmall','stump','treeBig','log2','log2End','hillLog'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
+const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그대로일 때만 적용 — 판이 고쳐지면 저절로 꺼진다. 3칸 이상 이어진 덩이만: 풀이 길에서 떨어진 풀칸·바위·장식 나무 칸. 칸을 막아도 풀이가 같고 최단=par 인 것만(tests/void-board.test.js)
+  '11e11110v1e0111111e1111v11e1111111e1111101e111v011e011111110000011111v1010101110':[46,54,59,60,61,62,68,69,70],   // 61판 9칸
+  '1v10111v1v10111111111101011001110001111111ffffff01111110v10111111011110101v1v110':[57,58,65,66],   // 62판 4칸
+  '1ve11111v0e1111101e1111111e1000011gggg110v110000111111v1101111111111v111v1010011':[41,46,49,53,54,57,61,62,65,68,69,70],   // 63판 12칸
+  '11e1111111e1110011e11111v1e11eff11e11e1011e11e1110e00e0011110100001001001v0v10v1':[60,67,68],   // 65판 3칸
+  '11111111v1010110111111110111111v0vhggge0ggh000e1v11111e1111v11e11010111110110001':[51,52,57,58,59,65,66,67],   // 66판 8칸
+  'v111111111v1111v111111111110111v00hh1110gghh011100he1111111e00110111100v01100v11':[9,10,17,18,25,61,69,70],   // 67판 8칸
+  'v111111111111111111v1111111hffff111h1v10111h1110v00e1101010gg1101v00010v110v0001':[49,57,65,66],   // 68판 4칸
+  '1v11011111011v111111111111111111v111111011111111v11111000hhhhh10ghhhhh0001v100v0':[9,10,11,12,13,14,17,20,21],   // 69판 9칸
+  '11101v1e1111110e1111111e1111111evhhge00egh00e00ev110e11e0v0111111110100101100v00':[50,57,58,65,66,67],   // 70판 6칸
+  '111e1110v11e11v1111e1111101e1111111e1011111e1111110e000011111000111011010111111v':[9,17,25,53,54,61,62,69,70],   // 71판 9칸
+  'v1110v1011111v1011111100gggggg1101111000v11111101011v11v111011011v1111110110v11v':[13,14,22,38,45,46,52,53,54,59,60,61,62,67,68,69,70],   // 72판 17칸
+  'vv1111011v1011101111111111011eff11101e10101vve1v11111e11110v1e101101111v11100100':[57,58,59,65,66],   // 73판 5칸
+  '111e11111vve1v11v11effff011e11v1111e1111011e0111011e11111v111011100101v1vv1010vv':[57,61,62,65,66,68,69,70],   // 74판 8칸
+  'v1e11vv111e01v1v11e1101111e1d11001e1dv1111e1d011v1e0d11110ggd01v0010111111111v11':[13,14,21],   // 75판 3칸
+  '111e0111v11e111v111e0111101e111011eue111v1e1e11110e1e11101e1111110101011v1011111':[9,17,25],   // 76판 3칸
+  '001111101001d0111111d0111v11ufff0110e0100110ev111111e11v01v1111001101100110v0v01':[9,10,17,25,57,58,65,66,67],   // 77판 9칸
+  '011v1100v111d110110vd1v00hhgu111ghh0e001v111e0001110e0v011111000110v0v0001000000':[38,46,54,61,62,66,67,68,69,70],   // 78판 10칸
+  '111111e101d111ev01d101e001uffff010e0010v00e0v010v0e01v11101011011010101110010111':[44,45,46,52,53,54,59,60,61,62,67,68,69,70],   // 79판 14칸
+  '111e01v1010e111011euge1111e10e0110e1eue11011e1e1v01010100v00101011v1011vv11111v1':[41,49,51,53,57,58,59,61,65,66,67,68,69],   // 80판 13칸
+  '111111101010111111h11v1111h11111ggh11v1111h1111vv1e1101111e1v11110e1110111e10111':[44,52,53,60,61,68,69,70],   // 81판 8칸
+  '1101e1111v11e1111110e0v110hhhh1111hhhh11011111011v10011111011v10011v1v1110110110':[9,10,17,41,49,50,51,52,57,58,59,60,61,65,66,67,68,69,70],   // 82판 19칸
+  '1101e1111v11e1101111e1100v11e1111110e1111hhhe0111hhhe0111110e0001v11110111001011':[9,10,17,25,54,62,70],   // 83판 7칸
+  '1101vv111v1011011101v1v1011hhfff1hhhh111111hh1110110101v1v11011101111v111v101111':[9,10,11,12,13,14,17,18],   // 84판 8칸
+  '11e0101011e111111hhh10111hhhgge1111000e1v11110e10111hhh11101hhh11v1011110v101111':[58,65,66,67],   // 85판 4칸
+  '11111110v111111v111111111110011100101hh00vhge0h1ggh1e1111011e1111v11111v11101101':[65,66,67],   // 86판 3칸
+  'v1e11v1011e1111101e111v111e1111101e1111011e1v11111e100v10hhhh10000hhh00v0v101v00':[12,13,14,22,53,54,62,70],   // 87판 8칸
+  '0000vv11ggggh111v11vh1111011ev110101e11100efuge1v0ev10e101e010e1v110111001000010':[25,26,33],   // 88판 3칸
+  '0010v11100d1011110d1111111ufffff11e111v1v1e1011111e11v10011111110010v10100001v11':[46,53,54,60,61,62,67,68,69,70],   // 89판 10칸
+  'v111111111111111110101111107111151111111111111111111111111111111111111111111111v':[34,42,43,44,45,46,50,51,52,53,54,58,59,60,61,62,66,67,68,69,70],   // 101판 21칸
+  'v11111111111111111111111111111111511111111111111111611111111111111111111v111111v':[62,68,69,70],   // 102판 4칸
+  'v111111111111111111111111111111111111111111111111111111116111111111111111111111v':[25,33,34,41],   // 103판 4칸
+  '1111111111111111111111111111111111111105151111011111111011111111111111111111111v':[27,35,43,46,51,52,54,62],   // 105판 8칸
+  'v111111v11111111111111111111111111111111111111111151111111111111111111111111111v':[38,46,53,54],   // 107판 4칸
+  'v111111v111111111111111111111111111111111111111111111111116161111111111111111111':[9,10,11,12,13,14],   // 108판 6칸
+  'v111111116111111111110111111510111111011111111111511111111111111111111111111111v':[30,38,46,52,53,54,59,60,61,62,67,68,69,70],   // 109판 14칸
+  'v111111v111111111111111111111111111111111111141111111111111111111111v11111111111':[12,13,14,22],   // 111판 4칸
+  'v11111111111110111511111111111111111111111111511111111111111111111111111v111111v':[43,51,59,67],   // 112판 4칸
+  'v111111v141vv11111111111111111111111111111111111111111111111111111111111v1111111':[13,14,21],   // 114판 3칸
+  'v111111v1411111111111111111111111161111111111111111111111111v11115111111v1111111':[67,68,69],   // 115판 3칸
+  'v11111111111111v1111111111111511111111111111111511111111111111111117111111111111':[9,10,11,12,17,18,25,33,41,49],   // 116판 10칸
+  'v111111111111v111111111111511111111111111111111v11111111111111111111111111111111':[54,62,70],   // 117판 3칸
+  '111111111111111111111111111611111111111111111111111111111111151111111111v111111v':[13,14,22,65,66,67],   // 119판 6칸
+};
+
 function fromBaked(o, lv){
   // lv 를 넘기면 그 판이 도구 필수인지(L.tc)가 같이 실린다. 안 넘기면 null —
   // 기존 호출부 50여 곳은 한 인자로 부르므로 동작이 그대로다.
   const rows=o.rows||GN;
   if(o.T.length!==rows*GN) throw new Error('baked board size mismatch: '+o.T.length+' != '+rows+'x'+GN);
   const T=[]; for(let r=0;r<rows;r++){ const row=[]; for(let c=0;c<GN;c++) row.push(parseInt(o.T[r*GN+c],36)); T.push(row); }   // 36진 1글자 = 타일(물=a, 밸브=b)
+  const vdCells=VOID_BOARD[o.T]||null; if(vdCells) for(const i of vdCells) T[(i/GN)|0][i%GN]=WALL;   // 판이 없는 칸 — 막힌 칸(벽)이지만 바위 대신 바닥을 도려낸다(voidCut)
   const holes=new Map(o.h); const paintCol={}; for(const kv of o.p) paintCol[kv[0]]=kv[1];
   const boxes=o.b.map(x=>({r:x[0],c:x[1],color:x[2],kind:KINDS[x[3]]}));
   const walk=o.cw? {p:o.cw.p.slice(), i:o.cw.i|0, d:o.cw.d||1} : null;      // 순찰 고양이: 경로 셀 목록 + 시작 위치/방향
@@ -5484,6 +5530,7 @@ function fromBaked(o, lv){
        noBoat:!!o.nb,                                                         // 기믹 사전 끔 전용 — 배가 출발하지 않는다(MECH.boat.off)
        up:(o.hl2 && o.up)? Array.from(String(o.up),ch=>ch==='1'?1:ch==='2'?2:0) : null,      // 1층/2층/3층 — up:"…" heights ('1'=2층, '2'=3층, else 1층), see cliffKind. hl2 boards only
        dc:(o.hl2 && o.dc)? hillDecorList(o,T) : null,                       // hl2 floor decor — dc:[[r,c,kind,v?]], draw-only (see hillDecorDraw)
+       vd:(vdCells? new Set(vdCells) : null),                                 // 판이 없는 칸(r*GN+c) — 바닥을 도려내고 바위·나무·꾸밈을 안 그린다(VOID_BOARD, 판 문자열이 같을 때만)
        hl2:!!o.hl2,                                                        // 새 언덕 판(101~120, hl2:1) — 땅 통나무 쿵 켬 · 긴 통나무 돌리기/다리 걸음 끔 · 쓰러진 작은 통나무도 비탈을 미끄러진다
        sq:(o.sq? o.sq.map(x=>({r:x[0],c:x[1],dir:x[2]|0})) : null),           // 다람쥐 — sq:[[r,c,dir]] dir 0위 1오른 2아래 3왼(바라보는 쪽). 자리는 그루터기·보통 나무(31)·작은 도끼 나무 칸, 상태 비트 없음
        pfrogs:(o.pf? o.pf.map(x=>({spots:[[x[0],x[1]]].concat((x[2]||[]).map(q=>[q[0],q[1]]))})) : null)},   // 웅덩이 개구리 — pf:[[r,c,[[r2,c2],…]]] 처음 연잎 + 옮겨 갈 연잎(웅덩이 칸), 자리는 filled 의 PFROG_F
@@ -8254,7 +8301,9 @@ function chapterMaxEnsureOptionalAtlas(kind,dirR=0,dirC=0){
     src=chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png');
   }else return null;
   if(cur && cur._maxSrc===src) return cur;
-  const img=new Image(); img.decoding='async'; img._maxSrc=src; set(img); img.src=src; return img;
+  const img=new Image(); img.decoding='async'; img._maxSrc=src; set(img); img.src=src;
+  try{ if(typeof img.decode==='function') img.decode().catch(()=>{}); }catch(_){ }   // 처음 그리는 프레임이 아니라 지금 풀어 둔다
+  return img;
 }
 function releaseTransientGameAssets(){
   for(const img of [maxChapterMasterVictoryV1Atlas,maxChapterMasterStretchV1Atlas,
@@ -12126,6 +12175,8 @@ function loadLevel(lv, moon, keepTries){
   if(!keepTries){ restartN=0; undoN=0; }
   level=lv;
   preloadNeighborhoodAudio(lv, true);
+  { const warm=()=>{ try{ if(state==='play' && level===lv) chapterMaxEnsureOptionalAtlas('victory'); }catch(_){ } };   // 승리 동작 시트를 쉬는 틈에 미리
+    if(typeof requestIdleCallback==='function') requestIdleCallback(warm,{timeout:2500}); else setTimeout(warm,1200); }
   moonMode=!!(moon && BAKED_B[lv]);
   document.body.classList.toggle("hud-pilot", hudPilotForLevel(lv) && !moonMode);   // 달빛은 옛 HUD 를 쓴다
   document.body.classList.toggle("uiux-polish", uiuxPolishForLevel(lv) && !moonMode);
@@ -29741,42 +29792,26 @@ function drawHillTreeObject(x,y,s,b){
 // 좌표: 밑동 = 칸 가운데에서 CREEK_TREE_BASE 아래. 그루터기 그림(creekStumpLocal)은 밑동 원점, 윗부분(creekUpperLocal)은 벤 자리 원점·줄기는 -y.
 const CREEK_TREE_BASE=.22, CREEK_CUT=.13;
 function creekAxeDims(big){ return big? {W:.44,H:1.72} : {W:.40,H:.98}; }
-function creekWoodGrad(g,w){ const gr=g.createLinearGradient(-w,0,w,0); gr.addColorStop(0,'#7E4C2B'); gr.addColorStop(.55,'#B77A43'); gr.addColorStop(1,'#704328'); return gr; }
+function creekWoodGrad(g,w){ const gr=g.createLinearGradient(-w,0,w,0); gr.addColorStop(0,'#946038'); gr.addColorStop(.55,'#CB9258'); gr.addColorStop(1,'#8A5733'); return gr; }
 function creekCutFace(g,s,w,yy){                                   // 벤 면 — 밝은 속살 + 나이테(그루터기 윗면·통나무 밑동 끝이 같은 그림)
-  g.fillStyle='#E8C48A'; g.beginPath(); g.ellipse(0,yy,w,w*.45,0,0,7); g.fill();
+  g.fillStyle='#F2D8A8'; g.beginPath(); g.ellipse(0,yy,w,w*.45,0,0,7); g.fill();
   g.strokeStyle='rgba(105,65,32,.5)'; g.lineWidth=s*.016; for(const k of [.35,.7]){ g.beginPath(); g.ellipse(0,yy,w*k,w*k*.45,0,0,7); g.stroke(); }
   g.strokeStyle='rgba(62,36,16,.55)'; g.lineWidth=s*.014; g.beginPath(); g.ellipse(0,yy,w,w*.45,0,0,7); g.stroke(); }
 function creekStumpLocal(g,s,W,top){
   const w=W*s/2, ct=CREEK_CUT*s;
   g.fillStyle=creekWoodGrad(g,w); g.beginPath(); g.moveTo(-w*1.22,0); g.quadraticCurveTo(-w*.98,-s*.035,-w,-ct); g.lineTo(w,-ct); g.quadraticCurveTo(w*.98,-s*.035,w*1.22,0); g.quadraticCurveTo(0,s*.05,-w*1.22,0); g.closePath(); g.fill();
   if(top) creekCutFace(g,s,w,-ct); }
-function creekUpperLocal(g,s,big,noAxe){
-  const {W,H}=creekAxeDims(big), w=W*s/2, h=(H-CREEK_CUT)*s;
-  g.fillStyle=creekWoodGrad(g,w); g.beginPath(); g.moveTo(-w,s*.004); g.lineTo(-w*.88,-h); g.lineTo(w*.88,-h); g.lineTo(w,s*.004); g.closePath(); g.fill();
-  g.strokeStyle='rgba(239,199,137,.38)'; g.lineWidth=s*.022;                   // 결 — 통나무의 사선 결과 같은 색
-  for(const [q,k] of [[-.4,.3],[.1,.5],[.35,.72],[-.15,.88]]) if(k*h<h-s*.2){ g.beginPath(); g.moveTo(w*q,-h*k); g.lineTo(w*(q+.12),-h*k-s*.16); g.stroke(); }
-  const xe=w*.97, dep=w*2/3, up=s*.2;                                        // 벤 홈 하나 — 아래 면은 벤 자리(수평), 위 면은 비스듬히. 속살 한 색 + 짙은 테
-  g.fillStyle='#F2D29A'; g.beginPath(); g.moveTo(xe,-up); g.lineTo(xe-dep,0); g.lineTo(xe,0); g.closePath(); g.fill();
-  g.fillStyle='rgba(62,36,16,.45)'; g.beginPath(); g.moveTo(xe-dep,0); g.lineTo(xe,0); g.lineTo(xe,-s*.018); g.closePath(); g.fill();
-  g.strokeStyle='#3E2410'; g.lineWidth=s*.018; g.lineJoin='round'; g.beginPath(); g.moveTo(xe,-up); g.lineTo(xe-dep,0); g.lineTo(xe,0); g.stroke();
-  const cy0=-(H-.16-CREEK_CUT)*s, k=big?1.32:1.3;                            // 잎 — 줄기 끝을 덮는 성긴 연두 송이(보통 나무의 꽉 찬 짙은 원과 다르게)
-  const blobs=big? [[-.30,.30,.17,'#74AE55'],[.32,.26,.16,'#7DB85E'],[0,0,.32,'#7DB85E'],[-.24,-.12,.2,'#8FC86A'],[.24,-.1,.2,'#74AE55'],[-.04,-.3,.18,'#A6D67E'],[.1,-.16,.1,'#B9E08F']]
-                  : [[0,0,.27,'#7DB85E'],[-.21,.06,.17,'#8FC86A'],[.21,.04,.17,'#74AE55'],[-.04,-.2,.16,'#A6D67E'],[.08,-.08,.08,'#B9E08F']];
-  for(const [dx,dy,r0,col] of blobs){ g.fillStyle=col; g.beginPath(); g.arc(dx*s*k,cy0+dy*s*k,r0*s*k,0,7); g.fill(); }
-  if(noAxe) return;
-  g.save(); g.translate(xe-dep*.38,-s*.035); g.rotate(.2);                     // 도끼 — 날이 홈 속에 박히고 자루가 비스듬히 나온다
-  g.fillStyle='#E8742C'; rr(s*.05,-s*.03,s*.33,s*.06,s*.03); g.fill(); g.fillStyle='#B4511A'; g.fillRect(s*.33,-s*.03,s*.05,s*.06);
-  g.fillStyle='#C9D3DA'; g.beginPath(); g.moveTo(-s*.02,-s*.045); g.lineTo(s*.07,-s*.03); g.lineTo(s*.07,s*.03); g.lineTo(-s*.02,s*.045); g.quadraticCurveTo(-s*.04,0,-s*.02,-s*.045); g.fill();
-  g.strokeStyle='#7D8A93'; g.lineWidth=s*.014; g.stroke(); g.restore(); }
+function creekUpperLocal(g,s,big,noAxe,rest){                      // 새 그림(NT) — 선 자리에서(rest) 밑동은 땅, 기울거나 넘어갈 땐 벤 자리가 밑동(원점)이라 경첩처럼 돈다
+  const by=rest? CREEK_CUT*s : 0; if(big) ntPine(g,0,by,s,noAxe,true); else ntTree(g,0,by,s,true,noAxe,true); }
 // 줄기 축 — 넘어가는 쪽(dr,dc)으로 θ 기울고, 위·아래로 넘어갈 땐 옆으로 ψ 비껴(정면을 향해 납작해지는 장면이 없게) 화면에 투영한 벡터.
 function creekFallAxis(dr,dc,th,psi){ if(dc) return [dc*Math.sin(th), -Math.cos(th)]; return [Math.sin(th)*Math.sin(psi), dr*Math.sin(th)*Math.cos(psi)-Math.cos(th)]; }
 function creekAxisXf(g,v,lenK){ const L=Math.hypot(v[0],v[1])||1e-3, nx=-v[1]/L, ny=v[0]/L, k=lenK||1; g.transform(nx,ny,-v[0]*k,-v[1]*k,0,0); }   // 로컬 위(0,−1) → 축 v, 로컬 옆 → 축에 수직(굵기 그대로)
 function creekAxeTree(g,s,big,lean){                                // 원점 = 칸 가운데(drawHillTreeObject 와 같은 좌표)
   const {W}=creekAxeDims(big), leaning=lean && (lean[0]||lean[1]);
   g.fillStyle='rgba(45,35,20,.2)'; g.beginPath(); g.ellipse(0,s*CREEK_TREE_BASE,s*W*.75,s*.075,0,0,7); g.fill();
-  g.save(); g.translate(0,s*CREEK_TREE_BASE); creekStumpLocal(g,s,W,leaning);   // 큰 나무 첫 수 — 같은 벤 자리에서 금이 가 기운다(벌어진 틈으로 속살이 보인다)
+  g.save(); g.translate(0,s*CREEK_TREE_BASE); if(leaning) creekStumpLocal(g,s,W,true);   // 큰 나무 첫 수 — 같은 벤 자리에서 금이 가 기운다(서 있을 땐 새 줄기가 그루터기를 덮는다)
   g.translate(0,-s*CREEK_CUT); if(leaning) creekAxisXf(g,creekFallAxis(lean[0],lean[1],.2,0));
-  creekUpperLocal(g,s,big); g.restore(); }
+  creekUpperLocal(g,s,big,false,!leaning); g.restore(); }
 // 벌목 연출(10-08 넷째: 경첩 넘어짐) — 윗부분이 벤 자리에 붙은 채(경첩) 그루터기 위에서 돌아 눕고, 끝에서야 통나무 자리로 미끄러져 내려앉는다.
 // 위·아래로 넘어갈 땐 옆으로 비껴 돌아(대각선) 납작한 장면이 없고, 끝은 곧게 아래/위 칸. 앞 72% = 경첩 돌기, 뒤 28% = 내려앉기(길이도 통나무 길이로).
 let treeFallFx=null;
@@ -29816,7 +29851,7 @@ function drawHillLogObject(x,y,s,b,long){
   if(!long && b.color>=4){
     ctx.save(); ctx.translate(x,y);
     ctx.fillStyle='rgba(45,35,20,.2)'; ctx.beginPath(); ctx.ellipse(0,s*.24,s*.24,s*.075,0,0,7); ctx.fill();
-    const g=ctx.createLinearGradient(-s*.16,0,s*.16,0); g.addColorStop(0,'#7E4C2B'); g.addColorStop(.55,'#B77A43'); g.addColorStop(1,'#704328');
+    const g=ctx.createLinearGradient(-s*.16,0,s*.16,0); g.addColorStop(0,'#946038'); g.addColorStop(.55,'#CB9258'); g.addColorStop(1,'#8A5733');
     rr(-s*.17,-s*.30,s*.34,s*.52,s*.13); ctx.fillStyle=g; ctx.fill();
     ctx.fillStyle='#D8AA6B'; ctx.beginPath(); ctx.ellipse(0,-s*.30,s*.17,s*.095,0,0,7); ctx.fill();
     ctx.strokeStyle='rgba(105,65,32,.55)'; ctx.lineWidth=s*.02; ctx.beginPath(); ctx.ellipse(0,-s*.30,s*.09,s*.05,0,0,7); ctx.stroke();
@@ -29830,14 +29865,14 @@ function drawHillLogObject(x,y,s,b,long){
   ctx.save(); ctx.translate(x+off[1]*s*.5,y+off[0]*s*.5); if(vertical) ctx.rotate(Math.PI/2);
   if(ck && (face===0||face===3)) ctx.scale(-1,1);                 // 냇가 — 벤 밑동 끝(-x)이 그루터기 쪽을 보게
   if(!(long && CREEK_LL.noShadow)){ ctx.fillStyle='rgba(45,35,20,.2)'; ctx.beginPath(); ctx.ellipse(0,s*(ck?R+.01:.19),s*len*.48,s*(ck?R*.55:.105),0,0,7); ctx.fill(); }
-  const g=ctx.createLinearGradient(0,-s*R,0,s*R); g.addColorStop(0,'#B77A43'); g.addColorStop(1,'#7E4C2B');
+  const g=ctx.createLinearGradient(0,-s*R,0,s*R); g.addColorStop(0,'#CB9258'); g.addColorStop(1,'#946038');
   rr(-s*len*.5,-s*R,s*len,s*R*2,s*(ck?R*.9:.16)); ctx.fillStyle=g; ctx.fill();
   const noRing=!!(long && CREEK_LL.noRing);                       // 물 위 가로 통나무 — 정면이라 나이테 없음(다리·1칸 통나무와 같다, 10-09)
   if(ck && noRing){}
   else if(ck){ const bx0=-s*len*.5+s*R*.35;                            // 밑동 끝 = 벤 자리의 다른 반쪽 — 그루터기 윗면과 같은 속살·나이테 + 비스듬한 홈 면
     ctx.fillStyle='#F2D29A'; ctx.beginPath(); ctx.moveTo(-s*len*.5+s*R*.2,-s*R*.98); ctx.lineTo(-s*len*.5+s*R*.2+s*.13,-s*R*.98); ctx.lineTo(-s*len*.5+s*R*.2,-s*R*.98+s*R*.66); ctx.closePath(); ctx.fill();
     ctx.strokeStyle='#3E2410'; ctx.lineWidth=s*.016; ctx.beginPath(); ctx.moveTo(-s*len*.5+s*R*.2+s*.13,-s*R*.98); ctx.lineTo(-s*len*.5+s*R*.2,-s*R*.98+s*R*.66); ctx.stroke();
-    ctx.fillStyle='#E8C48A'; ctx.beginPath(); ctx.ellipse(bx0,0,s*R*.6,s*R,0,0,7); ctx.fill();
+    ctx.fillStyle='#F2D8A8'; ctx.beginPath(); ctx.ellipse(bx0,0,s*R*.6,s*R,0,0,7); ctx.fill();
     ctx.strokeStyle='rgba(62,36,16,.55)'; ctx.lineWidth=s*.014; ctx.beginPath(); ctx.ellipse(bx0,0,s*R*.6,s*R,0,0,7); ctx.stroke(); }
   else { ctx.fillStyle='#D8AA6B'; ctx.beginPath(); ctx.ellipse(-s*len*.5,0,s*.15,s*R,0,0,7); ctx.fill(); }
   if(!noRing){ ctx.strokeStyle='rgba(105,65,32,.55)'; ctx.lineWidth=s*.02; ctx.beginPath(); ctx.ellipse(-s*len*.5+(ck?s*R*.35:0),0,ck?s*R*.32:s*.08,ck?s*R*.58:s*.105,0,0,7); ctx.stroke(); }
@@ -29848,23 +29883,22 @@ function drawHillLogObject(x,y,s,b,long){
 // 축 두 끝 S·E 를 (땅 x, 땅 y, 높이) 칸 단위로 주면 화면 (x, y − 높이·KH)로 투영한다(높이는 3/4 남짓 — 선 통나무가 세로로 누운 것보다 짧고 굵어 보인다).
 // 보이는 벤 면은 보는 쪽(위·앞에서 내려다봄)을 향한 끝 하나 — 섬 = 윗면, 세로로 누움 = 가까운(아래) 끝, 가로로 누움 = 양 끝 옆모습.
 // 굴림각 th 로 껍질 줄·옹이가 축을 돌며 지나가고 벤 면의 금이 돈다. 판 규칙(옆=굴림 / 길이 방향=섬 / 선 것=민 쪽으로 넘어짐)은 applyMoveCore 그대로.
-const LOG3D={LEN:.816, R:.17, KH:.62, V:[0,.6,.8], TURN_T:.36};
+const LOG3D={LEN:.6, R:.17, KH:.62, V:[0,.6,.8], TURN_T:.36};
 const BOAT_LOG={LEN:.96, R:.17};                                                                   // 배 — 길이 .96 고정(물길 폭·맥스 발 자리), 굵기만 .17
 function log3dEll(g,x,y,rx,ry,rot){ g.beginPath(); g.ellipse(x,y,Math.max(.5,rx),Math.max(.5,ry),rot,0,7); }
 function log3dCyl0(g,s,o,S,E,th,opt){ opt=opt||{};
   const {R,KH,V}=LOG3D, P=q=>[o[0]+q[0]*s, o[1]+(q[1]-q[2]*KH)*s];
   const A=P(S), B=P(E), ax=E[0]-S[0], ay=E[1]-S[1], ah=E[2]-S[2], al=Math.hypot(ax,ay,ah)||1, dv=(ax*V[0]+ay*V[1]+ah*V[2])/al;
   const dx=B[0]-A[0], dy=B[1]-A[1], dl=Math.hypot(dx,dy), ux=dl>1e-3? dx/dl : 0, uy=dl>1e-3? dy/dl : -1;
-  const nx=-uy, ny=ux, r=R*s, rot=Math.atan2(uy,ux), minor=Math.max(.42,Math.abs(dv))*r;
+  const nx=-uy, ny=ux, r=R*s, rot=Math.atan2(uy,ux), minor=Math.max(.6,Math.abs(dv))*r;
   if(!opt.noShadow){ const sh=q=>[o[0]+(q[0]+q[2]*.62)*s, o[1]+(q[1]+q[2]*.16+.02)*s], a=sh(S), b=sh(E);   // 땅 그늘 — 높을수록 오른쪽 아래로 길게(선 통나무는 그늘이 길다)
     g.save(); g.strokeStyle='rgba(45,35,20,.2)'; g.lineCap='butt'; g.lineWidth=r*1.9; g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0]+.01,b[1]); g.stroke(); g.restore(); }
   const side=()=>{ g.beginPath(); g.moveTo(A[0]+nx*r,A[1]+ny*r); g.lineTo(B[0]+nx*r,B[1]+ny*r); g.lineTo(B[0]-nx*r,B[1]-ny*r); g.lineTo(A[0]-nx*r,A[1]-ny*r); g.closePath(); };
-  const bark=g.createLinearGradient(A[0]+nx*r,A[1]+ny*r,A[0]-nx*r,A[1]-ny*r); bark.addColorStop(0,'#7E4C2B'); bark.addColorStop(.45,'#B77A43'); bark.addColorStop(1,'#704328');
+  const bark=g.createLinearGradient(A[0]+nx*r,A[1]+ny*r,A[0]-nx*r,A[1]-ny*r); bark.addColorStop(0,'#946038'); bark.addColorStop(.45,'#CB9258'); bark.addColorStop(1,'#8A5733');
   g.fillStyle=bark; log3dEll(g,A[0],A[1],minor,r,rot); g.fill(); log3dEll(g,B[0],B[1],minor,r,rot); g.fill(); side(); g.fill();
   g.save(); side(); g.clip();
-  for(let k=0;k<6;k++){ const a=th+k*Math.PI/3, c=Math.cos(a); if(c<=.05) continue; const u=Math.sin(a)*r*.92;   // 껍질 줄 — 굴림각으로 돈다, 앞을 향할수록 진하다
-    g.strokeStyle=k%3===0? `rgba(60,32,12,${(.8*c).toFixed(3)})` : `rgba(245,210,150,${(.65*c).toFixed(3)})`; g.lineWidth=s*(k%3===0? .034 : .026);
-    g.beginPath(); g.moveTo(A[0]+nx*u+ux*minor*.4,A[1]+ny*u+uy*minor*.4); g.lineTo(B[0]+nx*u-ux*minor*.4,B[1]+ny*u-uy*minor*.4); g.stroke(); }
+  { const k=(ny<0 || (Math.abs(ny)<1e-6 && nx<0))? 1 : -1;                // 매끈한 통(10-12 F안) — 껍질 줄 대신 윗면(세로는 왼쪽)에 번지는 빛 한 줄
+    g.strokeStyle='rgba(255,238,205,.42)'; g.lineCap='round'; g.lineWidth=r*.5; g.beginPath(); g.moveTo(A[0]+nx*k*r*.4,A[1]+ny*k*r*.4); g.lineTo(B[0]+nx*k*r*.4,B[1]+ny*k*r*.4); g.stroke(); }
   { const a=th+1.1, c=Math.cos(a); if(c>.1 && dl>r){ const u=Math.sin(a)*r*.8, kx=A[0]+dx*.62+nx*u, ky=A[1]+dy*.62+ny*u;   // 옹이 하나 — 굴리면 돌아 넘어간다
     g.fillStyle=`rgba(90,52,24,${(.8*c).toFixed(3)})`; log3dEll(g,kx,ky,s*.06,s*.045*Math.max(.3,c),rot); g.fill(); g.fillStyle=`rgba(216,170,107,${(.7*c).toFixed(3)})`; log3dEll(g,kx,ky,s*.02,s*.013*Math.max(.3,c),rot); g.fill(); } }
   if(S[2]<R*1.5 && E[2]<R*1.5 && Math.abs(ay)>Math.abs(ax)){                     // 세로로 누운 것 — 먼 끝(위)으로 갈수록 어둡게
@@ -29872,13 +29906,13 @@ function log3dCyl0(g,s,o,S,E,th,opt){ opt=opt||{};
     g.fillStyle=gz; g.fillRect(Math.min(A[0],B[0])-r*2,Math.min(A[1],B[1])-r*2,Math.abs(dx)+r*4,Math.abs(dy)+r*4); }
   g.restore();
   if(opt.noFace) return;
-  const face=(X,Y,sg)=>{ g.fillStyle='#E8C48A'; log3dEll(g,X,Y,minor,r,rot); g.fill(); g.strokeStyle='rgba(62,36,16,.55)'; g.lineWidth=s*.014; g.stroke();   // 벤 면 — 나이테 + 굴림각으로 도는 금
+  const face=(X,Y,sg)=>{ g.fillStyle='#F2D8A8'; log3dEll(g,X,Y,minor,r,rot); g.fill(); g.strokeStyle='rgba(62,36,16,.3)'; g.lineWidth=s*.014; g.stroke();   // 벤 면 — 나이테 + 굴림각으로 도는 금
     g.strokeStyle='rgba(105,65,32,.5)'; g.lineWidth=s*.012; log3dEll(g,X,Y,minor*.55,r*.55,rot); g.stroke(); log3dEll(g,X,Y,minor*.22,r*.22,rot); g.stroke();
     const a=th*sg, px=Math.cos(a)*minor*.9, py=Math.sin(a)*r*.9; g.strokeStyle='rgba(80,45,18,.75)'; g.lineWidth=s*.016; g.beginPath(); g.moveTo(X,Y); g.lineTo(X+px*Math.cos(rot)-py*Math.sin(rot), Y+px*Math.sin(rot)+py*Math.cos(rot)); g.stroke(); };
   if(Math.abs(dv)<.25){ face(A[0],A[1],-1); face(B[0],B[1],1); } else if(dv>0) face(B[0],B[1],1); else face(A[0],A[1],-1); }
 // 땅 위 통나무 세 상태가 그림으로 확실히 갈리게(design-v2, 10-08 사람 확정) — 가로 누움 = 양 끝 나이테 없음(둥근 껍질 끝 + 옅은 그늘) · 세로 누움 = 가까운 끝 나이테, 먼 끝 어둡게, 바닥 그늘 길게 ·
 // 섬 = 짧고 굵은 통(굵기 .27 · 키 .62)에 큰 윗면과 긴 그늘. 세움·넘어짐 중엔 굵기·길이를 누움↔섬 사이로 이어 튀지 않게(log3dDims).
-const LOG3D_LIE={R:.17,LEN:.816}, LOG3D_STAND={R:.2295,LEN:.527};
+const LOG3D_LIE={R:.17,LEN:.6}, LOG3D_STAND={R:.2295,LEN:.527};
 function log3dCyl(g,s,o,S,E,th,opt){ opt=Object.assign({},opt||{});
   const ah=E[2]-S[2], horiz=Math.abs(E[0]-S[0])>Math.abs(E[1]-S[1]) && Math.abs(ah)<.05;
   if(horiz && !opt.noFace){ opt.noFace=true; log3dCyl0(g,s,o,S,E,th,opt);       // 가로 누움 — 나이테 대신 끝 그늘만(둥근 껍질 끝이 감싸 돈다)
@@ -29974,18 +30008,16 @@ function creekBoatBody(g,x,y,s,b,ang,turning,vert){
   const {LEN,R}=BOAT_LOG, L2=s*LEN/2, r=s*R, wc=creekWaterColor(x,y,'rgba(110,185,220,.82)');
   g.save(); g.translate(x,y+CREEK_BOB()+s*CREEK_BOAT_DROP); if(turning) g.rotate(ang); else if(!vert) g.rotate(Math.sin(animT*1.7)*.025);
   g.beginPath(); if(vert) g.rect(-r*1.08,-L2-2,r*2.16,2*L2+r*.45); else g.rect(-L2-2,-r*1.08,2*L2+4,r*2.2); g.clip();   // 몸통만(고리·물결은 따로)
-  const wood=(x0,y0,x1,y1)=>{ const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#B77A43'); gr.addColorStop(1,'#7E4C2B'); return gr; };
-  const cut=(cx0,cy0,rx,ry)=>{ g.fillStyle='#E8C48A'; g.beginPath(); g.ellipse(cx0,cy0,rx,ry,0,0,7); g.fill(); g.strokeStyle='rgba(62,36,16,.55)'; g.lineWidth=s*.014; g.stroke();
+  const wood=(x0,y0,x1,y1)=>{ const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#CB9258'); gr.addColorStop(1,'#946038'); return gr; };
+  const cut=(cx0,cy0,rx,ry)=>{ g.fillStyle='#F2D8A8'; g.beginPath(); g.ellipse(cx0,cy0,rx,ry,0,0,7); g.fill(); g.strokeStyle='rgba(62,36,16,.55)'; g.lineWidth=s*.014; g.stroke();
     g.strokeStyle='rgba(105,65,32,.5)'; g.beginPath(); g.ellipse(cx0,cy0,rx*.5,ry*.5,0,0,7); g.stroke(); };
   if(!vert){
     g.fillStyle=wood(0,-r,0,r); creekRrp(g,-L2,-r,2*L2,2*r,r*.9); g.fill();
-    g.strokeStyle='rgba(239,199,137,.42)'; g.lineWidth=s*.025; for(const q of [-.3,-.05,.22]){ g.beginPath(); g.moveTo(s*LEN*q,-r*.72); g.lineTo(s*LEN*(q+.07),r*.2); g.stroke(); }
     g.save(); creekRrp(g,-L2,-r,2*L2,2*r,r*.9); g.clip(); const eg=g.createLinearGradient(-L2,0,-L2+r*1.1,0); eg.addColorStop(0,'rgba(60,32,12,.45)'); eg.addColorStop(1,'rgba(60,32,12,0)'); g.fillStyle=eg; g.fillRect(-L2,-r,r*1.1,2*r); g.restore();   // 가로 배 — 나이테 없이 끝만 살짝 어둡게
     g.save(); creekRrp(g,-L2,-r,2*L2,2*r,r*.9); g.clip(); g.fillStyle=wc; g.fillRect(-L2-2,r*.12,2*L2+4,r*2); g.restore();
     g.strokeStyle='rgba(255,255,255,.9)'; g.lineWidth=s*.022; g.lineCap='round'; g.beginPath(); g.moveTo(-L2+r*.2,r*.12); g.lineTo(L2-r*.2,r*.12); g.stroke(); }
   else {
     g.fillStyle=wood(-r,0,r,0); creekRrp(g,-r,-L2,2*r,2*L2-r*.3,r*.9); g.fill();
-    g.strokeStyle='rgba(239,199,137,.42)'; g.lineWidth=s*.025; for(const q of [-.32,-.08,.16]){ g.beginPath(); g.moveTo(-r*.5,s*LEN*q); g.lineTo(r*.5,s*LEN*(q+.06)); g.stroke(); }
     g.save(); creekRrp(g,-r,-L2,2*r,2*L2-r*.3,r*.9); g.clip(); g.fillStyle=wc; g.fillRect(-r-2,-L2,r*.2,2*L2); g.fillRect(r*.8,-L2,r*.2+2,2*L2); g.restore();
     g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; g.lineCap='round'; for(const sx of [-1,1]){ g.beginPath(); g.moveTo(sx*r*.8,-L2+r*.6); g.lineTo(sx*r*.8,L2-r*.6); g.stroke(); }
     const ey=L2-r*.3; cut(0,ey,r,r*.62);
@@ -30042,8 +30074,8 @@ function creekBoatLog(x,y,s,b){
 function creekBridgeSpan(b){ const ax=logAxis(b), horiz=ax[1]!==0, gp=CREEK.gap && CREEK.gap.get(kk(b.r,b.c)), s=cell;
   let a0, a1; if(gp){ a0=(horiz? gp.x0 : gp.y0)*s; a1=(horiz? gp.x1 : gp.y1)*s; } if(!gp || !(a1-a0>s*.2)){ a0=-.36*s; a1=.36*s; }
   return {horiz,a0,a1}; }
-function creekBridgeWood(g,x0,y0,x1,y1){ const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#704328'); gr.addColorStop(.45,'#B77A43'); gr.addColorStop(.7,'#A56A39'); gr.addColorStop(1,'#6A3F24'); return gr; }
-function creekBridgeRing(g,cx0,cy0,rx,ry,s){ g.fillStyle='#E8C48A'; g.beginPath(); g.ellipse(cx0,cy0,rx,ry,0,0,7); g.fill(); g.strokeStyle='rgba(62,36,16,.6)'; g.lineWidth=s*.014; g.stroke();
+function creekBridgeWood(g,x0,y0,x1,y1){ const gr=g.createLinearGradient(x0,y0,x1,y1); gr.addColorStop(0,'#8A5733'); gr.addColorStop(.45,'#CB9258'); gr.addColorStop(.7,'#A56A39'); gr.addColorStop(1,'#6A3F24'); return gr; }
+function creekBridgeRing(g,cx0,cy0,rx,ry,s){ g.fillStyle='#F2D8A8'; g.beginPath(); g.ellipse(cx0,cy0,rx,ry,0,0,7); g.fill(); g.strokeStyle='rgba(62,36,16,.6)'; g.lineWidth=s*.014; g.stroke();
   g.strokeStyle='rgba(105,65,32,.5)'; g.lineWidth=s*.012; for(const k of [.62,.3]){ g.beginPath(); g.ellipse(cx0,cy0,rx*k,ry*k,0,0,7); g.stroke(); } }
 function creekBridgeLog(x,y,s,b){
   const {horiz,a0,a1}=creekBridgeSpan(b), r=.17*s, t=tileAt(L,filled,b.r,b.c), fv=FLOWV[t]||[0,0], mask=creekMaskOK();
@@ -30057,7 +30089,6 @@ function creekBridgeLog(x,y,s,b){
     g.save(); g.beginPath(); g.rect(x-s,y+a0,2*s,a1-a0); g.clip(); g.fillStyle='rgba(20,60,90,.26)'; creekRrp(g,x-r+s*.07,y+a0-2,r*2.1,a1-a0+4,r*.6); g.fill(); g.restore();   // 물 위 그림자
     g.fillStyle=creekBridgeWood(g,x-r,0,x+r,0); creekRrp(g,x-r,yF,2*r,yN-yF,r*.9); g.fill();
     g.save(); creekRrp(g,x-r,yF,2*r,yN-yF,r*.9); g.clip(); g.strokeStyle='rgba(245,210,150,.5)'; g.lineWidth=s*.022; g.lineCap='round';
-    for(let i=0;i<4;i++){ const yy=yF+r*1.2+(yN-yF-r*2.4)*i/3.2; g.beginPath(); g.moveTo(x-r*.55,yy); g.lineTo(x+r*.3,yy+s*.06); g.stroke(); }
     g.strokeStyle='rgba(60,32,12,.6)'; g.lineWidth=s*.03; g.beginPath(); g.moveTo(x-r*.3,yF+r*1.2); g.lineTo(x-r*.25,yN-r*1.4); g.stroke(); g.restore();
     creekBridgeRing(g,x,yN-r*.62,r*.98,r*.62,s);
     g.save(); g.beginPath(); g.rect(x-s,y+a0,2*s,a1-a0); g.clip(); g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; for(const sg of [-1,1]){ g.beginPath(); g.moveTo(x+sg*(r+s*.02),y+a0+s*.03); g.lineTo(x+sg*(r+s*.02),y+a1-s*.02); g.stroke(); } g.restore();   // 양옆 물선
@@ -30072,7 +30103,6 @@ function creekBridgeLog(x,y,s,b){
     g.save(); g.beginPath(); g.rect(x+a0,y-s,a1-a0,2*s); g.clip(); g.fillStyle='rgba(20,60,90,.26)'; creekRrp(g,x+a0-2,yc-r+s*.06,a1-a0+4,r*2.1,r*.6); g.fill(); g.restore();
     g.fillStyle=creekBridgeWood(g,0,yc-r,0,yc+r); creekRrp(g,xL,yc-r,xR-xL,2*r,r*.9); g.fill();
     g.save(); creekRrp(g,xL,yc-r,xR-xL,2*r,r*.9); g.clip(); g.strokeStyle='rgba(245,210,150,.5)'; g.lineWidth=s*.022; g.lineCap='round';
-    for(let i=0;i<4;i++){ const xx=xL+r*1.4+(xR-xL-r*2.8)*i/3; g.beginPath(); g.moveTo(xx,yc-r*.6); g.lineTo(xx+s*.06,yc+r*.3); g.stroke(); }
     g.strokeStyle='rgba(60,32,12,.6)'; g.lineWidth=s*.03; g.beginPath(); g.moveTo(xL+r*1.3,yc-r*.3); g.lineTo(xR-r*1.3,yc-r*.25); g.stroke(); g.restore();
     g.save(); g.beginPath(); g.rect(x+a0,y-s,a1-a0,2*s); g.clip(); g.strokeStyle='rgba(255,255,255,.85)'; g.lineWidth=s*.018; g.beginPath(); g.moveTo(x+a0+s*.02,yc+r+s*.02); g.lineTo(x+a1-s*.02,yc+r+s*.02); g.stroke();
       if(fv[0]){ const up=-fv[0]; g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=s*.016; for(let i=0;i<3;i++){ const yy=yc+up*(r+s*(.08+i*.06)); g.beginPath(); g.moveTo(x+a0+s*.05,yy); g.quadraticCurveTo(x,yy+up*s*.02,x+a1-s*.05,yy); g.stroke(); } } g.restore();
@@ -33941,6 +33971,35 @@ function drawBathWallCached(){
   ctx.drawImage(bathWallCv,0,0,bathWallCv.width,bathWallCv.height,0,-houseTop,bathWallW,bathWallH);
 }
 // 바닥 한 장 — 판 칸·비눗물·씻긴 칸. tileCtx 와 정지 판정용 사본이 같은 그림을 그린다.
+// 판이 없는 칸(L.vd) — 바닥을 도려내고 연한 흙바닥으로 채운다(10-12 사람, 하늘만 보이는 것보다). 칸 사각형을 블러+문턱으로 한 덩이로 깎아 모서리가 전부 둥글다.
+// 위쪽 땅 끝은 흙 단면(2·3층 흙벽 색 네 단), 옆·아래는 얇은 흙 테, 단면 밑엔 옅은 그림자, 땅 끝엔 연한 풀 테. 바닥 한 장 안에서 한 번만 그린다.
+const VOID_FACE=.3, VOID_R=.2;
+function voidCut(g){
+  if(!L || !L.vd || !L.vd.size) return;
+  const cv=g.canvas, W=cv.width, H=cv.height, T=g.getTransform(), k=T.a, s=cell, mk=()=>{ const c=document.createElement('canvas'); c.width=W; c.height=H; return c; };
+  const M0=mk(), m0=M0.getContext('2d'); m0.setTransform(T); m0.fillStyle='#000'; for(const i of L.vd) m0.fillRect((i%GN)*s,((i/GN)|0)*s,s,s);
+  const M=mk(), m1=M.getContext('2d'); let smooth=false;
+  try{ m1.filter='blur('+(VOID_R*s*k).toFixed(1)+'px)'; m1.drawImage(M0,0,0); m1.filter='none'; const px=m1.getImageData(Math.floor(W/2),Math.floor(H/2),1,1); smooth=true; }catch(e){}
+  if(smooth){ const probe=m1.getImageData(0,0,W,H), d=probe.data; let seen=false; for(let i=3;i<d.length;i+=4) if(d[i]>0&&d[i]<255){ seen=true; break; }
+    if(!seen){ m1.clearRect(0,0,W,H); m1.drawImage(M0,0,0); smooth=false; } else { for(let i=3;i<d.length;i+=4){ const a=(d[i]-128)*12+128; d[i]=a<0?0:a>255?255:a; } m1.putImageData(probe,0,0); } }
+  else { m1.drawImage(M0,0,0); }
+  const strip=(dx,dy)=>{ const C=mk(), c=C.getContext('2d'); c.drawImage(M,0,0); c.globalCompositeOperation='destination-out'; c.drawImage(M,Math.round(dx*k),Math.round(dy*k)); return C; };   // M 에서 (dx,dy) 만큼 민 M 을 뺀 자리 = 그 가장자리에서 |d| 이내
+  const paint=(C,fill)=>{ const c=C.getContext('2d'); c.globalCompositeOperation='source-in'; c.fillStyle=fill; c.fillRect(0,0,W,H); g.drawImage(C,0,0); };
+  g.save(); g.setTransform(1,0,0,1,0,0);
+  g.globalCompositeOperation='destination-out'; g.drawImage(M,0,0); g.globalCompositeOperation='source-over';
+  { const C=mk(), c=C.getContext('2d'); c.drawImage(M,0,0); c.globalCompositeOperation='source-in'; c.fillStyle='#CBA479'; c.fillRect(0,0,W,H);   // 파인 자리 — 연한 흙바닥(체크 + 작은 돌멩이)
+    c.globalCompositeOperation='source-atop'; c.setTransform(T); const hq=q=>{ const v=Math.sin(q*12.9898+78.233)*43758.5453; return v-Math.floor(v); };
+    for(const i of L.vd){ const cc=i%GN, rr=(i/GN)|0, x=cc*s, y=rr*s; if((cc+rr)&1){ c.fillStyle='#C49D70'; c.fillRect(x,y,s,s); }
+      for(let j=0;j<3;j++){ const q=i*7+j; if(hq(q)<.55){ c.fillStyle='#B88F63'; c.beginPath(); c.ellipse(x+s*(.15+.7*hq(q+1)),y+s*(.15+.7*hq(q+2)),s*.035,s*.022,0,0,7); c.fill(); } } }
+    g.drawImage(C,0,0); }
+  const lip=s*.06, fh=s*VOID_FACE;
+  paint(strip(lip,0),'#A47044'); paint(strip(-lip,0),'#B07A4C'); paint(strip(0,-lip),'#8A5C36');
+  const bands=['#AE7F4D','#A37646','#996B3F','#8E6038'];
+  for(let i=3;i>=0;i--) paint(strip(0,fh*(i+1)/4),bands[i]);
+  paint(strip(0,fh*.14),'rgba(255,238,205,.30)');
+  { const C=strip(0,fh+s*.22), c=C.getContext('2d'); c.globalCompositeOperation='destination-out'; c.drawImage(strip(0,fh),0,0); paint(C,'rgba(40,86,124,.16)'); }
+  { const C=mk(), c=C.getContext('2d'); c.drawImage(M,0,Math.round(-s*.045*k)); c.globalCompositeOperation='destination-out'; c.drawImage(M,0,0); paint(C,'rgba(236,250,206,.85)'); }
+  g.restore(); }
 function tileLayerPaint(){
   if(houseMode && !houseIn) drawHouseGround();
   // 비눗물·씻긴 칸은 여기서 칸 자리만 모은다 — 일렁임은 drawTilesCached 가 매 프레임 판 위에 바로 그린다(바닥 사본은 멈춰 있게).
@@ -33949,11 +34008,13 @@ function tileLayerPaint(){
   finally{ soapBatch=false; }
   const rc=[]; for(let r=(L.openEdge?0:1);r<boardRows(L)-(L.openEdge?0:1);r++) for(let c=(L.openEdge?0:1);c<GN-(L.openEdge?0:1);c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); }
   tileSoapCells=cells; tileRinseCells=rc;
+  if(L.vd && L.hl2) voidCut(ctx);                                                  // 판이 없는 칸 — 2·3층 땅을 얹기 전에 바닥을 도려낸다
   if(hillOn()) hillPaint();
   if(L && L.hl2 && L.dc) hillDecorPaint();                                       // hl2 floor decor, 1층 part (before floorsPaint so the 2층 shadow falls over it)
   if(L && L.up && L.hl2) floorsPaint();                                          // 1층/2층 — 2층 윤곽선 그림(줄별로 굽기)·그림자
   valleyStones();
   if(creekOn()) creekPaint();
+  if(L.vd && !L.hl2) voidCut(ctx);                                                 // 냇가마을 — 물길·갈대까지 구운 뒤 도려낸다
   if(window.__rinse) drawRinseProto();                                           // 시안 — 씻긴 칸
 }
 let tileSoapCells=[], tileRinseCells=[];
@@ -33974,6 +34035,13 @@ function tileLayerMoves(w,h,dpr){
     return false;
   }catch(e){ return true; }                                 // 못 재면 예전처럼 계속 다시 그린다
 }
+// 첨벙통·펌프 물이 지금까지 닿은 칸 수 — 바닥 그림은 이 값이 바뀔 때만 달라진다(tubSpillShown·pumpRinseShown 과 같은 문턱).
+function tileWaterSig(){
+  let t='-', q='-';
+  if(tubPourFx){ const u=animT-tubPourFx.t0; let n=0; for(let i=0;i<tubPourFx.cells.length;i++) if(u>0.2+i*TUB_POUR_STEP) n++; t='t'+n; }
+  if(pumpShotFx) q=(animT-pumpShotFx.t0>PUMP_FLY)? 'p1' : 'p0';
+  return t+q;
+}
 function drawTilesCached(){
   if(!cell){ return; }                                   // 보드가 아직 안 잡힘(레이아웃 과도기) — 그릴 게 없다.
   // 0×0 캔버스에 drawImage 하면 InvalidStateError 로 던진다. 실제로 이 크래시가
@@ -33987,12 +34055,13 @@ function drawTilesCached(){
   // 바스락은 sin³ 이라 대부분의 시간 진폭이 0 이다 — 진폭이 있을 때만 위상을 키에 넣어 바닥 전체를 다시 굽는다(예전엔 켜져 있는 동안 매 프레임).
   const rustleMoving=rustleOn && acornSt.some(m=>m.w && !m.got && matRustleAt(m.r,m.c)!==0);
   const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
-    +'|'+(rustleMoving? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '');   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
+    +'|'+(rustleMoving? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '')   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
+    +'|'+tileWaterSig();                                   // 첨벙통·펌프 — 물이 칸에 닿는 순간에만 바닥이 바뀐다(예전엔 물줄기 2초 내내 초당 20번 다시 구웠다, 10-12)
   const keyBase=rustleMoving? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
   // 바닥은 원래 50ms 마다 통째로 다시 그렸다(일렁이는 비눗물·흔들리는 꽃). 정지한 바닥까지 초당 20번 다시 그려
   // 폰 GPU 로 큰 그림을 매번 올리는 게 발열의 한 몫이었다(10-05). 판(키)이 바뀌면 한 번 재서 움직이는 게 없으면 멈춘다.
   // 시간에 따라 드러나는 연출(첨벙통·펌프 물·깎이·구덩이)이 도는 동안은 예전처럼 계속 다시 그린다.
-  const busy=!!tubPourFx || !!pumpShotFx || !!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower');   // 바닥 그림이 시간 연출을 따라가는 것만(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
+  const busy=!!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower') || !!(boatPushFx && boatPushFx.lv===level && animT-boatPushFx.t0<BOAT_PUSH_T*.45+.85);   // 바닥 그림이 시간 연출을 따라가는 것만(냇가 — 맞은 나무가 떠는 동안 포함)(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
   // 테두리 장식(빨래·바람개비·풀)은 느린 흔들림이라 초당 10번이면 충분하다 — 손을 쉬면 6~7번. 연출이 도는 동안만 20번.
   const every=busy? 0.05 : frameIdle(performance.now())? 0.15 : 0.1;
   // 정지 판정 차례 — 판이 바뀌었거나, 움직인다고 본 지 2초가 지났을 때(장식 그림이 늦게 뜨면 처음엔 움직이는 것처럼 보인다).
@@ -37126,9 +37195,9 @@ const FLOOR_PALS={
   I:[null,                                                                                                   // I 3층 더 높게 — E 색 + 3층 한 단이 0.08칸 더 높고(그림만) 3층 가장자리 그림자가 더 짙다(extra/deep)
      {top:['#bde596','#b6e08e'], dirt:[[167,121,72],[133,88,46]], fringe:'#79b852', rim:'#d4f0ae'},
      {top:['#8dca68','#86c560'], dirt:[[167,121,72],[133,88,46]], fringe:'#5fa63f', rim:'#c6eb9c', extra:.08, deep:1}],
-  J:[null,                                                                                                   // J 층마다 고르게 — 2층 뚜렷한 중간 초록, 3층 깊은 초록(G), 2·3층 밝은 윗테두리
-     {top:['#9fd47a','#98cf72'], dirt:[[167,121,72],[133,88,46]], fringe:'#68ad45', rim:'#e6f8c6'},
-     {top:['#66b44a','#5fae43'], dirt:[[167,121,72],[133,88,46]], fringe:'#448e2d', rim:'#eafacb'}],
+  J:[null,                                                                                                   // J 고른 초록(10-12 사람 B안) — 1층 바닥 → 2층 → 3층이 한 계열로 한 단씩 짙어진다(3층이 튀지 않게), 2·3층 윗테두리·흙벽은 K 와 같다
+     {top:['#a2d682','#9bd17b'], dirt:[[167,121,72],[133,88,46]], fringe:'#74b24e', rim:'#e9f9c9', extra:.04, deep:.5},
+     {top:['#7cc058','#75ba51'], dirt:[[167,121,72],[133,88,46]], fringe:'#58a038', rim:'#eefbd2', extra:.08, deep:1}],
   K:[null,                                                                                                   // K 고르게 + 높이 — J + 2층 벽·그림자도 조금 더(extra .04, deep .5), 3층은 I 그대로
      {top:['#9fd47a','#98cf72'], dirt:[[167,121,72],[133,88,46]], fringe:'#68ad45', rim:'#e6f8c6', extra:.04, deep:.5},
      {top:['#66b44a','#5fae43'], dirt:[[167,121,72],[133,88,46]], fringe:'#448e2d', rim:'#eafacb', extra:.08, deep:1}],
@@ -37152,7 +37221,9 @@ function floorsPlatTo(rho){                                                     
 // under the higher cell), thin green rim on N/E/W that fades into the grass fringe as the outline turns south, ramps hang off the outline of the level above their base (their ends are sharp).
 // A level's shadow falls on the plane below it: baked into that level's top surface (or, for the ground, into the tile layer); deeper cliffs extrude further so their shadow reaches further.
 // Each level is sliced per cell row (floorsRows.cvs, level 1 first, then the ramps based at ground, then level 2 ...) so it can be composited in row order between the objects (Y-sort).
-function floorsPaint(){
+// 2·3층 외벽·비탈의 곡선(2026-10-12 사람 확정, 냇가 두둑처럼 불규칙하게) — 가장자리를 칸 안쪽 노이즈로 살짝 들락날락(칸의 8.5%), 칸 경계·가장자리 끝에선 0이라 칸은 그대로 읽힌다. 비탈은 낮은 쪽 모서리가 둥글고(칸의 26%) 동서 비탈 아랫선은 부드러운 S자.
+const FLOOR_WAVE=.085, RAMP_ROUND=.26;
+function floorsPaint(){ const hn=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }, vn=(u,sd)=>{ const i=Math.floor(u), f=u-i, a=hn(i+sd)*2-1, b=hn(i+1+sd)*2-1, t=f*f*(3-2*f); return a+(b-a)*t; }, irr=(u,sd)=>.62*vn(u*1.25,sd)+.38*vn(u*2.9,sd+7.3);
   const g=ctx, s=cell, NR=boardRows(L), Lf=s*FLOOR_LIFT, RAD=s*FLOOR_PAD, dpr=boardDpr(), k=s/64, M=s*.375, PI=Math.PI, RIMW=2*k, pal=FLOOR_PALS[floorPalName()];
   const LH=K=>s*floorLiftH(K), BH=K=>LH(K)-LH(K-1);          // lift of level K (px) and the height of its one step (the dirt wall)
   const hs=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); };
@@ -37191,7 +37262,8 @@ function floorsPaint(){
         vs.push({v,din,dout,rv,pin:[v[0]-din[0]*rv,v[1]-din[1]*rv],pout:[v[0]+dout[0]*rv,v[1]+dout[1]*rv]}); }
       const segs=[];
       for(let i=0;i<n;i++){ const cur=vs[i], prev=vs[(i+n-1)%n], e2=lp[(i+n-1)%n];
-        segs.push({x1:prev.pout[0],y1:prev.pout[1],x2:cur.pin[0],y2:cur.pin[1],nx:e2.d[1],ny:-e2.d[0],open:e2.open});
+        { const x1=prev.pout[0],y1=prev.pout[1],x2=cur.pin[0],y2=cur.pin[1],nx=e2.d[1],ny=-e2.d[0], len=Math.hypot(x2-x1,y2-y1), N=Math.max(1,Math.round(len/(s*.1))), A=FLOOR_WAVE; let px=x1,py=y1;
+      for(let j=1;j<=N;j++){ const f=j/N, ux=x1+(x2-x1)*f, uy=y1+(y2-y1)*f, along=(Math.abs(nx)? uy : ux)/s, endd=Math.min(f*len,(1-f)*len)/s, w=Math.min(1,endd/.28), off=e2.open? 0 : A*irr(along,(Math.abs(nx)? x1 : y1)/s*17.3+K*5.1)*s*w, qx=ux+nx*off, qy=uy+ny*off; segs.push({x1:px,y1:py,x2:qx,y2:qy,nx,ny,open:e2.open}); px=qx; py=qy; } }
         if(cur.rv>0){ const cr=cur.din[0]*cur.dout[1]-cur.din[1]*cur.dout[0], cx0=cur.v[0]+(cur.dout[0]-cur.din[0])*cur.rv, cy0=cur.v[1]+(cur.dout[1]-cur.din[1])*cur.rv,
             a0=Math.atan2(cur.pin[1]-cy0,cur.pin[0]-cx0), sw=cr>0?PI/2:-PI/2, N=10, sg=cr>0?1:-1;
           for(let j=0;j<N;j++){ const aa=a0+sw*j/N, bb=a0+sw*(j+1)/N, am=(aa+bb)/2;
@@ -37267,24 +37339,37 @@ function floorsPaint(){
   // ---- ramps (drawn in the frame of their base level; hb = height of the low end) ----
   const chev=(c2,x,y,dir,n)=>{ c2.save(); c2.translate(x,y); c2.rotate(dir==='E'?-PI/2: dir==='W'?PI/2: dir==='N'?PI : 0); c2.strokeStyle='rgba(255,255,255,.92)'; c2.lineWidth=4.5*k; c2.lineCap='round'; c2.lineJoin='round';
     for(let i=0;i<n;i++){ const yy=(i-(n-1)/2)*11*k; c2.beginPath(); c2.moveTo(-11*k,yy-5*k); c2.lineTo(0,yy+5*k); c2.lineTo(11*k,yy-5*k); c2.stroke(); } c2.restore(); };
+  const ez1=t=>t*t*(3-2*t), ez=ez1;
   const drawRamp=(c2,p)=>{ const Lf=BH(p.hb+1), x0=p.c*s, y0=p.r*s, v=p.v, Pu=pal[Math.min(p.hb+1,pal.length-1)], hiC=Pu.top[0], loC=p.hb? mixc(hx(pal[p.hb].top[0]),[156,200,120],.3) : '#b3d98b'; c2.save(); c2.translate(0,-LH(p.hb));
-    if(v[0]!==0){ const dn=v[0]>0, yt=dn? y0-Lf : y0, h=dn? s+Lf : s-Lf;                    // N/S ramp: lifted high end -> low end
-      const gr=c2.createLinearGradient(0,yt,0,yt+h); gr.addColorStop(0,dn?hiC:loC); gr.addColorStop(1,dn?loC:hiC); c2.fillStyle=gr; c2.fillRect(x0,yt,s,h);
-      c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ c2.beginPath(); c2.moveTo(x0,yt+h*i/4); c2.lineTo(x0+s,yt+h*i/4); c2.stroke(); }
+    if(v[0]!==0){ const dn=v[0]>0, yt=dn? y0-Lf : y0, h=dn? s+Lf : s-Lf, A=s*FLOOR_WAVE, rr=s*RAMP_ROUND, NN=18;
+      const gr=c2.createLinearGradient(0,yt,0,yt+h); gr.addColorStop(0,dn?hiC:loC); gr.addColorStop(1,dn?loC:hiC); c2.fillStyle=gr;
+      const ya=dn? yt : yt+rr, yb=dn? yt+h-rr : yt+h;                                        // 옆 물결이 도는 구간(낮은 쪽 끝은 둥근 모서리)
+      c2.beginPath(); c2.moveTo(x0,dn? yt : yt+rr);
+      if(!dn){ c2.quadraticCurveTo(x0,yt,x0+rr,yt); c2.lineTo(x0+s-rr,yt); c2.quadraticCurveTo(x0+s,yt,x0+s,yt+rr); } else { c2.lineTo(x0,yt); c2.lineTo(x0+s,yt); }
+      for(let i=0;i<=NN;i++){ const f=i/NN, y=ya+(yb-ya)*f; c2.lineTo(x0+s+A*irr((y-yt)/s,p.r*7+p.c*3+1)*Math.sin(Math.PI*((y-yt)/h)),y); }
+      if(dn){ c2.quadraticCurveTo(x0+s,yt+h,x0+s-rr,yt+h); c2.lineTo(x0+rr,yt+h); c2.quadraticCurveTo(x0,yt+h,x0,yt+h-rr); }
+      for(let i=NN;i>=0;i--){ const f=i/NN, y=ya+(yb-ya)*f; c2.lineTo(x0-A*irr((y-yt)/s,p.r*7+p.c*3+2)*Math.sin(Math.PI*((y-yt)/h)),y); }
+      c2.closePath(); c2.fill();
+      c2.save(); c2.clip(); c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ c2.beginPath(); c2.moveTo(x0-s*.1,yt+h*i/4); c2.lineTo(x0+s*1.1,yt+h*i/4); c2.stroke(); } c2.restore();
       chev(c2,x0+s/2,yt+h/2+(dn?4*k:-2*k),dn?'S':'N',2);
-      c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW;                       // side rims where no neighbour of the upper level already carries its own
-      for(const [sx,nb] of [[x0+RIMW/2+.3*k,inK(p.hb+1,p.r,p.c-1)],[x0+s-RIMW/2-.3*k,inK(p.hb+1,p.r,p.c+1)]]) if(!nb){ c2.beginPath(); c2.moveTo(sx,yt); c2.lineTo(sx,yt+h); c2.stroke(); }
-    } else {                                                                               // E/W ramp (W = mirrored E)
+      c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW;
+      for(const [sx,sg,nb] of [[x0+RIMW/2+.3*k,-1,inK(p.hb+1,p.r,p.c-1)],[x0+s-RIMW/2-.3*k,1,inK(p.hb+1,p.r,p.c+1)]]) if(!nb){ c2.beginPath(); for(let i=0;i<=NN;i++){ const f=i/NN, y=ya+(yb-ya)*f, xx=sx+sg*A*irr((y-yt)/s,p.r*7+p.c*3+(sg>0?1:2))*Math.sin(Math.PI*((y-yt)/h))*.6; i? c2.lineTo(xx,y) : c2.moveTo(xx,y); } c2.stroke(); }
+    } else {
       if(v[1]<0){ c2.translate(x0+s/2,0); c2.scale(-1,1); c2.translate(-(x0+s/2),0); }
-      c2.save(); c2.beginPath(); c2.moveTo(x0,y0+s-Lf); c2.lineTo(x0+s,y0+s); c2.lineTo(x0,y0+s); c2.closePath(); c2.clip();    // dirt wedge under the slope
+      const NN=20, rr=s*RAMP_ROUND, rho=rr/s, lipY=t=>y0+s-Lf+Lf*ez(t)+s*.035*irr(t*2.2,p.r*5+p.c*2+9)*Math.sin(Math.PI*t);                              // 비탈 면 아랫선 — 직선이 아니라 부드러운 S 곡선
+      c2.save(); c2.beginPath(); c2.moveTo(x0,y0+s-Lf); for(let i=1;i<=NN;i++){ const t=i/NN; c2.lineTo(x0+s*t,lipY(t)); } c2.lineTo(x0,y0+s); c2.closePath(); c2.clip();
       const dg=c2.createLinearGradient(0,y0+s-Lf,0,y0+s); dg.addColorStop(0,css(Pu.dirt[0])); dg.addColorStop(1,css(Pu.dirt[1])); c2.fillStyle=dg; c2.fillRect(x0,y0+s-Lf-2*k,s,Lf+2*k);
       strata(c2,x0,y0+s-Lf-2*k,s,Lf+2*k,p.r*5+p.c); c2.restore();
-      c2.beginPath(); c2.moveTo(x0,y0+s-Lf); c2.lineTo(x0+s,y0+s); c2.lineTo(x0,y0+s); c2.closePath(); c2.strokeStyle='rgba(60,35,10,.5)'; c2.lineWidth=1.1*k; c2.stroke();
-      c2.save(); c2.transform(1,Lf/s,0,1,x0,y0-Lf); const sg=c2.createLinearGradient(0,0,s,0); sg.addColorStop(0,hiC); sg.addColorStop(1,loC); c2.fillStyle=sg; c2.fillRect(0,0,s,s);
-      c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ c2.beginPath(); c2.moveTo(s*i/4,0); c2.lineTo(s*i/4,s); c2.stroke(); }
-      chev(c2,s/2,s/2,'E',2); c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW; c2.beginPath(); c2.moveTo(0,RIMW/2+.3*k); c2.lineTo(s,RIMW/2+.3*k); c2.stroke(); c2.restore();
-      c2.strokeStyle=Pu.fringe; c2.lineWidth=3.6*k; c2.lineCap='round'; c2.beginPath(); c2.moveTo(x0,y0+s-Lf+k); c2.lineTo(x0+s,y0+s+k); c2.stroke();                    // fringe along the slanted lip
-      c2.fillStyle=Pu.fringe; for(let t=.07;t<1;t+=.125){ c2.beginPath(); c2.arc(x0+s*t,y0+s-Lf+Lf*t+2.6*k,3*k,0,PI*2); c2.fill(); } }
+      c2.beginPath(); c2.moveTo(x0,y0+s-Lf); for(let i=1;i<=NN;i++){ const t=i/NN; c2.lineTo(x0+s*t,lipY(t)); } c2.lineTo(x0,y0+s); c2.closePath(); c2.strokeStyle='rgba(60,35,10,.5)'; c2.lineWidth=1.1*k; c2.stroke();
+      // 윗면 — 같은 S 곡선을 따라 내려가고 낮은 쪽 모서리는 둥글다
+      const topY=t=>y0-Lf+Lf*ez(t)+s*.035*irr(t*2.2,p.r*5+p.c*2+9)*Math.sin(Math.PI*t), sg=c2.createLinearGradient(x0,0,x0+s,0); sg.addColorStop(0,hiC); sg.addColorStop(1,loC);
+      const top=()=>{ c2.beginPath(); c2.moveTo(x0,topY(0)); const t1=1-rho; for(let i=1;i<=NN;i++){ const t=i/NN*t1; c2.lineTo(x0+s*t,topY(t)); } c2.quadraticCurveTo(x0+s,topY(1),x0+s,topY(1)+rr); c2.lineTo(x0+s,topY(1)+s-rr); c2.quadraticCurveTo(x0+s,topY(1)+s,x0+s*t1,topY(t1)+s); for(let i=NN-1;i>=0;i--){ const t=i/NN*t1; c2.lineTo(x0+s*t,topY(t)+s); } c2.closePath(); };
+      top(); c2.fillStyle=sg; c2.fill(); c2.save(); top(); c2.clip();
+      c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ const t=i/4; c2.beginPath(); c2.moveTo(x0+s*t,topY(t)); c2.lineTo(x0+s*t,topY(t)+s); c2.stroke(); }
+      chev(c2,x0+s/2,topY(.5)+s/2,'E',2); c2.restore();
+      c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW; c2.beginPath(); for(let i=0;i<=NN;i++){ const t=i/NN*(1-rho*.6); const x=x0+s*t, y=topY(t)+RIMW/2+.3*k; i? c2.lineTo(x,y) : c2.moveTo(x,y); } c2.stroke();
+      c2.strokeStyle=Pu.fringe; c2.lineWidth=3.6*k; c2.beginPath(); c2.moveTo(x0,lipY(0)+k); for(let i=1;i<=NN;i++){ const t=i/NN; c2.lineTo(x0+s*t,lipY(t)+k); } c2.stroke();
+      c2.fillStyle=Pu.fringe; for(let t=.07;t<1;t+=.125){ c2.beginPath(); c2.arc(x0+s*t,lipY(t)+2.6*k,3*k,0,PI*2); c2.fill(); } }
     c2.restore(); };
   // ---- slice per cell row (Y-sort pieces): level 1 cells, ramps based at ground, level 2 cells, ramps based at 2층 ... ----
   const cellClip=(K,r,cc)=>{ const p=new Path2D(), Lf=BH(K), x0=cc*s, ty=r*s-LH(K), n=inK(K,r-1,cc), e=inK(K,r,cc+1), so=inK(K,r+1,cc), w=inK(K,r,cc-1);
@@ -37408,6 +37493,7 @@ function hillPaint(){                                             // tileLayerPa
 }
 // 새 언덕 판(hl2)의 막힘 — 바위(WALL, 이끼 바위)와 보통 나무(TREE). 냇가와 같은 그림을 쓰되 땅 높이만큼 든다. (r,c) 칸 발밑 기준.
 function hillBlockDraw(g,r,c){
+  if(L.vd && L.vd.has(r*GN+c)) return;
   const zz=hillC.Z(c+.5,r+.8), x=(c+.5)*cell, y=(r+(L.T[r][c]===TREE? .86 : .84))*cell-zz*HILL_HS*cell;
   if(L.T[r][c]===TREE) creekTree(g,x,y,cell); else creekBlock(g,x,y,cell*.9);
 }
@@ -37603,12 +37689,53 @@ function creekFloor(g,x,y,r,c,s){                                 // 강변 모�
   g.strokeStyle='rgba(150,120,70,.08)'; g.lineWidth=s*.012; g.strokeRect(x+s*.006,y+s*.006,s-s*.012,s-s*.012); g.restore(); }
 // 보통 나무(TREE) — 안 쓰러지는 늙은 나무. 배가 밀고 출발하는 반동 자리. (x,y) = 발밑 가운데
 // 도끼 나무와 폰 크기에서 갈리게(10-08 사람): 굵은 줄기·뿌리, 크고 꽉 찬 둥근 잎, 짙은 초록. 도끼·홈 없음.
-function creekTree(g,x,y,s){
-  g.fillStyle='rgba(30,50,25,.32)'; g.beginPath(); g.ellipse(x,y,s*.44,s*.12,0,0,7); g.fill();
-  g.fillStyle='#6B4526'; g.beginPath(); g.moveTo(x-s*.22,y); g.quadraticCurveTo(x-s*.12,y-s*.06,x-s*.13,y-s*.5); g.lineTo(x+s*.13,y-s*.5); g.quadraticCurveTo(x+s*.12,y-s*.06,x+s*.22,y); g.closePath(); g.fill();   // 굵은 줄기 + 뿌리 퍼짐
-  g.fillStyle='#55361C'; g.fillRect(x-s*.05,y-s*.44,s*.035,s*.38); g.fillRect(x+s*.04,y-s*.36,s*.025,s*.26);
-  for(const [dx,dy,rr2,c] of [[0,-.8,.44,'#2F5E2A'],[-.24,-.66,.3,'#3A6C31'],[.24,-.68,.3,'#356629'],[-.1,-.96,.26,'#467A3A'],[.14,-.9,.22,'#4F8641'],[-.02,-1.04,.14,'#5C9449']]){ g.fillStyle=c; g.beginPath(); g.arc(x+dx*s,y+dy*s,rr2*s,0,7); g.fill(); }
-  g.strokeStyle='rgba(20,40,18,.35)'; g.lineWidth=s*.025; g.beginPath(); g.arc(x,y-s*.8,s*.44,.2,Math.PI-.2); g.stroke(); }
+// ── 3·4동네 나무·바위 새 그림(2026-10-12 사람 확정) ─────────────────────────────────────────────────────
+// 맥스 쪽 톤: 둥근 구름 잎(보통·작은 나무) + 둥근 삼각 세 층 소나무(큰 나무) + 이끼 얹은 둥근 바위. 진한 아랫단+본체+밝은 줄, 윤곽은 칸의 1.1%·연한 초록(줄기는 반투명), 얇은 빨간 도끼가 반쯤 박힘.
+// 보통 나무=creekTree, 도끼 나무=creekUpperLocal(작은 나무/큰 나무), 바위=creekBlock. 좌표는 모두 발밑 가운데 (x,y).
+const NT={ sh:'#3F7A38', mid:'#5FA24C', hi:'#8FCB6C', line:'#4B8244', trunk:'#9A683B', trunkSh:'#7A5230', tline:'#5B3B22', axeTrunk:'#B9824A', axeTrunkSh:'#946237' }, NT_OL=.011;
+function ntEll(g,x,y,rx,ry,c,a){ g.fillStyle=c; g.beginPath(); g.ellipse(x,y,rx,ry,a||0,0,7); g.fill(); }
+function ntShadow(g,x,y,s,w){ ntEll(g,x+s*.03,y,s*(w||.4),s*.08,'rgba(42,52,30,.24)'); }
+function ntAxe(g,x,y,s,dir,sc){                                      // 박힌 도끼 — x,y = 줄기 겉면의 박힌 자리, dir 1 = 자루가 오른쪽
+  g.save(); g.translate(x,y); g.scale(dir*sc,sc); const w=s;
+  g.fillStyle='rgba(60,36,20,.85)'; g.beginPath(); g.moveTo(-.09*w,-.05*w); g.lineTo(.02*w,0); g.lineTo(-.09*w,.07*w); g.closePath(); g.fill();
+  g.strokeStyle='#E4572E'; g.lineWidth=.036*w; g.lineCap='round'; g.beginPath(); g.moveTo(-.01*w,0); g.lineTo(.3*w,.1*w); g.stroke();
+  g.fillStyle='#D9E2EA'; g.beginPath(); g.moveTo(-.07*w,-.09*w); g.lineTo(.03*w,-.07*w); g.lineTo(.03*w,.08*w); g.lineTo(-.07*w,.11*w); g.closePath(); g.fill();
+  g.fillStyle='#FFFFFF'; g.fillRect(-.01*w,-.06*w,.015*w,.12*w);
+  g.fillStyle='#B9824A'; g.beginPath(); g.moveTo(-.1*w,-.12*w); g.lineTo(-.02*w,-.12*w); g.lineTo(-.02*w,.14*w); g.lineTo(-.1*w,.14*w); g.closePath(); g.fill(); g.strokeStyle='rgba(60,36,20,.85)'; g.lineWidth=.014*w; g.beginPath(); g.moveTo(-.02*w,-.09*w); g.lineTo(-.02*w,.11*w); g.stroke();
+  g.restore(); }
+function ntTrunk(g,x,y,s,tw,th,axe,flare){ g.beginPath();
+  if(flare){ g.moveTo(x-tw/2-flare,y+.02*s); g.quadraticCurveTo(x-tw/2,y-.06*s,x-tw/2,y-th); g.lineTo(x+tw/2,y-th); g.quadraticCurveTo(x+tw/2,y-.06*s,x+tw/2+flare,y+.02*s); g.closePath(); } else g.roundRect(x-tw/2,y-th,tw,th+.02*s,s*.1);
+  g.fillStyle=axe?NT.axeTrunk:NT.trunk; g.fill(); g.save(); g.clip(); g.fillStyle=axe?NT.axeTrunkSh:NT.trunkSh; g.fillRect(x+tw*.12,y-th-1,tw,th+s); g.restore();
+  g.lineWidth=NT_OL*s; g.strokeStyle=NT.tline; g.globalAlpha=.4; g.stroke(); g.globalAlpha=1; }
+function ntCloud(g,x,y,s,cy,r){                                      // 둥근 구름 잎 — 중심 (x, y+cy*s), 반지름 r(칸)
+  const lobes=[[0,cy,r*1.08],[-r*.62,cy+r*.34,r*.74],[r*.62,cy+r*.34,r*.74]], dy=.025*s;
+  g.fillStyle=NT.line; for(const [dx,ly,lr] of lobes){ g.beginPath(); g.arc(x+dx*s,y+ly*s+dy,(lr+NT_OL)*s,0,7); g.fill(); }
+  for(const [dx,ly,lr] of lobes){ g.fillStyle=NT.sh; g.beginPath(); g.arc(x+dx*s,y+ly*s+dy,lr*s,0,7); g.fill(); }
+  for(const [dx,ly,lr] of lobes){ g.fillStyle=NT.mid; g.beginPath(); g.arc(x+dx*s-.005*s,y+ly*s-.01*s,lr*.93*s,0,7); g.fill(); }
+  ntEll(g,x-r*.3*s,y+(cy-r*.5)*s,r*.34*s,r*.22*s,NT.hi,-.4); }
+function ntTree(g,x,y,s,axe,noAxe,noShadow){                        // 보통 나무(axe false) · 작은 도끼 나무(axe true)
+  if(!noShadow) ntShadow(g,x,y,s,.4);
+  const tw=(axe? .26 : .24)*s, th=(axe? .5 : .34)*s; ntTrunk(g,x,y,s,tw,th,axe,0); ntCloud(g,x,y,s,-(axe? .78 : .62),axe? .27 : .3);
+  if(axe && !noAxe) ntAxe(g,x+tw/2-.02*s,y-.2*s,s,1,1.05); }
+function ntTier(g,x,y,s,by,w,h,tip){                                // 소나무 층 하나 — 위는 둥글게 모이고 밑단은 부드러운 곡선
+  const path=e=>{ g.beginPath(); g.moveTo(x-(w+e)*s,y+(by+e*.4)*s); g.bezierCurveTo(x-(w*.9+e)*s,y+(by-h*.45)*s,x-(tip+e)*s,y+(by-h+e*.5)*s,x,y+(by-h-e)*s); g.bezierCurveTo(x+(tip+e)*s,y+(by-h+e*.5)*s,x+(w*.9+e)*s,y+(by-h*.45)*s,x+(w+e)*s,y+(by+e*.4)*s); g.quadraticCurveTo(x,y+(by+h*.22+e)*s,x-(w+e)*s,y+(by+e*.4)*s); g.closePath(); };
+  path(NT_OL); g.fillStyle=NT.line; g.fill(); path(0); g.fillStyle=NT.mid; g.fill(); g.save(); path(0); g.clip(); g.fillStyle=NT.sh; g.beginPath(); g.moveTo(x+w*.05*s,y+(by-h)*s); g.lineTo(x+(w+.05)*s,y+(by+.1)*s); g.lineTo(x+w*.1*s,y+(by+.1)*s); g.closePath(); g.fill(); g.restore();
+  ntEll(g,x-w*.32*s,y+(by-h*.52)*s,w*.16*s,h*.2*s,NT.hi,.45); }
+function ntPine(g,x,y,s,noAxe,noShadow){                            // 큰 도끼 나무 — 굵은 줄기 + 세 층 소나무, 도끼 둘
+  if(!noShadow) ntShadow(g,x,y,s,.5);
+  const tw=.34*s; ntTrunk(g,x,y,s,tw,.58*s,true,.07*s); ntTier(g,x,y,s,-.42,.5,.44,.16); ntTier(g,x,y,s,-.76,.4,.42,.13); ntTier(g,x,y,s,-1.07,.28,.42,.1);
+  if(!noAxe){ ntAxe(g,x+tw/2-.02*s,y-.14*s,s,1,1.05); ntAxe(g,x-tw/2+.02*s,y-.28*s,s,-1,.95); } }
+const NT_ROCK={ top:'#E4DDCD', mid:'#CDC5B3', sh:'#9C9482', line:'#6A6050', moss:'#86B05A', mossHi:'#A9CB7C' };
+function ntBoulder(g,x,y,w,h,moss){ const R=NT_ROCK;
+  g.beginPath(); g.moveTo(x-w*.5,y); g.bezierCurveTo(x-w*.58,y-h*.5,x-w*.3,y-h,x,y-h); g.bezierCurveTo(x+w*.3,y-h,x+w*.58,y-h*.5,x+w*.5,y); g.quadraticCurveTo(x,y+h*.1,x-w*.5,y); g.closePath();
+  const gr=g.createLinearGradient(x,y-h,x,y); gr.addColorStop(0,R.mid); gr.addColorStop(1,R.sh); g.fillStyle=gr; g.fill(); g.strokeStyle=R.line; g.globalAlpha=.5; g.lineWidth=Math.max(1,w*.032); g.stroke(); g.globalAlpha=1;
+  ntEll(g,x-w*.04,y-h*.74,w*.3,h*.2,R.top,-.12);
+  if(moss){ ntEll(g,x+w*.06,y-h*.86,w*.22,h*.11,R.moss,-.2); g.fillStyle=R.mossHi; for(const [dx,dy] of [[-.05,-.9],[.14,-.84]]){ g.beginPath(); g.arc(x+dx*w,y+dy*h,w*.03,0,7); g.fill(); } }
+  ntEll(g,x-w*.28,y-h*.5,w*.07,h*.1,'rgba(255,255,255,.4)',-.5); }
+function ntRock(g,x,y,s,twin){ ntShadow(g,x,y,s,.44);
+  if(twin){ ntBoulder(g,x-.2*s,y,s*.5,s*.4,true); ntBoulder(g,x+.22*s,y+.02*s,s*.4,s*.32,false); return; }
+  ntBoulder(g,x+.22*s,y,s*.34,s*.28,false); ntBoulder(g,x-.05*s,y,s*.74,s*.58,true); }
+function creekTree(g,x,y,s){ ntTree(g,x,y,s,false); }                    // 보통 나무 — 새 그림(위 NT)
 // ── 연잎 개구리 ─────────────────────────────────────────────────
 // 자리는 규칙(frogDir)이 정한다 — 그림은 그걸 읽기만 한다. 연잎은 갈림 칸 입구 안쪽 0.28칸(= 가운데서 0.72칸).
 function creekFrogPose(i, fil){ const f=L.forks[i], d=frogDir(L, fil, i), v=DOOR_CV[d]; return {x:f.c+.5+v[1]*.72, y:f.r+.5+v[0]*.72, side:d}; }
@@ -37658,15 +37785,7 @@ function creekRock(g,x,y,S,rx,ry,top,bot,hl){ const gr=g.createLinearGradient(x,
   g.quadraticCurveTo(x,y+ry*.75,x-rx,y+ry*.35); g.closePath(); g.fill();
   g.strokeStyle='rgba(70,62,52,.35)'; g.lineWidth=Math.max(1,rx*.05); g.stroke();
   if(hl){ g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(x-rx*.35,y-ry*.55,rx*.28,ry*.16,-.35,0,7); g.fill(); } }
-function creekBlock(g,x,y,S0){ const S=S0*1.2;                    // 갈대보다 묵직하게 — 칸을 거의 채운다
-  g.fillStyle='rgba(60,45,25,.24)'; g.beginPath(); g.ellipse(x+S*.03,y+S*.02,S*.42,S*.1,0,0,7); g.fill();
-  creekRock(g,x+S*.2,y-S*.08,S,S*.17,S*.14,'#C9C1B1','#958C7C',true);                  // 옆 작은 돌
-  creekRock(g,x-S*.03,y-S*.2,S,S*.36,S*.3,'#D3CBBB','#978E7D',true);                   // 큰 바위
-  g.strokeStyle='rgba(110,98,84,.55)'; g.lineWidth=S*.018; g.beginPath(); g.moveTo(x+S*.02,y-S*.42); g.quadraticCurveTo(x+S*.08,y-S*.3,x+S*.02,y-S*.2); g.stroke();   // 금
-  g.fillStyle='#86B05A'; g.beginPath(); g.moveTo(x-S*.3,y-S*.36); g.bezierCurveTo(x-S*.2,y-S*.52,x+S*.06,y-S*.56,x+S*.2,y-S*.46);   // 이끼 모자
-  g.bezierCurveTo(x+S*.1,y-S*.42,x+S*.02,y-S*.4,x-S*.06,y-S*.36); g.bezierCurveTo(x-S*.14,y-S*.32,x-S*.22,y-S*.3,x-S*.3,y-S*.36); g.fill();
-  g.fillStyle='#A3C774'; for(const [dx,dy,r] of [[-.12,-.47,.04],[.04,-.5,.035],[-.22,-.4,.03]]){ g.beginPath(); g.arc(x+dx*S,y+dy*S,r*S,0,7); g.fill(); }
-  g.fillStyle='#6E9E4C'; for(const dx of [-.33,.32]){ g.beginPath(); g.ellipse(x+dx*S,y-S*.02,S*.07,S*.035,0,0,7); g.fill(); } }   // 밑동 풀
+function creekBlock(g,x,y,S0){ const v=Math.sin((Math.round(x/S0)*31+Math.round(y/S0)*17)*12.9898)*43758.5453; ntRock(g,x,y,S0,v-Math.floor(v)<.38); }   // 막힘 칸 — 이끼 바위(큰 하나 / 쌍둥이), 칸 자리로 정해져 매번 같다
 function creekReeds(g,x,y,S){                                     // 벽 — 갈대 한 포기, (x,y) = 발밑 가운데
   g.fillStyle='rgba(40,70,30,.22)'; g.beginPath(); g.ellipse(x,y,S*.34,S*.08,0,0,7); g.fill();
   g.fillStyle='#6E9E4C'; g.beginPath(); g.ellipse(x,y-S*.02,S*.3,S*.1,0,0,7); g.fill();
@@ -37739,22 +37858,39 @@ function creekFordWade(x,y){ if(!creekOn()) return; const t=L.T[dog.r] && L.T[do
   const fy=y+cell*.38, g=ctx; g.save(); g.fillStyle='rgba(196,234,247,.8)'; g.beginPath(); g.ellipse(x,fy,cell*.17,cell*.045,0,0,7); g.fill();
   g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=cell*.016; g.beginPath(); g.ellipse(x,fy-cell*.004,cell*.165,cell*.042,0,Math.PI*.05,Math.PI*.95,true); g.stroke();
   const u=(animT*.6)%1; g.strokeStyle=`rgba(255,255,255,${(.6*(1-u)).toFixed(3)})`; g.lineWidth=cell*.012; g.beginPath(); g.ellipse(x,fy+cell*.01,cell*(.22+u*.08),cell*(.06+u*.02),0,0,7); g.stroke(); g.restore(); }
+// 흰 가리개(src)를 흐려 g 에 그린다. 캔버스 filter 가 되면 그걸 쓰고, 안 되는 브라우저(사파리·아이폰)는 알파를 손으로 흐린다.
+// 예전엔 filter 만 믿어서 아이폰에서는 흐림이 통째로 빠졌고, 물길이 둥근 윤곽 없이 네모 칸으로 보였다(10-12 사람 화면).
+let creekFilterOK=null;
+function creekBlurInto(g, src, px){
+  if(creekFilterOK===null){ try{ const t=document.createElement('canvas').getContext('2d'); t.canvas.width=t.canvas.height=16; t.filter='blur(2px)'; t.fillStyle='#fff'; t.fillRect(6,6,4,4); creekFilterOK=t.getImageData(4,8,1,1).data[3]>0;   /* 속성이 없는 사파리는 대입한 값을 그대로 돌려준다 — 실제로 번졌는지 픽셀로 본다 */ }catch(_){ creekFilterOK=false; } }
+  if(creekFilterOK){ g.filter=`blur(${px.toFixed(1)}px)`; g.drawImage(src,0,0); g.filter='none'; return; }
+  g.drawImage(src,0,0);
+  const W=g.canvas.width, H=g.canvas.height, img=g.getImageData(0,0,W,H), d=img.data;
+  let a=new Float32Array(W*H), b=new Float32Array(W*H); for(let i=0;i<a.length;i++) a[i]=d[i*4+3];
+  const r=Math.max(1,Math.round((Math.sqrt(4*px*px+1)-1)/2));       // 상자 흐림 세 번 ≈ 가우스(표준편차 px)
+  const pass=(S,D,n,step,lines,lstep)=>{ const k=1/(2*r+1); for(let l=0;l<lines;l++){ const o=l*lstep; let sum=0;
+      for(let i=-r;i<=r;i++) sum+=S[o+Math.max(0,Math.min(n-1,i))*step];
+      for(let i=0;i<n;i++){ D[o+i*step]=sum*k; sum+=S[o+Math.min(n-1,i+r+1)*step]-S[o+Math.max(0,i-r)*step]; } } };
+  for(let t=0;t<3;t++){ pass(a,b,W,1,H,W); pass(b,a,H,W,W,1); }
+  for(let i=0;i<a.length;i++){ const v=a[i]; d[i*4]=d[i*4+1]=d[i*4+2]=255; d[i*4+3]=v; }
+  g.putImageData(img,0,0);
+}
 function creekBake(){                                             // 물길 한 장 — 판이 바뀔 때 한 번. o=그림, wm=물낯 가리개
   const OE=!!L.openEdge, s=cell, cv=ctx.canvas, T=ctx.getTransform(), dpr=T.a, Wd=cv.width, Ht=cv.height, A=OE?0:cell, B=(OE?GN:GN-1)*cell, hs=creekHs;
   const mk=()=>{ const m=document.createElement('canvas'); m.width=Wd; m.height=Ht; return [m,m.getContext('2d')]; };
   const cells=[...creekWet()].map(k=>[(k/GN)|0,k%GN]);
   const [m,mg]=mk(); mg.setTransform(T); mg.fillStyle='#fff'; for(const [r,c] of cells) mg.fillRect(c*s,r*s,s,s);
-  const [b,bg]=mk(); bg.filter=`blur(${(s*.25*dpr).toFixed(1)}px)`; bg.drawImage(m,0,0);
+  const [b,bg]=mk(); creekBlurInto(bg,m,s*.25*dpr);
   if(OE){ // 테두리 없는 판 — 판 끝에 닿은 물은 판 밖으로 이어진다. 가리개를 판 밖 한 칸까지 늘려 여백 붙은 캔버스에서 흐린 뒤 잘라 붙인다(안 그러면 판 끝에서 물이 말라 둥근 끝이 생긴다)
     const P=Math.ceil(s*dpr*1.5), pm=document.createElement('canvas'); pm.width=Wd+2*P; pm.height=Ht+2*P; const pg=pm.getContext('2d'); pg.setTransform(T.a,0,0,T.d,T.e+P,T.f+P); pg.fillStyle='#fff';
     const R_=boardRows(L); for(const [r,c] of cells){ pg.fillRect(c*s,r*s,s,s); if(r===0) pg.fillRect(c*s,-s,s,s); if(r===R_-1) pg.fillRect(c*s,R_*s,s,s); if(c===0) pg.fillRect(-s,r*s,s,s); if(c===GN-1) pg.fillRect(GN*s,r*s,s,s); }
-    const pb=document.createElement('canvas'); pb.width=pm.width; pb.height=pm.height; const pbg=pb.getContext('2d'); pbg.filter=bg.filter; pbg.drawImage(pm,0,0);
-    bg.filter='none'; bg.clearRect(0,0,Wd,Ht); bg.drawImage(pb,-P,-P); }
+    const pb=document.createElement('canvas'); pb.width=pm.width; pb.height=pm.height; const pbg=pb.getContext('2d'); creekBlurInto(pbg,pm,s*.25*dpr);
+    bg.clearRect(0,0,Wd,Ht); bg.drawImage(pb,-P,-P); }
   // 웅덩이(FS)만 따로 흐려 둔 가리개 — 고인 물은 물살보다 짙은 파랑(10-07 사람). 경계는 물살 색으로 부드럽게 섞인다.
   const hasFS=cells.some(([r,c])=>L.T[r] && L.T[r][c]===FS);       // 웅덩이가 없는 판은 가리개 캔버스·흐림·픽셀 읽기를 건너뛴다(영 알파 = 섞임 0)
   let pa;
   if(hasFS){ const [pm,pmg]=mk(); pmg.setTransform(T); pmg.fillStyle='#fff'; for(const [r,c] of cells) if(L.T[r] && L.T[r][c]===FS) pmg.fillRect(c*s,r*s,s,s);
-    const [pb,pbg]=mk(); pbg.filter=`blur(${(s*.2*dpr).toFixed(1)}px)`; pbg.drawImage(pm,0,0); pa=pbg.getImageData(0,0,Wd,Ht).data; }
+    const [pb,pbg]=mk(); creekBlurInto(pbg,pm,s*.2*dpr); pa=pbg.getImageData(0,0,Wd,Ht).data; }
   else pa=new Uint8ClampedArray(Wd*Ht*4);
   const psh=[124,192,228], pdp=[72,150,205];                     // 웅덩이 — 밝은 쪽 #7CC0E4 · 깊은 쪽 #4896CD
   const yMin=Math.max(0,Math.floor(T.f+A*dpr)), yMax=Math.min(Ht,Math.ceil(T.f+(OE? boardRows(L)*cell : (boardRows(L)-1)*cell+s*.5)*dpr)), xMin=Math.max(0,Math.floor(T.e+A*dpr)), xMax=Math.min(Wd,Math.ceil(T.e+B*dpr));
@@ -37788,6 +37924,46 @@ function creekBake(){                                             // 물길 한 
   creekFordDecor(og,T);                                              // M1 여울 — 젖은 모래 부채·바닥 자갈·디딤돌·잔물결
   return {o, wm, gap, od:d, wdd:wd, Wd, Ht};                         // od·wdd: 구운 물 픽셀·가리개 알파(배 간격·물빛을 매 프레임 읽기 없이 잰다)
 }
+// 냇물의 움직이는 층 — 물결·물길 방향·윤슬. 예전엔 바닥 사본(tileLayer) 안에서 그려, 물이 일렁이는 동안 바닥 전체를
+// 초당 10번 다시 굽고 2초마다 움직임 검사(두 번 굽기+픽셀 읽기)까지 돌았다(냇가 한 판에 198번, 느린 폰에서 한 번 1.8초 — 10-12 실측).
+// 이 층은 따로 한 장으로 그려 두고 매 프레임은 얹기만 한다. 10-12 H안부터 멈춘 그림이다(흐르는 물결 선 대신 쐐기 >>> 로 방향을 보인다) — 판이 바뀔 때만 다시 그린다.
+function creekRipples(){
+  if(!creekOn() || !CREEK.wm || !CREEK.tr) return;
+  const T=ctx.getTransform(), tr=CREEK.tr;
+  if(Math.abs(T.a-tr[0])>1e-3 || Math.abs(T.e-tr[1])>.5 || Math.abs(T.f-tr[2])>.5) return;      // 판이 밀리거나 당겨진 순간엔 가리개가 안 맞는다 — 건너뛴다
+  const W=CREEK.wm.width, H=CREEK.wm.height, s=cell, hs=creekHs;
+  if(CREEK.wmKey!==CREEK.key){                                    // 물낯 가리개에서 바위·나무 자리를 뺀다 — 물결이 그 위로 올라오지 않게(한 번)
+    const m=CREEK.wm2||(CREEK.wm2=document.createElement('canvas')); m.width=W; m.height=H;
+    const mg=m.getContext('2d'); mg.setTransform(1,0,0,1,0,0); mg.globalCompositeOperation='source-over'; mg.clearRect(0,0,W,H); mg.drawImage(CREEK.wm,0,0);
+    mg.globalCompositeOperation='destination-out'; mg.setTransform(T); const e=creekE(L);
+    for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ if(!(L.vd&&L.vd.has(r*GN+c))) creekBlock(mg,(c+.5)*s,(r+.84)*s,s*.9); } else if(L.T[r][c]===TREE) creekTree(mg,(c+.5)*s,(r+.86)*s,s);
+    mg.globalCompositeOperation='source-over'; CREEK.wmKey=CREEK.key; CREEK.rT=-1;
+  }
+  if(!creekTmp) creekTmp=document.createElement('canvas');
+  if(creekTmp.width!==W||creekTmp.height!==H){ creekTmp.width=W; creekTmp.height=H; CREEK.rT=-1; }
+  const rk=CREEK.key+'|'+(L.forks||[]).map(f=>f.dir).join('');    // 멈춘 그림(10-12 H안) — 판이나 갈림 방향이 바뀔 때만 다시 그린다
+  if(CREEK.rT<0 || CREEK.rKey!==rk){
+    CREEK.rT=0; CREEK.rKey=rk; const wet=creekWet();
+    const g=creekTmp.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,W,H); g.setTransform(T);
+    for(const k of wet){ const r=(k/GN)|0, c=k%GN; if(!(L.T[r] && L.T[r][c]===FORK)) continue;   // 갈림 칸 — 흐름 화살표 대신 양쪽으로 갈리는 물결 둘. 어느 쪽으로 나가는지는 개구리가 말한다
+      const x=c*s+s/2, y=r*s+s/2, ph=hs(r*5+c), i=forkIdxAt(L,r,c), d=i>=0? L.forks[i].dir : 0;
+      g.save(); g.translate(x,y); g.rotate(Math.atan2(DOOR_CV[d][0],DOOR_CV[d][1])); g.strokeStyle='rgba(255,255,255,.72)'; g.lineWidth=s*.03; g.lineCap='round';
+      for(const sg of [1,-1]) for(const [oy,len] of [[-.12,.26],[.14,.3]]){ const ox=((ph+oy+1)%1-.5)*s*.4*sg; g.beginPath(); g.moveTo(ox-len*s/2,oy*s*sg); g.quadraticCurveTo(ox,oy*s*sg-s*.04*sg,ox+len*s/2,oy*s*sg); g.stroke(); }
+      g.restore(); }
+    // 흐름 쐐기 셋(>>>) — 물결 선 대신. 흰 선에 짙은 파랑 테를 둘러 밝은 물 위에서도 읽힌다. 물길 양 끝 칸(위·아래 어느 쪽이 마른 칸)은 흐려지는 자리라 뺀다
+    for(const k of wet){ const r=(k/GN)|0, c=k%GN, v=creekInner(r,c)? creekVec(r,c) : null; if(!v) continue;
+      if(!wet.has((r+v[0])*GN+c+v[1]) || !wet.has((r-v[0])*GN+c-v[1])) continue;
+      g.save(); g.translate(c*s+s/2,r*s+s/2); g.rotate(Math.atan2(v[0],v[1])); g.lineCap=g.lineJoin='round';
+      for(const [x,a] of [[-s/3,.5],[0,.75],[s/3,1]]){ g.beginPath(); g.moveTo(x-s*.07,-s*.13); g.lineTo(x+s*.07,0); g.lineTo(x-s*.07,s*.13);
+        g.strokeStyle=`rgba(28,92,150,${.5*a})`; g.lineWidth=s*.115; g.stroke(); g.strokeStyle=`rgba(255,255,255,${a})`; g.lineWidth=s*.06; g.stroke(); }
+      g.restore(); }
+    for(const k of wet){ const r=(k/GN)|0, c=k%GN; for(let j=0;j<3;j++){ const q=k*7+j, a=Math.sin(hs(q)*Math.PI); if(a<.2) continue;
+      const x=(c+.15+.7*hs(q+1))*s, y=(r+.15+.7*hs(q+2))*s, R=s*(.03+.03*a);
+      g.fillStyle=`rgba(255,255,255,${(.9*a).toFixed(2)})`; g.beginPath(); g.moveTo(x,y-R*1.6); g.quadraticCurveTo(x,y,x+R*1.6,y); g.quadraticCurveTo(x,y,x,y+R*1.6); g.quadraticCurveTo(x,y,x-R*1.6,y); g.quadraticCurveTo(x,y,x,y-R*1.6); g.fill(); } }
+    g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm2,0,0); g.globalCompositeOperation='source-over';
+  }
+  ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(creekTmp,0,0); ctx.restore();
+}
 function creekPaint(){                                            // tileLayerPaint 끝에서 — 물길·물결·갈대·섬 마감
   const s=cell, B=(boardRows(L)-1)*cell, hs=creekHs, T=ctx.getTransform();
   const key=level+'|'+ctx.canvas.width+'x'+ctx.canvas.height+'|'+T.a+','+T.e+','+T.f+'|'+L.T.map(r=>r.join(',')).join(';');
@@ -37795,26 +37971,9 @@ function creekPaint(){                                            // tileLayerPa
   CREEK.tr=[T.a,T.e,T.f];                                           // 배·다리 합성이 지금 변환과 구운 가리개가 맞는지 본다(creekMaskOK)
   if(CREEK.o){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(CREEK.o,0,0); ctx.restore(); }
   const wet=creekWet();
-  if(CREEK.wm){                                                   // 움직이는 층 — 물결·물길 방향·윤슬, 물낯 안쪽만
-    if(!creekTmp) creekTmp=document.createElement('canvas');
-    if(creekTmp.width!==ctx.canvas.width||creekTmp.height!==ctx.canvas.height){ creekTmp.width=ctx.canvas.width; creekTmp.height=ctx.canvas.height; }
-    const g=creekTmp.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,creekTmp.width,creekTmp.height); g.setTransform(T);
-    for(const k of wet){ const r=(k/GN)|0, c=k%GN; if(!(L.T[r] && L.T[r][c]===FORK)) continue;   // 갈림 칸 — 흐름 화살표 대신 양쪽으로 갈리는 물결 둘. 어느 쪽으로 나가는지는 개구리가 말한다
-      const x=c*s+s/2, y=r*s+s/2, ph=(animT*.6+hs(r*5+c))%1, i=forkIdxAt(L,r,c), d=i>=0? L.forks[i].dir : 0;
-      g.save(); g.translate(x,y); g.rotate(Math.atan2(DOOR_CV[d][0],DOOR_CV[d][1])); g.strokeStyle='rgba(255,255,255,.72)'; g.lineWidth=s*.03; g.lineCap='round';
-      for(const sg of [1,-1]) for(const [oy,len] of [[-.12,.26],[.14,.3]]){ const ox=((ph+oy+1)%1-.5)*s*.4*sg; g.beginPath(); g.moveTo(ox-len*s/2,oy*s*sg); g.quadraticCurveTo(ox,oy*s*sg-s*.04*sg,ox+len*s/2,oy*s*sg); g.stroke(); }
-      g.restore(); }
-    for(const k of wet){ const r=(k/GN)|0, c=k%GN, v=creekInner(r,c)? creekVec(r,c) : null; if(!v) continue; const x=c*s+s/2, y=r*s+s/2, ph=(animT*.6+hs(r*5+c))%1;
-      g.save(); g.translate(x,y); g.rotate(Math.atan2(v[0],v[1])); g.strokeStyle='rgba(255,255,255,.78)'; g.lineWidth=s*.03; g.lineCap='round';
-      for(const [oy,len] of [[-.18,.28],[.06,.38],[.22,.22]]){ const ox=((ph+oy+1)%1-.5)*s*.5; g.beginPath(); g.moveTo(ox-len*s/2,oy*s); g.quadraticCurveTo(ox,oy*s-s*.045,ox+len*s/2,oy*s); g.stroke(); }
-      g.fillStyle='rgba(255,255,255,.62)'; g.beginPath(); g.moveTo(s*.33,0); g.lineTo(s*.2,-s*.075); g.lineTo(s*.2,s*.075); g.closePath(); g.fill(); g.restore(); }
-    for(const k of wet){ const r=(k/GN)|0, c=k%GN; for(let j=0;j<3;j++){ const q=k*7+j, a=Math.sin(((animT*.8+hs(q))%1)*Math.PI); if(a<.2) continue;
-      const x=(c+.15+.7*hs(q+1))*s, y=(r+.15+.7*hs(q+2))*s, R=s*(.03+.03*a);
-      g.fillStyle=`rgba(255,255,255,${(.9*a).toFixed(2)})`; g.beginPath(); g.moveTo(x,y-R*1.6); g.quadraticCurveTo(x,y,x+R*1.6,y); g.quadraticCurveTo(x,y,x,y+R*1.6); g.quadraticCurveTo(x,y,x-R*1.6,y); g.quadraticCurveTo(x,y,x,y-R*1.6); g.fill(); } }
-    g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm,0,0); g.globalCompositeOperation='source-over';
-    ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.drawImage(creekTmp,0,0); ctx.restore(); }
+  // 움직이는 물결 층은 바닥 사본에 안 굽는다(10-12) — creekRipples() 가 판 위에 따로 얹는다. 바닥은 한 번만 구워 두고 다시 안 그린다.
   const e=creekE(L);
-  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekBlock(ctx,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s+creekTreeShake(r,c),(r+.86)*s,s);
+  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ if(!(L.vd&&L.vd.has(r*GN+c))) creekBlock(ctx,(c+.5)*s,(r+.84)*s,s*.9); } else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s+creekTreeShake(r,c),(r+.86)*s,s);
   hillIsland(ctx,['#D9C79C','rgba(150,120,70,.35)']);              // 둥근 귀 + 흙 단면, 테는 모래색(열린 판은 모래색 테 한 줄)
   for(let c=1;c<GN-1&&!L.openEdge;c++){ if(!wet.has((boardRows(L)-1)*GN+c)) continue; const x=c*s, Hh=s*.34;   // 섬 아래로 나가는 물 — 작은 폭포
     const gr=ctx.createLinearGradient(0,B,0,B+Hh+s*.1); gr.addColorStop(0,'#8ACDE8'); gr.addColorStop(1,'#D6F0F8'); ctx.fillStyle=gr;
@@ -37825,7 +37984,7 @@ function creekPaint(){                                            // tileLayerPa
 function creekReedsFront(){                                       // 공·맥스를 다 그린 뒤 갈대를 한 번 더 — 뒷줄 물건은 갈대 뒤로(제 칸 3/4 줄까지)
   if(!creekOn()) return;
   const e=creekE(L);
-  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekBlock(ctx,(c+.5)*cell,(r+.84)*cell,cell*.9); ctx.restore(); } else if(L.T[r][c]===TREE){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekTree(ctx,(c+.5)*cell+creekTreeShake(r,c),(r+.86)*cell,cell); ctx.restore(); }
+  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL && !(L.vd&&L.vd.has(r*GN+c))){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekBlock(ctx,(c+.5)*cell,(r+.84)*cell,cell*.9); ctx.restore(); } else if(L.T[r][c]===TREE){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekTree(ctx,(c+.5)*cell+creekTreeShake(r,c),(r+.86)*cell,cell); ctx.restore(); }
   for(const b of boxes) if((b.kind==='treeSmall'||b.kind==='treeBig') && !b.carried && !(b.sink>=1) ){   // 윗줄(뒤)의 맥스·공도 나무가 가린다 — 깊이가 맞다(10-08 사람)
       // 도끼 나무는 윗줄 갈대보다 앞 — 윗줄로 솟은 부분만 다시(제 칸은 위 갈대 패스가 안 덮는다)
     ctx.save(); ctx.beginPath(); ctx.rect(b.cc*cell-cell, b.rr*cell-cell*3, cell*3, cell*3); ctx.clip(); drawHillTreeObject(cx(b.cc),cy(b.rr),cell,b); ctx.restore(); }
@@ -39246,6 +39405,7 @@ function render(){
   drawBathWallCached();                                    // 2동네 욕실 — 고정 벽 띠는 오프스크린 캐시에서 한 번만 합성한다.
                                                            //   첫 줄 칸막이 위 소품(오리·화분)이 띠 위로 올라와 안 잘린다(10-07 사람)
   drawTilesCached();
+  creekRipples();                                          // 냇가 — 물결 층(바닥 사본 위, 물건 아래)
   floorsNext=0; floorsDecalFn=null;                        // 1층/2층 — 2층 줄을 물건 사이에 끼워 그리는 순번(floorsPlatTo)
   creekFrogDraw();                                       // 졸졸 냇가 — 연잎 개구리(바닥 위·물체 아래, 매 프레임)
   drawHouseOverlay();
@@ -40375,10 +40535,17 @@ function wakeGameFrame(){
   if(!frameLoopPaused&&!mainFrameRAF) scheduleGameFrame();
 }
 ['pointerdown','keydown','touchstart','wheel'].forEach(k=>addEventListener(k,wakeGameFrame,{passive:true, capture:true}));
-function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin; }
+// 시간으로 도는 안내·연출 — 입력이 없어도 화면은 움직인다(연습 손가락, 방 자리 손가락, 선물 열기, 할아버지 배달).
+// 이게 떠 있는데 쉬는 중으로 치면 그 연출이 초당 4~8장으로 끊긴다(10-12 사람 보고 · 코드로 확인).
+function frameTimedShow(){
+  try{ return !!(tut || obActive() || gintroOn || coachSteps || houseUnwrapFx || houseGramps || houseZooming || (houseMode && roomSlotHand())); }catch(_){ return false; }
+}
+function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin && !frameTimedShow(); }
 function scheduleGameFrame(delay=0){
   if(frameLoopPaused || document.hidden) return;
-  if(delay>8){
+  // 타이머는 쉴 때(125·250ms)만 쓴다. 120Hz 화면에서는 움직이는 동안 남는 시간이 8.4ms 라 예전 문턱(8)에 걸려
+  // 타이머→rAF 로 돌았고, 프레임 간격이 16.7/25ms 로 들쭉날쭉했다(10-12 실측) — 짧은 대기는 다음 화면 갱신에 맡긴다.
+  if(delay>20){
     clearTimeout(mainFrameTimer);
     mainFrameTimer=setTimeout(()=>{ mainFrameTimer=0; if(!frameLoopPaused) mainFrameRAF=requestAnimationFrame(frame); },delay);
   }else mainFrameRAF=requestAnimationFrame(frame);

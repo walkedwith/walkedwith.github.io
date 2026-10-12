@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-12T08:22:22.557Z",
-  "totalBytes": 32113312,
+  "generatedAt": "2026-10-12T13:15:14.757Z",
+  "totalBytes": 32138385,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3317009
+      "bytes": 3337201
     },
     {
       "path": "css/game.css",
@@ -90,7 +90,12 @@
     {
       "path": "mechanics/dev-runtime-loader.js",
       "source": "mechanics/dev-runtime-loader.js",
-      "bytes": 1256
+      "bytes": 1223
+    },
+    {
+      "path": "mechanics/perf-hud.js",
+      "source": "mechanics/perf-hud.js",
+      "bytes": 4914
     },
     {
       "path": "mechanics/onboarding-comic.js",
