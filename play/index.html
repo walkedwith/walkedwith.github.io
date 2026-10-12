@@ -20052,33 +20052,33 @@ function obPath(r0,c0,r1,c1){
 }
 function drawObHand(){
   if(!obActive() || state!=='play' || isAnimating() || walkQueue || downOn) return;
-  const g=ctx, c=cell, ease=t=>t<0.5? 2*t*t : 1-(-2*t+2)*(-2*t+2)/2, tw=0.5+0.5*Math.sin(animT*3.5);
+  const g=ctx, c=cell, ease=t=>t<0.5? 2*t*t : 1-(-2*t+2)*(-2*t+2)/2, tw=0.5+0.5*Math.sin(animT*2.1);
   let tgt=null, push=null;
   const b=boxes.find(x=>x.kind==='ball' && !x.sink);
   if(obStage===1) tgt=[OB_BOX[0], OB_BOX[1]+1];
   else if(obStage===2){ if(!b || b.houseHop) return;
     const gx=cx(OB_GOAL[1]);                                                            // 인형 → 방석 점선 화살표
-    if(b.c<OB_GOAL[1]){ g.save(); g.strokeStyle='rgba(255,249,240,.9)'; g.lineWidth=c*0.05; g.lineCap='round'; g.setLineDash([c*0.12,c*0.1]); g.lineDashOffset=-animT*c*0.6;
+    if(b.c<OB_GOAL[1]){ g.save(); g.strokeStyle='rgba(255,249,240,.9)'; g.lineWidth=c*0.05; g.lineCap='round'; g.setLineDash([c*0.12,c*0.1]); g.lineDashOffset=-animT*c*0.36;
       g.beginPath(); g.moveTo(cx(b.c)+c*0.42,cy(b.r)); g.lineTo(gx-c*0.42,cy(b.r)); g.stroke(); g.setLineDash([]);
       g.fillStyle='rgba(255,249,240,.95)'; g.beginPath(); g.moveTo(gx-c*0.3,cy(b.r)); g.lineTo(gx-c*0.46,cy(b.r)-c*0.09); g.lineTo(gx-c*0.46,cy(b.r)+c*0.09); g.fill(); g.restore(); }
     if(dog.r===b.r && dog.c===b.c-1) push=b; else tgt=[b.r,b.c-1]; }
   else if(obStage===3) tgt=[GN-2, dog.c<=3? 3 : 4];
   if(push){
-    const ph=(animT/2.4)%1, ox=cx(dog.cc)-c*0.5, oy=cy(dog.rr)+c*0.72;
-    for(let k=3;k>=0;k--){ const pp=ph-k*0.08; if(pp<0||pp>0.82) continue; const e=ease(Math.min(1,pp/0.82));
+    const ph=(animT/4)%1, ox=cx(dog.cc)-c*0.5, oy=cy(dog.rr)+c*0.72;
+    for(let k=0;k>=0;k--){ const pp=ph-k*0.08; if(pp<0||pp>0.82) continue; const e=ease(Math.min(1,pp/0.82));
       drawHand(ox+c*1.25*e, oy, -0.32, k?1.35:1.5, k? 0.18:0.95); }
     return; }
   if(!tgt || (dog.r===tgt[0] && dog.c===tgt[1])) return;
   g.save(); g.strokeStyle='rgba(255,226,138,'+(0.5*tw+0.3).toFixed(3)+')'; g.lineWidth=c*0.06;      // 갈 칸 — 금빛 고리
-  g.beginPath(); g.arc(cx(tgt[1]),cy(tgt[0]),c*(0.34+tw*0.08),0,7); g.stroke(); g.restore();
+  g.beginPath(); g.arc(cx(tgt[1]),cy(tgt[0]),c*(0.34+tw*0.056),0,7); g.stroke(); g.restore();
   // 끌기는 껐다(DRAG_WALK_ON) — 갈 길은 옅은 발자국 점으로만 깔고, 손은 **다음 한 걸음 쪽으로 쓰는** 손짓을 한다.
   const path=obPath(dog.r,dog.c,tgt[0],tgt[1]); if(!path || !path.length) return;
   g.fillStyle='rgba(255,249,240,.75)';
-  path.forEach(([pr,pc],i)=>{ g.globalAlpha=0.35+0.4*Math.max(0,Math.sin(animT*4-i*0.7)); g.beginPath(); g.arc(cx(pc),cy(pr),c*0.07,0,7); g.fill(); });
+  path.forEach(([pr,pc],i)=>{ g.globalAlpha=0.35+0.4*Math.max(0,Math.sin(animT*2.4-i*0.7)); g.beginPath(); g.arc(cx(pc),cy(pr),c*0.07,0,7); g.fill(); });
   g.globalAlpha=1;
-  const sr=path[0][0]-dog.r, sc=path[0][1]-dog.c, ph=(animT/1.8)%1;
+  const sr=path[0][0]-dog.r, sc=path[0][1]-dog.c, ph=(animT/3)%1;
   const ox=cx(dog.cc)+(sc? -sc*c*0.3 : c*0.55), oy=cy(dog.rr)+(sr? -sr*c*0.3 : c*0.62);
-  for(let k=3;k>=0;k--){ const pp=ph-k*0.07; if(pp<0||pp>0.7) continue; const e=ease(Math.min(1,pp/0.7));
+  for(let k=0;k>=0;k--){ const pp=ph-k*0.07; if(pp<0||pp>0.7) continue; const e=ease(Math.min(1,pp/0.7));
     drawHand(ox+sc*c*1.1*e, oy+sr*c*1.1*e, -0.32, k?1.35:1.5, k? 0.18:0.95); }
 }
 function tutEnd(){
@@ -21063,18 +21063,18 @@ function drawHouseUnwrapFx(){
   const cl=v=>Math.max(0,Math.min(1,v)), back=t=>{ const u=t-1; return 1+2.7*u*u*u+1.7*u*u; };
   const out=cl((END-age)/OUT);                                   // 1 → 0, 마지막 0.6초
   // 어둠 — 상자 둘레만 비워 두고 방을 낮춘다. 눈이 상자 한 곳으로 모인다
-  { const dk=(fx.it && fx.it.kind==='hood'? 0.62 : 0.42)*cl(age/0.35)*out, oy=y-s*0.55, rg=g.createRadialGradient(x,oy,s*0.8,x,oy,s*4.2);
+  { const dk=(fx.it && fx.it.kind==='hood'? 0.31 : 0.21)*cl(age/0.35)*out, oy=y-s*0.55, rg=g.createRadialGradient(x,oy,s*0.8,x,oy,s*4.2);
     rg.addColorStop(0,'rgba(38,24,12,0)'); rg.addColorStop(1,'rgba(38,24,12,'+dk.toFixed(3)+')'); g.fillStyle=rg; g.fillRect(x-s*30,oy-s*30,s*60,s*60); }
   if(age<POP){                                                   // 움찔움찔 — 점점 세게, 마지막에 꾹 눌린다
     const k=age/POP, sq=k>0.82? Math.sin((k-0.82)/0.18*Math.PI/2) : 0;
-    const w=Math.sin(age*40)*k*0.13, pul=1+0.07*k*Math.abs(Math.sin(age*20));
+    const w=Math.sin(age*12)*k*0.078, pul=1+0.042*k*Math.abs(Math.sin(age*6));   // 차분하게(10-12 B안) — 부르르 대신 느리게 두어 번
     const R=s*(0.5+0.35*k), gl=g.createRadialGradient(x,y,0,x,y,R);   // 빛이 상자로 모인다
     gl.addColorStop(0,'rgba(255,236,170,'+(0.75*k).toFixed(3)+')'); gl.addColorStop(1,'rgba(255,236,170,0)'); g.fillStyle=gl; g.beginPath(); g.arc(x,y,R,0,7); g.fill();
     g.save(); g.translate(x,y+s*0.32); g.rotate(w*(1-sq)); g.scale(pul*(1+0.14*sq)*HOUSE_GIFT_K, pul*(1-0.2*sq)*HOUSE_GIFT_K); g.translate(-x,-y-s*0.32); drawHouseGift(x,y,fx.it && fx.it.kind==='hood'); g.restore(); return; }
   if(!fx.popped){ fx.popped=true; tone(660,0.06,'triangle',0.05,990); tone(990,0.1,'sine',0.045,1480); setTimeout(()=>tone(1480,0.14,'sine',0.03,1980),90); buzz([10,30,14]); }
   const a=age-POP;
   // 빛기둥 — 열린 상자에서 위로 넓어지며 솟는다
-  { const bk=cl(a/0.18)*cl((1.6-a)/0.6)*out; if(bk>0){ const top=y-s*2.4, lg=g.createLinearGradient(0,y-s*0.2,0,top);
+  { const bk=.5*cl(a/0.18)*cl((1.6-a)/0.6)*out; if(bk>0){ const top=y-s*2.4, lg=g.createLinearGradient(0,y-s*0.2,0,top);
       lg.addColorStop(0,'rgba(255,240,180,'+(0.9*bk).toFixed(3)+')'); lg.addColorStop(1,'rgba(255,240,180,0)'); g.fillStyle=lg;
       g.beginPath(); g.moveTo(x-s*0.26,y-s*0.16); g.lineTo(x+s*0.26,y-s*0.16); g.lineTo(x+s*0.75,top); g.lineTo(x-s*0.75,top); g.closePath(); g.fill(); } }
   // 상자 몸통 — 뚜껑이 빠진 채 한 번 퉁 튀고, 물건이 다 올라오면 작아지며 걷힌다
@@ -21084,9 +21084,8 @@ function drawHouseUnwrapFx(){
       g.fillStyle=(fx.it && fx.it.kind==='hood'? HOUSE_GIFT_GOLD : HOUSE_GIFT_COL)[0]; g.beginPath(); g.roundRect(x-s*0.3,y-s*0.18,s*0.6,s*0.5,s*0.07); g.fill();
       g.fillStyle='#FFF4C8'; g.beginPath(); g.ellipse(x,y-s*0.18,s*0.27,s*0.06,0,0,7); g.fill();   // 열린 입구가 안에서 빛난다
       g.fillStyle='#F2A7A0'; g.fillRect(x-s*0.055,y-s*0.12,s*0.11,s*0.44); g.restore(); } }
-  if(a<0.25){ g.fillStyle='rgba(255,252,232,'+(0.9*(1-a/0.25)).toFixed(3)+')'; g.beginPath(); g.arc(x,y-s*0.2,s*(0.45+a*4.5),0,7); g.fill(); }   // 번쩍
   // 뚜껑 — 리본째 오른쪽 위로 빙글 날아가 사라진다
-  { const k=cl(a/0.85); if(k<1){ g.save(); g.globalAlpha=1-k*k; g.translate(x+s*0.9*k, y+s*0.34-s*0.58*HOUSE_GIFT_K-s*1.5*Math.sin(Math.min(1,k*1.5)*Math.PI/2)+s*0.9*k*k); g.rotate(1.6*k); g.scale(HOUSE_GIFT_K,HOUSE_GIFT_K);
+  { const k=cl(a/0.85); if(k<1){ g.save(); g.globalAlpha=1-k*k; g.translate(x+s*0.9*k, y+s*0.34-s*0.58*HOUSE_GIFT_K-s*1.5*Math.sin(Math.min(1,k*1.5)*Math.PI/2)+s*0.9*k*k); g.rotate(0.64*k); g.scale(HOUSE_GIFT_K,HOUSE_GIFT_K);
       g.fillStyle=(fx.it && fx.it.kind==='hood'? HOUSE_GIFT_GOLD : HOUSE_GIFT_COL)[1]; g.beginPath(); g.roundRect(-s*0.34,-s*0.08,s*0.68,s*0.15,s*0.05); g.fill();
       g.fillStyle='#F2A7A0'; g.fillRect(-s*0.055,-s*0.08,s*0.11,s*0.15);
       for(const sx of [-1,1]){ g.beginPath(); g.ellipse(sx*s*0.12,-s*0.13,s*0.11,s*0.065,sx*0.5,0,7); g.fill(); }
@@ -21096,33 +21095,33 @@ function drawHouseUnwrapFx(){
   { const disc=rise*cl(out*1.4); if(disc>0){ const R=s*0.8*disc;
       // 충격파 링 세 겹 + 불꽃 한 번(2026-10-02 B+A 시안 승인) — 도는 햇살은 정지 그림처럼 읽혀 걷었다
       g.save(); g.lineCap='round';
-      for(let i=0;i<3;i++){ const tr=a-i*0.22; if(tr<0) continue; const p=cl(tr/1.1); if(p>=1) continue;
-        g.globalAlpha=(1-p)*0.95; g.strokeStyle=i===1? '#FFFFFF' : '#FFD86B'; g.lineWidth=s*(0.23*(1-p)+0.035);
+      for(let i=0;i<1;i++){ const tr=a-i*0.22; if(tr<0) continue; const p=cl(tr/1.1); if(p>=1) continue;
+        g.globalAlpha=(1-p)*0.95; g.strokeStyle=i===1? '#FFFFFF' : '#FFD86B'; g.lineWidth=s*(0.115*(1-p)+0.035);
         g.beginPath(); g.arc(x,iy,R+p*s*2.8,0,7); g.stroke(); }
       const fc=['#FFE27A','#FF9E7A','#FFFFFF','#9FE3FF','#FFC6E0'];
-      if(a<1.4) for(let i=0;i<22;i++){ const an=i/22*Math.PI*2, v=s*(2.8+0.3*((i*37)%5)), p=1-Math.pow(1-cl(a/1.1),2.2), drop=s*0.65*a*a,
+      if(a<1.4) for(let i=0;i<8;i++){ const an=i/8*Math.PI*2, v=s*.6*(2.8+0.3*((i*37)%5)), p=1-Math.pow(1-cl(a/1.1),2.2), drop=s*0.65*a*a,
           px=x+Math.cos(an)*v*p, py=iy+Math.sin(an)*v*p+drop, p0=Math.max(0,p-0.18);
         g.globalAlpha=cl(1.4-a); g.strokeStyle=fc[i%5]; g.lineWidth=s*0.065;
         g.beginPath(); g.moveTo(px,py); g.lineTo(x+Math.cos(an)*v*p0, iy+Math.sin(an)*v*p0+drop); g.stroke();
         const q=s*0.15; g.fillStyle='#FFFFFF'; g.beginPath(); g.moveTo(px,py-q); g.lineTo(px+q*0.35,py); g.lineTo(px,py+q); g.lineTo(px-q*0.35,py); g.closePath(); g.fill(); }
       g.restore();
       g.fillStyle='#FFF3B0';                                                                       // 반짝이
-      for(let i=0;i<6;i++){ const an=i*1.047+animT*0.9, rr=R*1.25, px=x+Math.cos(an)*rr, py=iy+Math.sin(an)*rr, q=s*(0.06+0.035*Math.sin(animT*7+i*2))*disc;
+      for(let i=0;i<4;i++){ const an=i*1.571+animT*0.36, rr=R*1.25, px=x+Math.cos(an)*rr, py=iy+Math.sin(an)*rr, q=s*(0.06+0.035*Math.sin(animT*2.8+i*2))*disc;
         g.beginPath(); g.moveTo(px,py-q); g.lineTo(px+q*0.35,py); g.lineTo(px,py+q); g.lineTo(px-q*0.35,py); g.closePath(); g.fill(); } } }
   // 놓을 자리 — 물건이 다 떠오르면 점선 링이 숨 쉬고, 물건에서 자리까지 점이 이어지고, 손이 한 번씩 누른다.
   // 누른 뒤엔 날아가는 동안 링만 남았다 걷힌다.
   if(fx.it && !fx.photo && (waiting || fx.placeT!=null)){
-    const to=fx.to || housePlaceTarget(fx), al=waiting? 1 : 1-fly, pu=0.5+0.5*Math.sin(animT*4.2), R=s*(0.56+0.04*pu);
+    const to=fx.to || housePlaceTarget(fx), al=waiting? 1 : 1-fly, pu=0.5+0.5*Math.sin(animT*2.5), R=s*(0.56+0.04*pu);
     g.save(); g.globalAlpha=al;
     g.fillStyle='rgba(255,226,150,'+(0.22+0.14*pu).toFixed(3)+')'; g.beginPath(); g.arc(to.x,to.y,R,0,7); g.fill();
-    g.strokeStyle='#FFC66B'; g.lineWidth=Math.max(2,s*0.06); g.lineCap='round'; g.setLineDash([s*0.16,s*0.13]); g.lineDashOffset=-animT*s*0.5;
+    g.strokeStyle='#FFC66B'; g.lineWidth=Math.max(2,s*0.06); g.lineCap='round'; g.setLineDash([s*0.16,s*0.13]); g.lineDashOffset=-animT*s*0.3;
     g.beginPath(); g.arc(to.x,to.y,R,0,7); g.stroke(); g.setLineDash([]);
     if(waiting){
       const dx=to.x-x, dy=to.y-iy, far=Math.hypot(dx,dy)>s*0.9;
       if(far){ g.fillStyle='rgba(255,246,220,.9)';
-        for(let i=1;i<7;i++){ const t=i/7, ph=(t+animT*0.5)%1, px=x+dx*ph, py=iy+dy*ph-Math.sin(ph*Math.PI)*s*0.7;
+        for(let i=1;i<7;i++){ const t=i/7, ph=(t+animT*0.3)%1, px=x+dx*ph, py=iy+dy*ph-Math.sin(ph*Math.PI)*s*0.7;
           g.beginPath(); g.arc(px,py,s*0.045*(0.6+0.4*Math.sin(ph*Math.PI)),0,7); g.fill(); } }
-      const tap=Math.max(0,Math.sin(animT*3.2));                 // 손 — 자리 오른쪽 아래에서 톡톡
+      const tap=.7*Math.max(0,Math.sin(animT*1.9));                 // 손 — 자리 오른쪽 아래에서 톡톡
       g.restore(); drawHand(to.x+s*(0.34-0.06*tap), to.y+s*(0.46-0.06*tap), -0.55, 0.62, 0.95); g.save(); }
     g.restore();
   }
@@ -21137,9 +21136,9 @@ function drawHouseUnwrapFx(){
     else { g.save(); g.globalAlpha=al; try{ drawFurn(fx.it, ix, iyy, s*k2); }catch(e){} g.restore(); } }
   // 색종이 — 위로 터졌다가 팔랑이며 떨어진다(앞뒤로 뒤집히는 종이). 멈춘 시계(age)를 타면 공중에 얼어붙으므로 real 을 탄다.
   { const cols=['#F07C8A','#F2C24E','#8CC063','#6FB3D9','#E8A94C','#FFF3B0'], ca=(real-POP)-0.05, LIFE=2.1;
-    if(ca>0 && ca<LIFE) for(let i=0;i<40;i++){ const r1=((i*37)%17)/16, r2=((i*53)%13)/12, an=-Math.PI/2+(r1-0.5)*2.6, v=s*(2.2+1.6*r2), t=ca*(0.85+0.3*r2);
+    if(ca>0 && ca<LIFE) for(let i=0;i<14;i++){ const r1=((i*37)%17)/16, r2=((i*53)%13)/12, an=-Math.PI/2+(r1-0.5)*2.6, v=s*.7*(2.2+1.6*r2), t=ca*(0.85+0.3*r2);
         const px=x+Math.cos(an)*v*t*0.9+Math.sin(ca*5+i)*s*0.12, py=y-s*0.3+Math.sin(an)*v*t+s*2.6*t*t;
-        g.save(); g.globalAlpha=cl((LIFE-ca)/0.5); g.translate(px,py); g.rotate(i+ca*(4+r2*4)); g.scale(Math.cos(ca*(8+i%5)),1);
+        g.save(); g.globalAlpha=cl((LIFE-ca)/0.5); g.translate(px,py); g.rotate(i+ca*(1.6+r2*1.6)); g.scale(Math.cos(ca*(3.2+(i%5)*.4)),1);
         g.fillStyle=cols[i%cols.length]; g.fillRect(-s*0.06,-s*0.085,s*0.12,s*0.17); g.restore(); } }
 }
 // 번쩍 — 갈아입거나 꾸미기를 바꾸고 산 순간, 그 자리에 빛이 터진다(0.8초). 글자 토스트를 대신한다(2026-10-01).
@@ -22743,7 +22742,7 @@ function drawRoomSlots(){
       g.globalAlpha=1; } else roomSlotFx=null; }
   if(roomSlotState('window')==='lock' && !roomWinPick) drawRoomWinGlow();
   drawRoomWinFx(); drawRoomWinDecoHint(); drawRoomWinPick();
-  const hk=!busy && roomSlotHand(); if(hk){ const sl=geo.find(x=>x.k===hk), tap=Math.abs(Math.sin(animT*3))*c*0.12;
+  const hk=!busy && roomSlotHand(); if(hk){ const sl=geo.find(x=>x.k===hk), tap=Math.abs(Math.sin(animT*1.8))*c*0.084;
     drawHand(sl.tag[0]+c*0.56-tap*0.5, sl.tag[1]+c*0.1-tap, -0.55, 0.62, 0.95); }
 }
 // 마당 잔디깎이(2026-10-04) — 21판(잔디깎이를 배운 판)을 깨면 산책 대문 오른쪽 울타리 가(아랫줄 (7,6))에 선다.
@@ -27614,7 +27613,7 @@ function starBurst(x,y,r,col){ ctx.fillStyle=col; ctx.save(); ctx.translate(x,y)
 // (공을 골라야 표가 일한다)가 같이 쓴다 — 두 자리가 요구하는 동작이 같으므로
 // 그림도 하나여야 한다. 손가락은 제자리에서 짚기만 하고 눌린 자국만 퍼진다.
 function drawTapHand(x,y,al){
-  const a=(al==null?1:al), ph=(animT*1.15)%1;
+  const a=(al==null?1:al), ph=(animT*0.69)%1;
   const press = ph<0.20? ph/0.20 : ph<0.40? 1-(ph-0.20)/0.20 : 0;
   if(ph<0.62){ const e=ph/0.62;
     ctx.strokeStyle='rgba(255,255,255,'+(0.55*(1-e)*a).toFixed(3)+')'; ctx.lineWidth=cell*0.05;
@@ -27640,18 +27639,18 @@ function drawTutorHand(){
   const dimA = 0.2*(moves>0? Math.max(0, 1-(tutDimT/0.35)) : 1);
   if(dimA>0.002){ ctx.fillStyle="rgba(30,40,55,"+dimA.toFixed(3)+")"; ctx.fillRect(0,0,GN*cell,GN*cell); }
   // ── 목표: 방석 반짝 (항상) ──
-  const tw=0.5+0.5*Math.sin(animT*3.5);
+  const tw=0.5+0.5*Math.sin(animT*2.1);
   ctx.globalAlpha=0.6+0.4*tw;
   for(const s2 of [[hc+0.34,hr-0.36,0.1],[hc-0.36,hr+0.32,0.07],[hc+0.3,hr+0.34,0.055]])
     starBurst(cx(s2[0]),cy(s2[1]),cell*s2[2],"#FFE28A");
   ctx.globalAlpha=1;
   // 방석 링 펄스
   ctx.strokeStyle="rgba(255,226,138,"+(0.5*tw+0.2)+")"; ctx.lineWidth=cell*0.05;
-  ctx.beginPath(); ctx.arc(hx,hy,cell*(0.42+tw*0.12),0,7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(hx,hy,cell*(0.42+tw*0.084),0,7); ctx.stroke();
   if(b){                                                           // 공도 강조: 흰 펄스 링
     const bx2=cx(b.cc), by2=cy(b.rr);
     ctx.strokeStyle="rgba(255,255,255,"+(0.55*tw+0.25)+")"; ctx.lineWidth=cell*0.055;
-    ctx.beginPath(); ctx.arc(bx2,by2,cell*(0.4+tw*0.1),0,7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(bx2,by2,cell*(0.4+tw*0.07),0,7); ctx.stroke();
   }
 
   if(tut===2){                                                     // ── 성공 ──
@@ -27708,11 +27707,11 @@ function drawTutorHand(){
     drawHand(fx2+cell*0.10, fy2+cell*0.16, -0.32, 1.5, 0.95);
     return;
   }
-  const ph=(animT/2.4)%1;                                     // 천천히 (2.4초 주기)
+  const ph=(animT/4)%1;                                     // 천천히 (2.4초 주기)
   const perp=dc2!==0? 1 : 0;                                   // 가로 밀기면 손을 한 칸 아래에서 시연
   const ox=cx(dog.cc)-dc2*cell*0.5+ (dr2!==0? cell*0.7:0), oy=cy(dog.rr)-dr2*cell*0.5 + (perp? cell*0.72 : cell*0.1);
   const rot=-0.32;                                            // 참조처럼 검지는 오른쪽 위로 고정, 손 전체가 이동
-  for(let k=3;k>=0;k--){                                       // 잔상 3 + 본체
+  for(let k=0;k>=0;k--){                                       // 잔상 3 + 본체
     const pp=ph-k*0.08; if(pp<0||pp>0.82) continue;
     const e=ease(Math.min(1,pp/0.82));
     drawHand(ox+dc2*cell*1.25*e, oy+dr2*cell*1.25*e, rot, k?1.35:1.5, k? 0.18:0.95);
@@ -36526,7 +36525,7 @@ function fireBallContact(b,contact){
 function pathTimeOf(path, k=1){ let t=0;
   for(const p of (path||[])){ const tt=tileAt(L,filled,p.r,p.c);
     if(p.sqHop) t+=SQ_HOP_T;
-    if(isSlope(tt) && !p.sq) t+=PER_CELL/0.45+SLOPE_HOLD; else if(isFlow(tt)) t+=PER_CELL*(SLIDE_STEP*60)/FLOW_BALL; else t+=PER_CELL; }
+    if(p.sq) t+=PER_CELL/SQ_ROLL_K; else if(isSlope(tt)) t+=PER_CELL/0.45+SLOPE_HOLD; else if(isFlow(tt)) t+=PER_CELL*(SLIDE_STEP*60)/FLOW_BALL; else t+=PER_CELL; }
   return t/k; }
 // 공이 상자·통에 **닿는** 시각. 굴러간 공은 그 자리에서 멈추므로 경로 끝이 곧 접촉이다.
 function hitDelay(res){ return pathTimeOf(res && res.path); }
@@ -37515,7 +37514,7 @@ function hillTreesFront(){                                        // 공·맥스
 // ── 다람쥐(새 언덕 판 sq, 그림만 — 규칙은 squirrelStep) ─────────────────────────────────────────
 // 자리(그루터기·도끼 나무·보통 나무) 위에 앉아 꼬리를 살랑이고 가끔 두리번. 통나무가 옆에 눕혀지면(res.sqRide) 폴짝 올라타(SQ_HOP_T) 통나무 위에서 달리고(통나무 경로 sq 구간),
 // 멈추면 폴짝 내려 자리로 쪼르르 돌아가 폴짝 앉는다. sqFx[번호] = {lv, box(굴러가는 통나무 상자), poke(제자리 쿵만), t0, endT}. 통나무의 sqHopT0 는 경로 걸음이 올라타는 틈(sqHop 노드)을 연 시각.
-const SQ_HOP_T=.30, SQ_RUN_BACK=.085, SQ_UP_T=.2;
+const SQ_HOP_T=.45, SQ_RUN_BACK=.1275, SQ_UP_T=.3, SQ_ROLL_K=.7;   // 10-12 B안 — 현실감 있게 1.5배 느리게(돌아가기 1초 12칸 → 8칸), 다람쥐가 탄 통나무는 0.7배로 구른다
 var sqFx={};
 function sqSeatKind(s){ if(L.T[s.r] && L.T[s.r][s.c]===TREE) return 'tree'; const b=boxes.find(x=>x.sink===0 && !x.carried && x.r===s.r && x.c===s.c && (x.kind==='stump'||x.kind==='treeSmall')); return b? b.kind : null; }
 function sqSeatFoot(s){ const k=sqSeatKind(s); return k==='tree'? -.06 : k==='treeSmall'? -.12 : .05; }   // 칸 가운데에서 발 위치(칸 단위, 아래가 +)
@@ -37526,7 +37525,7 @@ function sqPoseOf(si,s){
   const logPos=()=>({x:cx(lg.cc), y:cy(lg.rr)-cell*.07-(lg.air||0)*cell});
   if(fx.poke){                                                    // 제자리 쿵 — 통나무 쪽으로 콩 뛰었다 돌아온다
     if(lg.path) return P;
-    if(!fx.t0) fx.t0=animT; const u=(animT-fx.t0)/.5; if(u>=1){ delete sqFx[si]; return P; }
+    if(!fx.t0) fx.t0=animT; const u=(animT-fx.t0)/.75; if(u>=1){ delete sqFx[si]; return P; }
     const dr=lg.r-s.r, dc=lg.c-s.c; P.x+=dc*cell*.3*Math.sin(Math.PI*u); P.y+=dr*cell*.3*Math.sin(Math.PI*u); P.hop=Math.sin(Math.PI*u)*.14; P.dir=toward(0,0,dc,dr); P.away=true; return P; }
   if(!lg.sqHopT0) return P;                                       // 통나무가 아직 도착 전 — 앉아서 기다린다
   const el=animT-lg.sqHopT0;
@@ -37536,12 +37535,12 @@ function sqPoseOf(si,s){
   if(fx.gone){                                                     // 절벽에서 통나무가 떨어졌다 — 폴짝 놀라(!) 가장 가까운 판 가장자리로 달아나 판 밖으로 사라진다
     if(!fx.endT){ fx.endT=animT; const R0=boardRows(L), dl=[[lg.c+.5,3],[GN-lg.c-.5,1],[lg.r+.5,0],[R0-lg.r-.5,2]].sort((a,b)=>a[0]-b[0])[0], dd=DOOR_CV[dl[1]];
       fx.gx=cx(lg.cc); fx.gy=cy(lg.rr); fx.edgeDir=dl[1]; fx.ex=fx.gx+dd[1]*cell*(dl[0]+.7); fx.ey=fx.gy+dd[0]*cell*(dl[0]+.7); fx.dist=dl[0]+.7; }
-    const el3=animT-fx.endT, tPop=.38, tRun=Math.max(.2,fx.dist*SQ_RUN_BACK*1.6);
+    const el3=animT-fx.endT, tPop=.57, tRun=Math.max(.2,fx.dist*SQ_RUN_BACK*1.6);
     if(el3<tPop){ const u=el3/tPop; P.x=fx.gx; P.y=fx.gy-cell*.07; P.hop=Math.sin(Math.min(1,u*1.6)*Math.PI)*.2; P.dir=s.dir; P.away=true; P.pop=1; return P; }
     if(el3<tPop+tRun){ const u=(el3-tPop)/tRun; P.x=fx.gx+(fx.ex-fx.gx)*u; P.y=fx.gy-cell*.07+(fx.ey-fx.gy)*u; P.run=1; P.lean=.3; P.dir=fx.edgeDir; P.away=true; return P; }
     delete sqFx[si]; P.x=fx.ex; P.y=fx.ey; P.away=true; return P; }
   if(!fx.endT){ fx.endT=animT; fx.endX=cx(lg.cc); fx.endY=cy(lg.rr)-cell*.07; fx.gx=fx.endX; }
-  const gx=fx.endX, gy=fx.endY+cell*.07, dist=Math.hypot(sx-gx,sy-gy)/cell, tRun=Math.max(.05,dist*SQ_RUN_BACK), tDown=.16, el2=animT-fx.endT;
+  const gx=fx.endX, gy=fx.endY+cell*.07, dist=Math.hypot(sx-gx,sy-gy)/cell, tRun=Math.max(.05,dist*SQ_RUN_BACK), tDown=.24, el2=animT-fx.endT;
   if(el2<tDown){ const u=el2/tDown; P.x=gx; P.y=fx.endY+(gy-fx.endY)*u; P.hop=Math.sin(Math.PI*u)*.1; P.dir=s.dir; P.away=true; return P; }   // 폴짝 내림
   if(el2<tDown+tRun){ const u=(el2-tDown)/tRun; P.x=gx+(sx-gx)*u; P.y=gy+(sy-gy)*u; P.run=1; P.lean=.3; P.dir=toward(gx,gy,sx,sy); P.away=true; return P; }   // 쪼르르
   if(el2<tDown+tRun+SQ_UP_T){ const u=(el2-tDown-tRun)/SQ_UP_T; P.y=sy+(0)*u; P.hop=Math.sin(Math.PI*u)*.13; P.dir=s.dir; P.away=true; P.x=sx; return P; }   // 폴짝 앉기
@@ -37550,7 +37549,7 @@ function sqPoseOf(si,s){
 // 다람쥐 한 마리 — (x,y)=발밑 가운데, s=칸. dir 0위 1오른 2아래 3왼. o={sw 꼬리 흔들림, look 두리번(-1~1), hop, run, lean}
 function drawSquirrel(x,y,s,dir,o){
   const BR='#B8743B', BRD='#85502A', LT='#E8B27A', BE='#F8EEDC', NO='#4A2E22', hop=o.hop||0, run=o.run||0;
-  const ph=animT*(run? 16 : 0), bob=run? Math.abs(Math.sin(ph))*s*.03 : 0;
+  const ph=animT*(run? 12 : 0), bob=run? Math.abs(Math.sin(ph))*s*.03 : 0;
   ctx.save(); ctx.translate(x,y);
   ctx.fillStyle='rgba(40,30,15,'+(.2*(1-hop*2.2))+')'; ctx.beginPath(); ctx.ellipse(0,s*.02,s*.17*(1-hop*1.2),s*.05,0,0,7); ctx.fill();   // 바닥 그림자(뜨면 옅게)
   ctx.translate(0,-hop*s-bob);
@@ -39787,7 +39786,7 @@ function render(){
           // 상자는 **가볍게** 나간다 — 바퀴 달린 것처럼 쑥. 흙더미(무겁게 버티다 놓임)와
           // 층을 갈라 두려고 일부러 공보다도 빠르다.
           const kindK = (b.kind==='log')? 1.30 : (b.kind==='mower')? MOWER_K : 1;
-          let step=SLIDE_STEP*dtF*kindK*(isSlope(here) && !tg.sq? 0.45 : isFlow(here)? FLOW_BALL/(SLIDE_STEP*60) : 1);
+          let step=SLIDE_STEP*dtF*kindK*(tg.sq? SQ_ROLL_K : isSlope(here)? 0.45 : isFlow(here)? FLOW_BALL/(SLIDE_STEP*60) : 1);
           if(jumping){
             // 공중에서는 바닥 속도를 쓰지 않는다. 준비 60ms + 비행 420ms.
             if(b.jumpI!==b.pathI){b.jumpI=b.pathI;b.jumpPrep=.06;b.jumpSound=false;}
