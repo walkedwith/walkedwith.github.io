@@ -57,22 +57,22 @@
 <audio id="bgmGame" preload="none" src="sound/bgm-game-lite.mp3"></audio>
 <audio id="bgmGameAlt" preload="none" src="sound/bgm-game-9am.mp3"></audio>
 <audio id="bgmYard" loop preload="none" src="sound/bgm-yard-7am.mp3"></audio>
-<audio id="sfxBallRoll" preload="auto" src="sound/ball-roll-short.mp3"></audio>
-<audio id="sfxWallBlock" preload="auto" src="sound/wall-block-short.mp3"></audio>
-<audio id="sfxGoalAudio" preload="auto" src="sound/goal-catch1.mp3"></audio>
-<audio id="sfxSelected-grass" preload="auto" src="sound/grass-light-step1.mp3"></audio>
-<audio id="sfxSelected-boxPush" preload="auto" src="sound/box-push3.mp3"></audio>
-<audio id="sfxSelected-boxOpen" preload="auto" src="sound/box-open4.mp3"></audio>
-<audio id="sfxSelected-pour" preload="auto" src="sound/water-pour4.mp3"></audio>
-<audio id="sfxSelected-dirt" preload="auto" src="sound/dirt-land3.mp3"></audio>
-<audio id="sfxSelected-guide" preload="auto" src="sound/guide-paper7.mp3"></audio>
-<audio id="sfxSelected-pit" preload="auto" src="sound/pit-whistle12.mp3"></audio>
-<audio id="sfxSelected-stream" preload="auto" src="sound/stream-splash9.mp3"></audio>
-<audio id="sfxSelected-treatPop" preload="auto" src="sound/treat-pop2.mp3"></audio>
-<audio id="sfxSelected-treat1" preload="auto" src="sound/treat-xylophone-1.mp3"></audio>
-<audio id="sfxSelected-treat2" preload="auto" src="sound/treat-xylophone-2.mp3"></audio>
-<audio id="sfxSelected-treat3" preload="auto" src="sound/treat-xylophone-3.mp3"></audio>
-<audio id="sfxSelected-ballChew" preload="auto" src="sound/ball-chew2.mp3"></audio>
+<audio id="sfxBallRoll" preload="none" src="sound/ball-roll-short.mp3"></audio>
+<audio id="sfxWallBlock" preload="none" src="sound/wall-block-short.mp3"></audio>
+<audio id="sfxGoalAudio" preload="none" src="sound/goal-catch1.mp3"></audio>
+<audio id="sfxSelected-grass" preload="none" src="sound/grass-light-step1.mp3"></audio>
+<audio id="sfxSelected-boxPush" preload="none" src="sound/box-push3.mp3"></audio>
+<audio id="sfxSelected-boxOpen" preload="none" src="sound/box-open4.mp3"></audio>
+<audio id="sfxSelected-pour" preload="none" src="sound/water-pour4.mp3"></audio>
+<audio id="sfxSelected-dirt" preload="none" src="sound/dirt-land3.mp3"></audio>
+<audio id="sfxSelected-guide" preload="none" src="sound/guide-paper7.mp3"></audio>
+<audio id="sfxSelected-pit" preload="none" src="sound/pit-whistle12.mp3"></audio>
+<audio id="sfxSelected-stream" preload="none" src="sound/stream-splash9.mp3"></audio>
+<audio id="sfxSelected-treatPop" preload="none" src="sound/treat-pop2.mp3"></audio>
+<audio id="sfxSelected-treat1" preload="none" src="sound/treat-xylophone-1.mp3"></audio>
+<audio id="sfxSelected-treat2" preload="none" src="sound/treat-xylophone-2.mp3"></audio>
+<audio id="sfxSelected-treat3" preload="none" src="sound/treat-xylophone-3.mp3"></audio>
+<audio id="sfxSelected-ballChew" preload="none" src="sound/ball-chew2.mp3"></audio>
 <div id="rotateNotice" role="status" aria-live="polite">
   <span>🐾</span><b data-i18n="rotate.title">휴대폰을 세로로 돌려주세요</b><i data-i18n="rotate.body">맥스의 산책길은 세로 화면에 가장 잘 보여요</i>
 </div>
@@ -8250,7 +8250,9 @@ function chapterMaxEnsureOptionalAtlas(kind,dirR=0,dirC=0){
     src=chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png');
   }else return null;
   if(cur && cur._maxSrc===src) return cur;
-  const img=new Image(); img.decoding='async'; img._maxSrc=src; set(img); img.src=src; return img;
+  const img=new Image(); img.decoding='async'; img._maxSrc=src; set(img); img.src=src;
+  try{ if(typeof img.decode==='function') img.decode().catch(()=>{}); }catch(_){ }   // 처음 그리는 프레임이 아니라 지금 풀어 둔다
+  return img;
 }
 function releaseTransientGameAssets(){
   for(const img of [maxChapterMasterVictoryV1Atlas,maxChapterMasterStretchV1Atlas,
@@ -12122,6 +12124,8 @@ function loadLevel(lv, moon, keepTries){
   if(!keepTries){ restartN=0; undoN=0; }
   level=lv;
   preloadNeighborhoodAudio(lv, true);
+  { const warm=()=>{ try{ if(state==='play' && level===lv) chapterMaxEnsureOptionalAtlas('victory'); }catch(_){ } };   // 승리 동작 시트를 쉬는 틈에 미리
+    if(typeof requestIdleCallback==='function') requestIdleCallback(warm,{timeout:2500}); else setTimeout(warm,1200); }
   moonMode=!!(moon && BAKED_B[lv]);
   document.body.classList.toggle("hud-pilot", hudPilotForLevel(lv) && !moonMode);   // 달빛은 옛 HUD 를 쓴다
   document.body.classList.toggle("uiux-polish", uiuxPolishForLevel(lv) && !moonMode);
@@ -40371,10 +40375,17 @@ function wakeGameFrame(){
   if(!frameLoopPaused&&!mainFrameRAF) scheduleGameFrame();
 }
 ['pointerdown','keydown','touchstart','wheel'].forEach(k=>addEventListener(k,wakeGameFrame,{passive:true, capture:true}));
-function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin; }
+// 시간으로 도는 안내·연출 — 입력이 없어도 화면은 움직인다(연습 손가락, 방 자리 손가락, 선물 열기, 할아버지 배달).
+// 이게 떠 있는데 쉬는 중으로 치면 그 연출이 초당 4~8장으로 끊긴다(10-12 사람 보고 · 코드로 확인).
+function frameTimedShow(){
+  try{ return !!(tut || obActive() || gintroOn || coachSteps || houseUnwrapFx || houseGramps || houseZooming || (houseMode && roomSlotHand())); }catch(_){ return false; }
+}
+function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin && !frameTimedShow(); }
 function scheduleGameFrame(delay=0){
   if(frameLoopPaused || document.hidden) return;
-  if(delay>8){
+  // 타이머는 쉴 때(125·250ms)만 쓴다. 120Hz 화면에서는 움직이는 동안 남는 시간이 8.4ms 라 예전 문턱(8)에 걸려
+  // 타이머→rAF 로 돌았고, 프레임 간격이 16.7/25ms 로 들쭉날쭉했다(10-12 실측) — 짧은 대기는 다음 화면 갱신에 맡긴다.
+  if(delay>20){
     clearTimeout(mainFrameTimer);
     mainFrameTimer=setTimeout(()=>{ mainFrameTimer=0; if(!frameLoopPaused) mainFrameRAF=requestAnimationFrame(frame); },delay);
   }else mainFrameRAF=requestAnimationFrame(frame);
