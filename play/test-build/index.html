@@ -5450,17 +5450,51 @@ const HILL_STAGES={
 // ── HILL_STAGES 끝 ──
 for(const k in HILL_STAGES) BAKED[(k|0)-1]=HILL_STAGES[k];
 const KINDS=['ball','log','bone','cartV','cartH','crop','mower','tub','pump','treeSmall','stump','treeBig','log2','log2End','hillLog'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
-const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그대로일 때만 적용 — 판이 고쳐지면 저절로 꺼진다(tests/void-board.test.js 가 풀이 그대로임을 지킨다)
-  '11111111v1010110111111110111111v0vhggge0ggh000e1v11111e1111v11e11010111110110001':[49,50,51,52,53,57,58,66],   // 66판
-  'v1110v1011111v1011111100gggggg1101111000v11111101011v11v111011011v1111110110v11v':[45,46,53,54,60,61,67,68,69,70],   // 72판
-  '111111101010111111h11v1111h11111ggh11v1111h1111vv1e1101111e1v11110e1110111e10111':[43,44,51,52,59,61,67,68,69],   // 81판
-  '0010v11100d1011110d1111111ufffff11e111v1v1e1011111e11v10011111110010v10100001v11':[46,54,60,61,62,69],   // 89판
-  'v111111111111111110101111107111151111111111111111111111111111111111111111111111v':[34,42,43,44,45,46,50,51,52,53,54,58,59,60,61,62,66,67,68,69,70],   // 101판
-  'v111111v111111111111111111111111111111111111111111111111116161111111111111111111':[9,10,11,12,13,14],   // 108판
-  'v111111116111111111110111111510111111011111111111511111111111111111111111111111v':[38,46,52,53,54,59,60,61,62,67,68,69,70],   // 109판
-  'v111111v141vv11111111111111111111111111111111111111111111111111111111111v1111111':[61,65,66,67,68,69],   // 114판 — 60(7,4) 는 뺐다: 막으면 지름길이 생겨 par 32→27
-  'v11111111111111v1111111111111511111111111111111511111111111111111117111111111111':[9,10,11,12,17,18,25,33,41,49],   // 116판
+const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그대로일 때만 적용 — 판이 고쳐지면 저절로 꺼진다. 3칸 이상 이어진 덩이만: 풀이 길에서 떨어진 풀칸·바위·장식 나무 칸. 칸을 막아도 풀이가 같고 최단=par 인 것만(tests/void-board.test.js)
+  '11e11110v1e0111111e1111v11e1111111e1111101e111v011e011111110000011111v1010101110':[46,54,59,60,61,62,68,69,70],   // 61판 9칸
+  '1v10111v1v10111111111101011001110001111111ffffff01111110v10111111011110101v1v110':[57,58,65,66],   // 62판 4칸
+  '1ve11111v0e1111101e1111111e1000011gggg110v110000111111v1101111111111v111v1010011':[41,46,49,53,54,57,61,62,65,68,69,70],   // 63판 12칸
+  '11e1111111e1110011e11111v1e11eff11e11e1011e11e1110e00e0011110100001001001v0v10v1':[60,67,68],   // 65판 3칸
+  '11111111v1010110111111110111111v0vhggge0ggh000e1v11111e1111v11e11010111110110001':[51,52,57,58,59,65,66,67],   // 66판 8칸
+  'v111111111v1111v111111111110111v00hh1110gghh011100he1111111e00110111100v01100v11':[9,10,17,18,25,61,69,70],   // 67판 8칸
+  'v111111111111111111v1111111hffff111h1v10111h1110v00e1101010gg1101v00010v110v0001':[49,57,65,66],   // 68판 4칸
+  '1v11011111011v111111111111111111v111111011111111v11111000hhhhh10ghhhhh0001v100v0':[9,10,11,12,13,14,17,20,21],   // 69판 9칸
+  '11101v1e1111110e1111111e1111111evhhge00egh00e00ev110e11e0v0111111110100101100v00':[50,57,58,65,66,67],   // 70판 6칸
+  '111e1110v11e11v1111e1111101e1111111e1011111e1111110e000011111000111011010111111v':[9,17,25,53,54,61,62,69,70],   // 71판 9칸
+  'v1110v1011111v1011111100gggggg1101111000v11111101011v11v111011011v1111110110v11v':[13,14,22,38,45,46,52,53,54,59,60,61,62,67,68,69,70],   // 72판 17칸
+  'vv1111011v1011101111111111011eff11101e10101vve1v11111e11110v1e101101111v11100100':[57,58,59,65,66],   // 73판 5칸
+  '111e11111vve1v11v11effff011e11v1111e1111011e0111011e11111v111011100101v1vv1010vv':[57,61,62,65,66,68,69,70],   // 74판 8칸
+  'v1e11vv111e01v1v11e1101111e1d11001e1dv1111e1d011v1e0d11110ggd01v0010111111111v11':[13,14,21],   // 75판 3칸
+  '111e0111v11e111v111e0111101e111011eue111v1e1e11110e1e11101e1111110101011v1011111':[9,17,25],   // 76판 3칸
+  '001111101001d0111111d0111v11ufff0110e0100110ev111111e11v01v1111001101100110v0v01':[9,10,17,25,57,58,65,66,67],   // 77판 9칸
+  '011v1100v111d110110vd1v00hhgu111ghh0e001v111e0001110e0v011111000110v0v0001000000':[38,46,54,61,62,66,67,68,69,70],   // 78판 10칸
+  '111111e101d111ev01d101e001uffff010e0010v00e0v010v0e01v11101011011010101110010111':[44,45,46,52,53,54,59,60,61,62,67,68,69,70],   // 79판 14칸
+  '111e01v1010e111011euge1111e10e0110e1eue11011e1e1v01010100v00101011v1011vv11111v1':[41,49,51,53,57,58,59,61,65,66,67,68,69],   // 80판 13칸
+  '111111101010111111h11v1111h11111ggh11v1111h1111vv1e1101111e1v11110e1110111e10111':[44,52,53,60,61,68,69,70],   // 81판 8칸
+  '1101e1111v11e1111110e0v110hhhh1111hhhh11011111011v10011111011v10011v1v1110110110':[9,10,17,41,49,50,51,52,57,58,59,60,61,65,66,67,68,69,70],   // 82판 19칸
+  '1101e1111v11e1101111e1100v11e1111110e1111hhhe0111hhhe0111110e0001v11110111001011':[9,10,17,25,54,62,70],   // 83판 7칸
+  '1101vv111v1011011101v1v1011hhfff1hhhh111111hh1110110101v1v11011101111v111v101111':[9,10,11,12,13,14,17,18],   // 84판 8칸
+  '11e0101011e111111hhh10111hhhgge1111000e1v11110e10111hhh11101hhh11v1011110v101111':[58,65,66,67],   // 85판 4칸
+  '11111110v111111v111111111110011100101hh00vhge0h1ggh1e1111011e1111v11111v11101101':[65,66,67],   // 86판 3칸
+  'v1e11v1011e1111101e111v111e1111101e1111011e1v11111e100v10hhhh10000hhh00v0v101v00':[12,13,14,22,53,54,62,70],   // 87판 8칸
+  '0000vv11ggggh111v11vh1111011ev110101e11100efuge1v0ev10e101e010e1v110111001000010':[25,26,33],   // 88판 3칸
+  '0010v11100d1011110d1111111ufffff11e111v1v1e1011111e11v10011111110010v10100001v11':[46,53,54,60,61,62,67,68,69,70],   // 89판 10칸
+  'v111111111111111110101111107111151111111111111111111111111111111111111111111111v':[34,42,43,44,45,46,50,51,52,53,54,58,59,60,61,62,66,67,68,69,70],   // 101판 21칸
+  'v11111111111111111111111111111111511111111111111111611111111111111111111v111111v':[62,68,69,70],   // 102판 4칸
+  'v111111111111111111111111111111111111111111111111111111116111111111111111111111v':[25,33,34,41],   // 103판 4칸
+  '1111111111111111111111111111111111111105151111011111111011111111111111111111111v':[27,35,43,46,51,52,54,62],   // 105판 8칸
+  'v111111v11111111111111111111111111111111111111111151111111111111111111111111111v':[38,46,53,54],   // 107판 4칸
+  'v111111v111111111111111111111111111111111111111111111111116161111111111111111111':[9,10,11,12,13,14],   // 108판 6칸
+  'v111111116111111111110111111510111111011111111111511111111111111111111111111111v':[30,38,46,52,53,54,59,60,61,62,67,68,69,70],   // 109판 14칸
+  'v111111v111111111111111111111111111111111111141111111111111111111111v11111111111':[12,13,14,22],   // 111판 4칸
+  'v11111111111110111511111111111111111111111111511111111111111111111111111v111111v':[43,51,59,67],   // 112판 4칸
+  'v111111v141vv11111111111111111111111111111111111111111111111111111111111v1111111':[13,14,21],   // 114판 3칸
+  'v111111v1411111111111111111111111161111111111111111111111111v11115111111v1111111':[67,68,69],   // 115판 3칸
+  'v11111111111111v1111111111111511111111111111111511111111111111111117111111111111':[9,10,11,12,17,18,25,33,41,49],   // 116판 10칸
+  'v111111111111v111111111111511111111111111111111v11111111111111111111111111111111':[54,62,70],   // 117판 3칸
+  '111111111111111111111111111611111111111111111111111111111111151111111111v111111v':[13,14,22,65,66,67],   // 119판 6칸
 };
+
 function fromBaked(o, lv){
   // lv 를 넘기면 그 판이 도구 필수인지(L.tc)가 같이 실린다. 안 넘기면 null —
   // 기존 호출부 50여 곳은 한 인자로 부르므로 동작이 그대로다.
@@ -37183,7 +37217,9 @@ function floorsPlatTo(rho){                                                     
 // under the higher cell), thin green rim on N/E/W that fades into the grass fringe as the outline turns south, ramps hang off the outline of the level above their base (their ends are sharp).
 // A level's shadow falls on the plane below it: baked into that level's top surface (or, for the ground, into the tile layer); deeper cliffs extrude further so their shadow reaches further.
 // Each level is sliced per cell row (floorsRows.cvs, level 1 first, then the ramps based at ground, then level 2 ...) so it can be composited in row order between the objects (Y-sort).
-function floorsPaint(){
+// 2·3층 외벽·비탈의 곡선(2026-10-12 사람 확정, 냇가 두둑처럼 불규칙하게) — 가장자리를 칸 안쪽 노이즈로 살짝 들락날락(칸의 8.5%), 칸 경계·가장자리 끝에선 0이라 칸은 그대로 읽힌다. 비탈은 낮은 쪽 모서리가 둥글고(칸의 26%) 동서 비탈 아랫선은 부드러운 S자.
+const FLOOR_WAVE=.085, RAMP_ROUND=.26;
+function floorsPaint(){ const hn=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); }, vn=(u,sd)=>{ const i=Math.floor(u), f=u-i, a=hn(i+sd)*2-1, b=hn(i+1+sd)*2-1, t=f*f*(3-2*f); return a+(b-a)*t; }, irr=(u,sd)=>.62*vn(u*1.25,sd)+.38*vn(u*2.9,sd+7.3);
   const g=ctx, s=cell, NR=boardRows(L), Lf=s*FLOOR_LIFT, RAD=s*FLOOR_PAD, dpr=boardDpr(), k=s/64, M=s*.375, PI=Math.PI, RIMW=2*k, pal=FLOOR_PALS[floorPalName()];
   const LH=K=>s*floorLiftH(K), BH=K=>LH(K)-LH(K-1);          // lift of level K (px) and the height of its one step (the dirt wall)
   const hs=n=>{ const x=Math.sin(n*127.1+311.7)*43758.5453; return x-Math.floor(x); };
@@ -37222,7 +37258,8 @@ function floorsPaint(){
         vs.push({v,din,dout,rv,pin:[v[0]-din[0]*rv,v[1]-din[1]*rv],pout:[v[0]+dout[0]*rv,v[1]+dout[1]*rv]}); }
       const segs=[];
       for(let i=0;i<n;i++){ const cur=vs[i], prev=vs[(i+n-1)%n], e2=lp[(i+n-1)%n];
-        segs.push({x1:prev.pout[0],y1:prev.pout[1],x2:cur.pin[0],y2:cur.pin[1],nx:e2.d[1],ny:-e2.d[0],open:e2.open});
+        { const x1=prev.pout[0],y1=prev.pout[1],x2=cur.pin[0],y2=cur.pin[1],nx=e2.d[1],ny=-e2.d[0], len=Math.hypot(x2-x1,y2-y1), N=Math.max(1,Math.round(len/(s*.1))), A=FLOOR_WAVE; let px=x1,py=y1;
+      for(let j=1;j<=N;j++){ const f=j/N, ux=x1+(x2-x1)*f, uy=y1+(y2-y1)*f, along=(Math.abs(nx)? uy : ux)/s, endd=Math.min(f*len,(1-f)*len)/s, w=Math.min(1,endd/.28), off=e2.open? 0 : A*irr(along,(Math.abs(nx)? x1 : y1)/s*17.3+K*5.1)*s*w, qx=ux+nx*off, qy=uy+ny*off; segs.push({x1:px,y1:py,x2:qx,y2:qy,nx,ny,open:e2.open}); px=qx; py=qy; } }
         if(cur.rv>0){ const cr=cur.din[0]*cur.dout[1]-cur.din[1]*cur.dout[0], cx0=cur.v[0]+(cur.dout[0]-cur.din[0])*cur.rv, cy0=cur.v[1]+(cur.dout[1]-cur.din[1])*cur.rv,
             a0=Math.atan2(cur.pin[1]-cy0,cur.pin[0]-cx0), sw=cr>0?PI/2:-PI/2, N=10, sg=cr>0?1:-1;
           for(let j=0;j<N;j++){ const aa=a0+sw*j/N, bb=a0+sw*(j+1)/N, am=(aa+bb)/2;
@@ -37298,24 +37335,37 @@ function floorsPaint(){
   // ---- ramps (drawn in the frame of their base level; hb = height of the low end) ----
   const chev=(c2,x,y,dir,n)=>{ c2.save(); c2.translate(x,y); c2.rotate(dir==='E'?-PI/2: dir==='W'?PI/2: dir==='N'?PI : 0); c2.strokeStyle='rgba(255,255,255,.92)'; c2.lineWidth=4.5*k; c2.lineCap='round'; c2.lineJoin='round';
     for(let i=0;i<n;i++){ const yy=(i-(n-1)/2)*11*k; c2.beginPath(); c2.moveTo(-11*k,yy-5*k); c2.lineTo(0,yy+5*k); c2.lineTo(11*k,yy-5*k); c2.stroke(); } c2.restore(); };
+  const ez1=t=>t*t*(3-2*t), ez=ez1;
   const drawRamp=(c2,p)=>{ const Lf=BH(p.hb+1), x0=p.c*s, y0=p.r*s, v=p.v, Pu=pal[Math.min(p.hb+1,pal.length-1)], hiC=Pu.top[0], loC=p.hb? mixc(hx(pal[p.hb].top[0]),[156,200,120],.3) : '#b3d98b'; c2.save(); c2.translate(0,-LH(p.hb));
-    if(v[0]!==0){ const dn=v[0]>0, yt=dn? y0-Lf : y0, h=dn? s+Lf : s-Lf;                    // N/S ramp: lifted high end -> low end
-      const gr=c2.createLinearGradient(0,yt,0,yt+h); gr.addColorStop(0,dn?hiC:loC); gr.addColorStop(1,dn?loC:hiC); c2.fillStyle=gr; c2.fillRect(x0,yt,s,h);
-      c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ c2.beginPath(); c2.moveTo(x0,yt+h*i/4); c2.lineTo(x0+s,yt+h*i/4); c2.stroke(); }
+    if(v[0]!==0){ const dn=v[0]>0, yt=dn? y0-Lf : y0, h=dn? s+Lf : s-Lf, A=s*FLOOR_WAVE, rr=s*RAMP_ROUND, NN=18;
+      const gr=c2.createLinearGradient(0,yt,0,yt+h); gr.addColorStop(0,dn?hiC:loC); gr.addColorStop(1,dn?loC:hiC); c2.fillStyle=gr;
+      const ya=dn? yt : yt+rr, yb=dn? yt+h-rr : yt+h;                                        // 옆 물결이 도는 구간(낮은 쪽 끝은 둥근 모서리)
+      c2.beginPath(); c2.moveTo(x0,dn? yt : yt+rr);
+      if(!dn){ c2.quadraticCurveTo(x0,yt,x0+rr,yt); c2.lineTo(x0+s-rr,yt); c2.quadraticCurveTo(x0+s,yt,x0+s,yt+rr); } else { c2.lineTo(x0,yt); c2.lineTo(x0+s,yt); }
+      for(let i=0;i<=NN;i++){ const f=i/NN, y=ya+(yb-ya)*f; c2.lineTo(x0+s+A*irr((y-yt)/s,p.r*7+p.c*3+1)*Math.sin(Math.PI*((y-yt)/h)),y); }
+      if(dn){ c2.quadraticCurveTo(x0+s,yt+h,x0+s-rr,yt+h); c2.lineTo(x0+rr,yt+h); c2.quadraticCurveTo(x0,yt+h,x0,yt+h-rr); }
+      for(let i=NN;i>=0;i--){ const f=i/NN, y=ya+(yb-ya)*f; c2.lineTo(x0-A*irr((y-yt)/s,p.r*7+p.c*3+2)*Math.sin(Math.PI*((y-yt)/h)),y); }
+      c2.closePath(); c2.fill();
+      c2.save(); c2.clip(); c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ c2.beginPath(); c2.moveTo(x0-s*.1,yt+h*i/4); c2.lineTo(x0+s*1.1,yt+h*i/4); c2.stroke(); } c2.restore();
       chev(c2,x0+s/2,yt+h/2+(dn?4*k:-2*k),dn?'S':'N',2);
-      c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW;                       // side rims where no neighbour of the upper level already carries its own
-      for(const [sx,nb] of [[x0+RIMW/2+.3*k,inK(p.hb+1,p.r,p.c-1)],[x0+s-RIMW/2-.3*k,inK(p.hb+1,p.r,p.c+1)]]) if(!nb){ c2.beginPath(); c2.moveTo(sx,yt); c2.lineTo(sx,yt+h); c2.stroke(); }
-    } else {                                                                               // E/W ramp (W = mirrored E)
+      c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW;
+      for(const [sx,sg,nb] of [[x0+RIMW/2+.3*k,-1,inK(p.hb+1,p.r,p.c-1)],[x0+s-RIMW/2-.3*k,1,inK(p.hb+1,p.r,p.c+1)]]) if(!nb){ c2.beginPath(); for(let i=0;i<=NN;i++){ const f=i/NN, y=ya+(yb-ya)*f, xx=sx+sg*A*irr((y-yt)/s,p.r*7+p.c*3+(sg>0?1:2))*Math.sin(Math.PI*((y-yt)/h))*.6; i? c2.lineTo(xx,y) : c2.moveTo(xx,y); } c2.stroke(); }
+    } else {
       if(v[1]<0){ c2.translate(x0+s/2,0); c2.scale(-1,1); c2.translate(-(x0+s/2),0); }
-      c2.save(); c2.beginPath(); c2.moveTo(x0,y0+s-Lf); c2.lineTo(x0+s,y0+s); c2.lineTo(x0,y0+s); c2.closePath(); c2.clip();    // dirt wedge under the slope
+      const NN=20, rr=s*RAMP_ROUND, rho=rr/s, lipY=t=>y0+s-Lf+Lf*ez(t)+s*.035*irr(t*2.2,p.r*5+p.c*2+9)*Math.sin(Math.PI*t);                              // 비탈 면 아랫선 — 직선이 아니라 부드러운 S 곡선
+      c2.save(); c2.beginPath(); c2.moveTo(x0,y0+s-Lf); for(let i=1;i<=NN;i++){ const t=i/NN; c2.lineTo(x0+s*t,lipY(t)); } c2.lineTo(x0,y0+s); c2.closePath(); c2.clip();
       const dg=c2.createLinearGradient(0,y0+s-Lf,0,y0+s); dg.addColorStop(0,css(Pu.dirt[0])); dg.addColorStop(1,css(Pu.dirt[1])); c2.fillStyle=dg; c2.fillRect(x0,y0+s-Lf-2*k,s,Lf+2*k);
       strata(c2,x0,y0+s-Lf-2*k,s,Lf+2*k,p.r*5+p.c); c2.restore();
-      c2.beginPath(); c2.moveTo(x0,y0+s-Lf); c2.lineTo(x0+s,y0+s); c2.lineTo(x0,y0+s); c2.closePath(); c2.strokeStyle='rgba(60,35,10,.5)'; c2.lineWidth=1.1*k; c2.stroke();
-      c2.save(); c2.transform(1,Lf/s,0,1,x0,y0-Lf); const sg=c2.createLinearGradient(0,0,s,0); sg.addColorStop(0,hiC); sg.addColorStop(1,loC); c2.fillStyle=sg; c2.fillRect(0,0,s,s);
-      c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ c2.beginPath(); c2.moveTo(s*i/4,0); c2.lineTo(s*i/4,s); c2.stroke(); }
-      chev(c2,s/2,s/2,'E',2); c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW; c2.beginPath(); c2.moveTo(0,RIMW/2+.3*k); c2.lineTo(s,RIMW/2+.3*k); c2.stroke(); c2.restore();
-      c2.strokeStyle=Pu.fringe; c2.lineWidth=3.6*k; c2.lineCap='round'; c2.beginPath(); c2.moveTo(x0,y0+s-Lf+k); c2.lineTo(x0+s,y0+s+k); c2.stroke();                    // fringe along the slanted lip
-      c2.fillStyle=Pu.fringe; for(let t=.07;t<1;t+=.125){ c2.beginPath(); c2.arc(x0+s*t,y0+s-Lf+Lf*t+2.6*k,3*k,0,PI*2); c2.fill(); } }
+      c2.beginPath(); c2.moveTo(x0,y0+s-Lf); for(let i=1;i<=NN;i++){ const t=i/NN; c2.lineTo(x0+s*t,lipY(t)); } c2.lineTo(x0,y0+s); c2.closePath(); c2.strokeStyle='rgba(60,35,10,.5)'; c2.lineWidth=1.1*k; c2.stroke();
+      // 윗면 — 같은 S 곡선을 따라 내려가고 낮은 쪽 모서리는 둥글다
+      const topY=t=>y0-Lf+Lf*ez(t)+s*.035*irr(t*2.2,p.r*5+p.c*2+9)*Math.sin(Math.PI*t), sg=c2.createLinearGradient(x0,0,x0+s,0); sg.addColorStop(0,hiC); sg.addColorStop(1,loC);
+      const top=()=>{ c2.beginPath(); c2.moveTo(x0,topY(0)); const t1=1-rho; for(let i=1;i<=NN;i++){ const t=i/NN*t1; c2.lineTo(x0+s*t,topY(t)); } c2.quadraticCurveTo(x0+s,topY(1),x0+s,topY(1)+rr); c2.lineTo(x0+s,topY(1)+s-rr); c2.quadraticCurveTo(x0+s,topY(1)+s,x0+s*t1,topY(t1)+s); for(let i=NN-1;i>=0;i--){ const t=i/NN*t1; c2.lineTo(x0+s*t,topY(t)+s); } c2.closePath(); };
+      top(); c2.fillStyle=sg; c2.fill(); c2.save(); top(); c2.clip();
+      c2.strokeStyle='rgba(255,255,255,.3)'; c2.lineWidth=1; for(let i=1;i<4;i++){ const t=i/4; c2.beginPath(); c2.moveTo(x0+s*t,topY(t)); c2.lineTo(x0+s*t,topY(t)+s); c2.stroke(); }
+      chev(c2,x0+s/2,topY(.5)+s/2,'E',2); c2.restore();
+      c2.lineCap='round'; c2.strokeStyle=Pu.rim; c2.lineWidth=RIMW; c2.beginPath(); for(let i=0;i<=NN;i++){ const t=i/NN*(1-rho*.6); const x=x0+s*t, y=topY(t)+RIMW/2+.3*k; i? c2.lineTo(x,y) : c2.moveTo(x,y); } c2.stroke();
+      c2.strokeStyle=Pu.fringe; c2.lineWidth=3.6*k; c2.beginPath(); c2.moveTo(x0,lipY(0)+k); for(let i=1;i<=NN;i++){ const t=i/NN; c2.lineTo(x0+s*t,lipY(t)+k); } c2.stroke();
+      c2.fillStyle=Pu.fringe; for(let t=.07;t<1;t+=.125){ c2.beginPath(); c2.arc(x0+s*t,lipY(t)+2.6*k,3*k,0,PI*2); c2.fill(); } }
     c2.restore(); };
   // ---- slice per cell row (Y-sort pieces): level 1 cells, ramps based at ground, level 2 cells, ramps based at 2층 ... ----
   const cellClip=(K,r,cc)=>{ const p=new Path2D(), Lf=BH(K), x0=cc*s, ty=r*s-LH(K), n=inK(K,r-1,cc), e=inK(K,r,cc+1), so=inK(K,r+1,cc), w=inK(K,r,cc-1);

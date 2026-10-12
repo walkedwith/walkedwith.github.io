@@ -1,16 +1,16 @@
 {
-  "sourceHead": "a84a0dcd056b1cdccbef165aca945d41b4046a69",
-  "date": "2026-10-12T12:59:24.323Z",
-  "liveSha256": "2148fd3ee163ecc0e68ba1e4cb18781c91a6462b2099a3279ccea739f6ac8070",
-  "testSha256": "6bebaf594058b2dbcf27096d0239d065a148667209895a3016d576a5aaaa273f",
+  "sourceHead": "9af2d039666b45d1ae7566e404f6520695362592",
+  "date": "2026-10-12T13:12:17.574Z",
+  "liveSha256": "68668e245b8e2e27b31693ba4486cb497e4bbccd5fc2407caeac3939d6999c9a",
+  "testSha256": "3035f92f15effec928af86315b767bae67ed7e25d0f9389b77a5220049bd98fb",
   "files": 368,
-  "sourceCommit": "a84a0dcd056b1cdccbef165aca945d41b4046a69",
+  "sourceCommit": "9af2d039666b45d1ae7566e404f6520695362592",
   "kind": "test",
   "tests": {
-    "total": 1306,
-    "passed": 1241,
-    "failed": 10,
-    "skipped": 55
+    "scoped": true,
+    "passed": 128,
+    "failed": 0,
+    "note": "changed-area tests only (void-board, ui-text, hill-*, creek-*); full suite skipped on request"
   },
   "levelChecks": 300
 }
