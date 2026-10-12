@@ -829,7 +829,7 @@
     "guide.creek66.text": "웅덩이 통나무는 배!",
     "guide.creek68.text": "배로 공을 밀어요",
     "guide.creek71.text": "큰 나무는 두 번!",
-    "guide.creek73.text": "돌리면 공을 쳐요",
+    "guide.creek73.text": "긴 통나무는 다리!",
     "guide.creek76.text": "개구리를 옮겨 길을 바꿔요",
     "guide.creek78.text": "배도 개구리가 보내요",
     "guide.creek81.text": "개구리 옆에 공을!",

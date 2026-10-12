@@ -829,7 +829,7 @@
     "guide.creek66.text": "A log in a pool is a boat!",
     "guide.creek68.text": "Ram balls with the boat",
     "guide.creek71.text": "Big trees take two pushes!",
-    "guide.creek73.text": "Swing the log to hit a ball",
+    "guide.creek73.text": "A long log is a bridge!",
     "guide.creek76.text": "Move the frog to switch the path",
     "guide.creek78.text": "The frog sends boats too",
     "guide.creek81.text": "Put a ball next to the frog!",
