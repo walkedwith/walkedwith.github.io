@@ -37751,7 +37751,7 @@ function creekFordWade(x,y){ if(!creekOn()) return; const t=L.T[dog.r] && L.T[do
 // 예전엔 filter 만 믿어서 아이폰에서는 흐림이 통째로 빠졌고, 물길이 둥근 윤곽 없이 네모 칸으로 보였다(10-12 사람 화면).
 let creekFilterOK=null;
 function creekBlurInto(g, src, px){
-  if(creekFilterOK===null){ try{ const t=document.createElement('canvas').getContext('2d'); t.filter='blur(1px)'; creekFilterOK=(t.filter==='blur(1px)'); }catch(_){ creekFilterOK=false; } }
+  if(creekFilterOK===null){ try{ const t=document.createElement('canvas').getContext('2d'); t.canvas.width=t.canvas.height=16; t.filter='blur(2px)'; t.fillStyle='#fff'; t.fillRect(6,6,4,4); creekFilterOK=t.getImageData(4,8,1,1).data[3]>0;   /* 속성이 없는 사파리는 대입한 값을 그대로 돌려준다 — 실제로 번졌는지 픽셀로 본다 */ }catch(_){ creekFilterOK=false; } }
   if(creekFilterOK){ g.filter=`blur(${px.toFixed(1)}px)`; g.drawImage(src,0,0); g.filter='none'; return; }
   g.drawImage(src,0,0);
   const W=g.canvas.width, H=g.canvas.height, img=g.getImageData(0,0,W,H), d=img.data;
