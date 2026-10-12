@@ -37747,22 +37747,39 @@ function creekFordWade(x,y){ if(!creekOn()) return; const t=L.T[dog.r] && L.T[do
   const fy=y+cell*.38, g=ctx; g.save(); g.fillStyle='rgba(196,234,247,.8)'; g.beginPath(); g.ellipse(x,fy,cell*.17,cell*.045,0,0,7); g.fill();
   g.strokeStyle='rgba(255,255,255,.95)'; g.lineWidth=cell*.016; g.beginPath(); g.ellipse(x,fy-cell*.004,cell*.165,cell*.042,0,Math.PI*.05,Math.PI*.95,true); g.stroke();
   const u=(animT*.6)%1; g.strokeStyle=`rgba(255,255,255,${(.6*(1-u)).toFixed(3)})`; g.lineWidth=cell*.012; g.beginPath(); g.ellipse(x,fy+cell*.01,cell*(.22+u*.08),cell*(.06+u*.02),0,0,7); g.stroke(); g.restore(); }
+// 흰 가리개(src)를 흐려 g 에 그린다. 캔버스 filter 가 되면 그걸 쓰고, 안 되는 브라우저(사파리·아이폰)는 알파를 손으로 흐린다.
+// 예전엔 filter 만 믿어서 아이폰에서는 흐림이 통째로 빠졌고, 물길이 둥근 윤곽 없이 네모 칸으로 보였다(10-12 사람 화면).
+let creekFilterOK=null;
+function creekBlurInto(g, src, px){
+  if(creekFilterOK===null){ try{ const t=document.createElement('canvas').getContext('2d'); t.filter='blur(1px)'; creekFilterOK=(t.filter==='blur(1px)'); }catch(_){ creekFilterOK=false; } }
+  if(creekFilterOK){ g.filter=`blur(${px.toFixed(1)}px)`; g.drawImage(src,0,0); g.filter='none'; return; }
+  g.drawImage(src,0,0);
+  const W=g.canvas.width, H=g.canvas.height, img=g.getImageData(0,0,W,H), d=img.data;
+  let a=new Float32Array(W*H), b=new Float32Array(W*H); for(let i=0;i<a.length;i++) a[i]=d[i*4+3];
+  const r=Math.max(1,Math.round((Math.sqrt(4*px*px+1)-1)/2));       // 상자 흐림 세 번 ≈ 가우스(표준편차 px)
+  const pass=(S,D,n,step,lines,lstep)=>{ const k=1/(2*r+1); for(let l=0;l<lines;l++){ const o=l*lstep; let sum=0;
+      for(let i=-r;i<=r;i++) sum+=S[o+Math.max(0,Math.min(n-1,i))*step];
+      for(let i=0;i<n;i++){ D[o+i*step]=sum*k; sum+=S[o+Math.min(n-1,i+r+1)*step]-S[o+Math.max(0,i-r)*step]; } } };
+  for(let t=0;t<3;t++){ pass(a,b,W,1,H,W); pass(b,a,H,W,W,1); }
+  for(let i=0;i<a.length;i++){ const v=a[i]; d[i*4]=d[i*4+1]=d[i*4+2]=255; d[i*4+3]=v; }
+  g.putImageData(img,0,0);
+}
 function creekBake(){                                             // 물길 한 장 — 판이 바뀔 때 한 번. o=그림, wm=물낯 가리개
   const OE=!!L.openEdge, s=cell, cv=ctx.canvas, T=ctx.getTransform(), dpr=T.a, Wd=cv.width, Ht=cv.height, A=OE?0:cell, B=(OE?GN:GN-1)*cell, hs=creekHs;
   const mk=()=>{ const m=document.createElement('canvas'); m.width=Wd; m.height=Ht; return [m,m.getContext('2d')]; };
   const cells=[...creekWet()].map(k=>[(k/GN)|0,k%GN]);
   const [m,mg]=mk(); mg.setTransform(T); mg.fillStyle='#fff'; for(const [r,c] of cells) mg.fillRect(c*s,r*s,s,s);
-  const [b,bg]=mk(); bg.filter=`blur(${(s*.25*dpr).toFixed(1)}px)`; bg.drawImage(m,0,0);
+  const [b,bg]=mk(); creekBlurInto(bg,m,s*.25*dpr);
   if(OE){ // 테두리 없는 판 — 판 끝에 닿은 물은 판 밖으로 이어진다. 가리개를 판 밖 한 칸까지 늘려 여백 붙은 캔버스에서 흐린 뒤 잘라 붙인다(안 그러면 판 끝에서 물이 말라 둥근 끝이 생긴다)
     const P=Math.ceil(s*dpr*1.5), pm=document.createElement('canvas'); pm.width=Wd+2*P; pm.height=Ht+2*P; const pg=pm.getContext('2d'); pg.setTransform(T.a,0,0,T.d,T.e+P,T.f+P); pg.fillStyle='#fff';
     const R_=boardRows(L); for(const [r,c] of cells){ pg.fillRect(c*s,r*s,s,s); if(r===0) pg.fillRect(c*s,-s,s,s); if(r===R_-1) pg.fillRect(c*s,R_*s,s,s); if(c===0) pg.fillRect(-s,r*s,s,s); if(c===GN-1) pg.fillRect(GN*s,r*s,s,s); }
-    const pb=document.createElement('canvas'); pb.width=pm.width; pb.height=pm.height; const pbg=pb.getContext('2d'); pbg.filter=bg.filter; pbg.drawImage(pm,0,0);
-    bg.filter='none'; bg.clearRect(0,0,Wd,Ht); bg.drawImage(pb,-P,-P); }
+    const pb=document.createElement('canvas'); pb.width=pm.width; pb.height=pm.height; const pbg=pb.getContext('2d'); creekBlurInto(pbg,pm,s*.25*dpr);
+    bg.clearRect(0,0,Wd,Ht); bg.drawImage(pb,-P,-P); }
   // 웅덩이(FS)만 따로 흐려 둔 가리개 — 고인 물은 물살보다 짙은 파랑(10-07 사람). 경계는 물살 색으로 부드럽게 섞인다.
   const hasFS=cells.some(([r,c])=>L.T[r] && L.T[r][c]===FS);       // 웅덩이가 없는 판은 가리개 캔버스·흐림·픽셀 읽기를 건너뛴다(영 알파 = 섞임 0)
   let pa;
   if(hasFS){ const [pm,pmg]=mk(); pmg.setTransform(T); pmg.fillStyle='#fff'; for(const [r,c] of cells) if(L.T[r] && L.T[r][c]===FS) pmg.fillRect(c*s,r*s,s,s);
-    const [pb,pbg]=mk(); pbg.filter=`blur(${(s*.2*dpr).toFixed(1)}px)`; pbg.drawImage(pm,0,0); pa=pbg.getImageData(0,0,Wd,Ht).data; }
+    const [pb,pbg]=mk(); creekBlurInto(pbg,pm,s*.2*dpr); pa=pbg.getImageData(0,0,Wd,Ht).data; }
   else pa=new Uint8ClampedArray(Wd*Ht*4);
   const psh=[124,192,228], pdp=[72,150,205];                     // 웅덩이 — 밝은 쪽 #7CC0E4 · 깊은 쪽 #4896CD
   const yMin=Math.max(0,Math.floor(T.f+A*dpr)), yMax=Math.min(Ht,Math.ceil(T.f+(OE? boardRows(L)*cell : (boardRows(L)-1)*cell+s*.5)*dpr)), xMin=Math.max(0,Math.floor(T.e+A*dpr)), xMax=Math.min(Wd,Math.ceil(T.e+B*dpr));
