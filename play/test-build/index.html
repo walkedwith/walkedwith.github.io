@@ -5450,12 +5450,24 @@ const HILL_STAGES={
 // ── HILL_STAGES 끝 ──
 for(const k in HILL_STAGES) BAKED[(k|0)-1]=HILL_STAGES[k];
 const KINDS=['ball','log','bone','cartV','cartH','crop','mower','tub','pump','treeSmall','stump','treeBig','log2','log2End','hillLog'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
+const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그대로일 때만 적용 — 판이 고쳐지면 저절로 꺼진다(tests/void-board.test.js 가 풀이 그대로임을 지킨다)
+  '11111111v1010110111111110111111v0vhggge0ggh000e1v11111e1111v11e11010111110110001':[49,50,51,52,53,57,58,66],   // 66판
+  'v1110v1011111v1011111100gggggg1101111000v11111101011v11v111011011v1111110110v11v':[45,46,53,54,60,61,67,68,69,70],   // 72판
+  '111111101010111111h11v1111h11111ggh11v1111h1111vv1e1101111e1v11110e1110111e10111':[43,44,51,52,59,61,67,68,69],   // 81판
+  '0010v11100d1011110d1111111ufffff11e111v1v1e1011111e11v10011111110010v10100001v11':[46,54,60,61,62,69],   // 89판
+  'v111111111111111110101111107111151111111111111111111111111111111111111111111111v':[34,42,43,44,45,46,50,51,52,53,54,58,59,60,61,62,66,67,68,69,70],   // 101판
+  'v111111v111111111111111111111111111111111111111111111111116161111111111111111111':[9,10,11,12,13,14],   // 108판
+  'v111111116111111111110111111510111111011111111111511111111111111111111111111111v':[38,46,52,53,54,59,60,61,62,67,68,69,70],   // 109판
+  'v111111v141vv11111111111111111111111111111111111111111111111111111111111v1111111':[61,65,66,67,68,69],   // 114판 — 60(7,4) 는 뺐다: 막으면 지름길이 생겨 par 32→27
+  'v11111111111111v1111111111111511111111111111111511111111111111111117111111111111':[9,10,11,12,17,18,25,33,41,49],   // 116판
+};
 function fromBaked(o, lv){
   // lv 를 넘기면 그 판이 도구 필수인지(L.tc)가 같이 실린다. 안 넘기면 null —
   // 기존 호출부 50여 곳은 한 인자로 부르므로 동작이 그대로다.
   const rows=o.rows||GN;
   if(o.T.length!==rows*GN) throw new Error('baked board size mismatch: '+o.T.length+' != '+rows+'x'+GN);
   const T=[]; for(let r=0;r<rows;r++){ const row=[]; for(let c=0;c<GN;c++) row.push(parseInt(o.T[r*GN+c],36)); T.push(row); }   // 36진 1글자 = 타일(물=a, 밸브=b)
+  const vdCells=VOID_BOARD[o.T]||null; if(vdCells) for(const i of vdCells) T[(i/GN)|0][i%GN]=WALL;   // 판이 없는 칸 — 막힌 칸(벽)이지만 바위 대신 바닥을 도려낸다(voidCut)
   const holes=new Map(o.h); const paintCol={}; for(const kv of o.p) paintCol[kv[0]]=kv[1];
   const boxes=o.b.map(x=>({r:x[0],c:x[1],color:x[2],kind:KINDS[x[3]]}));
   const walk=o.cw? {p:o.cw.p.slice(), i:o.cw.i|0, d:o.cw.d||1} : null;      // 순찰 고양이: 경로 셀 목록 + 시작 위치/방향
@@ -5484,6 +5496,7 @@ function fromBaked(o, lv){
        noBoat:!!o.nb,                                                         // 기믹 사전 끔 전용 — 배가 출발하지 않는다(MECH.boat.off)
        up:(o.hl2 && o.up)? Array.from(String(o.up),ch=>ch==='1'?1:ch==='2'?2:0) : null,      // 1층/2층/3층 — up:"…" heights ('1'=2층, '2'=3층, else 1층), see cliffKind. hl2 boards only
        dc:(o.hl2 && o.dc)? hillDecorList(o,T) : null,                       // hl2 floor decor — dc:[[r,c,kind,v?]], draw-only (see hillDecorDraw)
+       vd:(vdCells? new Set(vdCells) : null),                                 // 판이 없는 칸(r*GN+c) — 바닥을 도려내고 바위·나무·꾸밈을 안 그린다(VOID_BOARD, 판 문자열이 같을 때만)
        hl2:!!o.hl2,                                                        // 새 언덕 판(101~120, hl2:1) — 땅 통나무 쿵 켬 · 긴 통나무 돌리기/다리 걸음 끔 · 쓰러진 작은 통나무도 비탈을 미끄러진다
        sq:(o.sq? o.sq.map(x=>({r:x[0],c:x[1],dir:x[2]|0})) : null),           // 다람쥐 — sq:[[r,c,dir]] dir 0위 1오른 2아래 3왼(바라보는 쪽). 자리는 그루터기·보통 나무(31)·작은 도끼 나무 칸, 상태 비트 없음
        pfrogs:(o.pf? o.pf.map(x=>({spots:[[x[0],x[1]]].concat((x[2]||[]).map(q=>[q[0],q[1]]))})) : null)},   // 웅덩이 개구리 — pf:[[r,c,[[r2,c2],…]]] 처음 연잎 + 옮겨 갈 연잎(웅덩이 칸), 자리는 filled 의 PFROG_F
@@ -29750,33 +29763,17 @@ function creekStumpLocal(g,s,W,top){
   const w=W*s/2, ct=CREEK_CUT*s;
   g.fillStyle=creekWoodGrad(g,w); g.beginPath(); g.moveTo(-w*1.22,0); g.quadraticCurveTo(-w*.98,-s*.035,-w,-ct); g.lineTo(w,-ct); g.quadraticCurveTo(w*.98,-s*.035,w*1.22,0); g.quadraticCurveTo(0,s*.05,-w*1.22,0); g.closePath(); g.fill();
   if(top) creekCutFace(g,s,w,-ct); }
-function creekUpperLocal(g,s,big,noAxe){
-  const {W,H}=creekAxeDims(big), w=W*s/2, h=(H-CREEK_CUT)*s;
-  g.fillStyle=creekWoodGrad(g,w); g.beginPath(); g.moveTo(-w,s*.004); g.lineTo(-w*.88,-h); g.lineTo(w*.88,-h); g.lineTo(w,s*.004); g.closePath(); g.fill();
-  g.strokeStyle='rgba(239,199,137,.38)'; g.lineWidth=s*.022;                   // 결 — 통나무의 사선 결과 같은 색
-  for(const [q,k] of [[-.4,.3],[.1,.5],[.35,.72],[-.15,.88]]) if(k*h<h-s*.2){ g.beginPath(); g.moveTo(w*q,-h*k); g.lineTo(w*(q+.12),-h*k-s*.16); g.stroke(); }
-  const xe=w*.97, dep=w*2/3, up=s*.2;                                        // 벤 홈 하나 — 아래 면은 벤 자리(수평), 위 면은 비스듬히. 속살 한 색 + 짙은 테
-  g.fillStyle='#F2D29A'; g.beginPath(); g.moveTo(xe,-up); g.lineTo(xe-dep,0); g.lineTo(xe,0); g.closePath(); g.fill();
-  g.fillStyle='rgba(62,36,16,.45)'; g.beginPath(); g.moveTo(xe-dep,0); g.lineTo(xe,0); g.lineTo(xe,-s*.018); g.closePath(); g.fill();
-  g.strokeStyle='#3E2410'; g.lineWidth=s*.018; g.lineJoin='round'; g.beginPath(); g.moveTo(xe,-up); g.lineTo(xe-dep,0); g.lineTo(xe,0); g.stroke();
-  const cy0=-(H-.16-CREEK_CUT)*s, k=big?1.32:1.3;                            // 잎 — 줄기 끝을 덮는 성긴 연두 송이(보통 나무의 꽉 찬 짙은 원과 다르게)
-  const blobs=big? [[-.30,.30,.17,'#74AE55'],[.32,.26,.16,'#7DB85E'],[0,0,.32,'#7DB85E'],[-.24,-.12,.2,'#8FC86A'],[.24,-.1,.2,'#74AE55'],[-.04,-.3,.18,'#A6D67E'],[.1,-.16,.1,'#B9E08F']]
-                  : [[0,0,.27,'#7DB85E'],[-.21,.06,.17,'#8FC86A'],[.21,.04,.17,'#74AE55'],[-.04,-.2,.16,'#A6D67E'],[.08,-.08,.08,'#B9E08F']];
-  for(const [dx,dy,r0,col] of blobs){ g.fillStyle=col; g.beginPath(); g.arc(dx*s*k,cy0+dy*s*k,r0*s*k,0,7); g.fill(); }
-  if(noAxe) return;
-  g.save(); g.translate(xe-dep*.38,-s*.035); g.rotate(.2);                     // 도끼 — 날이 홈 속에 박히고 자루가 비스듬히 나온다
-  g.fillStyle='#E8742C'; rr(s*.05,-s*.03,s*.33,s*.06,s*.03); g.fill(); g.fillStyle='#B4511A'; g.fillRect(s*.33,-s*.03,s*.05,s*.06);
-  g.fillStyle='#C9D3DA'; g.beginPath(); g.moveTo(-s*.02,-s*.045); g.lineTo(s*.07,-s*.03); g.lineTo(s*.07,s*.03); g.lineTo(-s*.02,s*.045); g.quadraticCurveTo(-s*.04,0,-s*.02,-s*.045); g.fill();
-  g.strokeStyle='#7D8A93'; g.lineWidth=s*.014; g.stroke(); g.restore(); }
+function creekUpperLocal(g,s,big,noAxe,rest){                      // 새 그림(NT) — 선 자리에서(rest) 밑동은 땅, 기울거나 넘어갈 땐 벤 자리가 밑동(원점)이라 경첩처럼 돈다
+  const by=rest? CREEK_CUT*s : 0; if(big) ntPine(g,0,by,s,noAxe,true); else ntTree(g,0,by,s,true,noAxe,true); }
 // 줄기 축 — 넘어가는 쪽(dr,dc)으로 θ 기울고, 위·아래로 넘어갈 땐 옆으로 ψ 비껴(정면을 향해 납작해지는 장면이 없게) 화면에 투영한 벡터.
 function creekFallAxis(dr,dc,th,psi){ if(dc) return [dc*Math.sin(th), -Math.cos(th)]; return [Math.sin(th)*Math.sin(psi), dr*Math.sin(th)*Math.cos(psi)-Math.cos(th)]; }
 function creekAxisXf(g,v,lenK){ const L=Math.hypot(v[0],v[1])||1e-3, nx=-v[1]/L, ny=v[0]/L, k=lenK||1; g.transform(nx,ny,-v[0]*k,-v[1]*k,0,0); }   // 로컬 위(0,−1) → 축 v, 로컬 옆 → 축에 수직(굵기 그대로)
 function creekAxeTree(g,s,big,lean){                                // 원점 = 칸 가운데(drawHillTreeObject 와 같은 좌표)
   const {W}=creekAxeDims(big), leaning=lean && (lean[0]||lean[1]);
   g.fillStyle='rgba(45,35,20,.2)'; g.beginPath(); g.ellipse(0,s*CREEK_TREE_BASE,s*W*.75,s*.075,0,0,7); g.fill();
-  g.save(); g.translate(0,s*CREEK_TREE_BASE); creekStumpLocal(g,s,W,leaning);   // 큰 나무 첫 수 — 같은 벤 자리에서 금이 가 기운다(벌어진 틈으로 속살이 보인다)
+  g.save(); g.translate(0,s*CREEK_TREE_BASE); if(leaning) creekStumpLocal(g,s,W,true);   // 큰 나무 첫 수 — 같은 벤 자리에서 금이 가 기운다(서 있을 땐 새 줄기가 그루터기를 덮는다)
   g.translate(0,-s*CREEK_CUT); if(leaning) creekAxisXf(g,creekFallAxis(lean[0],lean[1],.2,0));
-  creekUpperLocal(g,s,big); g.restore(); }
+  creekUpperLocal(g,s,big,false,!leaning); g.restore(); }
 // 벌목 연출(10-08 넷째: 경첩 넘어짐) — 윗부분이 벤 자리에 붙은 채(경첩) 그루터기 위에서 돌아 눕고, 끝에서야 통나무 자리로 미끄러져 내려앉는다.
 // 위·아래로 넘어갈 땐 옆으로 비껴 돌아(대각선) 납작한 장면이 없고, 끝은 곧게 아래/위 칸. 앞 72% = 경첩 돌기, 뒤 28% = 내려앉기(길이도 통나무 길이로).
 let treeFallFx=null;
@@ -33941,6 +33938,30 @@ function drawBathWallCached(){
   ctx.drawImage(bathWallCv,0,0,bathWallCv.width,bathWallCv.height,0,-houseTop,bathWallW,bathWallH);
 }
 // 바닥 한 장 — 판 칸·비눗물·씻긴 칸. tileCtx 와 정지 판정용 사본이 같은 그림을 그린다.
+// 판이 없는 칸(L.vd) — 바닥을 도려내 하늘이 비치게. 칸 사각형을 블러+문턱으로 한 덩이로 깎아 모서리가 전부 둥글다.
+// 위쪽 땅 끝은 흙 단면(2·3층 흙벽 색 네 단), 옆·아래는 얇은 흙 테, 단면 밑엔 옅은 그림자, 땅 끝엔 연한 풀 테. 바닥 한 장 안에서 한 번만 그린다.
+const VOID_FACE=.3, VOID_R=.2;
+function voidCut(g){
+  if(!L || !L.vd || !L.vd.size) return;
+  const cv=g.canvas, W=cv.width, H=cv.height, T=g.getTransform(), k=T.a, s=cell, mk=()=>{ const c=document.createElement('canvas'); c.width=W; c.height=H; return c; };
+  const M0=mk(), m0=M0.getContext('2d'); m0.setTransform(T); m0.fillStyle='#000'; for(const i of L.vd) m0.fillRect((i%GN)*s,((i/GN)|0)*s,s,s);
+  const M=mk(), m1=M.getContext('2d'); let smooth=false;
+  try{ m1.filter='blur('+(VOID_R*s*k).toFixed(1)+'px)'; m1.drawImage(M0,0,0); m1.filter='none'; const px=m1.getImageData(Math.floor(W/2),Math.floor(H/2),1,1); smooth=true; }catch(e){}
+  if(smooth){ const probe=m1.getImageData(0,0,W,H), d=probe.data; let seen=false; for(let i=3;i<d.length;i+=4) if(d[i]>0&&d[i]<255){ seen=true; break; }
+    if(!seen){ m1.clearRect(0,0,W,H); m1.drawImage(M0,0,0); smooth=false; } else { for(let i=3;i<d.length;i+=4){ const a=(d[i]-128)*12+128; d[i]=a<0?0:a>255?255:a; } m1.putImageData(probe,0,0); } }
+  else { m1.drawImage(M0,0,0); }
+  const strip=(dx,dy)=>{ const C=mk(), c=C.getContext('2d'); c.drawImage(M,0,0); c.globalCompositeOperation='destination-out'; c.drawImage(M,Math.round(dx*k),Math.round(dy*k)); return C; };   // M 에서 (dx,dy) 만큼 민 M 을 뺀 자리 = 그 가장자리에서 |d| 이내
+  const paint=(C,fill)=>{ const c=C.getContext('2d'); c.globalCompositeOperation='source-in'; c.fillStyle=fill; c.fillRect(0,0,W,H); g.drawImage(C,0,0); };
+  g.save(); g.setTransform(1,0,0,1,0,0);
+  g.globalCompositeOperation='destination-out'; g.drawImage(M,0,0); g.globalCompositeOperation='source-over';
+  const lip=s*.06, fh=s*VOID_FACE;
+  paint(strip(lip,0),'#A47044'); paint(strip(-lip,0),'#B07A4C'); paint(strip(0,-lip),'#8A5C36');
+  const bands=['#AE7F4D','#A37646','#996B3F','#8E6038'];
+  for(let i=3;i>=0;i--) paint(strip(0,fh*(i+1)/4),bands[i]);
+  paint(strip(0,fh*.14),'rgba(255,238,205,.30)');
+  { const C=strip(0,fh+s*.22), c=C.getContext('2d'); c.globalCompositeOperation='destination-out'; c.drawImage(strip(0,fh),0,0); paint(C,'rgba(40,86,124,.16)'); }
+  { const C=mk(), c=C.getContext('2d'); c.drawImage(M,0,Math.round(-s*.045*k)); c.globalCompositeOperation='destination-out'; c.drawImage(M,0,0); paint(C,'rgba(236,250,206,.85)'); }
+  g.restore(); }
 function tileLayerPaint(){
   if(houseMode && !houseIn) drawHouseGround();
   // 비눗물·씻긴 칸은 여기서 칸 자리만 모은다 — 일렁임은 drawTilesCached 가 매 프레임 판 위에 바로 그린다(바닥 사본은 멈춰 있게).
@@ -33949,11 +33970,13 @@ function tileLayerPaint(){
   finally{ soapBatch=false; }
   const rc=[]; for(let r=(L.openEdge?0:1);r<boardRows(L)-(L.openEdge?0:1);r++) for(let c=(L.openEdge?0:1);c<GN-(L.openEdge?0:1);c++){ const k=kk(r,c); if(filled.has(k+RINSE_OFF) && pumpRinseShown(k) && tubSpillShown(k) && !soapVisible(r,c)) rc.push([r,c]); }
   tileSoapCells=cells; tileRinseCells=rc;
+  if(L.vd && L.hl2) voidCut(ctx);                                                  // 판이 없는 칸 — 2·3층 땅을 얹기 전에 바닥을 도려낸다
   if(hillOn()) hillPaint();
   if(L && L.hl2 && L.dc) hillDecorPaint();                                       // hl2 floor decor, 1층 part (before floorsPaint so the 2층 shadow falls over it)
   if(L && L.up && L.hl2) floorsPaint();                                          // 1층/2층 — 2층 윤곽선 그림(줄별로 굽기)·그림자
   valleyStones();
   if(creekOn()) creekPaint();
+  if(L.vd && !L.hl2) voidCut(ctx);                                                 // 냇가마을 — 물길·갈대까지 구운 뒤 도려낸다
   if(window.__rinse) drawRinseProto();                                           // 시안 — 씻긴 칸
 }
 let tileSoapCells=[], tileRinseCells=[];
@@ -37134,9 +37157,9 @@ const FLOOR_PALS={
   I:[null,                                                                                                   // I 3층 더 높게 — E 색 + 3층 한 단이 0.08칸 더 높고(그림만) 3층 가장자리 그림자가 더 짙다(extra/deep)
      {top:['#bde596','#b6e08e'], dirt:[[167,121,72],[133,88,46]], fringe:'#79b852', rim:'#d4f0ae'},
      {top:['#8dca68','#86c560'], dirt:[[167,121,72],[133,88,46]], fringe:'#5fa63f', rim:'#c6eb9c', extra:.08, deep:1}],
-  J:[null,                                                                                                   // J 층마다 고르게 — 2층 뚜렷한 중간 초록, 3층 깊은 초록(G), 2·3층 밝은 윗테두리
-     {top:['#9fd47a','#98cf72'], dirt:[[167,121,72],[133,88,46]], fringe:'#68ad45', rim:'#e6f8c6'},
-     {top:['#66b44a','#5fae43'], dirt:[[167,121,72],[133,88,46]], fringe:'#448e2d', rim:'#eafacb'}],
+  J:[null,                                                                                                   // J 고른 초록(10-12 사람 B안) — 1층 바닥 → 2층 → 3층이 한 계열로 한 단씩 짙어진다(3층이 튀지 않게), 2·3층 윗테두리·흙벽은 K 와 같다
+     {top:['#a2d682','#9bd17b'], dirt:[[167,121,72],[133,88,46]], fringe:'#74b24e', rim:'#e9f9c9', extra:.04, deep:.5},
+     {top:['#7cc058','#75ba51'], dirt:[[167,121,72],[133,88,46]], fringe:'#58a038', rim:'#eefbd2', extra:.08, deep:1}],
   K:[null,                                                                                                   // K 고르게 + 높이 — J + 2층 벽·그림자도 조금 더(extra .04, deep .5), 3층은 I 그대로
      {top:['#9fd47a','#98cf72'], dirt:[[167,121,72],[133,88,46]], fringe:'#68ad45', rim:'#e6f8c6', extra:.04, deep:.5},
      {top:['#66b44a','#5fae43'], dirt:[[167,121,72],[133,88,46]], fringe:'#448e2d', rim:'#eafacb', extra:.08, deep:1}],
@@ -37416,6 +37439,7 @@ function hillPaint(){                                             // tileLayerPa
 }
 // 새 언덕 판(hl2)의 막힘 — 바위(WALL, 이끼 바위)와 보통 나무(TREE). 냇가와 같은 그림을 쓰되 땅 높이만큼 든다. (r,c) 칸 발밑 기준.
 function hillBlockDraw(g,r,c){
+  if(L.vd && L.vd.has(r*GN+c)) return;
   const zz=hillC.Z(c+.5,r+.8), x=(c+.5)*cell, y=(r+(L.T[r][c]===TREE? .86 : .84))*cell-zz*HILL_HS*cell;
   if(L.T[r][c]===TREE) creekTree(g,x,y,cell); else creekBlock(g,x,y,cell*.9);
 }
@@ -37611,12 +37635,53 @@ function creekFloor(g,x,y,r,c,s){                                 // 강변 모�
   g.strokeStyle='rgba(150,120,70,.08)'; g.lineWidth=s*.012; g.strokeRect(x+s*.006,y+s*.006,s-s*.012,s-s*.012); g.restore(); }
 // 보통 나무(TREE) — 안 쓰러지는 늙은 나무. 배가 밀고 출발하는 반동 자리. (x,y) = 발밑 가운데
 // 도끼 나무와 폰 크기에서 갈리게(10-08 사람): 굵은 줄기·뿌리, 크고 꽉 찬 둥근 잎, 짙은 초록. 도끼·홈 없음.
-function creekTree(g,x,y,s){
-  g.fillStyle='rgba(30,50,25,.32)'; g.beginPath(); g.ellipse(x,y,s*.44,s*.12,0,0,7); g.fill();
-  g.fillStyle='#6B4526'; g.beginPath(); g.moveTo(x-s*.22,y); g.quadraticCurveTo(x-s*.12,y-s*.06,x-s*.13,y-s*.5); g.lineTo(x+s*.13,y-s*.5); g.quadraticCurveTo(x+s*.12,y-s*.06,x+s*.22,y); g.closePath(); g.fill();   // 굵은 줄기 + 뿌리 퍼짐
-  g.fillStyle='#55361C'; g.fillRect(x-s*.05,y-s*.44,s*.035,s*.38); g.fillRect(x+s*.04,y-s*.36,s*.025,s*.26);
-  for(const [dx,dy,rr2,c] of [[0,-.8,.44,'#2F5E2A'],[-.24,-.66,.3,'#3A6C31'],[.24,-.68,.3,'#356629'],[-.1,-.96,.26,'#467A3A'],[.14,-.9,.22,'#4F8641'],[-.02,-1.04,.14,'#5C9449']]){ g.fillStyle=c; g.beginPath(); g.arc(x+dx*s,y+dy*s,rr2*s,0,7); g.fill(); }
-  g.strokeStyle='rgba(20,40,18,.35)'; g.lineWidth=s*.025; g.beginPath(); g.arc(x,y-s*.8,s*.44,.2,Math.PI-.2); g.stroke(); }
+// ── 3·4동네 나무·바위 새 그림(2026-10-12 사람 확정) ─────────────────────────────────────────────────────
+// 맥스 쪽 톤: 둥근 구름 잎(보통·작은 나무) + 둥근 삼각 세 층 소나무(큰 나무) + 이끼 얹은 둥근 바위. 진한 아랫단+본체+밝은 줄, 윤곽은 칸의 1.1%·연한 초록(줄기는 반투명), 얇은 빨간 도끼가 반쯤 박힘.
+// 보통 나무=creekTree, 도끼 나무=creekUpperLocal(작은 나무/큰 나무), 바위=creekBlock. 좌표는 모두 발밑 가운데 (x,y).
+const NT={ sh:'#3F7A38', mid:'#5FA24C', hi:'#8FCB6C', line:'#4B8244', trunk:'#9A683B', trunkSh:'#7A5230', tline:'#5B3B22', axeTrunk:'#B9824A', axeTrunkSh:'#946237' }, NT_OL=.011;
+function ntEll(g,x,y,rx,ry,c,a){ g.fillStyle=c; g.beginPath(); g.ellipse(x,y,rx,ry,a||0,0,7); g.fill(); }
+function ntShadow(g,x,y,s,w){ ntEll(g,x+s*.03,y,s*(w||.4),s*.08,'rgba(42,52,30,.24)'); }
+function ntAxe(g,x,y,s,dir,sc){                                      // 박힌 도끼 — x,y = 줄기 겉면의 박힌 자리, dir 1 = 자루가 오른쪽
+  g.save(); g.translate(x,y); g.scale(dir*sc,sc); const w=s;
+  g.fillStyle='rgba(60,36,20,.85)'; g.beginPath(); g.moveTo(-.09*w,-.05*w); g.lineTo(.02*w,0); g.lineTo(-.09*w,.07*w); g.closePath(); g.fill();
+  g.strokeStyle='#E4572E'; g.lineWidth=.036*w; g.lineCap='round'; g.beginPath(); g.moveTo(-.01*w,0); g.lineTo(.3*w,.1*w); g.stroke();
+  g.fillStyle='#D9E2EA'; g.beginPath(); g.moveTo(-.07*w,-.09*w); g.lineTo(.03*w,-.07*w); g.lineTo(.03*w,.08*w); g.lineTo(-.07*w,.11*w); g.closePath(); g.fill();
+  g.fillStyle='#FFFFFF'; g.fillRect(-.01*w,-.06*w,.015*w,.12*w);
+  g.fillStyle='#B9824A'; g.beginPath(); g.moveTo(-.1*w,-.12*w); g.lineTo(-.02*w,-.12*w); g.lineTo(-.02*w,.14*w); g.lineTo(-.1*w,.14*w); g.closePath(); g.fill(); g.strokeStyle='rgba(60,36,20,.85)'; g.lineWidth=.014*w; g.beginPath(); g.moveTo(-.02*w,-.09*w); g.lineTo(-.02*w,.11*w); g.stroke();
+  g.restore(); }
+function ntTrunk(g,x,y,s,tw,th,axe,flare){ g.beginPath();
+  if(flare){ g.moveTo(x-tw/2-flare,y+.02*s); g.quadraticCurveTo(x-tw/2,y-.06*s,x-tw/2,y-th); g.lineTo(x+tw/2,y-th); g.quadraticCurveTo(x+tw/2,y-.06*s,x+tw/2+flare,y+.02*s); g.closePath(); } else g.roundRect(x-tw/2,y-th,tw,th+.02*s,s*.1);
+  g.fillStyle=axe?NT.axeTrunk:NT.trunk; g.fill(); g.save(); g.clip(); g.fillStyle=axe?NT.axeTrunkSh:NT.trunkSh; g.fillRect(x+tw*.12,y-th-1,tw,th+s); g.restore();
+  g.lineWidth=NT_OL*s; g.strokeStyle=NT.tline; g.globalAlpha=.4; g.stroke(); g.globalAlpha=1; }
+function ntCloud(g,x,y,s,cy,r){                                      // 둥근 구름 잎 — 중심 (x, y+cy*s), 반지름 r(칸)
+  const lobes=[[0,cy,r*1.08],[-r*.62,cy+r*.34,r*.74],[r*.62,cy+r*.34,r*.74]], dy=.025*s;
+  g.fillStyle=NT.line; for(const [dx,ly,lr] of lobes){ g.beginPath(); g.arc(x+dx*s,y+ly*s+dy,(lr+NT_OL)*s,0,7); g.fill(); }
+  for(const [dx,ly,lr] of lobes){ g.fillStyle=NT.sh; g.beginPath(); g.arc(x+dx*s,y+ly*s+dy,lr*s,0,7); g.fill(); }
+  for(const [dx,ly,lr] of lobes){ g.fillStyle=NT.mid; g.beginPath(); g.arc(x+dx*s-.005*s,y+ly*s-.01*s,lr*.93*s,0,7); g.fill(); }
+  ntEll(g,x-r*.3*s,y+(cy-r*.5)*s,r*.34*s,r*.22*s,NT.hi,-.4); }
+function ntTree(g,x,y,s,axe,noAxe,noShadow){                        // 보통 나무(axe false) · 작은 도끼 나무(axe true)
+  if(!noShadow) ntShadow(g,x,y,s,.4);
+  const tw=(axe? .26 : .24)*s, th=(axe? .5 : .34)*s; ntTrunk(g,x,y,s,tw,th,axe,0); ntCloud(g,x,y,s,-(axe? .78 : .62),axe? .27 : .3);
+  if(axe && !noAxe) ntAxe(g,x+tw/2-.02*s,y-.2*s,s,1,1.05); }
+function ntTier(g,x,y,s,by,w,h,tip){                                // 소나무 층 하나 — 위는 둥글게 모이고 밑단은 부드러운 곡선
+  const path=e=>{ g.beginPath(); g.moveTo(x-(w+e)*s,y+(by+e*.4)*s); g.bezierCurveTo(x-(w*.9+e)*s,y+(by-h*.45)*s,x-(tip+e)*s,y+(by-h+e*.5)*s,x,y+(by-h-e)*s); g.bezierCurveTo(x+(tip+e)*s,y+(by-h+e*.5)*s,x+(w*.9+e)*s,y+(by-h*.45)*s,x+(w+e)*s,y+(by+e*.4)*s); g.quadraticCurveTo(x,y+(by+h*.22+e)*s,x-(w+e)*s,y+(by+e*.4)*s); g.closePath(); };
+  path(NT_OL); g.fillStyle=NT.line; g.fill(); path(0); g.fillStyle=NT.mid; g.fill(); g.save(); path(0); g.clip(); g.fillStyle=NT.sh; g.beginPath(); g.moveTo(x+w*.05*s,y+(by-h)*s); g.lineTo(x+(w+.05)*s,y+(by+.1)*s); g.lineTo(x+w*.1*s,y+(by+.1)*s); g.closePath(); g.fill(); g.restore();
+  ntEll(g,x-w*.32*s,y+(by-h*.52)*s,w*.16*s,h*.2*s,NT.hi,.45); }
+function ntPine(g,x,y,s,noAxe,noShadow){                            // 큰 도끼 나무 — 굵은 줄기 + 세 층 소나무, 도끼 둘
+  if(!noShadow) ntShadow(g,x,y,s,.5);
+  const tw=.34*s; ntTrunk(g,x,y,s,tw,.58*s,true,.07*s); ntTier(g,x,y,s,-.42,.5,.44,.16); ntTier(g,x,y,s,-.76,.4,.42,.13); ntTier(g,x,y,s,-1.07,.28,.42,.1);
+  if(!noAxe){ ntAxe(g,x+tw/2-.02*s,y-.14*s,s,1,1.05); ntAxe(g,x-tw/2+.02*s,y-.28*s,s,-1,.95); } }
+const NT_ROCK={ top:'#E4DDCD', mid:'#CDC5B3', sh:'#9C9482', line:'#6A6050', moss:'#86B05A', mossHi:'#A9CB7C' };
+function ntBoulder(g,x,y,w,h,moss){ const R=NT_ROCK;
+  g.beginPath(); g.moveTo(x-w*.5,y); g.bezierCurveTo(x-w*.58,y-h*.5,x-w*.3,y-h,x,y-h); g.bezierCurveTo(x+w*.3,y-h,x+w*.58,y-h*.5,x+w*.5,y); g.quadraticCurveTo(x,y+h*.1,x-w*.5,y); g.closePath();
+  const gr=g.createLinearGradient(x,y-h,x,y); gr.addColorStop(0,R.mid); gr.addColorStop(1,R.sh); g.fillStyle=gr; g.fill(); g.strokeStyle=R.line; g.globalAlpha=.5; g.lineWidth=Math.max(1,w*.032); g.stroke(); g.globalAlpha=1;
+  ntEll(g,x-w*.04,y-h*.74,w*.3,h*.2,R.top,-.12);
+  if(moss){ ntEll(g,x+w*.06,y-h*.86,w*.22,h*.11,R.moss,-.2); g.fillStyle=R.mossHi; for(const [dx,dy] of [[-.05,-.9],[.14,-.84]]){ g.beginPath(); g.arc(x+dx*w,y+dy*h,w*.03,0,7); g.fill(); } }
+  ntEll(g,x-w*.28,y-h*.5,w*.07,h*.1,'rgba(255,255,255,.4)',-.5); }
+function ntRock(g,x,y,s,twin){ ntShadow(g,x,y,s,.44);
+  if(twin){ ntBoulder(g,x-.2*s,y,s*.5,s*.4,true); ntBoulder(g,x+.22*s,y+.02*s,s*.4,s*.32,false); return; }
+  ntBoulder(g,x+.22*s,y,s*.34,s*.28,false); ntBoulder(g,x-.05*s,y,s*.74,s*.58,true); }
+function creekTree(g,x,y,s){ ntTree(g,x,y,s,false); }                    // 보통 나무 — 새 그림(위 NT)
 // ── 연잎 개구리 ─────────────────────────────────────────────────
 // 자리는 규칙(frogDir)이 정한다 — 그림은 그걸 읽기만 한다. 연잎은 갈림 칸 입구 안쪽 0.28칸(= 가운데서 0.72칸).
 function creekFrogPose(i, fil){ const f=L.forks[i], d=frogDir(L, fil, i), v=DOOR_CV[d]; return {x:f.c+.5+v[1]*.72, y:f.r+.5+v[0]*.72, side:d}; }
@@ -37666,15 +37731,7 @@ function creekRock(g,x,y,S,rx,ry,top,bot,hl){ const gr=g.createLinearGradient(x,
   g.quadraticCurveTo(x,y+ry*.75,x-rx,y+ry*.35); g.closePath(); g.fill();
   g.strokeStyle='rgba(70,62,52,.35)'; g.lineWidth=Math.max(1,rx*.05); g.stroke();
   if(hl){ g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(x-rx*.35,y-ry*.55,rx*.28,ry*.16,-.35,0,7); g.fill(); } }
-function creekBlock(g,x,y,S0){ const S=S0*1.2;                    // 갈대보다 묵직하게 — 칸을 거의 채운다
-  g.fillStyle='rgba(60,45,25,.24)'; g.beginPath(); g.ellipse(x+S*.03,y+S*.02,S*.42,S*.1,0,0,7); g.fill();
-  creekRock(g,x+S*.2,y-S*.08,S,S*.17,S*.14,'#C9C1B1','#958C7C',true);                  // 옆 작은 돌
-  creekRock(g,x-S*.03,y-S*.2,S,S*.36,S*.3,'#D3CBBB','#978E7D',true);                   // 큰 바위
-  g.strokeStyle='rgba(110,98,84,.55)'; g.lineWidth=S*.018; g.beginPath(); g.moveTo(x+S*.02,y-S*.42); g.quadraticCurveTo(x+S*.08,y-S*.3,x+S*.02,y-S*.2); g.stroke();   // 금
-  g.fillStyle='#86B05A'; g.beginPath(); g.moveTo(x-S*.3,y-S*.36); g.bezierCurveTo(x-S*.2,y-S*.52,x+S*.06,y-S*.56,x+S*.2,y-S*.46);   // 이끼 모자
-  g.bezierCurveTo(x+S*.1,y-S*.42,x+S*.02,y-S*.4,x-S*.06,y-S*.36); g.bezierCurveTo(x-S*.14,y-S*.32,x-S*.22,y-S*.3,x-S*.3,y-S*.36); g.fill();
-  g.fillStyle='#A3C774'; for(const [dx,dy,r] of [[-.12,-.47,.04],[.04,-.5,.035],[-.22,-.4,.03]]){ g.beginPath(); g.arc(x+dx*S,y+dy*S,r*S,0,7); g.fill(); }
-  g.fillStyle='#6E9E4C'; for(const dx of [-.33,.32]){ g.beginPath(); g.ellipse(x+dx*S,y-S*.02,S*.07,S*.035,0,0,7); g.fill(); } }   // 밑동 풀
+function creekBlock(g,x,y,S0){ const v=Math.sin((Math.round(x/S0)*31+Math.round(y/S0)*17)*12.9898)*43758.5453; ntRock(g,x,y,S0,v-Math.floor(v)<.38); }   // 막힘 칸 — 이끼 바위(큰 하나 / 쌍둥이), 칸 자리로 정해져 매번 같다
 function creekReeds(g,x,y,S){                                     // 벽 — 갈대 한 포기, (x,y) = 발밑 가운데
   g.fillStyle='rgba(40,70,30,.22)'; g.beginPath(); g.ellipse(x,y,S*.34,S*.08,0,0,7); g.fill();
   g.fillStyle='#6E9E4C'; g.beginPath(); g.ellipse(x,y-S*.02,S*.3,S*.1,0,0,7); g.fill();
@@ -37815,7 +37872,7 @@ function creekBake(){                                             // 물길 한 
 }
 // 냇물의 움직이는 층 — 물결·물길 방향·윤슬. 예전엔 바닥 사본(tileLayer) 안에서 그려, 물이 일렁이는 동안 바닥 전체를
 // 초당 10번 다시 굽고 2초마다 움직임 검사(두 번 굽기+픽셀 읽기)까지 돌았다(냇가 한 판에 198번, 느린 폰에서 한 번 1.8초 — 10-12 실측).
-// 이제 이 층만 작은 일로 초당 10번 새로 그려 두고, 매 프레임은 그 한 장을 얹기만 한다.
+// 이 층은 따로 한 장으로 그려 두고 매 프레임은 얹기만 한다. 10-12 H안부터 멈춘 그림이다(흐르는 물결 선 대신 쐐기 >>> 로 방향을 보인다) — 판이 바뀔 때만 다시 그린다.
 function creekRipples(){
   if(!creekOn() || !CREEK.wm || !CREEK.tr) return;
   const T=ctx.getTransform(), tr=CREEK.tr;
@@ -37825,24 +37882,28 @@ function creekRipples(){
     const m=CREEK.wm2||(CREEK.wm2=document.createElement('canvas')); m.width=W; m.height=H;
     const mg=m.getContext('2d'); mg.setTransform(1,0,0,1,0,0); mg.globalCompositeOperation='source-over'; mg.clearRect(0,0,W,H); mg.drawImage(CREEK.wm,0,0);
     mg.globalCompositeOperation='destination-out'; mg.setTransform(T); const e=creekE(L);
-    for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekBlock(mg,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(mg,(c+.5)*s,(r+.86)*s,s);
+    for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ if(!(L.vd&&L.vd.has(r*GN+c))) creekBlock(mg,(c+.5)*s,(r+.84)*s,s*.9); } else if(L.T[r][c]===TREE) creekTree(mg,(c+.5)*s,(r+.86)*s,s);
     mg.globalCompositeOperation='source-over'; CREEK.wmKey=CREEK.key; CREEK.rT=-1;
   }
   if(!creekTmp) creekTmp=document.createElement('canvas');
   if(creekTmp.width!==W||creekTmp.height!==H){ creekTmp.width=W; creekTmp.height=H; CREEK.rT=-1; }
-  if(CREEK.rT<0 || animT-CREEK.rT>0.1 || animT<CREEK.rT || CREEK.rKey!==CREEK.key){
-    CREEK.rT=animT; CREEK.rKey=CREEK.key; const wet=creekWet();
+  const rk=CREEK.key+'|'+(L.forks||[]).map(f=>f.dir).join('');    // 멈춘 그림(10-12 H안) — 판이나 갈림 방향이 바뀔 때만 다시 그린다
+  if(CREEK.rT<0 || CREEK.rKey!==rk){
+    CREEK.rT=0; CREEK.rKey=rk; const wet=creekWet();
     const g=creekTmp.getContext('2d'); g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='source-over'; g.clearRect(0,0,W,H); g.setTransform(T);
     for(const k of wet){ const r=(k/GN)|0, c=k%GN; if(!(L.T[r] && L.T[r][c]===FORK)) continue;   // 갈림 칸 — 흐름 화살표 대신 양쪽으로 갈리는 물결 둘. 어느 쪽으로 나가는지는 개구리가 말한다
-      const x=c*s+s/2, y=r*s+s/2, ph=(animT*.6+hs(r*5+c))%1, i=forkIdxAt(L,r,c), d=i>=0? L.forks[i].dir : 0;
+      const x=c*s+s/2, y=r*s+s/2, ph=hs(r*5+c), i=forkIdxAt(L,r,c), d=i>=0? L.forks[i].dir : 0;
       g.save(); g.translate(x,y); g.rotate(Math.atan2(DOOR_CV[d][0],DOOR_CV[d][1])); g.strokeStyle='rgba(255,255,255,.72)'; g.lineWidth=s*.03; g.lineCap='round';
       for(const sg of [1,-1]) for(const [oy,len] of [[-.12,.26],[.14,.3]]){ const ox=((ph+oy+1)%1-.5)*s*.4*sg; g.beginPath(); g.moveTo(ox-len*s/2,oy*s*sg); g.quadraticCurveTo(ox,oy*s*sg-s*.04*sg,ox+len*s/2,oy*s*sg); g.stroke(); }
       g.restore(); }
-    for(const k of wet){ const r=(k/GN)|0, c=k%GN, v=creekInner(r,c)? creekVec(r,c) : null; if(!v) continue; const x=c*s+s/2, y=r*s+s/2, ph=(animT*.6+hs(r*5+c))%1;
-      g.save(); g.translate(x,y); g.rotate(Math.atan2(v[0],v[1])); g.strokeStyle='rgba(255,255,255,.78)'; g.lineWidth=s*.03; g.lineCap='round';
-      for(const [oy,len] of [[-.18,.28],[.06,.38],[.22,.22]]){ const ox=((ph+oy+1)%1-.5)*s*.5; g.beginPath(); g.moveTo(ox-len*s/2,oy*s); g.quadraticCurveTo(ox,oy*s-s*.045,ox+len*s/2,oy*s); g.stroke(); }
-      g.fillStyle='rgba(255,255,255,.62)'; g.beginPath(); g.moveTo(s*.33,0); g.lineTo(s*.2,-s*.075); g.lineTo(s*.2,s*.075); g.closePath(); g.fill(); g.restore(); }
-    for(const k of wet){ const r=(k/GN)|0, c=k%GN; for(let j=0;j<3;j++){ const q=k*7+j, a=Math.sin(((animT*.8+hs(q))%1)*Math.PI); if(a<.2) continue;
+    // 흐름 쐐기 셋(>>>) — 물결 선 대신. 흰 선에 짙은 파랑 테를 둘러 밝은 물 위에서도 읽힌다. 물길 양 끝 칸(위·아래 어느 쪽이 마른 칸)은 흐려지는 자리라 뺀다
+    for(const k of wet){ const r=(k/GN)|0, c=k%GN, v=creekInner(r,c)? creekVec(r,c) : null; if(!v) continue;
+      if(!wet.has((r+v[0])*GN+c+v[1]) || !wet.has((r-v[0])*GN+c-v[1])) continue;
+      g.save(); g.translate(c*s+s/2,r*s+s/2); g.rotate(Math.atan2(v[0],v[1])); g.lineCap=g.lineJoin='round';
+      for(const [x,a] of [[-s/3,.5],[0,.75],[s/3,1]]){ g.beginPath(); g.moveTo(x-s*.07,-s*.13); g.lineTo(x+s*.07,0); g.lineTo(x-s*.07,s*.13);
+        g.strokeStyle=`rgba(28,92,150,${.5*a})`; g.lineWidth=s*.115; g.stroke(); g.strokeStyle=`rgba(255,255,255,${a})`; g.lineWidth=s*.06; g.stroke(); }
+      g.restore(); }
+    for(const k of wet){ const r=(k/GN)|0, c=k%GN; for(let j=0;j<3;j++){ const q=k*7+j, a=Math.sin(hs(q)*Math.PI); if(a<.2) continue;
       const x=(c+.15+.7*hs(q+1))*s, y=(r+.15+.7*hs(q+2))*s, R=s*(.03+.03*a);
       g.fillStyle=`rgba(255,255,255,${(.9*a).toFixed(2)})`; g.beginPath(); g.moveTo(x,y-R*1.6); g.quadraticCurveTo(x,y,x+R*1.6,y); g.quadraticCurveTo(x,y,x,y+R*1.6); g.quadraticCurveTo(x,y,x-R*1.6,y); g.quadraticCurveTo(x,y,x,y-R*1.6); g.fill(); } }
     g.setTransform(1,0,0,1,0,0); g.globalCompositeOperation='destination-in'; g.drawImage(CREEK.wm2,0,0); g.globalCompositeOperation='source-over';
@@ -37858,7 +37919,7 @@ function creekPaint(){                                            // tileLayerPa
   const wet=creekWet();
   // 움직이는 물결 층은 바닥 사본에 안 굽는다(10-12) — creekRipples() 가 판 위에 따로 얹는다. 바닥은 한 번만 구워 두고 다시 안 그린다.
   const e=creekE(L);
-  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL) creekBlock(ctx,(c+.5)*s,(r+.84)*s,s*.9); else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s+creekTreeShake(r,c),(r+.86)*s,s);
+  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ if(!(L.vd&&L.vd.has(r*GN+c))) creekBlock(ctx,(c+.5)*s,(r+.84)*s,s*.9); } else if(L.T[r][c]===TREE) creekTree(ctx,(c+.5)*s+creekTreeShake(r,c),(r+.86)*s,s);
   hillIsland(ctx,['#D9C79C','rgba(150,120,70,.35)']);              // 둥근 귀 + 흙 단면, 테는 모래색(열린 판은 모래색 테 한 줄)
   for(let c=1;c<GN-1&&!L.openEdge;c++){ if(!wet.has((boardRows(L)-1)*GN+c)) continue; const x=c*s, Hh=s*.34;   // 섬 아래로 나가는 물 — 작은 폭포
     const gr=ctx.createLinearGradient(0,B,0,B+Hh+s*.1); gr.addColorStop(0,'#8ACDE8'); gr.addColorStop(1,'#D6F0F8'); ctx.fillStyle=gr;
@@ -37869,7 +37930,7 @@ function creekPaint(){                                            // tileLayerPa
 function creekReedsFront(){                                       // 공·맥스를 다 그린 뒤 갈대를 한 번 더 — 뒷줄 물건은 갈대 뒤로(제 칸 3/4 줄까지)
   if(!creekOn()) return;
   const e=creekE(L);
-  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekBlock(ctx,(c+.5)*cell,(r+.84)*cell,cell*.9); ctx.restore(); } else if(L.T[r][c]===TREE){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekTree(ctx,(c+.5)*cell+creekTreeShake(r,c),(r+.86)*cell,cell); ctx.restore(); }
+  for(let r=e;r<boardRows(L)-e;r++)for(let c=e;c<GN-e;c++) if(L.T[r][c]===WALL && !(L.vd&&L.vd.has(r*GN+c))){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekBlock(ctx,(c+.5)*cell,(r+.84)*cell,cell*.9); ctx.restore(); } else if(L.T[r][c]===TREE){ ctx.save(); ctx.beginPath(); ctx.rect(c*cell-cell, r*cell-cell*2, cell*3, cell*2.75); ctx.clip(); creekTree(ctx,(c+.5)*cell+creekTreeShake(r,c),(r+.86)*cell,cell); ctx.restore(); }
   for(const b of boxes) if((b.kind==='treeSmall'||b.kind==='treeBig') && !b.carried && !(b.sink>=1) ){   // 윗줄(뒤)의 맥스·공도 나무가 가린다 — 깊이가 맞다(10-08 사람)
       // 도끼 나무는 윗줄 갈대보다 앞 — 윗줄로 솟은 부분만 다시(제 칸은 위 갈대 패스가 안 덮는다)
     ctx.save(); ctx.beginPath(); ctx.rect(b.cc*cell-cell, b.rr*cell-cell*3, cell*3, cell*3); ctx.clip(); drawHillTreeObject(cx(b.cc),cy(b.rr),cell,b); ctx.restore(); }
