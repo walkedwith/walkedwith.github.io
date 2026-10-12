@@ -9,8 +9,15 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=b02553de0302">
+<link rel="stylesheet" href="css/game.css?v=1965a398620f">
 <link rel="stylesheet" href="css/onboarding-comic.css">
+<script id="mmMemo">
+// (id 를 단다 — tools/load.js 는 id 없는 첫 스크립트 태그를 게임 본문으로 읽는다)
+// 2026-10-12: matchMedia 결과를 쿼리별로 하나만 만들어 재사용한다. MediaQueryList.matches 는 살아 있는 값이라
+// 의미는 같고, 공·문 그리기가 프레임마다 새 MediaQueryList 를 만들던 비용만 없앤다.
+(()=>{ try{ const mm=window.matchMedia; if(typeof mm!=="function") return; const memo=new Map();
+  window.matchMedia=function(q){ const k=String(q); let r=memo.get(k); if(!r){ r=mm.call(window,k); memo.set(k,r); } return r; }; }catch(e){} })();
+</script>
 <script id="fontBoot">
 // Start decoding the embedded face before parsing the title. Keep the poster visible.
 (()=>{
@@ -5896,6 +5903,9 @@ const ELEM={
 // ---- game state ----
 let L, holes, level=1, moves=0, undoStack=[], state="play", par=0;
 let dog, boxes, filled;
+// 2026-10-12: 공 밀기·충돌·골인 때 판 전체가 무작위로 떨리고(shake) 공·맥스가 0.05~0.14초 멈추는(hitstop) 연출이
+// 폰에서 '렉 걸린 것'처럼 읽혔다 — 둘 다 끈다. 손맛은 소리·진동·스파크·공 찌그러짐(sqT)이 맡는다.
+const BOARD_SHAKE_ON=false, HITSTOP_ON=false;
 let fx=[], hitstop=0, shake=0, holePulse={}, pendingWin=false, animT=0, deadPend=false;
 // 이동 속도 (힌트 데모와 비슷한 템포로 천천히). 클수록 빠름
 const MOVE_K=0.24, DOG_K=0.28, SLIDE_STEP=0.105, SLOPE_HOLD=0.22;
@@ -27286,11 +27296,11 @@ function winFaceDraw(){
   const x=c.width/2, size=Math.round(c.width*0.86), ground=c.height*0.6+size*.36;
   if(rewardDrawn){
     // The reward clip already includes its jump height; do not add another hop.
-  } else if(chapterMaxAtlasReady(at) && at.width>=2048){
+  } else if(chapterMaxAtlasReady(at) && at.width>=at.height*8){
     const t=motionReduced()?0:Math.max(0, animT-winFaceT0), f=winFaceFrame(winFaceMotion, t), k=maxSkinDrawScale(), s=size*k;
     const hop=winFaceMotion==='victory'? chapterMaxMasterVictoryV1LoopOffset(t)*size : 0;   // 첫 점프 뒤 되풀이는 살짝 낮게 — 판과 같은 보정
     g.save(); g.imageSmoothingEnabled=true;
-    g.drawImage(at, f*256, 0, 256, 256, x-s*.5, ground-s*(MAX_MASTER_FRAME_GROUND_Y/256)+hop, s, s);
+    { const fw=at.width/8; g.drawImage(at, f*fw, 0, fw, at.height, x-s*.5, ground-s*(MAX_MASTER_FRAME_GROUND_Y/256)+hop, s, s); }
     g.restore();
   } else {
     const oc=ctx, ocell=cell; ctx=g; cell=size;
@@ -33968,9 +33978,11 @@ function drawTilesCached(){
   const fk=[...filled].sort((a,b)=>a-b).join(',');
   // 바스락이 켜져 있으면 위상을 키에 넣는다 — 안 넣으면 50ms 캐시가 떨림을 20fps 로 얼린다.
   const rustleOn=acornSt.some(m=>m.w && !m.got && (matWallTeach(m.w) || critterHidden(m.r,m.c)));
+  // 바스락은 sin³ 이라 대부분의 시간 진폭이 0 이다 — 진폭이 있을 때만 위상을 키에 넣어 바닥 전체를 다시 굽는다(예전엔 켜져 있는 동안 매 프레임).
+  const rustleMoving=rustleOn && acornSt.some(m=>m.w && !m.got && matRustleAt(m.r,m.c)!==0);
   const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
-    +'|'+(rustleOn? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '');   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
-  const keyBase=rustleOn? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
+    +'|'+(rustleMoving? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '');   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
+  const keyBase=rustleMoving? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
   // 바닥은 원래 50ms 마다 통째로 다시 그렸다(일렁이는 비눗물·흔들리는 꽃). 정지한 바닥까지 초당 20번 다시 그려
   // 폰 GPU 로 큰 그림을 매번 올리는 게 발열의 한 몫이었다(10-05). 판(키)이 바뀌면 한 번 재서 움직이는 게 없으면 멈춘다.
   // 시간에 따라 드러나는 연출(첨벙통·펌프 물·깎이·구덩이)이 도는 동안은 예전처럼 계속 다시 그린다.
@@ -39216,7 +39228,7 @@ function render(){
   ctx.save();
   if(houseTop) ctx.translate(0, houseTop);                 // 마당: 개집 띠 아래에 판
   if(tutSlide) ctx.translate(tutSlideX(), 0);
-  if(shake>0.02){ ctx.translate((Math.random()-0.5)*shake*cell*0.25,(Math.random()-0.5)*shake*cell*0.25); }
+  if(BOARD_SHAKE_ON && shake>0.02){ ctx.translate((Math.random()-0.5)*shake*cell*0.25,(Math.random()-0.5)*shake*cell*0.25); }
   if(nudgeFx && nudgeFx.t<0.16){ const k=Math.sin(nudgeFx.t/0.16*Math.PI)*cell*0.035; ctx.translate(nudgeFx.dc*k, nudgeFx.dr*k); }
   // C: 방석 중심 줌. 마지막 한 수가 먼저 조금 당겨 두고(0.08), 승리 줌(0.14)이 이어받는다 —
   // 둘 중 큰 쪽을 써야 이어받는 순간 화면이 튀지 않는다.
@@ -39563,7 +39575,7 @@ function render(){
       ctx.globalAlpha=1; }
     if(t<0.5) drawBone(x,y-cell*0.03,cell*0.5,1,1);                      // 살짝 드러난 뼈
   }
-  const frozen=hitstop>0 || !!restartRun;
+  const frozen=(HITSTOP_ON && hitstop>0) || !!restartRun;
   if(L.wind!=null && windCnt<=1){ const pulse=.5+.5*Math.sin(animT*7);
     ctx.save(); ctx.strokeStyle=`rgba(238,128,50,${.45+.4*pulse})`; ctx.lineWidth=cell*.055;
     for(const b of boxes){ if(b.sink||b.carried||b.kind!=='ball') continue;
@@ -40433,7 +40445,7 @@ function frameInner(ts){
     }
   } else if(flies.length) flies=[];
   cftStep();                                                       // 승리 색종이
-  if(hitstop>0) hitstop-=dt; shake*=Math.pow(0.84,dtF);
+  if(hitstop>0) hitstop=HITSTOP_ON? hitstop-dt : 0; shake=BOARD_SHAKE_ON? shake*Math.pow(0.84,dtF) : 0;
   if(hintFx){ hintFx.t-=dt; if(hintFx.t<=0) hintFx=null; }
   if(bubble){
     // 묻힌 칸 옆에 서 있는 동안은 안 삭는다 — 떠나면 그때 사라진다.
@@ -40675,11 +40687,13 @@ function frameInner(ts){
     glum += (want-glum)*Math.min(1, dt*6); if(glum<0.002) glum=0; }
   if(joyT>0){ joyT-=dt/0.42; if(joyT<=0){ joyT=0; if(joyN>0){ joyN--; if(joyN>0) joyT=1; } } }
   else if(joyN>0 && state==="win" && winT>0.35) joyT=1;
-  if(deadT>0){ const g=0.5+0.5*Math.sin(animT*6); el("undo").style.boxShadow="0 0 0 "+(2+g*4).toFixed(1)+"px rgba(232,149,109,"+(0.25+g*0.4).toFixed(2)+")"; }
-  else if(el("undo").style.boxShadow) el("undo").style.boxShadow="";
+  { const u=el("undo"), on=deadT>0; if(u && u.classList.contains('deadPulse')!==on) u.classList.toggle('deadPulse', on); }   // 매 프레임 스타일 쓰기 대신 상태가 바뀔 때만
   // 그리기는 60fps 상한 — 120Hz 기기에서 로직(dt)은 매 프레임, 래스터는 절반만.
-  if(now - lastDrawT >= 15.5){ lastDrawT=now; render(); renderHint(); shPreviewStep(); }
-  if(gintroOn){ const src=el("hintc"), dst=el("gintroC");
+  // #hint 는 화면 밖(-9999px) 소스 캔버스다 — 기믹 소개 카드의 데모(.gdemo)가 보일 때만 그린다.
+  // 판 위 안내판(onboard)은 데모를 숨기므로 그리지도 복사하지도 않는다(예전엔 늘 프레임당 ~100개 그리기 명령).
+  const giDemoShown=gintroOn && !giOnboard;
+  if(now - lastDrawT >= 15.5){ lastDrawT=now; render(); if(giDemoShown) renderHint(); shPreviewStep(); }
+  if(giDemoShown){ const src=el("hintc"), dst=el("gintroC");
     if(dst.width!==src.width) giSizeDemo();
     const g2=dst.getContext("2d"); g2.clearRect(0,0,dst.width,dst.height); g2.drawImage(src,0,0); }
 }

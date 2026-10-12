@@ -4019,6 +4019,11 @@ body.inmenu #dock { display:none !important; }         /* dpad 모드의 #dock g
 .bpinfo.bft { pointer-events:none; z-index:70; white-space:nowrap; }
 .bpinfo.bft i { white-space:normal; }
 #undo.bfring { box-shadow:0 0 0 4px #F3C75A; animation:bfRing 1s ease-in-out infinite; }
+/* 막힌 판 무르기 강조 — 예전엔 JS 가 매 프레임 box-shadow 를 새로 썼다. 그림자는 고정하고 투명도만 움직여 합성기에서 돈다(2026-10-12). */
+#undo.deadPulse::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+  box-shadow:0 0 0 6px rgba(232,149,109,.65); opacity:.35; animation:undoDeadPulse 1.05s ease-in-out infinite; }
+@keyframes undoDeadPulse { 50% { opacity:1; } }
+@media (prefers-reduced-motion: reduce) { #undo.deadPulse::after { animation:none; opacity:.8; } }
 @keyframes bfRing { 50%{ box-shadow:0 0 0 7px rgba(243,199,90,.55); } }
 
 /* 힌트 설명 둘째 줄 — "그러면 뭘 한다" */
