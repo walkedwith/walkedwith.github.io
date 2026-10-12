@@ -1,16 +1,16 @@
 {
-  "generatedAt": "2026-10-11T13:56:10.498Z",
-  "totalBytes": 75253242,
+  "generatedAt": "2026-10-12T07:36:22.916Z",
+  "totalBytes": 68832134,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3315061
+      "bytes": 3316751
     },
     {
       "path": "css/game.css",
       "source": "css/game.css",
-      "bytes": 634506
+      "bytes": 635059
     },
     {
       "path": "localization/ko.js",
@@ -75,7 +75,7 @@
     {
       "path": "art/max-master/motions/loading/max-loading-v1.webp",
       "source": "art/max-master/motions/loading/max-loading-v1.webp",
-      "bytes": 487100
+      "bytes": 225996
     },
     {
       "path": "mechanics/yard-growth-art.js",
@@ -90,7 +90,7 @@
     {
       "path": "mechanics/dev-runtime-loader.js",
       "source": "mechanics/dev-runtime-loader.js",
-      "bytes": 1009
+      "bytes": 1256
     },
     {
       "path": "mechanics/onboarding-comic.js",
@@ -380,7 +380,7 @@
     {
       "path": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
       "source": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
-      "bytes": 183208
+      "bytes": 57516
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
@@ -390,177 +390,177 @@
     {
       "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
       "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
-      "bytes": 83904
+      "bytes": 48258
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp",
       "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp",
-      "bytes": 119134
+      "bytes": 48310
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.webp",
       "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.webp",
-      "bytes": 122874
+      "bytes": 44432
     },
     {
       "path": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
       "source": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
-      "bytes": 238140
+      "bytes": 87716
     },
     {
       "path": "art/max-master/motions/canonical/max-backstep-master-v1-left-8f.webp",
       "source": "art/max-master/motions/canonical/max-backstep-master-v1-left-8f.webp",
-      "bytes": 187770
+      "bytes": 69564
     },
     {
       "path": "art/max-master/motions/map/max-map-hop-wag-v1-up-8f.webp",
       "source": "art/max-master/motions/map/max-map-hop-wag-v1-up-8f.webp",
-      "bytes": 141816
+      "bytes": 43498
     },
     {
       "path": "art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.webp",
       "source": "art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.webp",
-      "bytes": 177270
+      "bytes": 63216
     },
     {
       "path": "art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.webp",
-      "bytes": 157592
+      "bytes": 56760
     },
     {
       "path": "art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp",
-      "bytes": 185148
+      "bytes": 65198
     },
     {
       "path": "art/max-master/motions/map/duck-v2/max-duck-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/duck-v2/max-duck-map-hop-up-8f.webp",
-      "bytes": 174270
+      "bytes": 63266
     },
     {
       "path": "art/max-master/motions/map/duck-v2/max-duck-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/duck-v2/max-duck-map-turn-back-front-8f.webp",
-      "bytes": 199452
+      "bytes": 69382
     },
     {
       "path": "art/max-master/motions/map/frog-v2/max-frog-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/frog-v2/max-frog-map-hop-up-8f.webp",
-      "bytes": 173536
+      "bytes": 65670
     },
     {
       "path": "art/max-master/motions/map/frog-v2/max-frog-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/frog-v2/max-frog-map-turn-back-front-8f.webp",
-      "bytes": 204804
+      "bytes": 72458
     },
     {
       "path": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-hop-up-8f.webp",
-      "bytes": 232874
+      "bytes": 83842
     },
     {
       "path": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-turn-back-front-8f.webp",
-      "bytes": 267870
+      "bytes": 93788
     },
     {
       "path": "art/max-master/motions/map/bunny-v2/max-bunny-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/bunny-v2/max-bunny-map-hop-up-8f.webp",
-      "bytes": 154096
+      "bytes": 60748
     },
     {
       "path": "art/max-master/motions/map/bunny-v2/max-bunny-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/bunny-v2/max-bunny-map-turn-back-front-8f.webp",
-      "bytes": 169758
+      "bytes": 66744
     },
     {
       "path": "art/max-master/motions/map/pig-v1/max-pig-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/pig-v1/max-pig-map-hop-up-8f.webp",
-      "bytes": 206426
+      "bytes": 72856
     },
     {
       "path": "art/max-master/motions/map/pig-v1/max-pig-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/pig-v1/max-pig-map-turn-back-front-8f.webp",
-      "bytes": 224612
+      "bytes": 76216
     },
     {
       "path": "art/max-master/motions/map/beaver-v1/max-beaver-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/beaver-v1/max-beaver-map-hop-up-8f.webp",
-      "bytes": 229894
+      "bytes": 78920
     },
     {
       "path": "art/max-master/motions/map/beaver-v1/max-beaver-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/beaver-v1/max-beaver-map-turn-back-front-8f.webp",
-      "bytes": 256754
+      "bytes": 90428
     },
     {
       "path": "art/max-master/motions/map/peacock-v1/max-peacock-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/peacock-v1/max-peacock-map-hop-up-8f.webp",
-      "bytes": 207228
+      "bytes": 77544
     },
     {
       "path": "art/max-master/motions/map/peacock-v1/max-peacock-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/peacock-v1/max-peacock-map-turn-back-front-8f.webp",
-      "bytes": 239632
+      "bytes": 87744
     },
     {
       "path": "art/max-master/motions/map/mouse-v2/max-mouse-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/mouse-v2/max-mouse-map-hop-up-8f.webp",
-      "bytes": 180446
+      "bytes": 65868
     },
     {
       "path": "art/max-master/motions/map/mouse-v2/max-mouse-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/mouse-v2/max-mouse-map-turn-back-front-8f.webp",
-      "bytes": 212154
+      "bytes": 72828
     },
     {
       "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-hop-up-8f.webp",
-      "bytes": 239416
+      "bytes": 85024
     },
     {
       "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.webp",
-      "bytes": 239116
+      "bytes": 80252
     },
     {
       "path": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.webp",
-      "bytes": 182572
+      "bytes": 67726
     },
     {
       "path": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.webp",
-      "bytes": 204988
+      "bytes": 73618
     },
     {
       "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.webp",
-      "bytes": 234572
+      "bytes": 86452
     },
     {
       "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.webp",
-      "bytes": 265804
+      "bytes": 93342
     },
     {
       "path": "art/max-master/motions/map/mail-v1/max-mail-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/mail-v1/max-mail-map-hop-up-8f.webp",
-      "bytes": 182478
+      "bytes": 65842
     },
     {
       "path": "art/max-master/motions/map/mail-v1/max-mail-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/mail-v1/max-mail-map-turn-back-front-8f.webp",
-      "bytes": 223932
+      "bytes": 78546
     },
     {
       "path": "art/max-master/motions/map/rain-v1/max-rain-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/rain-v1/max-rain-map-hop-up-8f.webp",
-      "bytes": 214326
+      "bytes": 73856
     },
     {
       "path": "art/max-master/motions/map/rain-v1/max-rain-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/rain-v1/max-rain-map-turn-back-front-8f.webp",
-      "bytes": 234016
+      "bytes": 79846
     },
     {
       "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-left-8f-runtime.webp",
@@ -1775,67 +1775,67 @@
     {
       "path": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.webp",
       "source": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.webp",
-      "bytes": 138804
+      "bytes": 43136
     },
     {
       "path": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.webp",
       "source": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.webp",
-      "bytes": 166222
+      "bytes": 49928
     },
     {
       "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.webp",
       "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.webp",
-      "bytes": 179372
+      "bytes": 52776
     },
     {
       "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.webp",
       "source": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.webp",
-      "bytes": 150220
+      "bytes": 40100
     },
     {
       "path": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.webp",
       "source": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.webp",
-      "bytes": 182066
+      "bytes": 48360
     },
     {
       "path": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.webp",
       "source": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.webp",
-      "bytes": 173462
+      "bytes": 51236
     },
     {
       "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.webp",
       "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.webp",
-      "bytes": 144604
+      "bytes": 40218
     },
     {
       "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.webp",
       "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.webp",
-      "bytes": 161508
+      "bytes": 44848
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp",
       "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp",
-      "bytes": 189570
+      "bytes": 50018
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.webp",
       "source": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.webp",
-      "bytes": 153404
+      "bytes": 39600
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.webp",
       "source": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.webp",
-      "bytes": 170648
+      "bytes": 48296
     },
     {
       "path": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.webp",
       "source": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.webp",
-      "bytes": 224076
+      "bytes": 79796
     },
     {
       "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.webp",
       "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.webp",
-      "bytes": 181388
+      "bytes": 49146
     }
   ]
 }
