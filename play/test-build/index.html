@@ -12512,6 +12512,9 @@ function hudPilotForLevel(lv){ return true; }
 function uiuxPolishForLevel(lv){ return lv>=1; }
 // keepTries: 같은 판을 다시 까는 것이라 시도 횟수를 이어 센다(재시작). 안 주면 새 입장이다.
 function loadLevel(lv, moon, keepTries){
+  // 바닥 캐시는 판 번호로 묶인다 — 연습판(1판 번호를 쓴다)에서 진짜 1판으로 넘어오면 번호가 같아 옛 판의 벽이 남았다가
+  // 첫 걸음에야 바뀌었다(2026-10-13 사람 보고). 판을 새로 얹을 때마다 캐시를 버리고 정지 판정도 다시 잰다.
+  tileKey=''; tileAnimFor='';
   lv=Math.min(Math.max(lv|0,1), playableMax());                  // 출시 범위 밖의 옛 저장값·직접 링크는 마지막 출시판으로
   perfFrom=performance.now()+2000; perfWin={t0:0,n:0,slow:0};   // 판 여는 2초(그림 불러오기)는 화질 판정에서 뺀다
   lvWasCleared=(starMap[lv]|0)>0; lsBackLv=0;                  // 다시 걷는 판인가 — 깨고 나가면 목록이 여기로 온다
