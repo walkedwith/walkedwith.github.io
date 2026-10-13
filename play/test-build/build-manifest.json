@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-12T16:20:32.881Z",
-  "totalBytes": 32139267,
+  "generatedAt": "2026-10-13T07:00:38.224Z",
+  "totalBytes": 32157147,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3338086
+      "bytes": 3355966
     },
     {
       "path": "css/game.css",
