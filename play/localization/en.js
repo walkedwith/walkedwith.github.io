@@ -715,7 +715,7 @@
     "story.home2": "The spot by the door is empty.\nMove that pot over on your way.",
     "story.home3": "Pots get lonely too.\nSet the two side by side.",
     "story.home4": "Best sun is under that fence.\nLine them up in a row.",
-    "story.home5": "Let's make a flower bed in the middle.\nGather all four.",
+    "story.home5": "No, the middle is better after all.\nA flower bed belongs together.",
     "common.tapContinue": "Tap to continue",
     "game.noMoves": "Out of moves",
     "game.exitQuestion": "Leave this walk?",

@@ -715,7 +715,7 @@
     "story.home2": "문 옆 화분 자리가 비었구나.\n오는 길에 좀 옮겨 다오.",
     "story.home3": "화분도 둘이 붙어 있어야\n덜 심심하단다.",
     "story.home4": "볕은 저 울타리 밑이 제일이지.\n한 줄로 세워 다오.",
-    "story.home5": "가운데에 꽃밭을 만들자꾸나.\n넷을 모아 주렴.",
+    "story.home5": "아니다, 역시 가운데가 낫겠구나.\n꽃밭은 모여야 꽃밭이지.",
     "common.tapContinue": "눌러서 계속",
     "game.noMoves": "걸음을 다 썼어요",
     "game.exitQuestion": "산책을 그만 둘까요?",
