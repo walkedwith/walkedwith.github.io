@@ -3149,6 +3149,14 @@
   .hoodrow .hsw { width:30px; height:30px; border-radius:50%; border:2px solid rgba(0,0,0,.08); display:block; }
   .hoodrow .hsw.fence { border-radius:8px; border-width:3px; }
   .hoodrow .hgap { width:6px; flex:none; }
+  /* 할아버지 한마디 — 초상화 + 이름표 + 두 줄. 판 아래쪽에 뜨고 아무 데나 누르면 닫힌다. */
+  #gtalk { position:absolute; inset:0; z-index:57; display:none; align-items:flex-end; justify-content:center; background:rgba(30,22,16,.28); }
+  #gtalk.show { display:flex; }
+  #gtalk .gkbox { position:relative; display:flex; gap:12px; width:min(92%,420px); margin-bottom:22%; padding:12px; background:#FFF9F0; border:3px solid #C9A87C; border-radius:18px; box-shadow:0 8px 22px rgba(30,22,16,.35); }
+  #gtalk .gkpt { flex:none; width:92px; height:107px; object-fit:cover; border-radius:12px; border:2px solid #E3C9A6; background:#FFF3DF; }
+  #gtalk .gknm { position:absolute; left:14px; top:-15px; padding:3px 12px; border-radius:999px; background:#8A5F3C; color:#FFF3DF; font-family:var(--f-body); font-size:var(--s8); }
+  #gtalk .gktx { align-self:center; font-family:var(--f-body); font-size:var(--s6); line-height:1.45; color:#4A3524; white-space:pre-line; }
+  #gtalk .gkgo { position:absolute; right:14px; bottom:8px; font-family:var(--f-body); font-size:var(--s9); color:#B08A5E; }
   #gintro { position:absolute; inset:0; z-index:58; display:none; align-items:center; justify-content:center;
     background:rgba(30,24,20,.5); backdrop-filter:blur(1.5px); }
   #gintro.show { display:flex; }
