@@ -1,16 +1,16 @@
 {
-  "sourceHead": "e5a6c7e4eb462a371ac73fc6d21f3650d70a45c6",
-  "date": "2026-10-13T11:11:43.392Z",
-  "liveSha256": "d4be0bca916f2f5d701d2a90ca4a8f12bf372918853c5615d0f5f272ebb881fe",
-  "testSha256": "e43b3f2aaec713fbfc7acaff7c1ac8531289f0532983aca48aba1df8abd77bd9",
+  "sourceHead": "e5b3845b32ee37b8a6bac722ee62145975bb54d5",
+  "date": "2026-10-13T11:43:35.509Z",
+  "liveSha256": "5fa2288c2f736ab57e148a88f1d42e42ad7bfb626d79ca0eecd7a340d5822023",
+  "testSha256": "82049d455200843feceeace5083a0c4e0375d3f181656c344023f25ccbee3364",
   "files": 368,
-  "sourceCommit": "e5a6c7e4eb462a371ac73fc6d21f3650d70a45c6",
+  "sourceCommit": "e5b3845b32ee37b8a6bac722ee62145975bb54d5",
   "kind": "test",
   "tests": {
-    "total": 1321,
-    "passed": 1256,
-    "failed": 10,
-    "skipped": 55
+    "scoped": true,
+    "passed": 165,
+    "failed": 0,
+    "note": "changed-area tests only (void/goal-feel/district/home/skin/hill/creek, 15 files); full suite skipped on request"
   },
   "levelChecks": 300
 }

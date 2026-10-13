@@ -21131,7 +21131,7 @@ function houseTap(x,y){
   if(yardGemTap(p.r,p.c)) return true;                             // 마당 빈 자리 — 살까요?
   const i=boxes.findIndex(b=>b.r===p.r&&b.c===p.c); if(i<0) return false;
   const nm=houseToys[i]||''; if(!nm) return false;
-  if(nm.startsWith('g:')){ showToast(I18N.t('house.giftPush'),1400); return true; }
+  if(nm.startsWith('g:')){ if(Math.abs(p.r-dog.r)+Math.abs(p.c-dog.c)===1){ dog.lungeR=p.r-dog.r; dog.lungeC=p.c-dog.c; } houseGiftOpenAt(i); return true; }   // 선물 상자는 눌러도 열린다 — 떠 있던 앞 선물은 먼저 앉는다
   if(Math.abs(p.r-dog.r)+Math.abs(p.c-dog.c)===1){ dog.lungeR=p.r-dog.r; dog.lungeC=p.c-dog.c; housePick(i); return true; }
   const path=housePathTo(p.r,p.c); if(!path){ showToast(I18N.t('house.noPath'),1200); return true; }
   houseFetch={r:p.r,c:p.c}; if(path.length>1) commitDragPath(path); return true;
@@ -21528,18 +21528,21 @@ function drawHouseSparks(){
 // 상자를 밀면 **열리기만** 한다. 물건은 떠서 기다리고 놓일 자리가 반짝인다 — 누르면 날아가 앉는다
 // (2026-10-02 사람: 저절로 놓이면 "받았다"만 있고 "내가 놓았다"가 없다). 자리는 지금처럼 정해져 있다.
 // 놓기 전에는 아무것도 저장하지 않는다(seen 도 안 찍는다) — 그 사이 앱이 꺼지면 상자가 그대로 다시 온다.
-function houseGiftUnwrap(){
+function houseGiftOpenAt(i){                                   // 상자 i 를 연다 — 밀어서도 눌러서도 같은 길
+  const nm=houseToys[i]; if(!nm || !nm.startsWith('g:')) return false;
+  const k=nm.slice(2), b=boxes[i], it=HOUSE_FURN_BY[k]; if(!it) return false;
+  housePlaceFlush();                                        // 앞 것이 아직 떠 있으면 먼저 앉힌다
+  boxes.splice(i,1); houseToys.splice(i,1);                 // 상자는 열렸다 — 물건이 앉을 때까지 연출이 그 자리를 진다
+  houseUnwrapFx={r:b.r, c:b.c, t0:animT, it, k};            // 흔들림 → 뚜껑이 튀고 → 물건이 떠올라 기다린다(drawHouseUnwrapFx)
+  if(it.kind==='hood' && MAX_SKIN_SHEETS[it.m]){            // 후디 시트를 미리 받아 둔다 — 씌워지는 순간(섬광)에 바로 입은 모습이 나오게
+    for(const mo of MAX_SKIN_SHEETS[it.m]){ const im=new Image(); im.src=chapterMaxRuntimeSheet('art/max-master/motions/skins/max-'+it.m+'-'+mo+'-8f-runtime.png'); } }
+  tone(520,0.05,'triangle',0.03,620); buzz(8); dog.wagBoost=1;   // 여는 소리는 뚜껑이 튈 때(연출 안) — 글자는 뺐다, 물건이 떠올라 보인다
+  return true; }
+function houseGiftUnwrap(){                                  // 밀려서 제자리를 떠난 상자를 연다
   for(let i=boxes.length-1;i>=0;i--){
     const nm=houseToys[i]; if(!nm || !nm.startsWith('g:')) continue;
     const k=nm.slice(2), b=boxes[i], g0=houseGiftAt[k]; if(!g0 || (b.r===g0[0] && b.c===g0[1])) continue;
-    const it=HOUSE_FURN_BY[k]; if(!it) continue;
-    housePlaceFlush();                                        // 앞 것이 아직 떠 있으면 먼저 앉힌다
-    boxes.splice(i,1); houseToys.splice(i,1);                 // 상자는 열렸다 — 물건이 앉을 때까지 연출이 그 자리를 진다
-    houseUnwrapFx={r:b.r, c:b.c, t0:animT, it, k};            // 흔들림 → 뚜껑이 튀고 → 물건이 떠올라 기다린다(drawHouseUnwrapFx)
-    if(it.kind==='hood' && MAX_SKIN_SHEETS[it.m]){            // 후디 시트를 미리 받아 둔다 — 씌워지는 순간(섬광)에 바로 입은 모습이 나오게
-      for(const mo of MAX_SKIN_SHEETS[it.m]){ const im=new Image(); im.src=chapterMaxRuntimeSheet('art/max-master/motions/skins/max-'+it.m+'-'+mo+'-8f-runtime.png'); } }
-    tone(520,0.05,'triangle',0.03,620); buzz(8); dog.wagBoost=1;   // 여는 소리는 뚜껑이 튈 때(연출 안) — 글자는 뺐다, 물건이 떠올라 보인다
-    return true;                                              // 한 번에 하나 — 떠 있는 동안엔 걸음이 안 먹는다(tryMove)
+    if(houseGiftOpenAt(i)) return true;                       // 한 번에 하나 — 떠 있는 동안엔 걸음이 안 먹는다(tryMove)
   }
   return false;
 }
@@ -23756,7 +23759,7 @@ return Object.assign({}, SET1, SET2);
 })();
 function drawHouseOverlay(){
   if(!houseMode) return;
-  if(houseIn){ drawHouseRoom(); drawHouseCarry(); drawHouseUnwrapFx(); drawYardDoorCue(); return; }
+  if(houseIn){ drawHouseRoom(); drawHouseCarry(); drawYardDoorCue(); return; }   // 상자에서 나온 물건·섬광(drawHouseUnwrapFx)은 맥스를 그린 뒤 맨 위 층에서 — 겹치면 물건이 맥스보다 위(10-13 사람)
   const night=houseNight();
   drawHouseCarry(); drawHouseSparks();
   if(night){ const g=ctx, W=GN*cell, T=-houseTop;                                  // 밤하늘 — 띠만
@@ -40489,7 +40492,7 @@ function render(){
   }
   if(labMode) drawLabTop();                                                        // 실험 판 — 신은 신발·입에 문 삽
   if(houseMode && !houseIn) drawLawnTop();
-  if(houseMode && houseIn){ drawLeashMock(); drawWallMock(); drawWinMock(); drawRoomSlots(); drawMirPick(); drawHouseActTop(); drawHouseCashTop(); drawHouseGiftCue(); drawHouseGramps(); drawHouseHoodPhoto(); }
+  if(houseMode && houseIn){ drawHouseUnwrapFx(); drawLeashMock(); drawWallMock(); drawWinMock(); drawRoomSlots(); drawMirPick(); drawHouseActTop(); drawHouseCashTop(); drawHouseGiftCue(); drawHouseGramps(); drawHouseHoodPhoto(); }
   if(tubPourFx) drawTubPour();                                                      // 첨벙통 물줄기(시험)
   if(pumpShotFx) drawPumpShot();                                                    // 손펌프 물줄기(시험)
   if(window.__roomSlot) drawRoomSlotProto();
