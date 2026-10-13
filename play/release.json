@@ -1,16 +1,16 @@
 {
-  "sourceHead": "64ad404d442cb0fc86221e202e5db5afc0a506f4",
-  "date": "2026-10-13T10:33:06.911Z",
-  "liveSha256": "56ba58a75a77d8e85a68a950ba50637302cb2aaeac9fc562c7cb394d8e196661",
-  "testSha256": "87a5521fd4f2a8344ef1b73d6f7e25aff7c641faf4e76f18f54e8dc2eacb982c",
+  "sourceHead": "4c1256439eae5c0b4c1ba31024ee1c3126431c63",
+  "date": "2026-10-13T10:59:28.503Z",
+  "liveSha256": "ff19d1b67f438e1c532b0b3b48c7d24cbe82f3f13083b01ec3d5942b71b0a2f2",
+  "testSha256": "edc92deafc0c6f8aaba672e5f9ef2acbce6dab3c43c0f3963e0f4d5db3c26325",
   "files": 368,
-  "sourceCommit": "64ad404d442cb0fc86221e202e5db5afc0a506f4",
+  "sourceCommit": "4c1256439eae5c0b4c1ba31024ee1c3126431c63",
   "kind": "live",
   "tests": {
-    "total": 1319,
-    "passed": 1253,
-    "failed": 11,
-    "skipped": 55
+    "scoped": true,
+    "passed": 240,
+    "failed": 0,
+    "note": "changed-area tests only (void/goal-feel/district/home/skin/hill/creek, 15 files); full suite skipped on request"
   },
   "levelChecks": 300
 }

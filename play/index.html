@@ -846,6 +846,8 @@ const GOAL_FEEL_CHICKEN_CLOSE_QA=GOAL_FEEL_QA && new URLSearchParams(location.se
 const goalFeelSave=new Map(); // A/B preview never writes the player's progress.
 let goalFeelOn=true;
 const GOAL_FEEL_SETS=Object.freeze({
+  squirrel:{label:'줄무늬 다람쥐',detail:'나무 그루터기',signature:'도토리 쏙',bed:'stump',family:'protect',base:'#DDA566',face:'#FFF0D8',innerEar:'#F4C9A4',eye:'#292C29',accent:'#8A5B34'},
+  cow:{label:'얼룩 젖소',detail:'건초 방석',signature:'폭신 건초 눕기',bed:'hayNest',family:'popup',base:'#FFF8EE',innerEar:'#F4A3A0',eye:'#292C29',accent:'#C84F49'},
   beaver:{label:'나무 비버',detail:'수리 수레 받침',signature:'수레 딸깍 결합',bed:'repairCart',family:'movement',base:'#B9784B',face:'#FFF2DF',innerEar:'#D99B78',eye:'#292C29',accent:'#8A6741'},
   bunny:{label:'라벤더 토끼',detail:'청록 점프 받침',signature:'두 번 폴짝',bed:'trampoline',family:'movement',base:'#B9A5E8',innerEar:'#F0B8C5',accent:'#42A9A6'},
   duck:{label:'노란 오리',detail:'파란 수면 받침',signature:'물결 둥둥',bed:'waterBasin',family:'water',base:'#F2C655',accent:'#86C5D8'},
@@ -864,7 +866,7 @@ const GOAL_MOUSE_PIG_VISUAL=Object.freeze({
 });
 const GOAL_OTTER_SHELL=Object.freeze({outer:'#D9A98E',inner:'#F8E6D3',rib:'#C98C77',lip:'#B97868',pearl:'#FFF9F0',ribs:7});
 let goalFeelToy=new URLSearchParams(location.search).get('toy')||'bunny';
-const STAGE_TOYS=Object.freeze(['chicken','duck','frog','hedgehog','bunny','pig','beaver','peacock','mouse','sheep']);
+const STAGE_TOYS=Object.freeze(['chicken','duck','frog','squirrel','bunny','cow','pig','peacock','mouse','sheep']);   // 10-13 사람: 4동네 고슴도치→다람쥐, 6동네(논밭) 젖소, 돼지는 7동네(창고)로, 비버는 뺀다 — 고슴도치·돼지·비버 후디 시트는 그대로 남는다
 let goalToyOverride=null;               // 하우스 방 — 공마다 다른 장난감(houseToys)을 그릴 때만 쓴다
 function goalFeelToyKind(){
   if(goalToyOverride) return goalToyOverride;
@@ -984,6 +986,12 @@ function goalFeelMergeState(kind,seconds){
   if(kind==='sheep'){
     const unwind=smooth((t-.10)/.60),hooves=smooth((t-.30)/.52);
     return {active,unwind,hooves,wrap:unwind,snuggle:smooth((t-.48)/.52)};
+  }
+  if(kind==='squirrel'){
+    return {active,dock:smooth((t-.06)/.34),tuck:smooth((t-.20)/.50),bob:Math.sin(clamp((t-.50)/.60)*Math.PI)*(1-smooth((t-1.20)/.30))};
+  }
+  if(kind==='cow'){
+    return {active,dock:smooth((t-.06)/.34),snuggle:smooth((t-.40)/.55)};
   }
   return {active:false};
 }
@@ -4581,7 +4589,7 @@ function matFull(lv){ lv=lv|0;
   if(lv===1) return 0;
   // 간식 체제 — 모든 판이 5칸이다. 아래 3/4/5 사다리는 줍던 시절의 묻는 칸 수다.
   if(SNACKS_ON) return SNACK_MAX;
-  if(BAKED[lv-1] && BAKED[lv-1].home) return 0;      // 집 판은 도토리를 안 묻는다(acornCells 도 비운다) — 빈 칸 줄을 띄우지 않는다
+  if(BAKED[lv-1] && BAKED[lv-1].home && !BAKED[lv-1].ac) return 0;   // 젬 자리(ac)를 안 적은 집 판은 젬을 안 묻는다 — 빈 칸 줄을 띄우지 않는다
   if(!WALL_TREATS_ON) return 3;
   return lv<MAT_FROM_LV? 3 : 3+(lv>=MAT_BUSH_FROM_LV?1:0)+(lv>=MAT_EDGE_FROM_LV?1:0); }
 function matIsAcornLv(lv){ return (lv|0)<MAT_FROM_LV; }
@@ -4941,7 +4949,7 @@ const SL5_PACK =
   'UULRRUDURRDDLDDRUULL RUUUDULDLRDLDDRUULLLDLUDDRUULU UDURDDLRRUDDRRURUUDLDULLUURRLDDD UUDDRRULUUURRRRDDDLULDUR URRURDULLUUUULLDDRDRUURULDRRRRDUUL DLLLULLUURRLLDDRDDDRRRURLLLLUURDLDRRURD LUUURRRURDDULLLLDLUDDRRRRDUURUL LURRDDLLRRUURLLLDLLDDURRDDDLRRUUUURD RLDRURUUDDRDDLRRDURUUURUDLL DRRLLDDDRRDULDDDLUUUUDLDDLRUULUURR';   // 291~300   // 291~300   // 291~300   // 291~300   // 291~300   // 291~300;   // 299~300
 function par5Of(lv){
   const o=BAKED[lv-1];
-  if(o && o.home) return o.par|0;                    // 집 판 — 팩의 값은 옛 판의 것이다
+  if(o && o.home && o.par5==null) return o.par|0;    // 집 판 — 팩의 값은 옛 판의 것이다
   if(o && o.par5!=null) return o.par5|0;
   if(o && o.matSource) lv=o.matSource|0;
   const i=(lv-1)*2;
@@ -4950,7 +4958,7 @@ function par5Of(lv){
 let _sl5=null;
 function sl5Of(lv){
   const o=BAKED[lv-1];
-  if(o && o.home) return o.sl||'';                   // 집 판 — 힌트는 이 판의 해답을 재생한다(팩의 길은 옛 판의 것)
+  if(o && o.home && !o.sl5) return o.sl||'';         // 집 판 — 힌트는 이 판의 해답을 재생한다(팩의 길은 옛 판의 것)
   if(o && o.sl5) return o.sl5;
   if(o && o.matSource) lv=o.matSource|0;
   if(!_sl5) _sl5=SL5_PACK.split(' '); return _sl5[lv-1]||'';
@@ -5468,15 +5476,16 @@ for(const k in HILL_STAGES) BAKED[(k|0)-1]=HILL_STAGES[k];
 let HOME_LEVELS_ON=true;
 const HOME_STAGES={
   1:{T:'0000000001111100011011100111111001000110011111100111111000000000',h:[],p:[],b:[[5,2,0,0]],d:[2,6],home:[1,6,2],par:18,sl:'DLLLLLDDRRRRDRUUUU'},
-  2:{T:'0000000001101100011111100111111000111100011111000011111000000000',h:[],p:[],b:[[3,4,0,0],[4,4,0,1]],d:[1,2],home:[1,3,2],tg:[[2,2]],par:18,sl:'DRRRDLRDLLUUDDDLUU'},
-  3:{T:'0000000001110100011111100111111001111110010111000111101000000000',h:[],p:[],b:[[5,4,0,0],[3,2,0,1],[2,5,0,1]],d:[1,1],home:[1,4,2],tg:[[2,2],[2,3]],par:20,sl:'DDDRUDRDDRUUUUDRRULL'},
-  4:{T:'0000000001110110011111100111111001111110011111100111111000000000',h:[],p:[],b:[[5,2,0,0],[4,3,0,1],[5,5,0,1],[3,4,0,1],[5,4,0,1]],d:[2,4],home:[1,4,2],tg:[[6,2],[6,3],[6,4],[6,5]],par:29,sl:'DRDDLDLLUUULURRDRUDDDULDUULDD'},
-  5:{T:'0000000001111100011111100111111001111110011110100111101000000000',h:[],p:[],b:[[5,3,0,0],[3,2,0,1],[5,4,0,1],[2,4,0,1],[4,5,0,1]],d:[2,6],home:[1,6,2],tg:[[3,3],[3,4],[4,3],[4,4]],par:35,sl:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL'}
+  2:{T:'0000000001101100011111100111111000111100011111000011111000000000',h:[],p:[],b:[[3,4,0,0],[4,4,0,1]],d:[1,2],home:[1,3,2],tg:[[2,2]],par:18,sl:'DRRRDLRDLLUUDDDLUU',ac:[[3,5],[3,3],[4,2]],par5:18,sl5:'DRRRDLRDLLUUDDDLUU'},
+  3:{T:'0000000001110100011111100111111001111110010111000111101000000000',h:[],p:[],b:[[5,4,0,0],[3,2,0,1],[2,5,0,1]],d:[1,1],home:[1,4,2],tg:[[2,2],[2,3]],par:20,sl:'DDDRUDRDDRUUUUDRRULL',ac:[[4,1],[6,3],[3,6]],par5:20,sl5:'DDDRUDRDDRUUUUDRRULL'},
+  4:{T:'0000000001110110011111100111111001111110011111100111111000000000',h:[],p:[],b:[[5,2,0,0],[4,3,0,1],[5,5,0,1],[3,4,0,1],[5,4,0,1]],d:[2,4],home:[1,4,2],tg:[[6,2],[6,3],[6,4],[6,5]],par:29,sl:'DRDDLDLLUUULURRDRUDDDULDUULDD',ac:[[4,2],[2,1],[4,4]],par5:29,sl5:'DRDDLDLLUUULURRDRUDDDULDUULDD'},
+  5:{T:'0000000001111100011111100111111001111110011110100111101000000000',h:[],p:[],b:[[5,3,0,0],[3,2,0,1],[5,4,0,1],[2,4,0,1],[4,5,0,1]],d:[2,6],home:[1,6,2],tg:[[3,3],[3,4],[4,3],[4,4]],par:35,sl:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL',ac:[[2,3],[5,2],[3,5]],par5:35,sl5:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL'}
 };
 const HOME_STAGES_OLD={};
 function homeStagesApply(on){ for(const k in HOME_STAGES){ const i=(k|0)-1; if(!HOME_STAGES_OLD[k]) HOME_STAGES_OLD[k]=BAKED[i]; BAKED[i]=on? HOME_STAGES[k] : HOME_STAGES_OLD[k]; } }
 homeStagesApply(HOME_LEVELS_ON);
 let homeAt, homeFx, homeHit, homeBang=null, homeIntro=null, homeIntroL=null, homeIntroSeen=false;
+// 젬(10-13 사람: 예전처럼 2판부터) — 2~5판은 젬 셋(ac)을 해답이 지나는 칸에 묻는다. 그래서 다 줍는 길(sl5)·걸음(par5)이 해답·par 와 같다.
 // 화분 자리(10-13 사람) — 2~5판은 화분(택배 상자 칸, 한 칸 밀림)을 tg 자리에 다 올리고 공을 집에 넣어야 끝난다. 2판 하나·3판 나란히 둘·4판 울타리 밑 한 줄·5판 가운데 꽃밭.
 // 판에 들어설 때 할아버지가 한마디 한다(초상화 + 이름표 + 두 줄). 처음 깨기 전에만, 다시하기엔 안 뜬다. 1판은 할아버지가 공을 던지는 말 — 닫히면 공이 날아오고, 떨어지면 집 옆에 느낌표가 뜨고 맥스가 나온다.
 const HOME_STORY={1:'story.home1', 2:'story.home2', 3:'story.home3', 4:'story.home4', 5:'story.home5'};
@@ -5690,7 +5699,7 @@ function gtalkClose(){ const b=el('gtalk'); gtalkOpen=false; if(b) b.classList.r
   const G1={drawLog, acornCells};
   const homeLv=lv=>!!(BAKED[lv-1] && BAKED[lv-1].home);
   // 도토리 자리는 판 번호로 정해져 있어 새 판의 화단·집과 겹친다. 집 판은 안 묻는다(걸음 목표도 par 그대로).
-  acornCells=function(lv){ return homeLv(lv)? [] : G1.acornCells.apply(this,arguments); };
+  acornCells=function(lv){ return (homeLv(lv) && !BAKED[lv-1].ac)? [] : G1.acornCells.apply(this,arguments); };   // 집 판은 판에 적은 자리(ac)만 — 팩의 자리는 옛 판의 것
   // 화분 — 둥근 토분에 잎과 작은 꽃. 화단(나무 상자, 못 민다)과 한눈에 갈리게: 둥글고, 작고, 흙빛. 테두리는 집 그림과 같은 굵기의 가는 선.
   drawLog=function(x,y,s,sx,sy,rot){
     if(!L || !L.home || houseMode) return G1.drawLog.apply(this,arguments);
@@ -8777,7 +8786,8 @@ const DISTRICTS=[
 ];
 function districtName(d){ return d?I18N.t(d.nameKey):''; }
 function districtOf(lv){ let d=DISTRICTS[0]; for(const x of DISTRICTS) if(lv>=x.from) d=x; return d; }
-const PLAY_DISTRICTS = DISTRICTS;
+const DISTRICT_OFF_FROM=211;   // 10-13 사람: 알록 울타리길(8)·냥냥 골목(9)·바람개비 들판(10)은 일단 끈다 — 지도·목록·건너뛰기·저장 이어하기가 모두 마지막 열린 판(210)에서 멈춘다. 다시 열 땐 이 값을 301 로
+const PLAY_DISTRICTS = DISTRICTS.filter(d=>d.from<DISTRICT_OFF_FROM);
 function playableMax(){ const d=PLAY_DISTRICTS[PLAY_DISTRICTS.length-1]; return d? d.to : BAKED.length; }
 // 챕터 이름 — 동네 재편 전 배치가 그대로 남아 있어 61판을 '잠든 고양이'라 부르는 등
 // 실제 내용과 어긋나 있었다. 아래는 구워진 판을 열어 기믹을 세서 붙인 이름이다
@@ -10284,7 +10294,8 @@ const LS_MAX_MOTION_CHICKEN={
 };
 const LS_MAX_MOTION_SKIN_VERSIONS={duck:'v2',frog:'v2',bunny:'v2',mouse:'v2',sheep:'v2'};
 const LS_MAX_MOTION_BONUS_SKINS=['space','ranger','mail','rain'];
-const LS_MAX_MOTION_SKINS=Object.fromEntries([...STAGE_TOYS,...LS_MAX_MOTION_BONUS_SKINS].map(skin=>[skin,skin==='chicken'?LS_MAX_MOTION_CHICKEN:{
+const LS_MAX_MOTION_SKINS=Object.fromEntries([...new Set([...['chicken','duck','frog','hedgehog','bunny','pig','beaver','peacock','mouse','sheep','squirrel','cow'],...LS_MAX_MOTION_BONUS_SKINS])].filter(skin=>MAX_SKIN_ASSETS[skin]).map(skin=>   // 후디 시트가 있는 것만 — 고슴도치·비버는 동네에서 빠졌어도 이미 얻은 후디는 입는다(순서 고정), 다람쥐·젖소는 시트가 생기면 저절로 들어온다
+[skin,skin==='chicken'?LS_MAX_MOTION_CHICKEN:{
   walk:'art/max-master/motions/map/'+skin+'-'+(LS_MAX_MOTION_SKIN_VERSIONS[skin]||'v1')+'/max-'+skin+'-map-hop-up-8f.webp',
   turn:'art/max-master/motions/map/'+skin+'-'+(LS_MAX_MOTION_SKIN_VERSIONS[skin]||'v1')+'/max-'+skin+'-map-turn-back-front-8f.webp',
   sit:'art/max-master/motions/skins/max-'+skin+'-sit-front-8f-runtime.'+((MAX_SKIN_ASSETS[skin]||{}).format||'png')   // 등록 정보의 형식을 따른다(10-05 전부 무손실 WebP)
@@ -11241,7 +11252,7 @@ function goalToySurfacePose(rotationY){
 const GOAL_TOY_REAR_FEATURES=Object.freeze({
   bear:'bear-seam',puppy:'puppy-curl-tail',bunny:'round-tail',duck:'duck-tail',otter:'otter-tail',
   hedgehog:'spines',pig:'curly-tail',chicken:'tail-feathers',ladybug:'split-shell',
-  peacock:'folded-fan',mouse:'windup-key',sheep:'fleece',frog:'frog-spots',beaver:'beaver-tail'
+  peacock:'folded-fan',mouse:'windup-key',sheep:'fleece',frog:'frog-spots',beaver:'beaver-tail',squirrel:'striped-back',cow:'spots-tail'
 });
 const GOAL_DUCK_VISUAL=Object.freeze({wingX:.83,wingY:.10,wingRX:.21,wingRY:.39,billRX:.36,billRY:.14});
 const GOAL_DUCK_HOLDER=Object.freeze({outer:'#78B9DB',water:'#D7EFF5',lip:'#70ADD0'});
@@ -11303,6 +11314,72 @@ function drawGoalPuppyFoldedEars(r,set,rotationY){
     ctx.strokeStyle='rgba(255,255,245,.48)';ctx.lineWidth=r*.055;ctx.beginPath();ctx.moveTo(r*.09,-r*.20);ctx.quadraticCurveTo(r*.23,-r*.13,r*.33,-r*.04);ctx.stroke();ctx.restore();
   }
 }
+// ── 다람쥐·젖소 장난감 공과 방석(2026-10-13 사람 확정) ───────────────────────────────────────────────
+// 4동네(도토리 동산)=줄무늬 다람쥐+그루터기, 6동네(쑥쑥 텃밭)=얼룩 젖소+건초 방석. 기존 장난감처럼 공이 굴러가며 얼굴이 미끄러지고, 뒤에선 뒷모습(다람쥐=줄무늬 등, 젖소=얼룩+꼬리).
+// 귀·뿔은 표면(goalToyAttachmentPose)을 따라가다 뒤로 넘어가면 숨는다. 충돌 반지름·판은 그대로, 그림만.
+function gtO(g,x,y,rx,ry,c,a=0,al=1){ g.save(); g.globalAlpha=al; g.fillStyle=c; g.beginPath(); g.ellipse(x,y,rx,ry,a,0,Math.PI*2); g.fill(); g.restore(); }
+function gtST(g,c,w){ g.strokeStyle=c; g.lineWidth=w; g.lineCap='round'; g.lineJoin='round'; }
+function gtEyes(g,r,y,dx){ for(const s of [-1,1]){ gtO(g,s*r*dx,y,r*.065,r*.095,'#292C29'); gtO(g,s*r*dx-r*.02,y-r*.035,r*.022,r*.03,'rgba(255,255,255,.85)'); } }
+function gtBlush(g,r,y,dx){ for(const s of [-1,1]) gtO(g,s*r*dx,y,r*.11,r*.065,'#F4A3A0',0,.8); }
+const GT_SQ={ base:'#DDA566', ear:'#F4C9A4', dark:'#5B3A22', cream:'#FFF0D8', nose:'#6B3F2A' };
+const GT_COW={ base:'#FFF8EE', spot:'#5B4743', muzzle:'#F6B8B2', muzzleHi:'#F9C8C2', nostril:'#C9777A', horn:'#F2E0B0', hornD:'#D9BE85', inner:'#F4A3A0' };
+const GT_TOYS={
+  squirrel:{ base:GT_SQ.base,
+    attach(g,r){ for(const s of [-1,1]){ g.save(); g.translate(s*r*.56,-r*.68); g.rotate(s*.20); gtO(g,0,0,r*.25,r*.28,GT_SQ.base); gtO(g,0,r*.03,r*.14,r*.17,GT_SQ.ear); gtO(g,s*r*.04,-r*.18,r*.08,r*.05,'#FFF3DD',0,.55); g.restore(); } },
+    face(g,r){ gtST(g,GT_SQ.dark,r*.075); for(const x of [-.40,-.20,0,.20,.40]){ g.beginPath(); g.moveTo(x*r,-r*.98); g.quadraticCurveTo(x*r*1.05,-r*.74,x*r*.92,-r*.52); g.stroke(); }   // 이마 줄 다섯
+      gtST(g,'#FFF3DD',r*.04); for(const x of [-.30,-.10,.10,.30]){ g.beginPath(); g.moveTo(x*r,-r*.96); g.quadraticCurveTo(x*r*1.05,-r*.74,x*r*.92,-r*.54); g.stroke(); }
+      gtO(g,0,r*.34,r*.62,r*.52,GT_SQ.cream); gtO(g,-r*.32,r*.18,r*.30,r*.28,GT_SQ.cream); gtO(g,r*.32,r*.18,r*.30,r*.28,GT_SQ.cream);
+      gtEyes(g,r,-r*.12,.34); gtBlush(g,r,r*.22,.58); gtO(g,0,r*.16,r*.10,r*.075,GT_SQ.nose); gtO(g,-r*.03,r*.14,r*.025,r*.02,'rgba(255,255,255,.7)');
+      for(const s of [-1,1]){ g.fillStyle='#FFFDF6'; g.strokeStyle='#CDB899'; g.lineWidth=r*.03; g.beginPath(); g.roundRect(s*r*.055-r*.05,r*.28,r*.10,r*.15,r*.03); g.fill(); g.stroke(); } },   // 앞니
+    rear(g,r){ gtST(g,GT_SQ.dark,r*.09); for(const x of [-.54,-.27,0,.27,.54]){ g.beginPath(); g.moveTo(x*r,-r*.95); g.quadraticCurveTo(x*r*1.15,0,x*r*.9,r*.95); g.stroke(); }   // 등 줄무늬
+      gtST(g,'#FFF3DD',r*.045); for(const x of [-.40,-.14,.14,.40]){ g.beginPath(); g.moveTo(x*r,-r*.95); g.quadraticCurveTo(x*r*1.15,0,x*r*.9,r*.95); g.stroke(); }
+      gtO(g,0,r*.62,r*.18,r*.20,'#9C6A3C'); } },
+  cow:{ base:GT_COW.base,
+    attach(g,r){ for(const s of [-1,1]){ g.save(); g.translate(s*r*.34,-r*.88); g.rotate(s*.30); g.fillStyle=GT_COW.horn; g.beginPath(); g.moveTo(-r*.13,r*.10); g.quadraticCurveTo(-r*.15,-r*.24,0,-r*.38); g.quadraticCurveTo(r*.15,-r*.24,r*.13,r*.10); g.closePath(); g.fill(); gtO(g,0,r*.08,r*.11,r*.05,GT_COW.hornD); g.restore(); }
+      for(const s of [-1,1]){ g.save(); g.translate(s*r*.86,-r*.36); g.rotate(s*.45); gtO(g,0,0,r*.30,r*.16,s<0?GT_COW.spot:GT_COW.base); gtO(g,s*r*.03,r*.01,r*.18,r*.09,GT_COW.inner); g.restore(); } },
+    face(g,r){ g.fillStyle=GT_COW.spot; g.beginPath(); g.ellipse(-r*.62,-r*.30,r*.34,r*.40,.4,0,Math.PI*2); g.fill(); g.beginPath(); g.ellipse(r*.58,-r*.62,r*.30,r*.22,-.3,0,Math.PI*2); g.fill(); g.beginPath(); g.ellipse(r*.76,r*.30,r*.20,r*.28,.2,0,Math.PI*2); g.fill();
+      gtO(g,0,-r*.74,r*.14,r*.09,GT_COW.spot); gtEyes(g,r,-r*.14,.34); gtBlush(g,r,r*.14,.62);
+      gtO(g,0,r*.42,r*.50,r*.34,GT_COW.muzzle); gtO(g,0,r*.36,r*.40,r*.25,GT_COW.muzzleHi,0,.8); for(const s of [-1,1]) gtO(g,s*r*.17,r*.40,r*.06,r*.09,GT_COW.nostril); },
+    rear(g,r){ g.fillStyle=GT_COW.spot; g.beginPath(); g.ellipse(r*.40,-r*.30,r*.46,r*.40,-.3,0,Math.PI*2); g.fill(); g.beginPath(); g.ellipse(-r*.52,r*.34,r*.34,r*.38,.3,0,Math.PI*2); g.fill(); g.beginPath(); g.ellipse(-r*.30,-r*.66,r*.24,r*.16,.2,0,Math.PI*2); g.fill();
+      gtST(g,'#E9D9C3',r*.09); g.beginPath(); g.moveTo(0,-r*.10); g.quadraticCurveTo(r*.28,r*.14,r*.10,r*.46); g.stroke(); gtO(g,r*.10,r*.54,r*.13,r*.17,GT_COW.spot); } }
+};
+function drawGoalFeelToyNew(kind,r,rotation,m,depth){      // drawGoalFeelToyV2 가 save+translate(x,y) 한 안에서 부른다 — 돌아와서 restore 한다
+  const g=ctx, cfg=GT_TOYS[kind], pose=goalToySurfacePose(rotation.y), at=goalToyAttachmentPose(rotation.y);
+  if(kind==='cow'){ g.translate(0,(m.snuggle||0)*r*.18); g.scale(1+(m.snuggle||0)*.03,1-(m.snuggle||0)*.07); }
+  else g.translate(0,-(m.bob||0)*r*.20);
+  g.translate(0,depth.sink*r*1.15); g.rotate(rotation.x);
+  g.translate(0,-r*.10);
+  if(!pose.rear){ g.save(); g.translate(0,at.y*r); g.scale(1,at.scale); cfg.attach(g,r); g.restore(); }
+  gtO(g,0,0,r,r,cfg.base);
+  g.save(); g.beginPath(); g.arc(0,0,r,0,Math.PI*2); g.clip();
+  const sh=g.createLinearGradient(0,-r,0,r); sh.addColorStop(0,'rgba(255,249,240,.22)'); sh.addColorStop(.55,'rgba(255,249,240,0)'); sh.addColorStop(1,'rgba(71,53,43,.16)'); g.fillStyle=sh; g.fillRect(-r,-r,r*2,r*2);
+  g.translate(0,pose.y*r); g.scale(1,pose.scale);
+  if(pose.rear) cfg.rear(g,r); else cfg.face(g,r);
+  g.restore();
+  gtO(g,-r*.42,-r*.58,r*.30,r*.15,'rgba(255,249,240,.3)',-.45); }
+function drawGoalFeelBedNew(kind,front,p){                // drawGoalFeelBedV2 의 save/translate/scale 안에서 부른다
+  const g=ctx;
+  if(kind==='squirrel'){                                  // 나무 그루터기 — 나이테 윗면, 어두운 구멍, 낙엽, 앞에 도토리 둘
+    if(!front){
+      gtO(g,0,p*.45,p*1.12,p*.47,'rgba(48,55,34,.18)'); gtO(g,0,p*.26,p*1.02,p*.62,'#8C5E36');
+      g.save(); g.beginPath(); g.ellipse(0,p*.26,p*1.02,p*.62,0,0,Math.PI*2); g.clip(); gtST(g,'#74492A',p*.05); for(let i=-4;i<=4;i++){ g.beginPath(); g.moveTo(i*p*.22,p*.2); g.lineTo(i*p*.22+p*.03,p*.9); g.stroke(); } g.restore();
+      gtO(g,0,p*.02,p*.92,p*.54,'#CFA06A'); gtST(g,'#B2814D',p*.04); g.beginPath(); g.ellipse(0,p*.02,p*.78,p*.44,0,0,Math.PI*2); g.stroke(); g.beginPath(); g.ellipse(0,p*.02,p*.64,p*.35,0,0,Math.PI*2); g.stroke();
+      gtO(g,0,p*.08,p*.66,p*.36,'#6B4528'); gtO(g,0,p*.14,p*.56,p*.26,'#4F321D');
+      gtO(g,-p*.78,-p*.18,p*.16,p*.08,'#E0A13A',-.5); gtO(g,p*.74,-p*.22,p*.15,p*.07,'#C8553A',.5); gtO(g,p*.50,-p*.40,p*.12,p*.06,'#7EAF55',.2);
+    } else {
+      g.save(); g.beginPath(); g.rect(-p*1.2,p*.06,p*2.4,p); g.clip(); gtST(g,'#E3BC84',p*.15); g.beginPath(); g.ellipse(0,p*.02,p*.86,p*.50,0,.12,Math.PI-.12); g.stroke(); gtST(g,'#B2814D',p*.04); g.beginPath(); g.ellipse(0,p*.02,p*.74,p*.42,0,.25,Math.PI-.25); g.stroke(); g.restore();
+      for(const s of [-1,1]){ const ax=s*p*.62, ay=p*.50; gtO(g,ax,ay+p*.04,p*.16,p*.18,'#C98F4E'); gtO(g,ax-p*.04,ay,p*.05,p*.08,'rgba(255,240,210,.55)'); gtO(g,ax,ay-p*.10,p*.18,p*.09,'#8A5B34'); g.fillStyle='#6E4526'; g.fillRect(ax-p*.02,ay-p*.24,p*.04,p*.08); }
+    }
+  } else {                                                // 건초 방석 — 노란 짚 둥지, 삐져나온 짚, 앞에 붉은 리본
+    if(!front){
+      gtO(g,0,p*.45,p*1.12,p*.47,'rgba(48,55,34,.18)'); gtO(g,0,p*.22,p*1.05,p*.62,'#C9A04A'); gtO(g,0,p*.02,p*.95,p*.54,'#E8CC7A'); gtO(g,0,p*.08,p*.70,p*.38,'#B98F3F'); gtO(g,0,p*.14,p*.58,p*.27,'#9C7632');
+      gtST(g,'#F4DE96',p*.04); for(let i=0;i<14;i++){ const a=i/14*Math.PI*2; g.beginPath(); g.moveTo(Math.cos(a)*p*.62,Math.sin(a)*p*.34+p*.04); g.lineTo(Math.cos(a+.1)*p*.98,Math.sin(a+.1)*p*.55+p*.02); g.stroke(); }
+    } else {
+      g.save(); g.beginPath(); g.rect(-p*1.3,p*.04,p*2.6,p*1.1); g.clip(); gtST(g,'#E8CC7A',p*.17); g.beginPath(); g.ellipse(0,p*.04,p*.90,p*.52,0,.1,Math.PI-.1); g.stroke();
+      gtST(g,'#F6E4A2',p*.04); for(let i=0;i<12;i++){ const a=.2+i/12*(Math.PI-.4); g.beginPath(); g.moveTo(Math.cos(a)*p*.76,Math.sin(a)*p*.44+p*.06); g.lineTo(Math.cos(a)*p*.98,Math.sin(a)*p*.58+p*.10); g.stroke(); }
+      gtST(g,'#B98F3F',p*.035); for(let i=0;i<9;i++){ const a=.3+i/9*(Math.PI-.6); g.beginPath(); g.moveTo(Math.cos(a)*p*.85,Math.sin(a)*p*.50+p*.06); g.lineTo(Math.cos(a)*p*1.02,Math.sin(a)*p*.62+p*.14); g.stroke(); } g.restore();
+      g.fillStyle='#D9604F'; g.beginPath(); g.roundRect(-p*.12,p*.46,p*.24,p*.13,p*.04); g.fill(); gtO(g,0,p*.46,p*.09,p*.07,'#C14A3C');
+    } } }
 function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
   const kind=goalFeelToyKind(),set=GOAL_FEEL_SETS[kind],r=s*GOAL_TOY_BODY_SCALE,m=goalFeelMergeState(kind,arrival),depth=goalFeelDepthState(kind,arrival),view=goalToyViewState(kind,rotation.y);
   const oval=(ox,oy,rx,ry,c,a=1)=>{ctx.save();ctx.globalAlpha=a;ctx.fillStyle=c;ctx.beginPath();ctx.ellipse(ox,oy,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.restore();};
@@ -11341,6 +11418,7 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
       ctx.globalAlpha=.82*(1-m.spark*.30);ctx.fillStyle=i%2?'#FFF1D9':'#F3C85B';ctx.fillRect(-r*.035,-r*.16,r*.07,r*.32);ctx.restore();
     }
   }
+  if(kind==='squirrel'||kind==='cow'){ drawGoalFeelToyNew(kind,r,rotation,m,depth); ctx.restore(); return; }   // 다람쥐·젖소 — 위 GT_TOYS
   if(kind==='bunny')ctx.translate(0,-m.lift*r*.86+(m.compress||0)*r*.12);
   if(kind==='bear')ctx.translate(0,-m.lift*r*.38);
   if(kind==='puppy')ctx.translate(m.pounce*r*.16,-m.pounce*r*.12);
@@ -11841,7 +11919,9 @@ const GOAL_FEEL_BED_PROFILES=Object.freeze({
   ladybug:{depth:.29,inset:.12,shadow:1.16,side:'#8A5A32'},
   peacock:{depth:.26,inset:.10,shadow:1.15,side:'#454879'},
   mouse:{depth:.29,inset:.12,shadow:1.14,side:'#C58B35'},
-  sheep:{depth:.23,inset:.10,shadow:1.13,side:'#6F9F58'}
+  sheep:{depth:.23,inset:.10,shadow:1.13,side:'#6F9F58'},
+  squirrel:{depth:.28,inset:.11,shadow:1.14,side:'#8C5E36'},
+  cow:{depth:.24,inset:.10,shadow:1.14,side:'#C9A04A'}
 });
 function goalFeelBedProfile(kind){return GOAL_FEEL_BED_PROFILES[kind]||{depth:.24,inset:.10,shadow:1.10,side:'#786B58'};}
 function drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds=0,matchColor){
@@ -11851,6 +11931,7 @@ function drawGoalFeelBedV2(x,y,press,front,kind,mergeSeconds=0,matchColor){
   const tri=(x1,y1,x2,y2,x3,y3,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineTo(x3,y3);ctx.closePath();ctx.fill();};
   const round=(l,t,w,h,r,c)=>{ctx.fillStyle=c;ctx.beginPath();ctx.roundRect(l,t,w,h,r);ctx.fill();};
   ctx.save();ctx.translate(x,y+press*cell*.025);ctx.scale(1+press*.06,1-press*.12);
+  if(kind==='squirrel'||kind==='cow'){ drawGoalFeelBedNew(kind,front,p); ctx.restore(); return; }   // 그루터기·건초 방석
   if(kind==='puppy'){ctx.translate(0,p*(m.cushion||0)*.10);ctx.scale(1+(m.cushion||0)*.06,1-(m.cushion||0)*.16);}
   if(kind==='bunny'){ctx.translate(0,p*(m.compress||0)*.10);ctx.scale(1+(m.compress||0)*.04,1-(m.compress||0)*.14);}
   if(!front&&kind!=='bear'&&kind!=='puppy'&&kind!=='duck'&&kind!=='otter'&&kind!=='ladybug'){
