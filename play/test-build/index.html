@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=f4f09b666c5c">
+<link rel="stylesheet" href="css/game.css?v=c6536305a269">
 <link rel="stylesheet" href="css/onboarding-comic.css">
 <script id="mmMemo">
 // (id 를 단다 — tools/load.js 는 id 없는 첫 스크립트 태그를 게임 본문으로 읽는다)
@@ -100,6 +100,8 @@
       </div>
       <!-- 판 규칙 칩 — 이 구간에서 가장 최근에 배운 기믹 하나. 누르면 그 소개 카드를 다시 본다.
            1동네(밀기만)엔 없다. 규칙을 잊는 건 동네 초반이라 늘 떠 있어야 한다(미도쿠 규칙 카드 줄). -->
+      <!-- 할 일 칩(10-14) — 1동네 판 위 왼쪽. 규칙 칩은 가운데로 비킨다. -->
+      <div id="goalChips" hidden></div><div id="goalTip" hidden></div>
       <button class="rulechip" id="ruleChip" hidden><i aria-hidden="true">?</i><span id="ruleChipT"></span></button>
     </div>
     <div id="btns">
@@ -3810,6 +3812,7 @@ function teachMowerJolt(b){                                        // 그림자 
   if(u<=.40 || u>=.58 || ![1,2].some(n=>teach.r+teach.dr*n===b.r && teach.c+teach.dc*n===b.c)) return 0;
   return Math.sin((u-.40)/.18*Math.PI)*.06; }
 function drawTeach(){
+  drawCushionCue();
   teachWake();
   if(!teachShown()) return;
   const {r,c,dr,dc}=teach, u=teachPhase(), fade=teachSm(u/.14)*(1-teachSm((u-.86)/.14)), k=teachPushK(u), s=cell;
@@ -5530,11 +5533,17 @@ const HOME_STAGES={
 const HOME_STAGES_OLD={};
 function homeStagesApply(on){ for(const k in HOME_STAGES){ const i=(k|0)-1; if(!HOME_STAGES_OLD[k]) HOME_STAGES_OLD[k]=BAKED[i]; BAKED[i]=on? HOME_STAGES[k] : HOME_STAGES_OLD[k]; } }
 homeStagesApply(HOME_LEVELS_ON);
+let potMergeAt=null, potMergeLv=0;   // 화분 합치기(톡톡)가 시작된 시각·판 — 받침 그림도 읽는다
+// 판이 끝나도 승리 카드는 화분 합치기(톡톡 + 큰 화분)를 다 보여 준 뒤에 — 마지막 수가 화분이면 같은 순간에 끝나 카드에 가려졌다.
+function potMergeHold(){ try{
+  if(!L || !L.home || houseMode || !L.tg || L.tg.length<2 || homePotsOn(L,boxes)<L.tg.length) return false;
+  if(potMergeAt===null || potMergeLv!==level){ potMergeAt=animT; potMergeLv=level; try{ tone(620,0.05,'sine',0.03,880); }catch(e){} }
+  return animT-potMergeAt < L.tg.length*.12+.06+.4; }catch(e){ return false; } }
 let homeAt, homeFx, homeHit, homeBang=null, homeIntro=null, homeIntroL=null, homeIntroSeen=false;
 // 젬(10-13 사람: 예전처럼 2판부터) — 2~5판은 젬 셋(ac)을 해답이 지나는 칸에 묻는다. 그래서 다 줍는 길(sl5)·걸음(par5)이 해답·par 와 같다.
 // 화분 자리(10-13 사람) — 2~5판은 화분(택배 상자 칸, 한 칸 밀림)을 tg 자리에 다 올리고 공을 집에 넣어야 끝난다. 2판 하나·3판 나란히 둘·4판 울타리 밑 한 줄·5판 가운데 꽃밭.
 // 판에 들어설 때 할아버지가 한마디 한다(초상화 + 이름표 + 두 줄). 처음 깨기 전에만, 다시하기엔 안 뜬다. 1판은 할아버지가 공을 던지는 말 — 닫히면 공이 날아오고, 떨어지면 집 옆에 느낌표가 뜨고 맥스가 나온다.
-const HOME_STORY={1:'story.home1', 2:'story.home2', 3:'story.home3', 4:'story.home4', 5:'story.home5'};
+const HOME_STORY={1:'story.home1', 2:'story.home2', 3:'story.home3', 4:'story.home4', 5:'story.home5', 6:'story.home6'};
 const STORY_GRAMPS='data:image/webp;base64,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';
 let gtalkOpen=false, gtalkSeen={};
 function homePotsOn(L, bx){ return L.tg.filter(q=>bx.some(b=>!b.gone && b.kind==='log' && b.r===q[0] && b.c===q[1])).length; }
@@ -5719,12 +5728,13 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
   }
   // 화분 자리 — 바닥 바로 위 돌 받침. 화분이 올라오면 밝아진다.
   function drawPotSpots(g){ const s=cell;
+    if(potMergeAt!==null && potMergeLv===level && animT-potMergeAt>=L.tg.length*.12+.06) return;   // 큰 화분이 받침을 덮었다
     for(const q of L.tg){ const x=cx(q[1]), y=cy(q[0])+s*.3, on=boxes.some(b=>b.kind==='log' && b.sink===0 && b.r===q[0] && b.c===q[1] && !b.path);
       g.save(); g.fillStyle='rgba(52,84,40,.22)'; g.beginPath(); g.ellipse(x,y+s*.03,s*.36,s*.13,0,0,7); g.fill();
       g.fillStyle=on? '#F3EAD6' : '#DDD3BE'; g.strokeStyle=on? '#E2B64A' : '#B9AC93'; g.lineWidth=Math.max(1,s*.022); g.beginPath(); g.ellipse(x,y,s*.34,s*.115,0,0,7); g.fill(); g.stroke();
       if(!on){ g.setLineDash([s*.06,s*.05]); g.strokeStyle='rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(x,y,s*.24,s*.075,0,0,7); g.stroke(); g.setLineDash([]); }
       g.restore(); } }
-  liquidFx=function(){ const r=G0.liquidFx.apply(this,arguments); if(L && L.home && !houseMode) try{ if(L.tg) drawPotSpots(ctx); homeIntroTick(); drawHome(ctx); if((L.home[2]&3)===0) drawHomeBack(ctx);
+  liquidFx=function(){ const r=G0.liquidFx.apply(this,arguments); if(L && L.home && !houseMode) try{ if(L.tg) drawPotSpots(ctx); homeIntroTick(); { const st=ctx.stroke; ctx.stroke=()=>{}; try{ drawHome(ctx); if((L.home[2]&3)===0) drawHomeBack(ctx); } finally { ctx.stroke=st; } }   // 집은 선 없이 — 면·그림자만(10-14 사람)
       if(homeBang){ const u=(animT-homeBang.t0)/.8; if(u>=1) homeBang=null; else if(u>=0){ if(!homeBang.s){ homeBang.s=1; try{ tone(880,0.06,'triangle',0.04,1180); }catch(e){} } ctx.save(); ctx.translate(cx(L.home[1])-cell*.56, cy(L.home[0])+cell*.3); ctx.scale(1.6,1.6); drawAlertMark(0, 0, u); ctx.restore(); } } }catch(e){} return r; };
   // 들어가는 공 — 문 아치 안쪽만 보이게 잘라 그리고, 들어갈수록 작아지며 어두워진다(문 안으로 쏙).
   const entering=(x,y)=>{ if(!L || !L.home || houseMode || (L.home[2]&3)!==2) return null;
@@ -5752,32 +5762,54 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
   const homeLv=lv=>!!(BAKED[lv-1] && BAKED[lv-1].home);
   // 도토리 자리는 판 번호로 정해져 있어 새 판의 화단·집과 겹친다. 집 판은 안 묻는다(걸음 목표도 par 그대로).
   acornCells=function(lv){ return (homeLv(lv) && !BAKED[lv-1].ac)? [] : G1.acornCells.apply(this,arguments); };   // 집 판은 판에 적은 자리(ac)만 — 팩의 자리는 옛 판의 것
-  // 화분 — 둥근 토분에 잎과 작은 꽃. 화단(나무 상자, 못 민다)과 한눈에 갈리게: 둥글고, 작고, 흙빛. 테두리는 집 그림과 같은 굵기의 가는 선.
+  // 화분(10-14 사람) — 집과 같은 2.5D: 토분 앞면 + 둥근 윗면(두툼한 테·흙) + 흙 위 잎 덤불과 꽃. 선 없이 면·윤기·그림자만.
+  // 화분 자리가 다 차면 「톡톡」 — 화분이 왼쪽부터 차례로 제자리에서 톡 튀고, 마지막 톡에 그 자리를 덮는 큰 화분 하나로 바뀐다.
+  // 큰 화분: 둘 = 긴 화분, 셋 = 더 긴 화분, 넷(2×2) = 네 칸을 차지하는 큰 네모 화분. 꽃을 빽빽하게.
+  const potLeaf=(g,x,y,a,len,wd,col)=>{ g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=col; g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(wd,-len*.5,0,-len); g.quadraticCurveTo(-wd,-len*.5,0,0); g.fill(); g.restore(); };
+  const potFlower=(g,fx,fy,r,col)=>{ g.fillStyle=col; for(let i=0;i<5;i++){ const a=i/5*6.283-1.57; g.beginPath(); g.arc(fx+Math.cos(a)*r,fy+Math.sin(a)*r,r*.78,0,7); g.fill(); } g.fillStyle='#F2B63C'; g.beginPath(); g.arc(fx,fy,r*.62,0,7); g.fill(); };
+  const POT_COL=['#F7A8BE','#FFFFFF','#FFD95E','#C8B4F0'], POT_LEAVES=[[-.85,.15,'#4E9A50'],[.85,.15,'#4E9A50'],[-.38,.2,'#5FA85C'],[.38,.2,'#6DB565'],[0,.24,'#86C977']];
+  const potFront=(g,s,W,w,top)=>{ const bg=g.createLinearGradient(-W,0,W,0); bg.addColorStop(0,'#C8754A'); bg.addColorStop(.2,'#DA8B5C'); bg.addColorStop(.7,'#D2804F'); bg.addColorStop(1,'#B5653C');
+    g.fillStyle=bg; g.beginPath(); g.moveTo(-W,top); g.lineTo(W,top); g.lineTo(w,-s*.035); g.quadraticCurveTo(w,0,w-s*.035,0); g.lineTo(-w+s*.035,0); g.quadraticCurveTo(-w,0,-w,-s*.035); g.closePath(); g.fill(); };
+  function drawPot25(x,y,s,sx,sy,rot){ const g=ctx, by=s*.33; g.save(); g.translate(x,y+by);
+    g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.005,s*.27,s*.07,0,0,7); g.fill();       // 바닥 그림자(집과 같은 색)
+    g.rotate(rot||0); g.scale((sx||1)*1.15,(sy||1)*1.15);
+    const W=s*.22, w=s*.15, h=s*.27, Dp=s*.085, top=-h-Dp;
+    potFront(g,s,W,w,top); g.fillStyle='rgba(255,255,255,.16)'; g.beginPath(); g.ellipse(-W*.55,top+h*.55,s*.02,h*.3,.12,0,7); g.fill();   // 윤기
+    g.fillStyle='#E7A377'; g.beginPath(); g.ellipse(0,top,W+s*.03,Dp+s*.025,0,0,7); g.fill();                // 테
+    g.fillStyle='#F0B68D'; g.beginPath(); g.ellipse(0,top-s*.012,W+s*.02,Dp+s*.012,0,Math.PI,0); g.fill();
+    g.fillStyle='#7A5536'; g.beginPath(); g.ellipse(0,top+s*.005,W-s*.02,Dp-s*.01,0,0,7); g.fill();          // 흙
+    for(const [fx,fy] of [[-W*.45,top-s*.01],[W*.45,top-s*.01],[0,top+s*.02]]) for(const [a,len,col] of POT_LEAVES) potLeaf(g,fx,fy,a,s*len,s*.075,col);
+    potFlower(g,-s*.1,top-s*.16,s*.042,'#F7A8BE'); potFlower(g,s*.11,top-s*.18,s*.042,'#FFFFFF'); potFlower(g,0,top-s*.26,s*.048,'#FFD95E');
+    g.fillStyle='#C8B4F0'; g.beginPath(); g.arc(s*.04,top-s*.1,s*.022,0,7); g.fill();
+    g.restore(); }
+  function drawPlanter(g,n,s){ const W= n===2? s*.8 : n===3? s*1.3 : s*.98, h= n===4? s*.42 : s*.34, Dp= n===4? s*.62 : s*.2, R=Math.min(Dp,s*.18), top=-h-Dp;   // 원점 = 앞 바닥 가운데
+    potFront(g,s,W,W*.95,top);
+    g.fillStyle='rgba(255,255,255,.14)'; g.fillRect(-W*.82,top+Dp*.9,s*.05,h*.7); g.fillStyle='rgba(120,60,30,.12)'; g.fillRect(-W,top+Dp*.9,W*2,s*.03);
+    g.fillStyle='#E7A377'; g.beginPath(); g.roundRect(-W-s*.03,top-Dp,(W+s*.03)*2,Dp*2+s*.02,R+s*.03); g.fill();                 // 윗면 — 두툼한 테
+    g.fillStyle='#F0B68D'; g.beginPath(); g.roundRect(-W-s*.03,top-Dp,(W+s*.03)*2,s*.05,[R+s*.03,R+s*.03,0,0]); g.fill();
+    g.fillStyle='#7A5536'; g.beginPath(); g.roundRect(-W+s*.05,top-Dp+s*.05,(W-s*.05)*2,Dp*2-s*.08,Math.max(2,R-s*.02)); g.fill();   // 흙
+    g.fillStyle='rgba(0,0,0,.12)'; g.beginPath(); g.roundRect(-W+s*.05,top-Dp+s*.05,(W-s*.05)*2,s*.05,[R,R,0,0]); g.fill();
+    const rows= n===4? 4 : 2, cols= n===2? 5 : n===3? 8 : 6, pts=[];                                                          // 꽃밭 — 뒤 줄부터 빽빽하게
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) pts.push([-W*.82+c*(W*1.64/(cols-1))+(r%2 && c<cols-1? W*.82/(cols-1) : 0), top-Dp*.7+r*(Dp*1.35/(rows-1)), r*cols+c]);
+    for(const [fx,fy] of pts) for(const [a,len,col] of POT_LEAVES) potLeaf(g,fx,fy,a*1.06,s*len,s*.085,col);
+    for(const [fx,fy,k] of pts){ const j=((k*7)%5)-2;
+      potFlower(g,fx+j*s*.02,fy-s*.19-(k%2)*s*.05,s*.05,POT_COL[k%4]); potFlower(g,fx-s*.07,fy-s*.11,s*.034,POT_COL[(k+2)%4]);
+      g.fillStyle=POT_COL[(k+1)%4]; g.beginPath(); g.arc(fx+s*.07,fy-s*.13,s*.022,0,7); g.fill(); } }
   drawLog=function(x,y,s,sx,sy,rot){
     if(!L || !L.home || houseMode) return G1.drawLog.apply(this,arguments);
-    const g=ctx, lw=Math.max(1,s*.014), by=s*.33;                       // 발치 = 칸 가운데에서 .33 아래(상자 밑변과 같은 자리)
-    g.save(); g.translate(x,y+by);
-    g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.005,s*.25,s*.065,0,0,7); g.fill();      // 바닥 그림자(집과 같은 색)
-    g.rotate(rot||0); g.scale((sx||1)*1.2,(sy||1)*1.2); g.lineJoin='round'; g.lineCap='round';
-    const tw=s*.2, bw=s*.135, h=s*.3, rimH=s*.075, rw=s*.225;
-    // 잎 — 화분 뒤에서 부채꼴로
-    const leaf=(a,len,wd,col)=>{ g.save(); g.translate(0,-h-rimH*.6); g.rotate(a); g.fillStyle=col; g.strokeStyle='rgba(58,112,62,.55)'; g.lineWidth=lw*.8;
-      g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(wd,-len*.5,0,-len); g.quadraticCurveTo(-wd,-len*.5,0,0); g.fill(); g.stroke(); g.restore(); };
-    leaf(-1.05,s*.2,s*.085,'#5FA85C'); leaf(1.05,s*.2,s*.085,'#5FA85C');
-    leaf(-.55,s*.27,s*.095,'#74BB6A'); leaf(.55,s*.27,s*.095,'#6DB565'); leaf(0,s*.3,s*.1,'#86C977');
-    // 몸통(아래로 좁아지는 토분)
-    const bg=g.createLinearGradient(-tw,0,tw,0); bg.addColorStop(0,'#E09668'); bg.addColorStop(.55,'#D2804F'); bg.addColorStop(1,'#BE6B3F');
-    g.fillStyle=bg; g.strokeStyle='#A45E3A'; g.lineWidth=lw;
-    g.beginPath(); g.moveTo(-tw,-h); g.lineTo(-bw,-s*.03); g.quadraticCurveTo(-bw,0,-bw+s*.03,0); g.lineTo(bw-s*.03,0); g.quadraticCurveTo(bw,0,bw,-s*.03); g.lineTo(tw,-h); g.closePath(); g.fill(); g.stroke();
-    g.fillStyle='rgba(255,255,255,.2)'; g.beginPath(); g.ellipse(-tw*.5,-h*.5,s*.022,h*.3,.12,0,7); g.fill();   // 윤기
-    // 테(두툼한 입술)
-    g.fillStyle='#E7A377'; g.strokeStyle='#A45E3A'; g.lineWidth=lw; g.beginPath(); g.roundRect(-rw,-h-rimH,rw*2,rimH,rimH*.45); g.fill(); g.stroke();
-    g.fillStyle='rgba(120,60,30,.16)'; g.fillRect(-tw,-h,tw*2,s*.022);                                         // 테 그늘
-    // 꽃 셋 — 화단 꽃과 같은 색(노랑·분홍·흰)
-    const flower=(fx,fy,r,col)=>{ g.fillStyle=col; for(let i=0;i<5;i++){ const a=i/5*6.283-1.57; g.beginPath(); g.arc(fx+Math.cos(a)*r,fy+Math.sin(a)*r,r*.78,0,7); g.fill(); }
-      g.fillStyle='#F2B63C'; g.beginPath(); g.arc(fx,fy,r*.62,0,7); g.fill(); };
-    flower(-s*.115,-h-rimH-s*.11,s*.04,'#F7A8BE'); flower(s*.12,-h-rimH-s*.13,s*.04,'#FFFFFF'); flower(0,-h-rimH-s*.235,s*.045,'#FFD95E');
-    g.restore();
+    if(!L.tg || L.tg.length<2) return drawPot25(x,y,s,sx,sy,rot);
+    const all=homePotsOn(L,boxes)===L.tg.length && !boxes.some(b=>b.kind==='log' && b.path);
+    if(potMergeLv!==level){ potMergeAt=null; potMergeLv=level; }
+    if(!all){ potMergeAt=null; return drawPot25(x,y,s,sx,sy,rot); }
+    if(potMergeAt===null){ if(boxes.some(b=>b.kind==='log' && (b.path || b.wasMoving || Math.abs(b.rr-b.r)+Math.abs(b.cc-b.c)>.02))) return drawPot25(x,y,s,sx,sy,rot);   // 마지막 화분이 멈추는 순간(맥스·공은 안 기다린다)
+      potMergeAt=animT; try{ tone(620,0.05,'sine',0.03,880); }catch(e){} }
+    const i=L.tg.findIndex(q=>Math.abs(x-cx(q[1]))<cell*.3 && Math.abs(y-cy(q[0]))<cell*.3); if(i<0) return drawPot25(x,y,s,sx,sy,rot);
+    const n=L.tg.length, T=animT-potMergeAt, order=L.tg.map((q,j)=>[cx(q[1])+cy(q[0])*.01,j]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]), k=order.indexOf(i), sw=n*.12+.06;
+    if(T<sw){ const u=(T-k*.12)/.16, p=u>0&&u<1? Math.sin(u*Math.PI)*.12 : 0; return drawPot25(x,y-p*s*.6,s,(sx||1)*(1-p*.3),(sy||1)*(1+p),rot); }
+    if(i!==order[0]) return;                                                                        // 큰 화분은 맨 왼쪽 화분 자리에서 한 번만
+    const g=ctx, mx=L.tg.reduce((a,q)=>a+cx(q[1]),0)/n, by=Math.max(...L.tg.map(q=>cy(q[0])))+s*.4, sc=1+Math.sin(Math.min(1,(T-sw)/.25)*Math.PI)*.05;
+    g.save(); g.translate(mx,by); g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.005,(n===3? s*1.35 : n===2? s*.85 : s*1.05),s*.08,0,0,7); g.fill();
+    g.scale(sc,sc); drawPlanter(g,n,s); g.restore();
   };
 })();
 // 집 판에선 「공을 방석까지」 카드를 안 띄운다(그림도 글도 방석이다) — 집은 판에 서 있고, 틀린 쪽에서 밀면 집이 부르르 떤다.
@@ -5786,6 +5818,78 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
     try{ gtalkClose(); const k=HOME_STORY[lv]; if(k && HOME_LEVELS_ON && BAKED[lv-1].home && !(starMap[lv]|0) && !gtalkSeen[lv] && !tutMode){ gtalkSeen[lv]=1; if(HARD_LV.includes(lv)) setTimeout(()=>{ if(level===lv && state==='play' && moves===0) gtalkShow(k); },1500); else { gtalkShow(k); if(lv===1 && !homeIntroSeen) homeIntroHold(); } } }catch(e){}
     return r; }; }
 { const sg=showGintro; showGintro=function(k){ if(k==='base' && typeof L!=='undefined' && L && L.home) return; return sg.apply(this,arguments); }; }
+// ── 할 일 칩(10-14 사람, 시안 F6) ── 1동네 판 위 왼쪽에 [공 → 집/방석 a/b] [화분 a/b] [문 a/N]. 가운데는 규칙 칩, 오른쪽은 젬.
+// 해낼 때마다 그 물건 자리에서 아이콘이 칩으로 날아가고 칩이 한 번만 통 튄다. 칩을 누르면 한두 줄 설명.
+// 문 N = 해답(par 길)에서 문을 돌리는 수. 문은 끝내는 조건이 아니라 할아버지 부탁(잘 도는지 봐 다오)이라 칩만 채워진다.
+const GOAL_CHIPS_TO=30;
+const GC_SV={
+ ball:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="8" fill="#FFF7E8"/><circle cx="9.5" cy="5.3" r="2.1" fill="#C84F49"/><circle cx="12" cy="4.6" r="2.3" fill="#D95C54"/><circle cx="14.5" cy="5.3" r="2.1" fill="#C84F49"/><circle cx="9.6" cy="12.5" r="1.1" fill="#2B2036"/><circle cx="14.4" cy="12.5" r="1.1" fill="#2B2036"/><path d="M10.8 14.2h2.4l-1.2 1.8z" fill="#E6A23C"/></svg>',
+ house:'<svg class="ic" viewBox="0 0 24 24"><path d="M3 11 12 3l9 8z" fill="#3E7BC9"/><rect x="5.5" y="10.5" width="13" height="10" rx="1.5" fill="#FFFFFF"/><rect x="9.5" y="13.5" width="5" height="7" rx="2.5" fill="#6B4A33"/></svg>',
+ pot:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 10c-1-3-4-4-6-3 1 2 3 3 6 3zm0 0c1-3 4-4 6-3-1 2-3 3-6 3z" fill="#6DB565"/><path d="M5.5 11h13l-1.6 9.5a1.5 1.5 0 0 1-1.5 1.2H8.6a1.5 1.5 0 0 1-1.5-1.2z" fill="#C9744A"/><rect x="4.5" y="10" width="15" height="3" rx="1.2" fill="#B05F3A"/></svg>',
+ cushion:'<svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="14" rx="10" ry="6.5" fill="#E26055"/><ellipse cx="12" cy="12.5" rx="8" ry="4.6" fill="#F07A6E"/><circle cx="12" cy="12.6" r="1.6" fill="#FFF0E8"/><circle cx="9.6" cy="11.2" r=".9" fill="#FFF0E8"/><circle cx="14.4" cy="11.2" r=".9" fill="#FFF0E8"/><circle cx="10.6" cy="10" r=".8" fill="#FFF0E8"/><circle cx="13.4" cy="10" r=".8" fill="#FFF0E8"/></svg>',
+ door:'<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="2.6" height="17" rx="1.2" fill="#8A6646"/><rect x="7" y="7" width="13" height="4" rx="1.5" fill="#D9A766"/><rect x="7" y="13" width="13" height="4" rx="1.5" fill="#D9A766"/><path d="M19 3.5a8 8 0 0 1 2 5" stroke="#6DB565" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M21.6 6.6l-.6 2.3-2.1-1" stroke="#6DB565" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+ arrow:'<svg class="ic" viewBox="0 0 24 24" style="width:18px"><path d="M4 12h13m-5-5 5 5-5 5" stroke="#B08A5E" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
+let gcLv=0, gcKey='', gcPrev=null, gcDoor={n:0, sig:'', mv:0, log:[]}, gcTip='', gcTipTO=0;
+const gcIsBall=b=>!b.gone && !b.carried && (b.kind==='ball' || !b.kind);
+const gcDoorSig=fl=>[...fl].filter(v=>v>=DOOR_F && v<DOOR_F*2).sort((a,b)=>a-b).join(',');
+function gcDoorN(){ try{ const row=BAKED[level-1]; if(!L.doors || !L.doors.length || !row || !row.sl) return 0; let st=curState(), n=0;
+  for(const ch of row.sl){ const m=SL_DIR[ch]; if(!m) continue; const r=applyMove(L,st,m[0],m[1]); if(!r) continue; if(gcDoorSig(r.filled)!==gcDoorSig(st.filled)) n++; st={...st, dog:r.dog, boxes:r.boxes, filled:r.filled, carry:r.carry}; }
+  return n; }catch(e){ return 0; } }
+function gcCounts(){ const balls=boxes.filter(gcIsBall), at=b=>b.sink>0 || (!b.path && (L.home? homeAt(L,b.r,b.c) : holes.has(kk(b.r,b.c))));
+  const o={ball:[balls.filter(at).length, balls.length]};
+  if(L.home && L.tg && L.tg.length) o.pot=[homePotsOn(L,boxes), L.tg.length];
+  if(gcDoor.n>0) o.door=[Math.min(gcDoor.log.length, gcDoor.n), gcDoor.n];
+  return o; }
+function gcScreen(r,c){ const cv=ctx.canvas.getBoundingClientRect(), k=cv.width/(GN*cell); return [cv.left+cx(c)*k, cv.top+cy(r)*k]; }
+function gcFly(k,r,c){ const box=el('goalChips'), chip=box && box.querySelector('[data-k="'+k+'"]'); if(!chip || !chip.animate) return;
+  const [x,y]=gcScreen(r,c), rc=chip.getBoundingClientRect(), f=document.createElement('div'); f.className='gcfly'; f.innerHTML=GC_SV[k==='ball'? 'ball' : k]; f.style.left=x+'px'; f.style.top=y+'px'; document.body.appendChild(f);
+  const tx=rc.left+16-x, ty=rc.top+rc.height/2-y;
+  f.animate([{transform:'translate(-50%,-50%) scale(1.4)'},{transform:`translate(calc(-50% + ${tx*.5}px),calc(-50% + ${ty*.5-60}px)) scale(1.1)`,offset:.5},{transform:`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) scale(.8)`}],{duration:560,easing:'cubic-bezier(.3,.1,.3,1)'}).onfinish=()=>{ f.remove(); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); };
+}
+function gcTipShow(k){ const tip=el('goalTip'); if(!tip) return; clearTimeout(gcTipTO);
+  if(!k || gcTip===k){ gcTip=''; tip.hidden=true; return; } gcTip=k;
+  const key=k==='ball'? (L && L.home? 'goal.tip.ball' : 'goal.tip.cushion') : 'goal.tip.'+k, chip=el('goalChips').querySelector('[data-k="'+k+'"]');
+  tip.textContent=I18N.t(key); tip.hidden=false; tip.style.left=(chip? chip.offsetLeft : 0)+'px'; gcTipTO=setTimeout(()=>gcTipShow(''),4200); }
+function goalChipsTick(){
+  const box=el('goalChips'); if(!box) return;
+  const on=!!L && !tutMode && !moonMode && !houseMode && !menuMode && level<=GOAL_CHIPS_TO && (state==='play' || state==='win');
+  document.body.classList.toggle('goalchips', on); box.hidden=!on;
+  const rule=el('ruleChip'), home=el('goalTip');                                   // 규칙 칩은 할 일 칩 줄 끝에 붙는다(겹치지 않게) — 끄면 제자리로
+  if(rule && on && rule.parentNode!==box) box.appendChild(rule); else if(rule && !on && rule.parentNode===box && home) home.parentNode.insertBefore(rule, home.nextSibling);
+  if(!on){ if(gcTip) gcTipShow(''); gcLv=0; return; }
+  if(gcLv!==level || moves===0 && gcDoor.mv>0){ if(gcLv!==level && gcTip) gcTipShow(''); gcLv=level; gcPrev=null; gcKey=''; gcDoor={n:gcDoorN(), sig:gcDoorSig(filled), mv:moves, log:[]}; }
+  const sig=gcDoorSig(filled);                                                   // 문을 돌린 수 — 무르면 그 뒤 기록을 지운다
+  if(moves>gcDoor.mv && sig!==gcDoor.sig) gcDoor.log.push(moves);
+  if(moves<gcDoor.mv) gcDoor.log=gcDoor.log.filter(m=>m<=moves);
+  gcDoor.sig=sig; gcDoor.mv=moves;
+  const C=gcCounts(), key=JSON.stringify(C)+(L.home?'h':'c'); if(key===gcKey) return;
+  const ic={ball:GC_SV.ball+GC_SV.arrow+(L.home? GC_SV.house : GC_SV.cushion), pot:GC_SV.pot, door:GC_SV.door};
+  let row=el('goalChipRow'); if(!row){ row=document.createElement('span'); row.id='goalChipRow'; box.insertBefore(row, box.firstChild); }
+  row.innerHTML=Object.keys(C).map(k=>{ const [a,b]=C[k]; return `<button class="gchip${a>=b?' done':''}" data-k="${k}">${ic[k]}<span>${a}/${b}</span></button>`; }).join('');
+  if(gcPrev && moves>0) for(const k of Object.keys(C)) if(gcPrev[k] && C[k][0]>gcPrev[k][0]){
+    let r=dog.r, c=dog.c;                                                        // 날아갈 자리 — 그 물건이 있는 칸
+    if(k==='ball'){ const b=boxes.find(b=>gcIsBall(b) && (b.sink>0 || (L.home? homeAt(L,b.r,b.c) : holes.has(kk(b.r,b.c))))); if(L.home){ r=L.home[0]; c=L.home[1]; } else if(b){ r=b.r; c=b.c; } }
+    if(k==='pot'){ const q=L.tg.find(q=>boxes.some(b=>b.kind==='log' && b.r===q[0] && b.c===q[1] && !b.path)); if(q){ r=q[0]; c=q[1]; } }
+    if(k==='door' && L.doors[0]){ r=L.doors[0].r; c=L.doors[0].c; }
+    setTimeout(()=>gcFly(k,r,c),120); }
+  gcPrev=C; gcKey=key;
+  try{ const par=box.offsetParent, bw=el('boardWrap'), br=(bw||ctx.canvas).getBoundingClientRect(); if(par){ const x=br.left-par.getBoundingClientRect().left+6; box.style.left=x+'px'; el('goalTip').style.marginLeft=(x+2)+'px'; } }catch(e){}   // 판 왼쪽 끝에 맞춘다(HUD 줄은 판 번호 뒤에서 시작한다)
+}
+document.addEventListener('click',e=>{ const b=e.target && e.target.closest && e.target.closest('#goalChips .gchip'); if(b){ gcTipShow(b.dataset.k); return; } if(gcTip && !(e.target.closest && e.target.closest('#goalTip'))) gcTipShow(''); });
+// 방석 첫 판(11) — 할아버지 한마디 + 방석이 빛난다. 1~10판은 공을 집에 넣었는데 여기서부터 방석이라, 왜 방석인지 먼저 말해 준다.
+const CUSHION_STORY={11:'story.cushion11'};
+let cushionCue=null;
+{ const eg=enterLevelGo; enterLevelGo=function(lv){ const r=eg.apply(this,arguments);
+    try{ const k=CUSHION_STORY[lv]; if(k && !(starMap[lv]|0) && !gtalkSeen[lv] && !tutMode){ gtalkSeen[lv]=1; gtalkShow(k); cushionCue={lv, t0:animT}; } else cushionCue=null; }catch(e){}
+    return r; }; }
+function drawCushionCue(){
+  if(!cushionCue || cushionCue.lv!==level || state!=='play' || !holes) return;
+  if(gtalkOpen) cushionCue.t0=animT;                                              // 말이 떠 있는 동안은 계속, 닫힌 뒤 4초
+  const u=animT-cushionCue.t0; if(u>4.2){ cushionCue=null; return; }
+  const a=Math.min(1,(4.2-u)/.6), p=.5+.5*Math.sin(animT*4.2);
+  ctx.save(); ctx.strokeStyle='rgba(255,216,115,'+(a*(.65+.35*p)).toFixed(3)+')'; ctx.lineWidth=Math.max(3,cell*.07);
+  for(const k of holes.keys()){ const r=(k/GN)|0, c=k%GN; ctx.beginPath(); ctx.arc(cx(c),cy(r),cell*(.56+.05*p),0,7); ctx.stroke(); }
+  ctx.restore(); }
 // ── 집으로 끝 ──
 const KINDS=['ball','log','bone','cartV','cartH','crop','mower','tub','pump','treeSmall','stump','treeBig','log2','log2End','hillLog'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
 const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그대로일 때만 적용 — 판이 고쳐지면 저절로 꺼진다. 3칸 이상 이어진 덩이만: 풀이 길에서 떨어진 풀칸·바위·장식 나무 칸. 칸을 막아도 풀이가 같고 최단=par 인 것만(tests/void-board.test.js)
@@ -40990,7 +41094,7 @@ function wakeGameFrame(){
 // 시간으로 도는 안내·연출 — 입력이 없어도 화면은 움직인다(연습 손가락, 방 자리 손가락, 선물 열기, 할아버지 배달).
 // 이게 떠 있는데 쉬는 중으로 치면 그 연출이 초당 4~8장으로 끊긴다(10-12 사람 보고 · 코드로 확인).
 function frameTimedShow(){
-  try{ return !!(tut || teachShown() || obActive() || gintroOn || coachSteps || houseUnwrapFx || houseGramps || houseZooming || (houseMode && roomSlotHand())); }catch(_){ return false; }
+  try{ return !!(tut || teachShown() || (potMergeAt!==null && animT-potMergeAt<1.2) || !!cushionCue || obActive() || gintroOn || coachSteps || houseUnwrapFx || houseGramps || houseZooming || (houseMode && roomSlotHand())); }catch(_){ return false; }
 }
 function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin && !frameTimedShow(); }
 function scheduleGameFrame(delay=0){
@@ -41045,7 +41149,8 @@ function frameInner(ts){
   yardStep();                                                      // 마당 어슬렁
   // HUD는 DOM 레이아웃을 건드리므로 캔버스 프레임마다 갱신하지 않는다.
   // 수치 변화 직후의 별도 syncHud 호출은 그대로 유지하고, 루프에서는 10Hz로 제한한다.
-  if(now-lastHudSyncT>=100){ syncHud(); lastHudSyncT=now; }        // 통화 HUD (별·도토리)
+  if(now-lastHudSyncT>=100){ syncHud(); lastHudSyncT=now; }
+  try{ goalChipsTick(); }catch(e){}                                  // 할 일 칩 — 바뀔 때만 DOM 을 고친다        // 통화 HUD (별·도토리)
   tsStep();                                                        // 보물 산책 수집·예산 판정
   try{ creekPillTick(); }catch(e){}                                // 냇가 첫 쓰임 알약 — 판이 그 상황에 닿으면(그리기 예외와 무관하게)
   if(moonMode && state==="play"){                                  // 반딧불 — 밤의 앰비언트
@@ -41298,7 +41403,7 @@ function frameInner(ts){
   }
   if(state==="play" && !pendingWin && !isAnimating()) flushMoveBuffer();
   if(state==="play" && !pendingWin && !isAnimating() && !moveBuffer) flushWalkQueue();   // 끌어 둔 경로 — 반사 버퍼가 먼저
-  if(pendingWin && state==="play" && !isAnimating()){ pendingWin=false; win(); }
+  if(pendingWin && state==="play" && !isAnimating() && !potMergeHold()){ pendingWin=false; win(); }
   // 걸음 제한 — 마지막 한 수로 이겼으면 그건 승리다. 그래서 승리 확정 뒤에 본다.
   if(state==="play" && !pendingWin && !isAnimating() && !tutMode && !moonMode && !tsMode
      && !menuMode && !failOn && moves>=stepLimit()) failNow();
