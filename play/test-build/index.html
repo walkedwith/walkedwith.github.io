@@ -22824,8 +22824,8 @@ function drawRoomWinPick(){
     g.beginPath(); g.roundRect(G.mx-w/2,G.by-h/2,w,h,h/2); g.fill(); g.stroke();
     if(UI_GEM_IMG && UI_GEM_IMG.complete && UI_GEM_IMG.naturalWidth) g.drawImage(UI_GEM_IMG,G.mx-w/2+c*0.08,G.by-c*0.19,c*0.38,c*0.38);
     g.fillStyle=ok? '#5A4636' : '#9C8E80'; g.font=Math.round(c*0.3)+'px '+CFONT; g.textAlign='center'; g.textBaseline='middle'; g.fillText(String(cost), G.mx+c*0.17, G.by+c*0.02); g.textAlign='left'; g.textBaseline='alphabetic'; }
-  else { g.save(); g.shadowColor='rgba(76,175,80,'+(0.4+0.4*pu)+')'; g.shadowBlur=c*0.25; g.fillStyle='#7BC67B'; g.beginPath(); g.roundRect(G.mx-c*0.55,G.by-c*0.3,c*1.1,c*0.6,c*0.3); g.fill(); g.restore();
-    g.strokeStyle='#FFFFFF'; g.lineWidth=c*0.09; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(G.mx-c*0.2,G.by); g.lineTo(G.mx-c*0.04,G.by+c*0.15); g.lineTo(G.mx+c*0.24,G.by-c*0.15); g.stroke(); }
+  else { g.fillStyle='rgba(255,253,247,.97)'; g.strokeStyle='#E8A94C'; g.lineWidth=Math.max(1.5,c*0.04); g.beginPath(); g.arc(G.mx,G.by,c*0.26+c*0.015*pu,0,7); g.fill(); g.stroke();   // 확인 — 화살표와 같은 크림 원 + 호박 테, 초록 체크(10-14 사람: 큰 초록 알약은 과했다)
+    g.strokeStyle='#4FAE5A'; g.lineWidth=c*0.075; g.lineCap='round'; g.lineJoin='round'; g.beginPath(); g.moveTo(G.mx-c*0.11,G.by); g.lineTo(G.mx-c*0.025,G.by+c*0.09); g.lineTo(G.mx+c*0.13,G.by-c*0.09); g.stroke(); }
 }
 // 꾸미기를 열면 창문 둘레에 "바꿀 수 있다" 표 — 점선 고리 + 좌우 화살표 뱃지. 누르면 고르기(change).
 function drawRoomWinDecoHint(){
