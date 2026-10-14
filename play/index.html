@@ -5478,7 +5478,7 @@ const HOME_STAGES={
   1:{T:'0000000001111100011011100111111001000110011111100111111000000000',h:[],p:[],b:[[5,2,0,0]],d:[2,6],home:[1,6,2],par:18,sl:'DLLLLLDDRRRRDRUUUU'},
   2:{T:'0000000001101100011111100111111000111100011111000011111000000000',h:[],p:[],b:[[3,4,0,0],[4,4,0,1]],d:[1,2],home:[1,3,2],tg:[[2,2]],par:18,sl:'DRRRDLRDLLUUDDDLUU',ac:[[3,5],[3,3],[4,2]],par5:18,sl5:'DRRRDLRDLLUUDDDLUU'},
   3:{T:'0000000001110100011111100111111001111110010111000111101000000000',h:[],p:[],b:[[5,4,0,0],[3,2,0,1],[2,5,0,1]],d:[1,1],home:[1,4,2],tg:[[2,2],[2,3]],par:20,sl:'DDDRUDRDDRUUUUDRRULL',ac:[[4,1],[6,3],[3,6]],par5:20,sl5:'DDDRUDRDDRUUUUDRRULL'},
-  4:{T:'0000000001110110011111100111111001111110011111100111111000000000',h:[],p:[],b:[[5,2,0,0],[4,3,0,1],[5,5,0,1],[3,4,0,1],[5,4,0,1]],d:[2,4],home:[1,4,2],tg:[[6,2],[6,3],[6,4],[6,5]],par:29,sl:'DRDDLDLLUUULURRDRUDDDULDUULDD',ac:[[4,2],[2,1],[4,4]],par5:29,sl5:'DRDDLDLLUUULURRDRUDDDULDUULDD'},
+  4:{T:'0000000001110110011111100111111001111110011111100111111000000000',h:[],p:[],b:[[5,2,0,0],[4,3,0,1],[3,4,0,1],[5,4,0,1]],d:[2,4],home:[1,4,2],tg:[[6,3],[6,4],[6,5]],par:24,sl:'LDRDDLDLUULURRDDURUURDDD',ac:[[4,2],[3,1],[4,4]],par5:24,sl5:'LDRDDLDLUULURRDDURUURDDD'},   // 10-14 사람: 화분 넷 → 셋
   5:{T:'0000000001111100011111100111111001111110011110100111101000000000',h:[],p:[],b:[[5,3,0,0],[3,2,0,1],[5,4,0,1],[2,4,0,1],[4,5,0,1]],d:[2,6],home:[1,6,2],tg:[[3,3],[3,4],[4,3],[4,4]],par:35,sl:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL',ac:[[2,3],[5,2],[3,5]],par5:35,sl5:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL'}
 };
 const HOME_STAGES_OLD={};
@@ -33299,36 +33299,20 @@ function drawCatPlanterWall(x,y,sd){                          // 고양이골목
     ctx.fillStyle='#F6D474'; ctx.beginPath(); ctx.arc(x+cell*.64,y+cell*.27,cell*.025,0,7); ctx.fill();
   }
 }
-// 1동네 맥스네 마당 — 나무 화단 상자(2026-10-01 사람 결정). 수풀 대신. 흰 문짝(여닫이 문)과 재질로 갈린다:
-// 문은 흰 살, 벽은 갈색 상자 + 꽃. 상자는 낮게 두어 옆 칸의 공·맥스를 안 가린다.
-// 꽃은 칸마다 색 조합만 바뀐다(해시) — 개수·자리는 같아서 벽 줄이 한 덩어리로 읽힌다.
+// 1동네 맥스네 마당 — 꽃 덤불(2026-10-14 사람 결정, 옛 나무 화단 상자 대신). 이름·키('나무 화단')는 그대로 둔다.
+// 선 없이 면의 색 단차(진한 밑 → 중간 → 밝은 윗면)로만 읽힌다. 꽃은 칸마다 해시로 자리·색이 바뀐다.
+// 흰 문짝(여닫이 문)과는 색·질감으로 갈린다 — 문은 흰 살, 벽은 초록 덤불.
 function drawYardFlowerBoxWall(x,y,sd){
-  // 칸을 꽉 채우는 정사각 상자(2026-10-02) — 예전엔 가로 .76 · 세로 .36 납작한 상자라 칸이 비어 보였고
-  // 벽이 어디까지인지 덜 읽혔다. 상자 몸통이 칸 폭 .88 · 높이 .60, 꽃은 그 위 .10~.32 에 핀다.
-  const c=cell;
-  ctx.fillStyle='rgba(42,52,30,.22)'; ctx.beginPath(); ctx.ellipse(x+c*.5,y+c*.93,c*.47,c*.07,0,0,7); ctx.fill();
-  // 잎·꽃 — 상자 흙에서 솟는다
-  const PET=['#F59DB8','#F7CF58','#FFFFFF','#9DC2F2','#F4A47A'];
-  const k=Math.floor(hsh(sd)*PET.length);
-  const fl=[[.24,.16,.125],[.50,.10,.135],[.76,.17,.12],[.37,.25,.10],[.63,.26,.10]];
-  ctx.fillStyle='#3F6B33';
-  for(const [u,v] of [[.17,.31],[.33,.28],[.50,.29],[.67,.28],[.83,.31]]){ ctx.beginPath(); ctx.ellipse(x+c*u,y+c*v,c*.09,c*.058,0,0,7); ctx.fill(); }
-  ctx.strokeStyle='#4E7E3C'; ctx.lineWidth=Math.max(1,c*.022); ctx.lineCap='round';
-  for(const [u,v] of fl){ ctx.beginPath(); ctx.moveTo(x+c*u,y+c*.32); ctx.lineTo(x+c*u,y+c*v); ctx.stroke(); }
-  fl.forEach(([u,v,R],i)=>{ const px=x+c*u, py=y+c*v, col=PET[(k+i)%PET.length], rad=c*R*.5;
-    ctx.fillStyle=col; for(let j=0;j<5;j++){ const a=j/5*Math.PI*2-Math.PI/2;
-      ctx.beginPath(); ctx.arc(px+Math.cos(a)*rad*.62,py+Math.sin(a)*rad*.62,rad*.52,0,7); ctx.fill(); }
-    if(col==='#FFFFFF'){ ctx.strokeStyle='rgba(180,170,150,.5)'; ctx.lineWidth=c*.008; ctx.beginPath(); ctx.arc(px,py,rad*.95,0,7); ctx.stroke(); }
-    ctx.fillStyle=col==='#F7CF58'? '#D9873A' : '#F6D06A'; ctx.beginPath(); ctx.arc(px,py,rad*.36,0,7); ctx.fill(); });
-  // 상자 — 판자 셋, 아래가 짙다
-  ctx.fillStyle='#7A5232'; ctx.beginPath(); ctx.roundRect(x+c*.05,y+c*.33,c*.90,c*.60,c*.08); ctx.fill();
-  ctx.fillStyle='#B07A4C'; ctx.beginPath(); ctx.roundRect(x+c*.06,y+c*.30,c*.88,c*.59,c*.075); ctx.fill();
-  ctx.fillStyle='#C48D5A'; ctx.beginPath(); ctx.roundRect(x+c*.06,y+c*.30,c*.88,c*.11,c*.06); ctx.fill();   // 윗 테
-  ctx.fillStyle='#5E3F28'; ctx.fillRect(x+c*.11,y+c*.32,c*.78,c*.04);                                         // 흙
-  ctx.strokeStyle='rgba(110,72,44,.55)'; ctx.lineWidth=Math.max(1,c*.018);
-  for(const v of [.56,.73]){ ctx.beginPath(); ctx.moveTo(x+c*.09,y+c*v); ctx.lineTo(x+c*.91,y+c*v); ctx.stroke(); }   // 판자 이음
-  ctx.fillStyle='rgba(255,236,200,.35)'; ctx.beginPath(); ctx.roundRect(x+c*.11,y+c*.45,c*.34,c*.045,c*.02); ctx.fill();
-  ctx.fillStyle='#8C6A3E'; for(const u of [.12,.88]) for(const v of [.37,.64,.81]){ ctx.beginPath(); ctx.arc(x+c*u,y+c*v,c*.02,0,7); ctx.fill(); }   // 못
+  const g=ctx, c=cell;
+  g.fillStyle='rgba(42,52,30,.24)'; g.beginPath(); g.ellipse(x+c*.5,y+c*.93,c*.5,c*.07,0,0,7); g.fill();
+  const B=[[.27,.68,.19],[.73,.68,.19],[.5,.58,.25],[.37,.47,.18],[.64,.49,.18],[.5,.74,.18]];
+  const blob=(u,v,r,col)=>{ g.fillStyle=col; g.beginPath(); g.arc(x+c*u,y+c*v,c*r,0,7); g.fill(); };
+  for(const [u,v,r] of B) blob(u,v+.012,r,'#3F7E32');
+  for(const [u,v,r] of B) blob(u-.008,v-.012,r*.93,'#4D8D3D');
+  for(const [u,v,r] of B) blob(u-.014,v-.035,r*.8,'#68AA4F');
+  for(const [u,v,r] of [[.34,.44,.1],[.6,.46,.09],[.45,.6,.1],[.22,.64,.07],[.72,.62,.07]]) blob(u,v,r,'#8AC865');
+  const PET=['#F59DB8','#FFFFFF','#F7CF58'], k=Math.floor(hsh(sd)*3);
+  for(let i=0;i<6;i++){ const u=.25+hsh(sd+i*3.1)*.5, v=.4+hsh(sd+i*5.7)*.34; blob(u,v,.03,PET[(i+k)%3]); blob(u,v,.012,'#F6D06A'); }
 }
 function drawPlayPlanterWall(x,y,sd,flag){                    // 놀이 공터 A안 — 절제된 목재 화단
   ctx.fillStyle='rgba(42,50,30,.20)';
@@ -41199,8 +41183,8 @@ function frameInner(ts){
     }
     if(!cutFx.snapped && cutFx.t>=CUT_SNAP*0.82){         // 두 번째 — 여기서 무너진다
       cutFx.snapped=true;
-      if(EDGE_ART.INNER[(districtOf(level)||{}).nm]==='나무 화단'){        // 화단 — 판자 조각과 꽃잎이 튄다
-        spark(cutFx.r, cutFx.c, "#B07A4C", 10, 2.6); spark(cutFx.r, cutFx.c, "#F59DB8", 6, 2.2); spark(cutFx.r, cutFx.c, "#F7CF58", 4, 2.0); }
+      if(EDGE_ART.INNER[(districtOf(level)||{}).nm]==='나무 화단'){        // 덤불 — 잎과 꽃잎이 튄다
+        spark(cutFx.r, cutFx.c, "#68AA4F", 10, 2.6); spark(cutFx.r, cutFx.c, "#F59DB8", 6, 2.2); spark(cutFx.r, cutFx.c, "#F7CF58", 4, 2.0); }
       else spark(cutFx.r, cutFx.c, "#6B9A4E", 18, 2.8);
       sfxSelected('dirt'); buzz([12,26,16]); shake=Math.min(1, shake+0.18);
       dog.lungeT=1;

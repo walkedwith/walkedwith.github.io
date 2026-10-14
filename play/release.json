@@ -1,16 +1,16 @@
 {
-  "sourceHead": "1a87a65a8d0e6cd7058a5222b09bd0c6899c0b4d",
-  "date": "2026-10-14T08:45:42.100Z",
-  "liveSha256": "76371f7bc03591cca9a5b75ffa6b093ae74b8164991fd599eb97f8cfb8d4aafc",
-  "testSha256": "2f36526db64660cbdedef86e228f0fdd62b06d6e566cc47b4b2088f06ca89827",
+  "sourceHead": "563857371b3fe79fbf2ad933236121ecb1214752",
+  "date": "2026-10-14T10:16:58.079Z",
+  "liveSha256": "ab563c7e2672fca9e991dbf54cf9a35cd8bb133cf27e9be403993d506b61478f",
+  "testSha256": "3f7fdc1f7f80f50e2d3f760b39a055599a2758e1eee21a8a60b5b819129a0c07",
   "files": 368,
-  "sourceCommit": "1a87a65a8d0e6cd7058a5222b09bd0c6899c0b4d",
+  "sourceCommit": "563857371b3fe79fbf2ad933236121ecb1214752",
   "kind": "live",
   "tests": {
     "scoped": true,
-    "passed": 166,
+    "passed": 7,
     "failed": 0,
-    "note": "changed-area tests only (void/goal-feel/district/home/skin/hill/creek, 15 files); full suite skipped on request"
+    "note": "changed-area tests only (ui-ux-polish, yard-coach-action, 2 files); full suite skipped on request"
   },
   "levelChecks": 300
 }
