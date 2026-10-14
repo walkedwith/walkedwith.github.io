@@ -1,16 +1,16 @@
 {
-  "sourceHead": "7117f57e961e3c7fe918bbb5291073a0823c5b2f",
-  "date": "2026-10-14T11:43:49.043Z",
-  "liveSha256": "e174f2aaf18f289632b12cd0f952e00bae46d2856f822324816481b1e1972746",
-  "testSha256": "45dae350661602c8e8af51aeb70cc3eabdde2cb6edd50ab0e886b45489e679fc",
+  "sourceHead": "313e22e6e7b66dac37c452ea862926af83e6f381",
+  "date": "2026-10-14T12:37:58.591Z",
+  "liveSha256": "074b594cafd71668064b410279f23ce3dbdb849ea387eec5c9b142468b28dbaa",
+  "testSha256": "c7da9c6d192887ffc442f34728347bf71a8d844e23708a88edfdbf23b7cab295",
   "files": 368,
-  "sourceCommit": "7117f57e961e3c7fe918bbb5291073a0823c5b2f",
+  "sourceCommit": "313e22e6e7b66dac37c452ea862926af83e6f381",
   "kind": "live",
   "tests": {
-    "scoped": true,
-    "passed": 39,
-    "failed": 0,
-    "note": "changed-area tests only (yard-gem-slots, house-*, yard-lawn, guide-onboard; 7 files); full suite skipped on request"
+    "scoped": false,
+    "passed": 1260,
+    "failed": 9,
+    "note": "full suite on candidate: 1324 tests, 9 baseline failures (audio/i18n/backgrounding/patrol-cat/districts 8-10/master atlas); 3 new failures fixed and re-run (skin manifest, known.json, restart preview)"
   },
   "levelChecks": 300
 }

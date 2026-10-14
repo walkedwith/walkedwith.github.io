@@ -3669,7 +3669,7 @@ function showGintro(key){
   // 맥스가 설 칸에 고리·미는 쪽 화살표(물건이면 손도), 말풍선은 그 옆에. 아무 데나 누르면 다음 줄. 자리를 못 찾으면 예전 카드.
   giOnboard = (INTRO[level]===key && !tutMode && !houseMode && state==='play')? giTarget(key) : null;
   el("gintro").classList.toggle('onboard', !!giOnboard);
-  if(giOnboard){ teach=Object.assign({}, giOnboard, {t0:animT, noHand:!TEACH_KEYS.has(key), preview:true}); }
+  if(giOnboard){ teach=Object.assign({}, giOnboard, {t0:animT, preview:true}); }
   giApplyStep();
   gintroOn=true; el("gintro").classList.add("show");
   if(giOnboard) requestAnimationFrame(giPlace);
@@ -3741,25 +3741,25 @@ function giNext(){
 // 굴려 그 기믹이 처음 작동하는 수를 찾는다. 맥스가 설 칸에 점선 고리, 손이 그 방향으로 민다. 플레이어가 그 기믹을
 // 한 번 작동시키면 걷힌다(어느 칸에서든). 글자는 없다.
 let teach=null;
-// 손으로 보여 줄 건 **맥스가 직접 밀거나 돌리는 물건**뿐이다. 비눗물·언덕·물살 같은 지형은 손댈 수 있는 게 아닌데
-// 손이 그 칸에서 쓸면 지형을 조작하는 것처럼 읽힌다(10-04 사람: 31판 비눗물). 지형은 카드 데모만으로 가르친다.
-const TEACH_KEYS=new Set(['door','mower','mowerTurn','log','cart','valve','catbox','logpit','logvalve']);
 // 구운 해답을 앞에서부터 굴려 그 기믹이 처음 작동하는 수를 찾는다 — 맥스가 설 칸과 미는 방향. 못 찾으면 null.
-function giTarget(key){
+function giTarget(key, nowOnly){
   if(/^creek\d+$/.test(key)) return creekPillTarget(level, L, {dog:{r:dog.r,c:dog.c}, boxes:boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(filled)});   // 냇가 첫 쓰임 알약
-  const m=MECH[key], row=BAKED[level-1]; if(!m || !m.fired || !row || !row.sl || moves>0) return null;
+  const m=MECH[key], row=BAKED[level-1]; if(!m || !m.fired || !row || !row.sl || (moves>0 && !nowOnly)) return null;
   const start={dog:{r:dog.r,c:dog.c}, boxes:boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(filled)};
+  // 지금 판에서 바로 되는 수부터 찾는다(10-14) — 해답 중간의 수를 짚으면 그 사이 공·깎이가 옮겨 간 판 기준이라
+  // 그림자가 빈 데를 밀거나 공 위에 섰다(22·31·36·41판). 물건을 안 건드리고 걸어서 닿는 칸 중 가장 가까운 데서 그 규칙이 작동하는 수.
+  const same=(a,b)=>a.every((x,i)=>x.r===b[i].r && x.c===b[i].c), dk=s=>s.dog.r*GN+s.dog.c, seen=new Set([dk(start)]), q=[{st:{...start, carry:false}, ml:[]}];
+  try{ while(q.length){ const {st,ml}=q.shift();
+    for(const mv of DIRS){ if(m.fired(solStats(L,start,ml.concat([mv])))>0) return {key, r:st.dog.r, c:st.dog.c, dr:mv[0], dc:mv[1], now:true};
+      const r=applyMove(L,st,mv[0],mv[1]); if(!r || !same(st.boxes,r.boxes)) continue;
+      const ns={dog:r.dog, boxes:r.boxes, filled:r.filled, carry:r.carry}; if(seen.has(dk(ns))) continue; seen.add(dk(ns)); q.push({st:ns, ml:ml.concat([mv])}); } } }catch(e){ return null; }
+  if(nowOnly) return null;
+  // 못 찾으면 예전처럼 해답에서 처음 작동하는 수
   let st={dog:{...start.dog}, boxes:start.boxes.map(b=>({...b})), filled:new Set(start.filled), carry:false};
   const ml=[];
   for(const ch of row.sl){ const mv=SL_DIR[ch]; if(!mv) continue;
     try{
       if(m.fired(solStats(L,start,ml.concat([mv])))>0){
-        if(key==='mowerTurn'){
-          const mb=st.boxes.find(b=>b.kind==='mower');
-          if(mb){ const f=mowerFace(mb), v=DOOR_CV[f];
-            return {key, r:mb.r-v[0], c:mb.c-v[1], dr:mv[0], dc:mv[1]};
-          }
-        }
         return {key, r:st.dog.r, c:st.dog.c, dr:mv[0], dc:mv[1]};
       }
     }catch(e){ return null; }
@@ -3769,30 +3769,69 @@ function giTarget(key){
 }
 function teachStart(key){
   teach=null;
-  if(!TEACH_KEYS.has(key)) return;
-  const t=giTarget(key); if(t) teach=Object.assign(t,{t0:animT});
+  // 10-14 사람: 어떤 규칙이든 처음 나오는 판엔 맥스 그림자 — 바닥 규칙도(그림자는 맥스가 미는 것이라 지형을 만지는 손처럼 안 읽힌다).
+  // 지금 판에서 바로 못 쓰는 규칙(22 깎이 돌리기·36 공 맞히기·91 언덕)은 기다렸다가, 쓸 수 있게 되는 첫 순간에 띄운다.
+  const t=giTarget(key); if(t) teach=t.now? Object.assign(t,{t0:animT}) : {key, pending:true, mv:moves};
 }
+function teachWake(){                                              // 한 수 둘 때마다(움직임이 끝난 뒤) 다시 잰다
+  if(!teach || !teach.pending || teach.mv===moves || isAnimating() || state!=='play') return;
+  teach.mv=moves; const t=giTarget(teach.key, true); if(t) teach=Object.assign(t,{t0:animT}); }
 function teachCheck(dr,dc){
   if(!teach) return;
   try{ const s1=solStats(L,{dog:{r:dog.r,c:dog.c}, boxes:boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried})), filled:new Set(filled)},[[dr,dc]]);
     if(MECH[teach.key].fired(s1)>0) teach=null; }catch(e){ teach=null; }
 }
+// 맥스 그림자(10-14 사람) — 손가락 대신 설 칸에 반투명 맥스가 나타나 미는 쪽으로 톡 밀고 물러난다(2.6초 한 바퀴).
+// 그 순간 문은 살짝 돌았다 돌아오고(바람 결 없음) 깎이는 움찔한다. 손이 칸을 가려 "여기 눌러"로 읽히던 것을 없앴다.
+// 바닥 규칙(비눗물·물살…)도 같은 그림자다 — 미는 건 맥스라 지형을 만지는 손처럼 안 읽힌다. 뜨는 건 그 규칙이 처음 나오는 판(INTRO)뿐.
+let teachGhostCv=null;
+const TEACH_CYC=2.6, teachSm=x=>x<=0? 0 : x>=1? 1 : x*x*(3-2*x);
+function teachShown(){ return !!teach && !teach.pending && state==='play' && !(gintroOn && !giOnboard); }
+function teachPhase(){ return teach? (((animT-teach.t0)%TEACH_CYC)+TEACH_CYC)%TEACH_CYC/TEACH_CYC : 0; }
+function teachPushK(u){ return u<.30? 0 : u<.46? teachSm((u-.30)/.16) : u<.62? 1 : u<.80? 1-teachSm((u-.62)/.18) : 0; }   // 다가가 톡 · 멈춤 · 물러남
+// 그 수를 두는 순간 무엇이 움직이나 — 해답을 앞에서부터 굴려 그 순간의 판에서 잰다(시작 판 그대로면 공에 막혀 안 도는 판이 있다, 12판).
+// door: 도는 문 · balls: 움직인 공(옛 칸→새 칸, 맞아서 가는 공은 친 공이 닿은 뒤 출발).
+function teachFx(){ if(!teach) return null; if(teach.fx) return teach.fx; const fx=teach.fx={door:null, balls:[]};
+  try{ let st=curState(); const row=BAKED[level-1], sl=teach.now? ({'-1,0':'U','1,0':'D','0,-1':'L','0,1':'R'}[teach.dr+','+teach.dc]||'') : (row && row.sl)||'';   // 지금 판에서 되는 수면 그 칸에 세워 한 수만
+    if(teach.now) st={...st, dog:{r:teach.r, c:teach.c}};
+    for(const ch of sl){ const m=SL_DIR[ch]; if(!m) continue; const res=applyMove(L,st,m[0],m[1]); if(!res) continue;
+      if(st.dog.r===teach.r && st.dog.c===teach.c && m[0]===teach.dr && m[1]===teach.dc){
+        if(res.door) fx.door={i:res.door.i, from:res.door.from, s:res.door.s};
+        st.boxes.forEach((b,i)=>{ const n=res.boxes[i]; if(n && (b.kind==='ball'||!b.kind) && (n.r!==b.r || n.c!==b.c)) fx.balls.push({b, fr:b.r, fc:b.c, r:n.r, c:n.c, d:Math.abs(n.r-b.r)+Math.abs(n.c-b.c)}); });
+        const hit=fx.balls.find(q=>q.fr===teach.r+teach.dr && q.fc===teach.c+teach.dc);
+        for(const q of fx.balls) q.at=(hit && q!==hit)? hit.d : 0;
+        break; }
+      st={dog:res.dog, boxes:res.boxes, filled:res.filled, carry:res.carry}; } }catch(e){}
+  fx.slide=fx.balls.length>1 || fx.balls.some(q=>q.d>1);         // 미끄러지거나 맞아 나가면 — 맥스 대신 공이 보여 준다
+  return fx; }
+function teachDoor(){ const fx=teachFx(); return fx && fx.door; }
+function teachMowerJolt(b){                                        // 그림자 앞 한두 칸의 깎이(손잡이 칸을 밀면 몸은 한 칸 더 앞) — 닿는 순간만
+  if(!teachShown() || !b) return 0; const u=teachPhase();
+  if(u<=.40 || u>=.58 || ![1,2].some(n=>teach.r+teach.dr*n===b.r && teach.c+teach.dc*n===b.c)) return 0;
+  return Math.sin((u-.40)/.18*Math.PI)*.06; }
 function drawTeach(){
-  if(!teach || state!=='play' || (gintroOn && !giOnboard)) return;
-  const {r,c,dr,dc}=teach, x=cx(c), y=cy(r), pu=0.5+0.5*Math.sin(animT*4), R=cell*(0.42+0.03*pu);
+  teachWake();
+  if(!teachShown()) return;
+  const {r,c,dr,dc}=teach, u=teachPhase(), fade=teachSm(u/.14)*(1-teachSm((u-.86)/.14)), k=teachPushK(u), s=cell;
+  const x=cx(c)+dc*s*.2*k, y=cy(r)+dr*s*.2*k;
   ctx.save();
-  ctx.fillStyle='rgba(255,226,150,'+(0.22+0.12*pu).toFixed(3)+')'; ctx.beginPath(); ctx.arc(x,y,R,0,7); ctx.fill();
-  ctx.strokeStyle='#FFC66B'; ctx.lineWidth=Math.max(2,cell*0.055); ctx.setLineDash([cell*0.14,cell*0.11]); ctx.lineDashOffset=-animT*cell*0.4;
-  ctx.beginPath(); ctx.arc(x,y,R,0,7); ctx.stroke(); ctx.setLineDash([]);
-  // 미는 쪽 화살표 — 고리 앞으로 한 칸
-  ctx.fillStyle='rgba(255,198,107,.95)'; ctx.translate(x+dc*cell*0.62, y+dr*cell*0.62); ctx.rotate(Math.atan2(dr,dc));
-  ctx.beginPath(); ctx.moveTo(cell*0.16,0); ctx.lineTo(-cell*0.08,-cell*0.14); ctx.lineTo(-cell*0.08,cell*0.14); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='rgba(255,250,235,'+(.32*fade).toFixed(3)+')'; ctx.beginPath(); ctx.ellipse(cx(c),cy(r)+s*.3,s*.3,s*.1,0,0,7); ctx.fill();   // 설 자리 — 바닥에 옅은 빛
+  const fx=teachFx();
+  if(fx && fx.slide){                                              // 공 그림자 — 비눗물에 미끄러지고, 맞은 공이 튀어 나간다(31·36판)
+    const CELL_U=.09;                                              // 한 칸에 한 바퀴의 9% — 미끄러지는 게 눈에 보이게
+    for(const q of fx.balls){ const u0=.22+q.at*CELL_U, u1=u0+q.d*CELL_U, e=teachSm((u-u0)/(u1-u0)), bx=cx(q.fc+(q.c-q.fc)*e), by=cy(q.fr+(q.r-q.fr)*e);
+      if(u<=u0) continue; const a=.45*fade*(1-teachSm((u-u1-.12)/.14));                     // 닿으면 잠깐 머물다 사라진다 — 진짜 공과 헷갈리지 않게
+      // 장난감 그림은 globalAlpha 를 제 값으로 덮어쓴다 — 따로 그려 반투명으로 얹는다
+      const S=Math.ceil(s*2), oc=teachGhostCv||(teachGhostCv=document.createElement('canvas')); if(oc.width!==S){ oc.width=S; oc.height=S; }
+      const g0=ctx; ctx=oc.getContext('2d'); ctx.clearRect(0,0,S,S);
+      try{ if(goalFeelToyKind()) drawGoalFeelToy(S/2,S/2,s,goalToyRotation(0,0),false,0,0,COL[q.b.color]||null); else drawBall(S/2,S/2,s,q.b.color,0,1,1); } finally { ctx=g0; }
+      ctx.globalAlpha=a; ctx.drawImage(oc,bx-S/2,by-S/2); }
+    ctx.restore(); return; }
+  ctx.globalAlpha=.55*fade; if(!drawMaxMasterBoardStatic(x,y,s*.94,dr,dc,false)) drawDog(x,y,s*.94,dc||1,1,1);   // 맥스가 이미 그 칸이면 몸에서 앞으로 빠져나가는 그림자
+  if(k>.6){ ctx.globalAlpha=fade*(k-.6)/.4*.8; ctx.strokeStyle='#FFFFFF'; ctx.lineWidth=Math.max(1.5,s*.03); ctx.lineCap='round';   // 닿는 순간 짧은 결 둘
+    const ex=cx(c)+dc*s*.5, ey=cy(r)+dr*s*.5, px=-dr, py=dc;
+    for(const o of [-.16,.16]){ ctx.beginPath(); ctx.moveTo(ex+px*s*o-dc*s*.04, ey+py*s*o-dr*s*.04); ctx.lineTo(ex+px*s*o+dc*s*.1, ey+py*s*o+dr*s*.1); ctx.stroke(); } }
   ctx.restore();
-  if(teach.noHand) return;                                         // 지형(비눗물·언덕…)은 손으로 쓸지 않는다 — 고리와 화살표만
-  const ease=t=>t<.5? 2*t*t : 1-Math.pow(-2*t+2,2)/2, ph=(animT/2.2)%1;
-  const ox=x+cell*0.18-dc*cell*0.3, oy=y+cell*0.36-dr*cell*0.3;
-  for(let k=3;k>=0;k--){ const pp=ph-k*0.08; if(pp<0||pp>0.8) continue; const e=ease(Math.min(1,pp/0.8));
-    drawHand(ox+dc*cell*0.9*e, oy+dr*cell*0.9*e, -0.32, k?1.0:1.15, k? 0.18:0.92); }
 }
 function closeGintro(){
   const seenKey=giKey||hintKey;
@@ -5480,7 +5519,13 @@ const HOME_STAGES={
   2:{T:'0000000001101100011111100111111000111100011111000011111000000000',h:[],p:[],b:[[3,4,0,0],[4,4,0,1]],d:[1,2],home:[1,3,2],tg:[[2,2]],par:18,sl:'DRRRDLRDLLUUDDDLUU',ac:[[3,5],[3,3],[4,2]],par5:18,sl5:'DRRRDLRDLLUUDDDLUU'},
   3:{T:'0000000001110100011111100111111001111110010111000111101000000000',h:[],p:[],b:[[5,4,0,0],[3,2,0,1],[2,5,0,1]],d:[1,1],home:[1,4,2],tg:[[2,2],[2,3]],par:20,sl:'DDDRUDRDDRUUUUDRRULL',ac:[[4,1],[6,3],[3,6]],par5:20,sl5:'DDDRUDRDDRUUUUDRRULL'},
   4:{T:'0000000001110110011111100111111001111110011111100111111000000000',h:[],p:[],b:[[5,2,0,0],[4,3,0,1],[3,4,0,1],[5,4,0,1]],d:[2,4],home:[1,4,2],tg:[[6,3],[6,4],[6,5]],par:24,sl:'LDRDDLDLUULURRDDURUURDDD',ac:[[4,2],[3,1],[4,4]],par5:24,sl5:'LDRDDLDLUULURRDDURUURDDD'},   // 10-14 사람: 화분 넷 → 셋
-  5:{T:'0000000001111100011111100111111001111110011110100111101000000000',h:[],p:[],b:[[5,3,0,0],[3,2,0,1],[5,4,0,1],[2,4,0,1],[4,5,0,1]],d:[2,6],home:[1,6,2],tg:[[3,3],[3,4],[4,3],[4,4]],par:35,sl:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL',ac:[[2,3],[5,2],[3,5]],par5:35,sl5:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL'}
+  5:{T:'0000000001111100011111100111111001111110011110100111101000000000',h:[],p:[],b:[[5,3,0,0],[3,2,0,1],[5,4,0,1],[2,4,0,1],[4,5,0,1]],d:[2,6],home:[1,6,2],tg:[[3,3],[3,4],[4,3],[4,4]],par:35,sl:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL',ac:[[2,3],[5,2],[3,5]],par5:35,sl5:'LLULDLDLDRDDRRUUDLDLUUULURRRRDRUDDL'},
+  // 6~10(10-14 사람: 라이브 적용) — 문 판 그대로에 집 하나·화분 하나. 7판은 위를 보는 집.
+  6:{T:'0000000001101110011011100110111001101110010t11100111111000000000',h:[],p:[],b:[[3,6,0,0],[3,5,0,1]],d:[6,1],par:15,sl:'RRRRRUUUULDDLDR',dr:[[43,2,0]],home:[1,6,2],tg:[[5,6]],ac:[[6,5],[4,6],[2,5]],par5:15,sl5:'RRRRRUUUULDDLDR'},
+  7:{T:'00000000011111100111111000001t1000111110011111100101111000000000',h:[],p:[],b:[[1,3,0,1],[2,3,0,0]],d:[4,5],par:18,sl:'LUURRDULLLLDRRRURD',dr:[[29,3]],home:[3,6,0],tg:[[1,1]],ac:[[1,6],[1,4],[1,5]],par5:18,sl5:'LUURRDULLLLDRRRURD'},
+  8:{T:'000000000110111001111010011110100111111000t111100101111000000000',h:[],p:[],b:[[4,3,0,0],[3,3,0,1]],d:[1,2],par:23,sl:'DDRURDDRDDLLURULULURDRU',dr:[[42,1]],home:[1,4,2],tg:[[5,5]],ac:[[4,5],[6,3],[3,2]],par5:23,sl5:'DDRURDDRDDLLURULULURDRU'},
+  9:{T:'000000000101111001011110011111100101011001111t100111111000000000',h:[],p:[],b:[[4,3,0,0],[6,3,0,1]],d:[3,4],par:22,sl:'RRDDDLLLULLDRRRRLLUUUU',dr:[[45,2,0]],home:[1,3,2],tg:[[6,6]],ac:[[5,6],[5,1],[5,3]],par5:22,sl5:'RRDDDLLLULLDRRRRLLUUUU'},
+  10:{T:'0000000001110110011111100111t11001111100010011000011111000000000',h:[],p:[],b:[[5,5,0,1],[3,3,0,0]],d:[4,5],par:28,sl:'LLUDRRUULLDLURRRDDLDDRUUURUL',dr:[[28,1]],home:[1,2,2],tg:[[2,4]],ac:[[4,4],[3,2],[6,4]],par5:28,sl5:'LLUDRRUULLDLURRRDDLDDRUUURUL'}
 };
 const HOME_STAGES_OLD={};
 function homeStagesApply(on){ for(const k in HOME_STAGES){ const i=(k|0)-1; if(!HOME_STAGES_OLD[k]) HOME_STAGES_OLD[k]=BAKED[i]; BAKED[i]=on? HOME_STAGES[k] : HOME_STAGES_OLD[k]; } }
@@ -5588,6 +5633,10 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
   const HB={w:.43, wallH:.48, peak:.9, doorW:.19, doorH:.4};
   const doorPath=(g,s)=>{ const w=HB.doorW*s, h=HB.doorH*s; g.beginPath(); g.moveTo(-w,0); g.lineTo(-w,-h+w); g.arc(0,-h+w,w,Math.PI,0); g.lineTo(w,0); g.closePath(); };
   const homeXY=()=>({x:cx(L.home[1]), y:(L.home[0]+.97)*cell});
+  // 위를 보는 집(7판) — 입구는 뒤(위)쪽이라 앞 박공에 아치 대신 흰 벽과 둥근 창을 덮는다.
+  function drawHomeBack(g){ const s=cell, x=cx(L.home[1]), y=cy(L.home[0])+s*.5; g.save(); g.fillStyle='#FFFFFF'; g.fillRect(x-s*.2,y-s*.5,s*.4,s*.44);
+    g.strokeStyle='rgba(150,135,120,.22)'; g.lineWidth=Math.max(.8,s*.008); for(const k of [.2,.36]){ g.beginPath(); g.moveTo(x-s*.2,y-s*k); g.lineTo(x+s*.2,y-s*k); g.stroke(); }
+    g.fillStyle='#BFE0F5'; g.strokeStyle='#A98F78'; g.lineWidth=Math.max(1,s*.014); g.beginPath(); g.arc(x,y-s*.3,s*.085,0,7); g.fill(); g.stroke(); g.restore(); }
   function drawHome(g){
     const s=cell, {x,y}=homeXY(), w=HB.w*s, wh=HB.wallH*s, pk=HB.peak*s;
     const age=homeFx? animT-homeFx.t0 : 9, pop=age>=0 && age<.55? Math.sin(age/.55*Math.PI)*(1-age/.55*.5) : 0;
@@ -5675,7 +5724,7 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
       g.fillStyle=on? '#F3EAD6' : '#DDD3BE'; g.strokeStyle=on? '#E2B64A' : '#B9AC93'; g.lineWidth=Math.max(1,s*.022); g.beginPath(); g.ellipse(x,y,s*.34,s*.115,0,0,7); g.fill(); g.stroke();
       if(!on){ g.setLineDash([s*.06,s*.05]); g.strokeStyle='rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(x,y,s*.24,s*.075,0,0,7); g.stroke(); g.setLineDash([]); }
       g.restore(); } }
-  liquidFx=function(){ const r=G0.liquidFx.apply(this,arguments); if(L && L.home && !houseMode) try{ if(L.tg) drawPotSpots(ctx); homeIntroTick(); drawHome(ctx);
+  liquidFx=function(){ const r=G0.liquidFx.apply(this,arguments); if(L && L.home && !houseMode) try{ if(L.tg) drawPotSpots(ctx); homeIntroTick(); drawHome(ctx); if((L.home[2]&3)===0) drawHomeBack(ctx);
       if(homeBang){ const u=(animT-homeBang.t0)/.8; if(u>=1) homeBang=null; else if(u>=0){ if(!homeBang.s){ homeBang.s=1; try{ tone(880,0.06,'triangle',0.04,1180); }catch(e){} } ctx.save(); ctx.translate(cx(L.home[1])-cell*.56, cy(L.home[0])+cell*.3); ctx.scale(1.6,1.6); drawAlertMark(0, 0, u); ctx.restore(); } } }catch(e){} return r; };
   // 들어가는 공 — 문 아치 안쪽만 보이게 잘라 그리고, 들어갈수록 작아지며 어두워진다(문 안으로 쏙).
   const entering=(x,y)=>{ if(!L || !L.home || houseMode || (L.home[2]&3)!==2) return null;
@@ -35060,6 +35109,11 @@ function drawDoorPost(g, x, y, s){
 }
 function drawDoors(){
   if(!L || !L.doors) return;
+  const pv=(!doorFx && teachShown())? teachDoor() : null, pk=pv? teachPushK(teachPhase()) : 0;   // 맥스 그림자가 미는 동안 문이 살짝 돌았다 돌아온다
+  if(pv && pk>.01){ doorFx={i:pv.i, from:pv.from, s:pv.s, t:.06*pk, preview:true}; try{ drawDoorsNow(); } finally { doorFx=null; } return; }
+  drawDoorsNow();
+}
+function drawDoorsNow(){
   const g=ctx, s=cell, H=Math.PI/2;
   L.doors.forEach((d,i)=>{
     const fx=(doorFx && doorFx.i===i)? doorFx : null;
@@ -35096,7 +35150,7 @@ function drawDoors(){
     items.push({y:gy+.001, f:()=>drawDoorPost(g, px, gy, s)});
     items.sort((a,b)=>a.y-b.y).forEach(it=>it.f());
     // 결은 살 높이 가운데(땅 선 위 .3칸)에 그린다 — 살 위로 지나가야 바람으로 읽힌다
-    if(fx && !fx.fail && fx.t>0) drawDoorWind(d, fx, 1-Math.pow(1-Math.min(1,fx.t),3), Math.min(1,fx.t*3));
+    if(fx && !fx.fail && !fx.preview && fx.t>0) drawDoorWind(d, fx, 1-Math.pow(1-Math.min(1,fx.t),3), Math.min(1,fx.t*3));
     else if(doorWind && doorWind.i===i) drawDoorWind(d, doorWind, 1, 1-doorWind.age/DOOR_WIND_FADE);
   });
 }
@@ -36610,6 +36664,7 @@ function drawDeepMowerHandle(x,y,s,b){
   ctx.restore();
 }
 function drawMower(x,y,s,b){
+  { const j=teachMowerJolt(b); if(j){ const f0=teach; x+=f0.dc*s*j; y+=f0.dr*s*j; } }
   const f=mowerFace(b), T=b.turnFx;
   ctx.save();
   const handleFront=mowerDeep() && Math.sin(mowerHandleAngle(b))>.3;   // 손잡이가 카메라 쪽이면 몸통을 덮어야 한다
@@ -40939,7 +40994,7 @@ function wakeGameFrame(){
 // 시간으로 도는 안내·연출 — 입력이 없어도 화면은 움직인다(연습 손가락, 방 자리 손가락, 선물 열기, 할아버지 배달).
 // 이게 떠 있는데 쉬는 중으로 치면 그 연출이 초당 4~8장으로 끊긴다(10-12 사람 보고 · 코드로 확인).
 function frameTimedShow(){
-  try{ return !!(tut || obActive() || gintroOn || coachSteps || houseUnwrapFx || houseGramps || houseZooming || (houseMode && roomSlotHand())); }catch(_){ return false; }
+  try{ return !!(tut || teachShown() || obActive() || gintroOn || coachSteps || houseUnwrapFx || houseGramps || houseZooming || (houseMode && roomSlotHand())); }catch(_){ return false; }
 }
 function frameIdle(now){ return now-paceWake>2000 && !isAnimating() && !fx.length && !liqFx.length && state==='play' && !pendingWin && !frameTimedShow(); }
 function scheduleGameFrame(delay=0){
