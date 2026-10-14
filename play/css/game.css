@@ -4468,3 +4468,23 @@ body:has(#win.show) #hint, body:has(#win.show) .hintact, body:has(#win.show) #gb
 #win.show { background:rgba(40,28,20,.45); }
 /* 바닥 풍경(#wrap::after, z 0)이 카드 아래쪽을 덮었다 — #boardWrap 은 filter 때문에 제 쌓임 층이라 판째로 올린다 */
 body:has(#win.show) #boardWrap { z-index:1; }
+
+/* 할 일 칩(10-14, 시안 F6) — 1동네 판 위 줄: 왼쪽 할 일 칩 · 가운데 규칙 칩 · 오른쪽 젬. 규칙 칩과 같은 줄·같은 높이. */
+body.hudinplay:not(.inhouse) #goalChips { position:absolute; left:-2px; top:calc(100% + 14px); display:flex; gap:6px; z-index:3; }
+#goalChips[hidden], #goalTip[hidden] { display:none; }
+#goalChips .gchip { display:flex; align-items:center; gap:2px; padding:3px 9px 3px 4px; border:0; border-radius:999px; background:#FFF9F0;
+  box-shadow:0 2px 6px rgba(43,32,54,.16); font-family:var(--f-hand); font-size:var(--s7); line-height:1; color:#4A3524; cursor:pointer; -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation; -webkit-user-select:none; user-select:none; }
+#goalChips .gchip.done { background:#E7F5DF; color:#3F7E3A; }
+#goalChips .gchip .ic { width:24px; height:24px; flex:none; }
+#goalChips .gchip:active { transform:scale(.96); }
+#goalChips .gchip.bump { animation:gcbump .5s cubic-bezier(.2,1.6,.4,1); }
+@keyframes gcbump { 30% { transform:scale(1.28); } }
+#goalChipRow { display:flex; gap:6px; }
+body.hudinplay:not(.inhouse) #goalChips #ruleChip { position:static; margin:0 0 0 2px; }
+#goalTip { position:absolute; left:-2px; top:calc(100% + 56px); max-width:240px; padding:8px 12px; border-radius:12px; background:#FFF9F0; color:#4A3524;
+  font-size:var(--s9); line-height:1.45; white-space:pre-line; box-shadow:0 4px 12px rgba(43,32,54,.22); z-index:7; }
+.gcfly { position:fixed; z-index:70; pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.25)); }
+.gcfly .ic { width:34px; height:34px; display:block; }
+@media (prefers-reduced-motion: reduce) { #goalChips .gchip:active { transform:scale(.96); }
+#goalChips .gchip.bump { animation:none; } }
