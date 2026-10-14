@@ -3681,7 +3681,8 @@ function giPlace(){
   const T=giOnboard, box=el("gintro"), hole=el("giHole"), card=box && box.querySelector('.gicard'); if(!T || !hole || !card || !cv) return;
   const br=box.getBoundingClientRect(), cr=cv.getBoundingClientRect(), k=cr.width/(cv.offsetWidth||cr.width||1), top=cr.top+(houseTop||0)*k;
   const ar=Math.max(0, Math.min(GN-1, T.r+T.dr)), ac=Math.max(0, Math.min(GN-1, T.c+T.dc));   // 맥스가 미는 물건(통·펌프·공…) 칸
-  const r0=Math.min(T.r, ar), r1=Math.max(T.r, ar), c0=Math.min(T.c, ac), c1=Math.max(T.c, ac);
+  const only=T.key==='door';                                       // 여닫이 문(10-14 사람): 울타리만 짚는다 — 맥스 칸의 젬까지 같이 밝히면 젬을 가리키는 것처럼 읽힌다
+  const r0=only? ar : Math.min(T.r, ar), r1=only? ar : Math.max(T.r, ar), c0=only? ac : Math.min(T.c, ac), c1=only? ac : Math.max(T.c, ac);
   const pad=cell*k*0.06, x=cr.left+(cx(c0)-cell/2)*k-pad-br.left, y=top+(cy(r0)-cell/2)*k-pad-br.top, w=(c1-c0+1)*cell*k+pad*2, h=(r1-r0+1)*cell*k+pad*2;
   Object.assign(hole.style,{left:x+'px', top:y+'px', width:w+'px', height:h+'px'});
   const ax=cr.left+cx(ac)*k-br.left, ayT=top+(cy(ar)-cell/2)*k-br.top, ayB=ayT+cell*k;
@@ -21219,7 +21220,7 @@ function houseRoomSignOn(){ return houseFurnSeen().length>0 || houseShopList(['t
 // 그다음은 늦게 연 꾸러미부터(giftOpened 는 넣은 순서를 지킨다), 가게에서 산 것은 뒤.
 let houseGiftNew=null;
 function houseGiftOrder(){
-  const p=houseFurnPending().filter(it=>{ const k=roomSlotOf(it); return !k || roomSlotOwns(k); }),   // 자리를 안 산 선물은 값표 옆에서 기다린다(drawRoomSlots)
+  const p=houseFurnPending(),                                  // 자리를 안 산 선물도 상자로 와 있다 — 열려 하면 그 자리를 열어 달라고 한다(houseGiftLocked, 10-14 사람)
         lvs=[...giftOpenedSet()], rank=it=>{ if(it.k===houseGiftNew) return -1;
     const i=lvs.findIndex(lv=>{ const x=furnAtLv(lv); return x && x.k===it.k; }); return i<0? 1e6 : lvs.length-i; };
   return p.slice().sort((a,b)=>rank(a)-rank(b));
@@ -21534,9 +21535,19 @@ function drawHouseSparks(){
 // 상자를 밀면 **열리기만** 한다. 물건은 떠서 기다리고 놓일 자리가 반짝인다 — 누르면 날아가 앉는다
 // (2026-10-02 사람: 저절로 놓이면 "받았다"만 있고 "내가 놓았다"가 없다). 자리는 지금처럼 정해져 있다.
 // 놓기 전에는 아무것도 저장하지 않는다(seen 도 안 찍는다) — 그 사이 앱이 꺼지면 상자가 그대로 다시 온다.
+// 자리를 안 연 선물 상자(10-14 사람) — 상자는 와 있되 못 푼다. 밀어도 눌러도 그 자리의 「자리를 열까요?」 카드가 뜨고, 그 자리가 금빛으로 숨 쉰다.
+// 밀려 옮겨진 칸을 새 제자리로 삼아(houseGiftAt) 매 프레임 다시 묻지 않는다.
+let roomSlotFocus=null, houseLockAskT=-9;
+function houseGiftLocked(i,k,sk){
+  const b=boxes[i]; if(b) houseGiftAt[k]=[b.r,b.c];
+  if(animT-houseLockAskT<0.8) return true; houseLockAskT=animT;
+  roomSlotFocus={k:sk, t0:animT}; sfxBlocked(); buzz(8); dog.wagBoost=1;
+  roomSlotAsk(sk);
+  return true; }
 function houseGiftOpenAt(i){                                   // 상자 i 를 연다 — 밀어서도 눌러서도 같은 길
   const nm=houseToys[i]; if(!nm || !nm.startsWith('g:')) return false;
   const k=nm.slice(2), b=boxes[i], it=HOUSE_FURN_BY[k]; if(!it) return false;
+  if(roomSlotsOn()){ const sk=roomSlotOf(it); if(sk && !roomSlotOwns(sk)) return houseGiftLocked(i,k,sk); }   // 자리가 잠겼다 — 열 수 없다
   housePlaceFlush();                                        // 앞 것이 아직 떠 있으면 먼저 앉힌다
   boxes.splice(i,1); houseToys.splice(i,1);                 // 상자는 열렸다 — 물건이 앉을 때까지 연출이 그 자리를 진다
   houseUnwrapFx={r:b.r, c:b.c, t0:animT, it, k};            // 흔들림 → 뚜껑이 튀고 → 물건이 떠올라 기다린다(drawHouseUnwrapFx)
@@ -22374,6 +22385,7 @@ function hoodieWear(k){                                  // 이름 주의: hoodP
 function houseOnMat(){ return false; }                  // 매트는 물렸다 — 옷걸이 쿵 + 거울(2026-09-30)
 function openHouse(lot, opts){
   roomWinPick=null; roomWinFx=null; mirPick=null;                 // 창문·거울 고르기와 연출은 방을 새로 열면 접는다
+  roomSlotFocus=null;
   opts=opts||{}; lot=(lot==null)? HOUSE_YARD : lot;
   stopGameEffects(); storyHide();
   el("glCard").classList.remove("show");
@@ -23102,6 +23114,10 @@ function drawRoomSlots(){
     else { const free=roomSlotFree(sl.k); pill(sl.tag[0], sl.tag[1], ROOM_SLOT_COST[sl.k], free); if(free) ribbon(sl.tag[0], sl.tag[1]-c*0.36); }
     // 10-06 사람: 젬으로 여는 자리 옆의 선물 상자는 뺀다 — 값표와 흐린 물건 그림만으로 충분하다
   }
+  if(roomSlotFocus){ const sl=geo.find(x=>x.k===roomSlotFocus.k);                         // 상자가 가리킨 자리 — 카드가 닫힌 뒤에도 잠깐 숨 쉰다
+    if(sl && roomSlotState(sl.k)!=='have' && animT-roomSlotFocus.t0<6){ const pu=0.5+0.5*Math.sin(animT*3.2);
+      g.save(); g.strokeStyle='rgba(232,169,76,'+(0.6+0.4*pu).toFixed(2)+')'; g.lineWidth=Math.max(2.5,c*0.06); g.fillStyle='rgba(255,236,170,'+(0.12+0.1*pu).toFixed(2)+')';
+      g.beginPath(); sl.shape(g); g.fill(); g.stroke(); g.restore(); } else roomSlotFocus=null; }
   if(roomSlotFx){ const u=(animT-roomSlotFx.t0)/0.9, sl=geo.find(x=>x.k===roomSlotFx.k);   // 자리를 연 순간 — 반짝이가 사방으로
     if(u<1 && sl){ const X=sl.ghost && sl.ghost!=='hood'? sl.ghost[0] : sl.tag[0], Y=sl.ghost && sl.ghost!=='hood'? sl.ghost[1] : sl.tag[1]-c*0.5;
       g.fillStyle='#FFE58A'; for(let i=0;i<12;i++){ const a=i/12*6.283, R=c*(0.4+u*0.8); g.globalAlpha=1-u; g.beginPath(); g.arc(X+Math.cos(a)*R*1.4,Y+Math.sin(a)*R*0.8,c*0.05*(1-u*0.5),0,7); g.fill(); }
