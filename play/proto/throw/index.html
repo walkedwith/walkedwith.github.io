@@ -23,7 +23,7 @@ addEventListener('resize', resize); resize();
 
 const S = {};
 function reset() {
-  Object.assign(S, {room: 0, hearts: 3, up: {dmg: 1, rate: 350, spd: 150}, started: false, joy: null, t: 0});
+  Object.assign(S, {room: 0, hearts: 3, up: {dmg: 1, rate: 420, spd: 150}, started: false, joy: null, t: 0});
   loadRoom();
 }
 function loadRoom() {
@@ -67,7 +67,7 @@ function step(dt) {
 
   // 적: 일정 속도로 접근, 막히면 옆으로 미끄러짐
   if (S.started && S.grace <= 0) for (const e of S.en) {
-    const dx = h.x - e.x, dy = h.y - e.y, d = Math.hypot(dx, dy) || 1, v = 48 * dt;
+    const dx = h.x - e.x, dy = h.y - e.y, d = Math.hypot(dx, dy) || 1, v = 84 * dt;
     const tries = [[dx / d, dy / d], [-dy / d * e.side, dx / d * e.side], [dy / d * e.side, -dx / d * e.side]];
     for (const [ux, uy] of tries) {
       const nx = e.x + ux * v, ny = e.y + uy * v;
