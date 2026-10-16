@@ -11,13 +11,13 @@ canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:
 // 멈추면 쏜다 — day-1 grey box. 논리 좌표 360x720, 화면에 맞춰 레터박스.
 const W = 360, H = 720, FIELD = {x0: 16, x1: 344, y0: 30, y1: 704};
 const COUNTS = [3, 4, 5], DOOR = {x: 180, w: 50, h: 30};
-const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const cv = document.getElementById('c'); let ctx = cv.getContext('2d');
 let sc = 1, ox = 0, oy = 0, dpr = 1;
 function resize() {
   dpr = window.devicePixelRatio || 1;
   const w = innerWidth, h = innerHeight;
   cv.width = w * dpr; cv.height = h * dpr;
-  sc = Math.min(w / W, h / H); ox = (w - W * sc) / 2; oy = (h - H * sc) / 2;
+  sc = Math.min(w / W, h / H); ox = (w - W * sc) / 2; oy = (h - H * sc) / 2; bg = null;
 }
 addEventListener('resize', resize); resize();
 
@@ -115,67 +115,235 @@ function pick(k) {
   S.room++; loadRoom();
 }
 
-function circle(x, y, r, fill, stroke) {
-  ctx.beginPath(); ctx.arc(x, y, r, 0, 7);
-  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 2; ctx.stroke(); }
+// ---- 그림 (순수 시각 — 로직과 무관) ----
+var bg = null; // 정적 배경: resize 때 한 번만 다시 그린다
+const V = {fc: 1, hx: 180, sw: -9, ap: new WeakSet(), fx: [], en: [], hv: -1};
+const E = (x, y, rx, ry, f, s, r = 0) => {
+  ctx.beginPath(); ctx.ellipse(x, y, rx, ry, r, 0, 7);
+  if (f) { ctx.fillStyle = f; ctx.fill(); }
+  if (s) { ctx.strokeStyle = s; ctx.lineWidth = 1.5; ctx.stroke(); }
+};
+const circle = (x, y, r, f, s) => E(x, y, r, r, f, s);
+function RR(x, y, w, h, r, f, s, lw = 1.5) {
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, r);
+  if (f) { ctx.fillStyle = f; ctx.fill(); }
+  if (s) { ctx.strokeStyle = s; ctx.lineWidth = lw; ctx.stroke(); }
 }
-function arrow(x, y, s) { // ⬆ 코드로 그린 위쪽 화살표
-  ctx.beginPath(); ctx.moveTo(x, y - s); ctx.lineTo(x + s * .8, y); ctx.lineTo(x + s * .3, y); ctx.lineTo(x + s * .3, y + s);
-  ctx.lineTo(x - s * .3, y + s); ctx.lineTo(x - s * .3, y); ctx.lineTo(x - s * .8, y); ctx.closePath(); ctx.fill();
+function poly(p, f, s) {
+  ctx.beginPath(); p.forEach(([x, y], i) => ctx[i ? 'lineTo' : 'moveTo'](x, y)); ctx.closePath();
+  if (f) { ctx.fillStyle = f; ctx.fill(); }
+  if (s) { ctx.strokeStyle = s; ctx.lineWidth = 1.5; ctx.stroke(); }
 }
-function icon(k, x, y) {
-  ctx.fillStyle = '#fff'; arrow(x, y - 8, 16);
-  if (k === 'dmg') circle(x, y + 28, 7, '#fff');
-  else if (k === 'rate') for (let i = -1; i <= 1; i++) circle(x + i * 13, y + 28, 4, '#fff');
-  else { ctx.fillRect(x - 14, y + 24, 28, 3); ctx.fillRect(x - 14, y + 31, 28, 3); }
+function heart(x, y, s, f, st) {
+  ctx.beginPath(); ctx.moveTo(x, y + s * .9);
+  ctx.bezierCurveTo(x - s * 1.5, y - s * .1, x - s * .8, y - s * 1.1, x, y - s * .4);
+  ctx.bezierCurveTo(x + s * .8, y - s * 1.1, x + s * 1.5, y - s * .1, x, y + s * .9);
+  ctx.fillStyle = f; ctx.fill(); ctx.strokeStyle = st; ctx.lineWidth = 1.5; ctx.stroke();
+}
+function star(x, y, r, f, st, rot = 0) {
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) { const a = rot + i * Math.PI / 4, d = i % 2 ? r * .3 : r; ctx[i ? 'lineTo' : 'moveTo'](x + Math.cos(a) * d, y + Math.sin(a) * d); }
+  ctx.closePath(); ctx.fillStyle = f; ctx.fill(); if (st) { ctx.strokeStyle = st; ctx.lineWidth = 1; ctx.stroke(); }
+}
+const sh = (b, dy, c) => { ctx.shadowColor = c; ctx.shadowBlur = b * sc * dpr; ctx.shadowOffsetY = dy * sc * dpr; };
+function apple(x, y, r) {
+  E(x, y + r * .15, r, r * .92, '#e23d3d', '#8f1f1f');
+  E(x - r * .35, y - r * .25, r * .2, r * .32, 'rgba(255,255,255,.6)', 0, .5);
+  E(x + r * .4, y - r * 1.05, r * .55, r * .27, '#5cb85c', '#2f7d3a', -.6);
+}
+function coin(x, y, r, rx) { E(x, y, rx, r, '#ffcf3a', '#b97d00'); E(x, y, rx * .55, r * .55, 0, '#e0a000'); }
+function ball(x, y, r) {
+  ctx.save(); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.clip();
+  ctx.fillStyle = '#fff'; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); ctx.translate(x, y); ctx.rotate(-.5);
+  ctx.fillStyle = '#4fb3bf'; ctx.fillRect(-r, -r, r * .7, 2 * r); ctx.fillStyle = '#f2a65a'; ctx.fillRect(r * .3, -r, r * .7, 2 * r); ctx.restore();
+  circle(x, y, r, 0, '#8a7a6a');
+}
+function crate(x, y, s) { // 당근 상자 (중심 x,y)
+  E(x - 3 * s, y - 20 * s, 2.8 * s, 7 * s, '#5cb85c', '#2f7d3a', -.4); E(x + 3 * s, y - 20 * s, 2.8 * s, 7 * s, '#5cb85c', '#2f7d3a', .4);
+  E(x, y - 9 * s, 5 * s, 8 * s, '#f08a2a', '#b85d10');
+  RR(x - 20 * s, y - 6 * s, 40 * s, 28 * s, 3, '#d8a56a', '#8a6238');
+  ctx.fillStyle = '#b8864f'; ctx.fillRect(x - 19 * s, y + 7 * s, 38 * s, 1.5);
+  RR(x - 22 * s, y - 9 * s, 44 * s, 7 * s, 3, '#c58f55', '#8a6238');
+  poly([[x - 5 * s, y + 1 * s], [x + 5 * s, y + 1 * s], [x, y + 16 * s]], '#f08a2a', '#b85d10');
+}
+function plant(x, y, s) {
+  for (const [a, l, c] of [[-.95, .8, '#4f9d5e'], [.95, .8, '#4f9d5e'], [-.45, 1, '#62b36f'], [.45, 1, '#62b36f'], [0, 1.2, '#6fc27b']])
+    E(x + Math.sin(a) * 9 * s, y - 15 * s - Math.cos(a) * 9 * l * s, 4.6 * s, 10 * l * s, c, '#2f7d4a', a);
+  poly([[x - 8 * s, y - 14 * s], [x + 8 * s, y - 14 * s], [x + 6 * s, y], [x - 6 * s, y]], '#e0936f', '#a8603f');
+  RR(x - 9 * s, y - 16 * s, 18 * s, 4 * s, 2, '#eaa684', '#a8603f');
+}
+
+function paintBg() {
+  bg = document.createElement('canvas'); bg.width = Math.ceil(W * sc * dpr); bg.height = Math.ceil(H * sc * dpr);
+  const m = ctx; ctx = bg.getContext('2d'); ctx.scale(sc * dpr, sc * dpr);
+  ctx.fillStyle = '#f7e8cf'; ctx.fillRect(0, 0, W, H);                                   // 벽
+  ctx.fillStyle = '#efd9b9'; ctx.fillRect(0, 22, W, 10);
+  ctx.fillStyle = '#bfe3d2'; ctx.fillRect(16, 38, 328, H - 38);                          // 바닥
+  ctx.fillStyle = '#e8a590'; ctx.fillRect(0, 32, W, 6); ctx.fillRect(11, 32, 5, H); ctx.fillRect(344, 32, 5, H); // 걸레받이
+  ctx.fillStyle = '#d98f7a'; ctx.fillRect(16, 36, 328, 2); ctx.fillRect(14, 38, 2, H); ctx.fillRect(344, 38, 2, H);
+  ctx.fillStyle = '#a9d4c0';
+  for (let k = 1; k < 6; k++) { ctx.fillRect(16 + k * 54.6, 38, 1.2, H);
+    for (let y = 38 + (k * 47) % 120; y < H; y += 120) ctx.fillRect(16 + (k - 1) * 54.6, y, 54.6, 1.2); }
+  ctx.fillStyle = '#b3dac7'; ctx.fillRect(16, 38, 328, 3);
+  ctx.strokeStyle = '#b08a6a'; ctx.lineWidth = 1; ctx.beginPath();                       // 가랜드
+  for (let x = 0; x <= W; x += 6) ctx[x ? 'lineTo' : 'moveTo'](x, 3 + 8 * Math.sin(Math.PI * x / W));
+  ctx.stroke();
+  for (let i = 0; i < 11; i++) { const x = 14 + i * 33, y = 3 + 8 * Math.sin(Math.PI * x / W);
+    poly([[x - 7, y], [x + 7, y], [x, y + 13]], ['#ff9aa2', '#ffd97d', '#9fd8c0', '#a7c7e7'][i % 4], '#c9a28a'); }
+  RR(56, 190, 248, 420, 8, '#f3c5b3', '#ebb09b', 3.5);                                   // 러그
+  ctx.setLineDash([6, 5]); RR(64, 198, 232, 404, 5, 0, '#e4a08a'); ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(214,140,120,.22)';
+  for (let i = 0; i < 90; i++) ctx.fillRect(62 + (i * 97.3) % 236, 196 + (i * 61.7) % 408, 2, 1.5);
+  RR(150, 46, 60, 22, 7, '#f0b7a2', '#e09a84'); E(180, 59, 5, 4.5, '#e4a08a'); E(177, 52, 1.6, 4, '#e4a08a'); E(183, 52, 1.6, 4, '#e4a08a'); // 문 앞 매트
+  RR(4, -4, 54, 62, 2, '#d9a96d', '#9a6a3a'); RR(8, 0, 46, 54, 0, '#c4915a');            // 선반
+  ctx.fillStyle = '#a9743f'; ctx.fillRect(8, 24, 46, 3); ctx.fillRect(8, 49, 46, 3);
+  E(20, 43, 5, 5.5, '#b5753f', '#7a4a22'); circle(20, 36, 4.6, '#b5753f', '#7a4a22'); circle(16.5, 32.5, 2, '#b5753f'); circle(23.5, 32.5, 2, '#b5753f');
+  circle(20, 37.5, 1.8, '#e0b98a'); plant(41, 49, .5);
+  plant(108, 38, 1.1); plant(262, 38, 1.1);
+  RR(220, 4, 24, 28, 2, '#e8c48a', '#9a6a3a'); RR(223.5, 7.5, 17, 21, 0, '#fff6e6');         // 당근 액자
+  E(232, 20, 3, 6.5, '#f08a2a', 0, .4); E(230, 12, 1.6, 3.6, '#5cb85c', 0, -.4); E(235, 13, 1.6, 3.6, '#5cb85c', 0, .4);
+  RR(325, 98, 24, 14, 3, '#9ec1e6', '#6f93bd'); ctx.fillStyle = 'rgba(255,255,255,.6)';  // 의자
+  ctx.fillRect(331, 98, 4, 14); ctx.fillRect(341, 98, 4, 14); ctx.fillRect(325, 103, 24, 4);
+  ctx.fillStyle = '#d9a96d'; ctx.fillRect(328, 112, 3, 7); ctx.fillRect(343, 112, 3, 7);
+  plant(3, 250, 1); plant(357, 205, 1); plant(2, 470, 1); plant(358, 540, .9); plant(356, 610, 1);
+  ball(3, 345, 14); crate(14, 692, 1.05);
+  E(338, 692, 28, 22, '#f6c9a8', '#c9916c'); circle(340, 682, 8, '#c9a077', '#8a6238');   // 곰 쿠션
+  circle(334.5, 675.5, 2.8, '#c9a077', '#8a6238'); circle(345.5, 675.5, 2.8, '#c9a077', '#8a6238');
+  ctx.strokeStyle = '#6a4a2a'; ctx.beginPath(); ctx.arc(337, 682, 1.4, .2, 2.9); ctx.arc(343, 682, 1.4, .2, 2.9); ctx.stroke();
+  ctx = m;
+}
+
+const fx = (x, y, n) => { for (let i = 0; i < n; i++) V.fx.push({k: 's', x, y, b: S.t, vx: (i - 1) * 32 + (Math.random() - .5) * 20, vy: -25 - Math.random() * 30}); };
+function door(open) {
+  if (open) { E(180, 18, 42, 36, 'rgba(255,214,90,.35)'); poly([[155, 34], [205, 34], [255, 240], [105, 240]], 'rgba(255,226,120,.2)'); }
+  RR(149, -12, 62, 52, [18, 18, 0, 0], '#e8a590', '#c9826c'); RR(155, -6, 50, 40, [14, 14, 0, 0], open ? '#ffe27a' : '#a9703f', '#7d4f2a');
+  if (open) { star(182, 16, 9, '#fff', 0, S.t * .8); RR(155, -6, 8, 40, [14, 0, 0, 0], '#a9703f', '#7d4f2a'); }
+  else { ctx.fillStyle = '#7d4f2a'; ctx.fillRect(179.5, -5, 1.5, 38); ctx.fillRect(156, 14, 48, 1.5); circle(197, 21, 3, '#ffd24a', '#b97d00'); }
+}
+
+function rabbit(x, y, o) { // o: s 크기, sad 앉아 울상, up 만세
+  const t = S.t, s = o.s || 1.15, mv = S.moving && S.st === 'play' && !o.s, sw = (t - V.sw) / .25, k = mv ? Math.sin(t * 20) : Math.sin(t * 3) * .4;
+  const th = o.sad ? 1.4 : o.up ? -1.1 + Math.sin(t * 10) * .5 : sw >= 0 && sw < 1 ? -2.5 + 1.6 * sw : .9, dr = o.sad ? 1 : 0, wob = mv ? Math.sin(t * 12) * .12 : 0;
+  E(x, y + 15 * s, 14 * s, 5 * s, 'rgba(40,70,60,.22)');
+  ctx.save(); ctx.translate(x, y + 16 * s - (mv ? Math.abs(Math.sin(t * 10)) * 3 : 0)); ctx.scale(V.fc * s * (1 - .04 * k), s * (1 + .06 * k)); ctx.translate(0, -16);
+  const ear = (ex, ey, r) => { E(ex, ey, 3.8, 10.5, '#fdf3dc', '#b99f7f', r); E(ex, ey + 1, 1.9, 7, '#ffb3c0', 0, r); };
+  E(-10, 6, 5.5, 5.5, '#fff', '#c9b79c');
+  ear(-4, -23 + dr * 7, -.22 - dr * .9 - wob); ear(4, -24 + dr * 7, .18 + dr * .9 + wob);
+  E(-4, 14, 3.2, 4.5, '#fdf3dc', '#b99f7f'); E(5, 14, 3.2, 4.5, '#fdf3dc', '#b99f7f');
+  E(-4.5, 17.5, 4.2, 2.4, '#fff', '#c9b79c'); E(5.5, 17.5, 4.2, 2.4, '#fff', '#c9b79c');
+  E(0, 4, 10.5, 11, '#2f9e8f', '#1f6f65'); E(-1, 2, 4, 6, '#3fb3a2', 0, .3); E(0, 11, 8, 2, '#fff', 0);
+  E(-9, 4, 3, 5, '#fdf3dc', '#b99f7f', .3);
+  E(0, -8, 12.5, 11, '#fdf3dc', '#b99f7f');
+  E(-13, -11, 3.4, 2, '#ff6b6b', '#c94a4a', .5); RR(-12, -14, 24, 5, 2.5, '#ff6b6b', '#c94a4a');
+  if (o.sad) { ctx.strokeStyle = '#3b2a2a'; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(2, -4.5, 1.8, 3.3, 6.1); ctx.moveTo(10, -4.5); ctx.arc(8, -4.5, 1.8, 3.3, 6.1); ctx.stroke(); }
+  else { circle(2, -5, 1.7, '#3b2a2a'); circle(8.5, -5, 1.7, '#3b2a2a'); }
+  E(0, -1, 2.8, 1.7, 'rgba(255,140,150,.55)'); E(10.5, -1, 2.8, 1.7, 'rgba(255,140,150,.55)'); circle(6, -2, 1, '#e88a98');
+  const hx = 7 + Math.cos(th) * 9, hy = 1 + Math.sin(th) * 9; ctx.lineCap = 'round';
+  ctx.strokeStyle = '#b99f7f'; ctx.lineWidth = 5.6; ctx.beginPath(); ctx.moveTo(7, 1); ctx.lineTo(hx, hy); ctx.stroke();
+  ctx.strokeStyle = '#fdf3dc'; ctx.lineWidth = 3.4; ctx.beginPath(); ctx.moveTo(7, 1); ctx.lineTo(hx, hy); ctx.stroke(); circle(hx, hy, 3.4, '#fdf3dc', '#b99f7f');
+  ctx.restore();
+}
+
+function raccoon(e) {
+  const t = S.t, f = Math.sign(S.hero.x - e.x) || e.side, k = Math.sin(t * 14 + e.x), fl = e.fl === undefined ? 0 : 1 - (t - e.fl) / .15;
+  E(e.x, e.y + 15, 15, 5, 'rgba(40,70,60,.22)');
+  ctx.save(); ctx.translate(e.x, e.y + 14); ctx.scale(f * 1.1 * (1 - .04 * k), 1.1 * (1 + .05 * k)); ctx.translate(0, -14);
+  for (const p of [0, 1]) for (let i = 0; i < 6; i++) { const u = i / 5, r = 7.6 - 1.8 * u;
+    if (p) circle(-12 - 12 * u, 6 - 20 * u, r, i % 2 ? '#4a3f3a' : '#a89484'); else circle(-12 - 12 * u, 6 - 20 * u, r + 1.3, '#4a3f3a'); }
+  E(-5, 15, 4, 2.6, '#5a4a42', '#3b3330'); E(5, 15, 4, 2.6, '#5a4a42', '#3b3330');
+  E(0, 6, 12, 10, '#8d7b6e', '#4a3f3a'); E(0, 8, 7, 6, '#d8cbbd');
+  circle(-9, -16, 4.6, '#8d7b6e', '#4a3f3a'); circle(9, -16, 4.6, '#8d7b6e', '#4a3f3a'); circle(-9, -15.5, 2, '#4a3f3a'); circle(9, -15.5, 2, '#4a3f3a');
+  E(0, -6, 14, 11, '#8d7b6e', '#4a3f3a'); E(0, -3, 10.5, 7, '#d8cbbd'); E(0, 0, 5, 3.6, '#efe6da');
+  E(-6, -6, 6, 3.8, '#3b3330', 0, .3); E(6, -6, 6, 3.8, '#3b3330', 0, -.3);
+  E(-5.5, -6, 2.6, 1.8, '#fff', 0, .45); E(5.5, -6, 2.6, 1.8, '#fff', 0, -.45); circle(-5, -5.7, 1, '#111'); circle(6, -5.7, 1, '#111');
+  ctx.strokeStyle = '#2a2220'; ctx.lineWidth = 2.2; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-10, -12); ctx.lineTo(-2, -8.5); ctx.moveTo(10, -12); ctx.lineTo(2, -8.5); ctx.stroke();
+  circle(0, -2.5, 1.9, '#222'); ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-2.5, 1.6); ctx.lineTo(2.5, 1.6); ctx.stroke();
+  circle(2.5, 11, 2.7, '#5a4a42'); circle(11.5, 11, 2.7, '#5a4a42'); apple(7, 8.5, 5.4);
+  if (fl > 0) { E(0, -1, 16, 19, `rgba(255,255,255,${fl * .75})`); }
+  ctx.restore();
+  for (let i = 0; i < 3; i++) heart(e.x - 9 + i * 9, e.y - 34, 3.6, i < e.hp ? '#e8363f' : 'rgba(80,60,60,.35)', i < e.hp ? '#9e1d2a' : 'rgba(90,60,60,.4)');
+}
+
+function ballIcon(k, x, y) {
+  if (k === 'dmg') { apple(x, y - 12, 13); apple(x - 13, y + 9, 13); apple(x + 13, y + 9, 13); }
+  else if (k === 'rate') {
+    ctx.strokeStyle = '#e0b48a'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    for (const d of [-12, 0, 12]) { ctx.beginPath(); ctx.moveTo(x - 36, y + d); ctx.lineTo(x - 24, y + d); ctx.stroke(); }
+    ball(x + 6, y, 21);
+  } else crate(x, y + 4, 1.2);
 }
 function btn() {
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(BTN.x, BTN.y, BTN.w, BTN.h, 12); ctx.fill();
-  ctx.fillStyle = '#222'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  sh(8, 3, 'rgba(70,40,30,.45)'); RR(BTN.x, BTN.y, BTN.w, BTN.h, 24, '#fff4df', '#e9c9a4', 2); sh(0, 0, 'transparent');
+  ctx.fillStyle = '#a8603f'; ctx.font = 'bold 22px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('다시', 180, BTN.y + BTN.h / 2 + 1);
 }
 
 function draw() {
+  const h = S.hero, t = S.t;
+  if (!bg) paintBg();
+  if (Math.abs(h.x - V.hx) > .2) V.fc = h.x > V.hx ? 1 : -1;
+  V.hx = h.x;
+  for (const a of S.ap) if (!V.ap.has(a)) { V.ap.add(a); V.sw = t; if (Math.abs(a.vx) > .15) V.fc = a.vx < 0 ? -1 : 1; }
+  for (const e of S.en) { if (e.lh === undefined) e.lh = e.hp; if (e.hp < e.lh) { e.lh = e.hp; e.fl = t; fx(e.x, e.y - 8, 3); } }
+  for (const o of V.en) if (o.e.hp <= 0 && !S.en.includes(o.e)) {
+    fx(o.x, o.y - 8, 3); for (let i = 0; i < 3; i++) V.fx.push({k: 'c', x: o.x, y: o.y - 6, b: t, vx: (i - 1) * 34, vy: -115 - i * 8});
+  }
+  V.en = S.en.map(e => ({e, x: e.x, y: e.y}));
+
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#1d2326'; ctx.fillRect(0, 0, cv.width, cv.height);
   ctx.setTransform(sc * dpr, 0, 0, sc * dpr, ox * dpr, oy * dpr);
   ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
-  ctx.fillStyle = '#e8a590'; ctx.fillRect(0, 0, W, H);                       // 벽
-  ctx.fillStyle = '#9fd8c0'; ctx.fillRect(FIELD.x0 - 6, 30, FIELD.x1 - FIELD.x0 + 12, FIELD.y1 - 30 + 12); // 바닥
-  const open = S.st !== 'win' && !S.en.length;
-  ctx.fillStyle = open ? '#ffd93b' : '#8a5a3a'; ctx.fillRect(DOOR.x - DOOR.w / 2, 0, DOOR.w, DOOR.h + 4);
+  ctx.drawImage(bg, 0, 0, W, H);
+  door(!S.en.length);
 
   for (const p of S.piles) {
-    if (p.n >= 3) { circle(p.x, p.y, 13, '#a82a2a', '#fff'); }
-    else circle(p.x, p.y, pileR(p), '#d9433f');
-    if (p.n === 2) circle(p.x + 4, p.y - 3, 4, '#d9433f', '#8f1f1f');
+    E(p.x, p.y + 9, p.n >= 3 ? 18 : 8 + p.n * 2, 4.5, 'rgba(40,70,60,.2)');
+    if (p.n >= 3) { apple(p.x, p.y - 7, 7); apple(p.x - 7, p.y + 3, 7); apple(p.x + 7, p.y + 3, 7); }
+    else if (p.n === 2) { apple(p.x - 4, p.y + 2, 6); apple(p.x + 4, p.y - 1, 6); }
+    else apple(p.x, p.y, 6);
   }
-  for (const e of S.en) {
-    circle(e.x, e.y, 14, '#8a8580', '#3b3835');
-    ctx.fillStyle = '#3b3835'; ctx.fillRect(e.x - 12, e.y - 4, 24, 5);       // 마스크 줄
-    ctx.fillStyle = '#000'; ctx.fillRect(e.x - 12, e.y - 24, 24, 3);          // hp 막대
-    ctx.fillStyle = '#e44'; ctx.fillRect(e.x - 12, e.y - 24, 24 * e.hp / 3, 3);
+  const ents = S.en.map(e => ({y: e.y, d: () => raccoon(e)}));
+  if (S.st === 'play' || S.st === 'cards') ents.push({y: h.y, d: () => { ctx.globalAlpha = S.inv > 0 && Math.floor(S.inv / 80) % 2 ? .35 : 1; rabbit(h.x, h.y, {}); ctx.globalAlpha = 1; }});
+  ents.sort((a, b) => a.y - b.y).forEach(o => o.d());
+  for (const a of S.ap) {
+    const L = Math.min(a.d, 46); ctx.strokeStyle = 'rgba(255,255,255,.4)'; ctx.lineWidth = 4; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(a.x - a.vx * L, a.y - a.vy * L); ctx.lineTo(a.x, a.y); ctx.stroke(); apple(a.x, a.y, 7);
   }
-  for (const a of S.ap) circle(a.x, a.y, 6, '#e33');
-  const h = S.hero, bob = S.started ? 0 : Math.sin(S.t * 4) * 2.5;
-  ctx.globalAlpha = S.inv > 0 && Math.floor(S.inv / 80) % 2 ? .35 : 1;
-  circle(h.x, h.y + bob, 14, '#fdf3dc', '#2b7a6b');
-  ctx.fillStyle = '#d9433f'; ctx.fillRect(h.x - 12, h.y + bob - 8, 24, 4);    // 머리띠
-  ctx.globalAlpha = 1;
+  V.fx = V.fx.filter(f => { const a = t - f.b; return a >= 0 && a < (f.k === 'c' ? .9 : .5); });
+  for (const f of V.fx) {
+    const a = t - f.b;
+    if (f.k === 's') star(f.x + f.vx * a, f.y + f.vy * a, 10 * Math.sin(Math.PI * a / .5), '#ffd93b', '#e6a700', a * 6);
+    else { ctx.globalAlpha = 1 - a / .9; coin(f.x + f.vx * a, f.y + f.vy * a + 140 * a * a, 7, 2.5 + 4.5 * Math.abs(Math.cos(a * 14))); ctx.globalAlpha = 1; }
+  }
 
-  for (let i = 0; i < 3; i++) circle(26 + i * 22, 16, 8, i < S.hearts ? '#e33' : null, '#e33'); // HUD 하트
-  for (let i = 0; i < 3; i++) circle(W - 24 - (2 - i) * 18, 16, 6, i <= S.room ? '#fff' : null, '#fff'); // 방 점
+  for (let i = 0; i < 3; i++) {
+    const on = i < S.hearts, x = 24 + i * 26;
+    heart(x, 17, 10.5, on ? '#e8363f' : 'rgba(80,60,60,.35)', on ? '#9e1d2a' : 'rgba(255,255,255,.6)');
+    if (on) E(x - 5, 11, 2.8, 1.7, 'rgba(255,255,255,.85)', 0, -.6);
+  }
+  for (let i = 0; i < 3; i++) { const x = W - 24 - (2 - i) * 18; if (i <= S.room) coin(x, 16, 6.5, 6.5); else circle(x, 16, 6, 'rgba(0,0,0,.15)', 'rgba(255,255,255,.7)'); }
 
   if (S.st === 'cards' || S.st === 'win' || S.st === 'lose') {
-    ctx.fillStyle = S.st === 'win' ? 'rgba(255,200,40,.45)' : S.st === 'lose' ? 'rgba(20,0,0,.6)' : 'rgba(0,0,0,.55)';
+    ctx.fillStyle = S.st === 'win' ? 'rgba(255,214,90,.32)' : S.st === 'lose' ? 'rgba(40,25,30,.6)' : 'rgba(50,35,35,.5)';
     ctx.fillRect(0, 0, W, H);
   }
   if (S.st === 'cards') CARDS.forEach((c, i) => {
-    const x = cardX(i); ctx.fillStyle = c.c;
-    ctx.beginPath(); ctx.roundRect(x - CARD_S / 2, CARD_Y - CARD_S / 2, CARD_S, CARD_S * 1.2, 10); ctx.fill();
-    icon(c.k, x, CARD_Y);
+    const x = cardX(i), hv = V.hv === i;
+    sh(hv ? 28 : 10, hv ? 0 : 4, hv ? '#ffc94d' : 'rgba(60,35,30,.45)');
+    RR(x - CARD_S / 2, CARD_Y - CARD_S / 2, CARD_S, CARD_S * 1.2, 14, hv ? '#fff8e6' : '#fbf0dc', hv ? '#ffb42a' : '#efd2ae', hv ? 3 : 2);
+    sh(0, 0, 'transparent'); ballIcon(c.k, x, CARD_Y + 8);
   });
+  if (S.st === 'win') {
+    poly([[155, 34], [205, 34], [330, 330], [30, 330]], 'rgba(255,240,150,.25)');
+    const cols = ['#ff6b6b', '#ffd93b', '#4fb3bf', '#8fd694', '#f2a65a'];
+    for (let i = 0; i < 46; i++) {
+      const a = t * 4 + i; ctx.save(); ctx.translate((i * 67.3) % W, (t * 70 + i * 53.1) % (H + 20) - 10); ctx.rotate(a);
+      ctx.fillStyle = cols[i % 5]; ctx.fillRect(-3, -2, 6, 1 + 3 * Math.abs(Math.cos(a))); ctx.restore();
+    }
+    V.fc = 1; rabbit(180, 270, {s: 2.2, up: 1});
+  }
+  if (S.st === 'lose') { V.fc = 1; rabbit(180, 280, {s: 2.2, sad: 1}); }
   if (S.st === 'win' || S.st === 'lose') btn();
 }
 
@@ -190,6 +358,7 @@ cv.addEventListener('pointerdown', e => {
   });
   else if (p.x > BTN.x && p.x < BTN.x + BTN.w && p.y > BTN.y && p.y < BTN.y + BTN.h) reset();
 });
+cv.addEventListener('pointermove', e => { const p = lp(e); V.hv = S.st === 'cards' ? [0, 1, 2].find(i => Math.abs(p.x - cardX(i)) < CARD_S / 2 && p.y > CARD_Y - CARD_S / 2 && p.y < CARD_Y + CARD_S * .7) ?? -1 : -1; });
 cv.addEventListener('pointermove', e => { if (S.joy) { S.joy.x = e.clientX; S.joy.y = e.clientY; } });
 ['pointerup', 'pointercancel'].forEach(n => cv.addEventListener(n, () => { S.joy = null; }));
 cv.addEventListener('contextmenu', e => e.preventDefault());
