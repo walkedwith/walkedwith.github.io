@@ -906,6 +906,7 @@ function toyColorMarkOn(){
 }
 function drawToyColorMark(x,y,s,color){
   if(GOAL_FEEL_QA)return;
+  if(L && L.d1 && !houseMode)return;                      // 1동네 축구공엔 색 표시가 없다
   if(!toyColorMarkOn())return;
   ctx.save();ctx.fillStyle=color||'#FFF9F0';ctx.strokeStyle='#FFF9F0';ctx.lineWidth=s*.035;
   ctx.beginPath();ctx.arc(x,y,s*.082,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
@@ -1655,6 +1656,8 @@ function doorLeafAt(L, filled, r, c){
     if(doorLegs(L, filled, i).includes(doorCompass(dr, dc))) return {i, w:doorCompass(dr, dc)}; }
   return null;
 }
+// 문이 쳐내는 가벼운 것 — 공, d1 판에선 꼬꼬도
+function doorLight(L,b){ return b.kind==='ball' || (L.d1 && b.kind==='hen'); }
 // 맥스가 (dr,dc) 로 문짝 lf 를 밀었다. 돌면 applyMoveCore 결과, 안 돌면 null.
 function doorSwing(L, st, filled, lf, dr, dc){
   if(L.doorLock) return null;                               // 잣대 전용 — 문을 못 돌리는 판으로 재 본다(MECH.door.off)
@@ -1665,8 +1668,9 @@ function doorSwing(L, st, filled, lf, dr, dc){
   const legs=doorLegs(L, filled, lf.i);
   const nb=st.boxes.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,buried:b.buried}));
   const own=new Set(legs.map(w=>kk(d.r+DOOR_CV[w][0], d.c+DOOR_CV[w][1])));   // 지금 이 문의 문짝 칸 — 같이 움직이니 비어 있는 셈
-  const floorFree=(r,c)=>{ if(r<1||c<1||r>GN-2||c>GN-2) return false;
+  const floorFree=(r,c)=>{ if(L.d1? !inYard(L,r,c) : (r<1||c<1||r>GN-2||c>GN-2)) return false;
     if(r===st.dog.r && c===st.dog.c) return false;
+    if(L.d1 && L.home && L.home[0]===r && L.home[1]===c) return false;   // 개집 칸 — HOME 래퍼가 잠깐 잔디로 열어 둔 사이에 문짝이 쓸고 지나가면 안 된다(시안 swing, 24판)
     const t=tileAt(L, filled, r, c);
     return t===GRASS || t===MAT || (t===WALL && own.has(kk(r,c))); };
   let knock=null;
@@ -1677,12 +1681,12 @@ function doorSwing(L, st, filled, lf, dr, dc){
     // 모퉁이 공 — 문짝 끝이 미는 방향(= w2, 맥스가 민 쪽)으로 쓸고 지나가므로 그쪽으로 한 칸(2026-10-02 사람).
     // 예전엔 "튈 방향이 안 읽힌다"며 늘 막았는데, 문을 아래로 밀면 공도 아래로 가는 게 자연스럽다.
     const ci=boxIdxAt(nb,cr,cc,-1);
-    if(ci>=0){ if(!L.doorHit || knock || nb[ci].kind!=='ball') return null;
+    if(ci>=0){ if(!L.doorHit || knock || !doorLight(L,nb[ci])) return null;
       knock={bi:ci, fromR:cr, fromC:cc, toR:cr+DOOR_CV[w2][0], toC:cc+DOOR_CV[w2][1], corner:true}; }
     if(!floorFree(er,ec)) return null;
     const bi=boxIdxAt(nb,er,ec,-1);
     if(bi<0) continue;
-    if(!L.doorHit || knock || nb[bi].kind!=='ball') return null;
+    if(!L.doorHit || knock || !doorLight(L,nb[bi])) return null;
     const h=(w+2)&3, hr=er+DOOR_CV[h][0], hc=ec+DOOR_CV[h][1];                         // 문이 도는 쪽으로 한 칸
     knock={bi, fromR:er, fromC:ec, toR:hr, toC:hc};
   }
@@ -1691,6 +1695,7 @@ function doorSwing(L, st, filled, lf, dr, dc){
   let extra=[];
   if(knock){
     const ht=tileAt(L, f2, knock.toR, knock.toC);
+    if(L.d1 && (!inYard(L,knock.toR,knock.toC))) return null;   // 마당 밖으로는 못 쳐낸다(개집 칸은 허용 — 입구 앞 칸에서 입구 쪽으로 쳐질 때만 HOME 래퍼가 넣는다)
     if(!(ht===GRASS || ht===MAT) || boxIdxAt(nb,knock.toR,knock.toC,-1)>=0 || (knock.toR===pr && knock.toC===pc) || (knock.toR===st.dog.r && knock.toC===st.dog.c)) return null;
     nb[knock.bi].r=knock.toR; nb[knock.bi].c=knock.toC;
     extra.push({fromR:knock.fromR, fromC:knock.fromC, path:[{r:knock.toR,c:knock.toC}], restR:knock.toR, restC:knock.toC,
@@ -1699,7 +1704,8 @@ function doorSwing(L, st, filled, lf, dr, dc){
   const enter = tileAt(L, f2, pr, pc)!==WALL;               // ㄱ자·십자는 다른 문짝이 그 칸으로 들어올 수 있다 — 그러면 제자리
   extra=extra.concat(settleSlopes(L, f2, nb, true, null, null, !valveOpen(L,f2,nb)));
   return { dog: enter? {r:pr,c:pc} : {r:st.dog.r,c:st.dog.c}, boxes:nb, filled:f2, carry:false, pushed:false, slid:0, sunk:false,
-           recolored:false, door:{i:lf.i, from:q0, to:q1, s, hit:knock? {fromR:knock.fromR,fromC:knock.fromC,toR:knock.toR,toC:knock.toC} : null}, extra };
+           recolored:false, door:{i:lf.i, from:q0, to:q1, s, hit:knock? {fromR:knock.fromR,fromC:knock.fromC,toR:knock.toR,toC:knock.toC} : null}, extra,
+           henKnock: knock && nb[knock.bi].kind==='hen'? [knock.fromR*GN+knock.fromC, knock.toR*GN+knock.toC] : undefined };
 }
 // 통은 **공에게만 벽**이다. 담벼락에 붙어 있어 사람은 옆으로 스쳐 가고, 굴러오는 공은
 // 부딪힌다(그 소리가 욕심쟁이를 부른다). 고양이가 통 위에 올라앉으면 그때는 맥스도 못
@@ -1830,7 +1836,7 @@ function trampKnockIdx(L, filled, boxes, i, tr, tc, dir, open){
   const j=boxIdxAt(boxes,lr,lc,i);
   if(j<0) return -1;
   const h=boxes[j];
-  if(!h || h.kind==='log' || h.kind==='bone' || h.kind==='crop' || h.kind==='cartV' || h.kind==='cartH' || h.kind==='mower' || h.kind==='tub' || h.kind==='pump' || h.kind==='hillLog' || h.kind==='log2' || h.kind==='log2End' || h.kind==='stump' || h.kind==='treeSmall' || h.kind==='treeBig') return -1;
+  if(!h || h.kind==='log' || h.kind==='bone' || h.kind==='crop' || h.kind==='cartV' || h.kind==='cartH' || h.kind==='mower' || h.kind==='tub' || h.kind==='pump' || h.kind==='bed' || h.kind==='hen' || h.kind==='hillLog' || h.kind==='log2' || h.kind==='log2End' || h.kind==='stump' || h.kind==='treeSmall' || h.kind==='treeBig') return -1;
   const ar=lr+dir[0], ac=lc+dir[1];                       // 튕겨난 공이 갈 자리 — 여기가 막히면 안 난다
   if(tileAt(L,filled,ar,ac)===WALL || tileAt(L,filled,ar,ac)===FURROW || tileAt(L,filled,ar,ac)===IRANG) return -1;
   if(boxIdxAt(boxes,ar,ac,j)>=0) return -1;
@@ -1957,7 +1963,7 @@ function rollFrom(L, filled, boxes, i, pr, pc, dir, open, wet){
 // 못 나가면 null(친 쪽만 선다). 2동네 당구와 같은 문법이고 냇가 쿵(떠내려온 통나무·배·공, 긴 통나무 휘두르기)도 다 이걸 쓴다(10-08 사람 — "막힐 때까지"는 접었다).
 function knockBall(L, filled, boxes, j, hitDir, open, out, depth, wet){
   const h=boxes[j];
-  if(!h || h.gone || h.kind==='log' || h.kind==='bone' || h.kind==='cartV' || h.kind==='cartH' || h.kind==='mower' || h.kind==='tub' || h.kind==='pump' || h.kind==='hillLog' || h.kind==='log2' || h.kind==='log2End' || h.kind==='stump' || h.kind==='treeSmall' || h.kind==='treeBig') return null;
+  if(!h || h.gone || h.kind==='log' || h.kind==='bone' || h.kind==='cartV' || h.kind==='cartH' || h.kind==='mower' || h.kind==='tub' || h.kind==='pump' || h.kind==='bed' || h.kind==='hen' || h.kind==='hillLog' || h.kind==='log2' || h.kind==='log2End' || h.kind==='stump' || h.kind==='treeSmall' || h.kind==='treeBig') return null;
   // 물살 **위에** 서 있던 공은 물살이 데려간다 — 쿵은 붙잡고 있던 걸 떼 줄 뿐이다.
   // 부딪힌 방향으로 밀면 물가가 아닌 아무 둑으로 튕겨 나가, 방금 배운 "공은 물살을
   // 따라 흐른다" 와 정면으로 어긋난다(264판 실측: 물살← 위의 공이 위쪽 잔디로 튀었다).
@@ -2104,7 +2110,7 @@ function settleSlopes(L, filled, boxes, open, mainBox, mainPath, wet){
     for(let i=0;i<boxes.length;i++){
       const b=boxes[i];
       if(b.gone) continue;                                     // 이번 수에 사라진 공은 안 굴러감
-      if(b.kind==='log' || b.kind==='bone' || b.kind==='crop' || b.kind==='cartV' || b.kind==='cartH' || b.kind==='mower' || b.kind==='tub' || b.kind==='pump'
+      if(b.kind==='log' || b.kind==='bone' || b.kind==='crop' || b.kind==='cartV' || b.kind==='cartH' || b.kind==='mower' || b.kind==='tub' || b.kind==='pump' || b.kind==='bed' || b.kind==='hen'
          || b.kind==='log2' || b.kind==='log2End' || b.kind==='treeSmall' || b.kind==='treeBig' || b.kind==='stump') continue; // 무거운 짐과 나무는 물살이 공처럼 데려가지 않는다
       if(b.kind==='hillLog'){ if(!logFloats(L,filled,b)) continue;                 // 땅 위·다리 통나무는 안 움직인다
         if(L._dogB2!=null && L._dogB2===kk(b.r,b.c)) continue; }                   // 맥스가 탄 배는 저절로 안 간다 — 출발은 나무를 밀어서만
@@ -3082,7 +3088,7 @@ function applyMoveCore(L, st, dr, dc){
     return res;
   }
   if(tileAt(L,filled,pr,pc)===WALL || tileAt(L,filled,pr,pc)===FURROW || binBlocksBall(L,kk(pr,pc)) || boxIdxAt(boxes,pr,pc,bi)>=0) return null; // 못 밈
-  if(knd==='log2' || knd==='log2End' || knd==='treeSmall' || knd==='treeBig' || knd==='stump') return null;
+  if(knd==='log2' || knd==='log2End' || knd==='treeSmall' || knd==='treeBig' || knd==='stump' || knd==='bed' || knd==='hen') return null;
   if(knd==='bone') return null;                        // 묻힌 뼈는 못 민다
   if(knd==='crop') return null;                        // 작물은 미는 게 아니라 물어 나른다
   // 농작물 손수레: 바퀴축과 같은 방향으로만 한 칸씩 움직인다. 세로형은 상하,
@@ -3104,7 +3110,7 @@ function applyMoveCore(L, st, dr, dc){
   if(knd==='log'){
     const t=tileAt(L,filled,pr,pc); const sunk=isSink(t);   // 상자도 종류를 안 가리고 메운다
     if(sunk){ filled.add(kk(pr,pc)); boxes[bi].gone=1; }
-    else boxes[bi]={r:pr,c:pc,color:(knd==='log'?-9:boxes[bi].color),kind:knd};
+    else boxes[bi]={r:pr,c:pc,color:((knd==='log' && !L.d1)?-9:boxes[bi].color),kind:knd};
     // 젖음 판정은 옮긴 뒤에 한다 — 밀리는 상자가 밸브를 떠나면 그 순간 물이 다시 흐르고,
     // 물이 멎어 있으면 물칸은 마른 바닥이라 상자가 그냥 올라선다.
     const dam = !sunk && settleWetLogs(L, filled, boxes);
@@ -3124,7 +3130,7 @@ function applyMoveCore(L, st, dr, dc){
   if(cliffPush===2){ path[0].drop=dropDepth; if(dropContact) path[0].contactOut=[dropContact]; }   // 절벽 아래로 떨어진 공 — 그림: 짧은 낙하 + 쿵
   const res = { dog:{r:nr,c:nc}, boxes, filled, carry, pushed:true, slid, sunk, recolored, restR:pr, restC:pc, landCell, path, kind:'ball', catStop:m.catStop, bounced:m.bounced, rebound:m.rebound, trampBlock:m.trampBlock, trampKnocked:!!m.trampKnocked, cbHit:m.cbHit, binHit:m.binHit, pounceStop:m.pounceStop };
   // 밀린 공이 자리잡은 뒤, 경사 위에서 대기 중이던 공들이 연쇄적으로 굴러감
-  const mainBox = sunk? null : boxes.find(b=>!b.gone && b.r===pr && b.c===pc && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump');
+  const mainBox = sunk? null : boxes.find(b=>!b.gone && b.r===pr && b.c===pc && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='bed' && b.kind!=='hen');
   const all = settleSlopes(L, filled, boxes, true, mainBox, path, wet);
   for(const e of all) if(e.main){                    // 밀린 공 본인이 더 굴러간 경우 결과 갱신
     res.restR=e.restR; res.restC=e.restC; res.slid+=e.slid; res.landCell=e.landCell;
@@ -3170,7 +3176,7 @@ function gustMovers(L, filled, boxes, v, dogCell){
   for(let i=0;i<boxes.length;i++){
     const b=boxes[i];
     if(b.gone||b.sink||b.buried||b.carried) continue;
-    if(b.kind==='log'||b.kind==='bone'||b.kind==='crop'||b.kind==='cartV'||b.kind==='cartH'||b.kind==='mower'||b.kind==='tub'||b.kind==='pump') continue; // 무거운 것은 안 밀린다
+    if(b.kind==='log'||b.kind==='bone'||b.kind==='crop'||b.kind==='cartV'||b.kind==='cartH'||b.kind==='mower'||b.kind==='tub'||b.kind==='pump' || b.kind==='bed' || b.kind==='hen') continue; // 무거운 것은 안 밀린다
     // 깃발 골목 — 바람은 깃발 꽂힌 줄(레인)에만 분다. 가로 바람이면 행, 세로면 열.
     // 깃발과 결이 곧 "어디가 위험한지"를 말한다. wl 이 없으면 전 칸.
     if(L.wl && !L.wl.includes(dc!==0? b.r : b.c)) continue;
@@ -3205,7 +3211,7 @@ function isGoal(L, st){
     for(const b of st.boxes){
       // 나무와 통나무는 길을 만들고 공을 치는 지형 장치다. 방석을 직접 채우면
       // 공을 운반하는 퍼즐이 사라지고, 풀이기는 통나무를 대체 공으로 악용한다.
-      if(b.kind==='crop'||b.kind==='treeSmall'||b.kind==='stump'||b.kind==='treeBig'||b.kind==='hillLog'||b.kind==='log2'||b.kind==='log2End') continue;
+      if(b.kind==='crop'||b.kind==='treeSmall'||b.kind==='stump'||b.kind==='treeBig'||b.kind==='hillLog'||b.kind==='log2'||b.kind==='log2End'||b.kind==='bed'||b.kind==='hen') continue;
       if(kk(b.r,b.c)===cell && b.color===col){ ok=true; break; }
     }
     if(!ok) return false;
@@ -3246,7 +3252,7 @@ function solve(L, start, cap){
         // 물고 있는 작물 색 — 안 실으면 묻을 때 색이 사라진다(뼈는 색이 하나뿐이라 없던 문제)
         const cc = (r.cropCol!==undefined)? r.cropCol : node.st.cropCol;
         if(cc!=null) nst.cropCol=cc;
-        let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='crop' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig') bc++;
+        let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='crop' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='bed' && b.kind!=='hen' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig') bc++;
         if(bc < L.holes.size) continue;                  // 공 부족 = 사구. 통나무 침몰은 OK
         if(L.needBone && !r.carry && !r.boxes.some(b=>b.kind==='bone')) continue;   // 뼈 소실 = 사구
         const k=stKey(nst); if(parent.has(k)) continue; parent.set(k,{pk:node.k, mv:[dr,dc]});
@@ -3562,7 +3568,7 @@ function guideKeysForBoard(board){
 // 여닫이 문 판(11~15)을 심었다(2026-10-01) — 11판 문 안내·규칙 카드가 켜진다.
 const DOOR_LEVELS_ON=true;
 const GUIDE_TRACKS=[
-  {from:1,to:30,steps: DOOR_LEVELS_ON? [[1,'base'],[6,'door'],[21,'mower']] : [[1,'base']]},   // 여닫이 문 · 잔디깎이(달려서 쿵 포함)
+  {from:1,to:30,steps: DOOR_LEVELS_ON? [[1,'base'],[11,'door']] : [[1,'base']]},   // 1동네 새 순서(10-17): 1 화분 · 6 두 색 · 11 쪽문 · 16 꼬꼬 · 21 ㄱ자 문 — 카드는 쪽문만, 나머지는 할아버지 말과 게시판 쪽지(잔디깎이는 1~30 에서 뺐다)
   {from:31,to:60,steps:[[31,'ice'],[36,'billiard'],[41,'tub'],[46,'pump']]},   // 10-05: 쿵을 36 으로 당기고 41~60 은 첨벙통·손펌프
   {from:61,to:90,steps:[[61,'flow'],[66,'pool']]},   // 10-08 냇가 재제작: 66 웅덩이와 통나무 배
   // 101~120의 도끼 나무·통나무는 보드 위 배치로 먼저 발견하게 한다. 옛 언덕 쿵/역방향
@@ -3658,8 +3664,13 @@ function giSizeDemo(){
   dst.style.width=(w*k)+"px"; dst.style.height=(h*k)+"px";
 }
 const GI_DEMO_ALIAS={logpit:'log2'};
+// 10-17 사람: "작은 안내는 ? 안내판보다 처음 나올 때 그림자(맥스든 공이든)로" — 1동네는 글 알약·규칙 칩 없이 그림자만.
+const GHOST_ONLY_TO=30;
 function showGintro(key){
   const t=guideCopy(key); if(!t) return;
+  if(level<=GHOST_ONLY_TO && INTRO[level]===key && !tutMode && !houseMode && state==='play' && giTarget(key)){   // 처음 배우는 판 — 알약을 건너뛰고 그림자를 바로
+    giKey=key; giSeen[key]=1; LS.set('roll_gintro', JSON.stringify(giSeen)); teachStart(key);
+    if(giQueue.length) showGintro(giQueue.shift()); return; }
   giKey=key; HCELL=52;
   // 규칙 줄마다 한 장으로 편다 — 여러 장짜리 안내(GI_MULTI)도 장 안의 줄을 다시 쪼갠다.
   const base=GI_MULTI[key] || [{ demo:GI_DEMO_ALIAS[key]||key, key }];
@@ -3816,7 +3827,8 @@ function drawTeach(){
   teachWake();
   if(!teachShown()) return;
   const {r,c,dr,dc}=teach, u=teachPhase(), fade=teachSm(u/.14)*(1-teachSm((u-.86)/.14)), k=teachPushK(u), s=cell;
-  const x=cx(c)+dc*s*.2*k, y=cy(r)+dr*s*.2*k;
+  const reach=(dog.r===r && dog.c===c)? .45 : .2;                   // 맥스가 이미 그 칸이면 몸에서 더 빠져나와야 보인다(21판, 10-17 찍기로 확인)
+  const x=cx(c)+dc*s*reach*k, y=cy(r)+dr*s*reach*k;
   ctx.save();
   ctx.fillStyle='rgba(255,250,235,'+(.32*fade).toFixed(3)+')'; ctx.beginPath(); ctx.ellipse(cx(c),cy(r)+s*.3,s*.3,s*.1,0,0,7); ctx.fill();   // 설 자리 — 바닥에 옅은 빛
   const fx=teachFx();
@@ -3918,7 +3930,7 @@ function creekPillTick(){
 }
 // 자동 안내는 실제 첫 학습판에 붙인다. 페인트와 색 맞추기는 181판의 두 장으로 묶고,
 // 상자 구덩이 메우기는 그 조합이 실제 등장하는 205판에서 따로 연다.
-const INTRO={...(DOOR_LEVELS_ON? {6:'door', 21:'mower', 22:'mowerTurn'} : {}),31:'ice',36:'billiard',41:'tub',46:'pump',...Object.fromEntries(Object.keys(CREEK_PILLS).map(lv=>[lv,'creek'+lv])),91:'slope',121:'tramp',126:'trampknock',136:'trampback',151:'dpit',156:'crop',166:'dureong',181:'log',191:'cart',211:'paint',220:'pit',221:'valve',235:'logpit',236:'logvalve',241:'catbox',251:'greedy',261:'twocats',271:'wind',281:'windbox',291:'windpush'};
+const INTRO={...(DOOR_LEVELS_ON? {11:'door'} : {}),31:'ice',36:'billiard',41:'tub',46:'pump',...Object.fromEntries(Object.keys(CREEK_PILLS).map(lv=>[lv,'creek'+lv])),91:'slope',121:'tramp',126:'trampknock',136:'trampback',151:'dpit',156:'crop',166:'dureong',181:'log',191:'cart',211:'paint',220:'pit',221:'valve',235:'logpit',236:'logvalve',241:'catbox',251:'greedy',261:'twocats',271:'wind',281:'windbox',291:'windpush'};
 // 76 은 새 기믹이 아니라 뼈다귀 조합의 심화라 데모 힌트가 없다(56 '호스+박스', 26 '언덕 쿵' 과 같은 패턴).
 // 옛 76(순찰 고양이 테스트 1판) 시절의 항목은 제거했다. 실제 도입과 데모는 221판이다.
 const BILLIARD_FROM=41;   // 당구(공-공 전달) 해금 판 (재배열: 물리 4연속의 마지막)
@@ -5533,17 +5545,57 @@ const HOME_STAGES={
 const HOME_STAGES_OLD={};
 function homeStagesApply(on){ for(const k in HOME_STAGES){ const i=(k|0)-1; if(!HOME_STAGES_OLD[k]) HOME_STAGES_OLD[k]=BAKED[i]; BAKED[i]=on? HOME_STAGES[k] : HOME_STAGES_OLD[k]; } }
 homeStagesApply(HOME_LEVELS_ON);
+// ── 1동네 1~30판(2026-10-17 라이브 이식) ── 시안 fixpot-1-10 판(A안 1~16·23~25, C안 17~22·26~30). 화분 굳기·윤곽·꼬꼬·우리 문 규칙(L.d1)이 이 행들에서만 켜진다.
+// 행은 docs/superpowers/specs/mock/_gen/to-baked.cjs 가 만든다(손으로 고치지 말고 변환기를 다시 돌려 붙인다). par·sl = 시안 그대로, ac·sl5·par5 = 라이브 엔진 BFS.
+// HOME 적용 뒤에 BAKED[0..29] 를 덮는다. 위 HOME_STAGES·BAKED 옛 행은 되돌리기용으로 그대로 둔다 — D1_LEVELS_ON=false 면 그쪽으로.
+let D1_LEVELS_ON=true;
+const D1_STAGES=[
+  {T:'0000000001111000011011100111111001000110011111100111111000000000',h:[],p:[],b:[[5,2,0,0],[2,5,0,1]],d:[2,6],home:[1,5,2],par:17,sl:'LDLLLLDDRRRDRUUUU',gs:[],lk:1},
+  {T:'0000000001111010011011100111111001111110011111000111111000000000',h:[],p:[],b:[[5,4,0,0],[6,3,0,1],[6,5,0,1]],d:[4,5],home:[1,5,2],par:18,sl:'DLULLDDRUULURRDRUU',ol:[[6,4,0],[6,5,0]],gs:['H2'],lk:1,ac:[[4,1],[2,2],[3,6]],sl5:'DLULLDDRUULLUURDRRDRURLU',par5:24},
+  {T:'0000000001111110011111100011111000111110011111100111110000000000',h:[],p:[],b:[[2,2,0,0],[2,3,0,1]],d:[1,5],home:[6,6,0],par:23,sl:'LLDRDLUULLDRDURRRURDDDD',ol:[[4,2,0],[5,2,0],[5,3,0]],gs:['L3a'],fx:[[5,2,0],[5,3,0]],lk:1,ac:[[3,5],[4,3],[5,5]],sl5:'LLDULLDRRURDDLULDRDRRDUURDD',par5:27},
+  {T:'0000000001111110011111100011111001101110001111100110100000000000',h:[],p:[],b:[[5,5,0,0],[1,6,0,1],[2,4,0,1],[3,2,0,1],[4,4,0,1]],d:[2,5],home:[6,5,0],par:25,sl:'DLDDLLUUURURDLLLURRRDDDRD',ol:[[1,5,0],[1,6,0],[5,4,0],[6,4,0]],gs:['H2','V2'],lk:1,ac:[[6,2],[4,1],[4,6]],sl5:'DLDDLLDUULRUURURDLLLURRRDDDRRLD',par5:31},
+  {T:'0000000001111110010110000101100001111110011111100111110000000000',h:[],p:[],b:[[5,5,0,0],[5,2,0,1],[6,3,0,1],[3,3,0,1],[6,1,0,1]],d:[4,5],home:[6,6,3],par:22,sl:'DLLLRRDLUURUULDDRDLDRR',ol:[[5,1,0],[5,2,0],[6,1,0],[6,2,0]],gs:['O4'],lk:1,ac:[[4,2],[1,4],[5,6]],sl5:'DRLLLLUDRRDLUUURUULDDDRDLDRR',par5:28},
+  {T:'0000000001111100001111100111111001110010011011100111111000000000',h:[],p:[],b:[[3,3,0,0],[2,5,0,1],[3,6,0,1],[3,5,1,1]],d:[3,1],home:[2,1,1],par:20,sl:'DRRUDLDDRRURRUULLULL',ol:[[2,5,0],[2,6,0]],gs:['H2'],lk:1,ac:[[5,1],[6,5],[1,4]],sl5:'DDURRUDLDDRRRURUULLUUDLL',par5:24},
+  {T:'0000000000111110011111000110111001111110011100100111111000000000',h:[],p:[],b:[[2,3,0,0],[5,1,0,1],[6,2,0,1],[4,5,1,1],[5,2,1,1]],d:[4,6],home:[2,6,3],par:23,sl:'DDLLLLUULUURDLDRRLUURRR',ol:[[4,4,1],[4,5,1],[5,1,0],[6,1,0]],gs:['V2','H2:1'],lk:1,ac:[[5,3],[1,2],[1,4]],sl5:'DDLLLLURURUUULLDDLDRRLUURRR',par5:27},
+  {T:'0000000001011100001111000111111001111110010111100111111000000000',h:[],p:[],b:[[2,2,0,0],[3,2,1,1],[4,5,1,1],[6,6,0,1]],d:[5,6],home:[1,2,2],par:25,sl:'ULDLLULLURDRUDDRRULDLULUU',ol:[[2,4,0],[3,4,0],[2,3,1],[3,3,1]],gs:[],fx:[[2,4,0],[3,4,0]],lk:1,ac:[[6,4],[5,1],[3,5]],sl5:'UULDLLLLDUURDRUDRRRDLLDLUULUU',par5:29},
+  {T:'0000000001110100001111100111111001111110000111100111111000000000',h:[],p:[],b:[[5,5,0,0],[5,3,0,1],[5,4,1,1],[6,1,1,1]],d:[3,6],home:[1,6,2],par:29,sl:'DDDLUDLLUULURDRRDLDLUUDRRRUUU',ol:[[2,5,0],[3,5,0],[3,4,0],[2,4,1],[2,3,1],[3,3,1]],gs:[],fx:[[2,5,0],[3,5,0],[2,4,1],[2,3,1]],lk:1,ac:[[6,2],[2,2],[3,1]],sl5:'DDDLUDLLUULUUDLRRDRRDLDLLRUUDRRRUUU',par5:35},
+  {T:'0000000001111010011111100111111001111110001111000111110000000000',h:[],p:[],b:[[2,2,0,0],[5,2,0,1],[3,2,0,1],[1,2,1,1],[3,1,1,1]],d:[3,6],home:[1,5,2],par:34,sl:'DLLLLLUURRRLLLDRRDDDLUUULURDDRRURU',ol:[[1,1,1],[1,2,1],[1,3,0],[1,4,0],[2,3,0],[2,4,0]],gs:['O4','H2:1'],fx:[[1,3,0],[1,4,0]],lk:1,ac:[[5,4],[6,1],[2,6]],sl5:'UDDLLLLLURLURRRDDDDLLLRURUULLDRRDRUURU',par5:38},
+  {T:'0000000001101100011011100110111001101110010t11100111111000000000',h:[],p:[],b:[[3,6,0,0],[3,5,0,1],[5,5,0,1]],d:[6,1],home:[1,6,2],par:25,sl:'RRRRRUUUDLLDRULUURDLDRURU',ol:[[5,6,0],[4,6,0]],gs:[],lk:1,dr:[[43,2,0]],ac:[[5,1],[1,4],[3,1]],sl5:'UUUDDDRRRRRUUUDLLDRUULUURDDLDRURU',par5:33},
+  {T:'00000000011111100111111000001t0000111110011111100101111000000000',h:[],p:[],b:[[2,5,0,0],[2,2,0,1]],d:[4,5],home:[3,6,0],par:19,sl:'LUUULLLDRRURDDUURRD',ol:[[4,4,0]],gs:[],lk:1,dr:[[29,3,0]],ac:[[4,3],[5,4],[4,6]],sl5:'RDLLULRUUULLLDRRURDDUURRD',par5:25},
+  {T:'000000000110011001111010011110100111111000t111100101111000000000',h:[],p:[],b:[[3,2,0,0],[4,2,0,1]],d:[2,2],home:[1,4,2],par:28,sl:'LDRRLLDRRRUDDDLURRRULLDLUURU',ol:[[2,3,0]],gs:[],lk:1,dr:[[42,1,0]],ac:[[1,1],[6,5],[3,6]],sl5:'ULDDRRLLDRRRUDDDLUDRRURUUDLLDLUURU',par5:34},
+  {T:'00000000011110100111111001111100011t1t00011111100111101000000000',h:[],p:[],b:[[3,3,0,0],[2,2,0,1]],d:[1,3],home:[3,6,3],par:24,sl:'DRDDDLLUULUURDDDLDRUURRR',ol:[[5,3,0]],gs:[],lk:1,dr:[[37,3,0],[35,3,0]],ac:[[5,5],[6,1],[6,3]],sl5:'LLDDRRRLLDDDLRRRURLLLUULUURDDDLDRUUURRDR',par5:40},
+  {T:'00000000011111000111t110011111000111t110011101100111110000000000',h:[],p:[],b:[[4,5,0,0],[5,2,0,1]],d:[3,3],home:[3,6,3],par:21,sl:'DLLDRDRRRUUDDLLUUUUDR',ol:[[1,3,0]],gs:[],lk:1,dr:[[36,0,0],[20,0,0]],ac:[[6,1],[3,5],[2,2]],sl5:'DDDRRUUUDDDLLLLRUUUURURLDLLURDDRR',par5:33},
+  {T:'0000000001110110011111100111t11001111110011101100011011000000000',h:[],p:[],b:[[2,2,0,0],[4,3,0,16]],d:[2,3],home:[6,1,0],par:15,sl:'RLLULDDDRRUDLLD',gs:[],lk:1,dr:[[28,0,1]],pn:[[5,5],[5,6],[6,5],[6,6]],sw:[[5,5],[5,6],[6,5],[6,6]],ac:[[3,2],[5,2],[2,5]],sl5:'RRLLLULDDDRDURULDLD',par5:19},
+  {T:'00000000011011100110111000111t1000011110011111100000011000000000',h:[],p:[],b:[[4,5,0,0],[5,1,0,16]],d:[4,6],home:[3,1,1],par:23,sl:'LLUDDLLLRRURDUULRDRLLUL',gs:[],lk:1,dr:[[29,1,1]],pn:[[1,4],[1,5],[1,6],[2,4],[2,5],[2,6]],sw:[[1,4],[1,5],[1,6],[2,4],[2,5],[2,6]],dg:[1],ac:[[5,5],[2,2],[6,6]],sl5:'DDUULDULULLUDRRDDLLLRRURDUULRDRLLUL',par5:35},
+  {T:'000000000111111000111110001t101000111110000111100111101000000000',h:[],p:[],b:[[4,3,0,0],[4,4,0,16]],d:[4,2],home:[6,5,3],par:20,sl:'RLUURRDDDURRLDLUDLDR',gs:[],lk:1,dr:[[27,1,1]],pn:[[2,4],[1,4]],sw:[[2,4],[1,4]],ac:[[1,2],[3,6],[6,2]],sl5:'RLUUUDRRDDDURRUDDLLUDLDLRR',par5:26},
+  {T:'000000000110100001111110011t100001111110001011100110111000000000',h:[],p:[],b:[[5,5,0,0],[3,4,0,16]],d:[6,1],home:[5,1,0],par:22,sl:'RUURRDDRURULLLLUURLDLD',gs:[],lk:1,dr:[[27,0,1]],pn:[[2,5],[2,6]],sw:[[2,5],[2,6]],ac:[[6,6],[1,2],[2,4]],sl5:'RUURRDDRUDRUULLLLUUUDRRLLDLD',par5:28},
+  {T:'000000000110111001111110001t111001111110011011t00110111000000000',h:[],p:[],b:[[3,5,0,0],[2,5,0,16]],d:[3,6],home:[3,1,2],par:24,sl:'ULDLULRURDLRDRDLLLLUDDLU',gs:[],lk:1,dr:[[27,0,1],[46,3,0]],pn:[[1,1],[1,2]],sw:[[1,1],[1,2]],ac:[[2,2],[5,4],[6,2]],sl5:'ULDLULLRRURDLRDRDLLDULLUDDDULU',par5:30},
+  {T:'000011110110111101111111001t111111111111011111111111111111111111',h:[],p:[],b:[[4,3,0,0]],d:[5,1],home:[5,0,2],par:16,sl:'URUURLDDDRDLLDLU',open:1,ol:[[5,5,1],[6,5,1]],gs:[],fx:[[5,5,1],[6,5,1]],lk:1,dr:[[27,3,2]],ac:[[1,2],[5,4],[7,2]],sl5:'URUUUDRLDDDRRDLLDULDLU',par5:22},
+  {T:'111111111100000111011101110111011111110111t101011111111111111110',h:[],p:[],b:[[6,5,0,0],[6,4,0,1],[5,5,0,16]],d:[6,6],home:[7,7,3],par:23,sl:'DLLLUUURRDDUULLDDRDRUDR',open:1,ol:[[5,5,0]],gs:[],lk:1,dr:[[42,0,2]],pn:[[2,3],[2,4],[2,5],[3,3],[3,4],[3,5],[4,3],[4,4],[4,5]],sw:[[2,3],[2,4],[2,5],[3,3],[3,4],[3,5],[4,3],[4,4],[4,5]],ac:[[7,2],[6,7],[4,1]],sl5:'RLDLLLLULUURRRRDDUULLDDRDRUDR',par5:29},
+  {T:'000000000011100001111110010111000111111001101t100111111000000000',h:[],p:[],b:[[4,2,0,0],[5,2,0,16]],d:[6,1],home:[3,6,3],par:29,sl:'UURDLDRUURRDDUULUDRDDRLUULURR',gs:[],lk:1,dr:[[45,1,2]],pn:[[3,3],[3,4]],sw:[],ac:[[6,3],[2,3],[6,6]],sl5:'UURDDUURUUDRDRRDDLLLLULURRURDLURR',par5:33},
+  {T:'000000000111111001t1111001101110001111100111t1100111111000000000',h:[],p:[],b:[[4,5,0,0],[5,2,0,16]],d:[3,1],home:[3,3,1],par:31,sl:'UURRRDDDLDLLDRRRLUURLLRRRDRUULL',gs:[],lk:1,dr:[[44,2,2],[18,1,2]],pn:[[1,5],[1,6]],sw:[],ac:[[2,5],[6,5],[6,6]],sl5:'UURRRDDDLLRDDRLLLRRRRURDUUUUDLUDL',par5:33},
+  {T:'00000000011111100111t110011111100111111001t101100111110000000000',h:[],p:[],b:[[5,3,0,0],[3,4,0,16]],d:[1,6],home:[6,6,0],par:26,sl:'DDLLLULLDDDDRRUULURRRURDDD',gs:[],lk:1,dr:[[20,0,2],[42,2,0]],pn:[[5,1],[6,1]],sw:[],ac:[[4,4],[6,4],[5,5]],sl5:'DDDDLDLLUURURDLLLULRRRRURDDD',par5:28},
+  {T:'0001100001011110011111111111111111111110111111100111111100111111',h:[],p:[],b:[[1,5,0,0],[2,3,1,1],[5,4,0,16]],d:[1,3],home:[1,2,1],par:22,sl:'DRDLLLDDDRRRUURRUUULLL',open:1,ol:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1]],gs:[],fx:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0]],lk:1,pn:[[3,3],[3,4],[4,3],[4,4]],sw:[[3,3],[3,4],[4,3],[4,4]],ac:[[2,1],[5,3],[0,4]],sl5:'DRDLLLUDRRDDDRRURUUUULLUDL',par5:26},
+  {T:'0001000001111110011111111111111111111111111111110111111100111111',h:[],p:[],b:[[2,4,0,0],[4,4,1,1],[6,5,1,1],[2,2,0,16]],d:[1,1],home:[0,4,2],par:25,sl:'RDLDRRDRRRDDDLULURRULLUUU',open:1,ol:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1]],gs:[],fx:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1]],lk:1,pn:[[3,3],[3,4],[4,3],[4,4]],sw:[[3,3],[3,4],[4,3],[4,4]],ac:[[1,3],[6,3],[7,4]],sl5:'DURRDDDRRRDDDLUDLLURURRULLUUU',par5:29},
+  {T:'0001100011111110111111111111111111111111111111110111111100101111',h:[],p:[],b:[[5,3,0,0],[1,4,1,1],[2,3,1,1],[5,4,0,16]],d:[6,6],home:[7,3,0],par:31,sl:'LLUUUULLLDRRDRRRUUULLLLLDDRRDDD',open:1,ol:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1],[1,0,1],[2,0,1]],gs:[],fx:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1]],lk:1,pn:[[3,3],[3,4],[4,3],[4,4]],sw:[[3,3],[3,4],[4,3],[4,4]],ac:[[7,4],[7,5],[7,6]],sl5:'DLLUUUUULLLDRRDRRRUUULLLLLDDRRDDD',par5:33},
+  {T:'0000100011111111111111111111111111111111111111111111111100111111',h:[],p:[],b:[[2,3,0,0],[6,4,1,1],[1,3,1,1],[3,6,0,16]],d:[4,1],home:[0,3,2],par:31,sl:'UUURRRRRDULLDDDRRLDDLLLLUUURRUU',open:1,ol:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1],[1,0,1],[2,0,1],[6,0,1],[1,7,1]],gs:[],fx:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1],[1,0,1],[2,0,1]],lk:1,pn:[[3,3],[3,4],[4,3],[4,4]],sw:[[3,3],[3,4],[4,3],[4,4]],ac:[[5,6],[6,6],[7,6]],sl5:'UUURRRRRDDDDDDULURLDLLLLUUURRUU',par5:31},
+  {T:'000110001111111111t11111111111111111111111111t111111111100111110',h:[],p:[],b:[[4,6,0,0],[1,4,0,1],[6,3,0,1],[2,1,0,16]],d:[6,6],home:[7,7,3],par:35,sl:'UULLULUDLLUDUURRURDRRDDDDDLDLLUDRRR',open:1,ol:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1],[1,0,1],[2,0,1],[6,0,1],[1,7,1],[2,4,0],[5,3,0]],gs:[],fx:[[4,0,1],[5,0,1],[2,7,1],[3,7,1],[2,5,0],[3,5,0],[4,2,0],[5,2,0],[3,0,1],[4,7,1],[5,7,1],[1,0,1],[2,0,1],[6,0,1],[1,7,1]],lk:1,dr:[[18,0,2],[45,2,2]],pn:[[3,3],[3,4],[4,3],[4,4]],sw:[[3,3],[3,4],[4,3],[4,4]],dg:[1,3],cp:[2,2,5,5],ac:[[4,1],[6,4],[7,2]],sl5:'UULLULUDLLDUUURRURDRRDDDDDLDLLLRURDRR',par5:37}
+];
+const D1_STAGES_OLD=[];
+function d1StagesApply(on){ D1_STAGES.forEach((row,i)=>{ if(!D1_STAGES_OLD[i]) D1_STAGES_OLD[i]=BAKED[i]; BAKED[i]=on? row : D1_STAGES_OLD[i]; }); }
+d1StagesApply(D1_LEVELS_ON);
 let potMergeAt=null, potMergeLv=0;   // 화분 합치기(톡톡)가 시작된 시각·판 — 받침 그림도 읽는다
 // 판이 끝나도 승리 카드는 화분 합치기(톡톡 + 큰 화분)를 다 보여 준 뒤에 — 마지막 수가 화분이면 같은 순간에 끝나 카드에 가려졌다.
 function potMergeHold(){ try{
-  if(!L || !L.home || houseMode || !L.tg || L.tg.length<2 || homePotsOn(L,boxes)<L.tg.length) return false;
+  if(L && L.d1 && !houseMode) return d1BloomHold();                                       // 1동네 — 꽃이 다 필 때까지
+  if(!L || !L.home || L.d1 || houseMode || !L.tg || L.tg.length<2 || homePotsOn(L,boxes)<L.tg.length) return false;
   if(potMergeAt===null || potMergeLv!==level){ potMergeAt=animT; potMergeLv=level; try{ tone(620,0.05,'sine',0.03,880); }catch(e){} }
   return animT-potMergeAt < L.tg.length*.12+.06+.4; }catch(e){ return false; } }
-let homeAt, homeFx, homeHit, homeBang=null, homeIntro=null, homeIntroL=null, homeIntroSeen=false;
+let homeAt, homeFx, homeHit, homeBang=null, homeIntro=null, homeIntroL=null, homeIntroSeen=false, d1Enter=null;
 // 젬(10-13 사람: 예전처럼 2판부터) — 2~5판은 젬 셋(ac)을 해답이 지나는 칸에 묻는다. 그래서 다 줍는 길(sl5)·걸음(par5)이 해답·par 와 같다.
 // 화분 자리(10-13 사람) — 2~5판은 화분(택배 상자 칸, 한 칸 밀림)을 tg 자리에 다 올리고 공을 집에 넣어야 끝난다. 2판 하나·3판 나란히 둘·4판 울타리 밑 한 줄·5판 가운데 꽃밭.
 // 판에 들어설 때 할아버지가 한마디 한다(초상화 + 이름표 + 두 줄). 처음 깨기 전에만, 다시하기엔 안 뜬다. 1판은 할아버지가 공을 던지는 말 — 닫히면 공이 날아오고, 떨어지면 집 옆에 느낌표가 뜨고 맥스가 나온다.
-const HOME_STORY={1:'story.home1', 2:'story.home2', 3:'story.home3', 4:'story.home4', 5:'story.home5', 6:'story.home6'};
+const HOME_STORY={1:'story.home1', 2:'story.home2', 3:'story.home3', 4:'story.home4', 5:'story.home5', 6:'story.home6', 11:'story.home11', 16:'story.home16', 21:'story.home21', 26:'story.home26'};   // 1동네 대사(10-17) — 묶음 첫 판마다. 1판은 공이 떨어진 뒤 둘째 말(story.home1b)
 const STORY_GRAMPS='data:image/webp;base64,UklGRlYLAABXRUJQVlA4IEoLAAAwPwCdASq4ANYAPnk4l0eko6IhK1W6WJAPCWNu3V3opd+37KcJ3qOXF7ZkSv/XRfVl+ft6l5i/N4087enrULocgYO1eZEEN5XKwlH76xng1h2ACC0KjFAEEbJ5T0VbmFIjEOgysDvBSsG40Oql2ElrYKVLwO5bOyht/p2WIBW874z9DVBQe9OCYZc+B6oO5H5n3WYdDeMGWkfWKPo1Woxh+B83UfjKYmcFxZ/sp4TxovnSqFDP81zZLfs/tEwLg+bn/+gf/GxPbk9XNTghZX6uNB6HEIo4UuTBZXvoozIMiQg1MOir3bqLdpEz4+HyY8moEfE9v3lkLckl4Wd0SgfBDPbXghOnEeJrWhzP730ubCwh4RxJZk/L8gUthT/4tX+scY+HOR7kYPiflSNd+QC+o1DalQD1wHJamm3DJhxKhaQOsruqHNQ2+B2DWhOHpk86edf/iBZNi90QUtl6gjYhY9sG9g1VYs1K82lghnxD4R6tGdOIUXsgqyVFtfjChI2zzP7/nBjvkNMbgmzGPSplQCnj84hgVhfZDo5i1OmFGO3OPaE6pZYCx7aar1+QhKo8f8GgP+sGQBPXr3ibc5HhVouIrW6xFUJQ2/BV+8+IhLzg9iI6p1ct06JB4jBUzeaisqFIj9C7cnH9Mmre9uNX5xndOmtDco9h8FoVigLQqNsAAP772iEmPiC89WAAAAAYV9wlQ7AH2CR61CTSa01ae1PF9Xx8njXZtRILLpSsqj+p39rWvlPqOOnDDNbALJKu24PfumBanv0XDBj6lIT6y/fJkp2rN6lZk3XbbnyhUBkPOAAL3J1OKBT0UjbC/i+nyraZu3gZSn20ZwqI7H7TqhqY+3wwFCF3Y8CAAP3NCYvswW0ERb9xMs1XbwbQbn7sHGRGwTqwTEfVll3dWQKMFL7j+mnQWy6P00C8j9/34AAeaseVKsNvu6iZW47oz3upiPDCMeTyCx4/6LVlRinpEZgsKBkSja39qJmFkuDP/zYjYAMxUHQYrBfMCQXk1pjFpOU5PYLbxaRBjVzEtcEtLqLtqYm7x94kQ/Z0gKUDt6E4IFwaL5xtMm8JOr2OVv2+VW6BsuKjYUulOd+95FLP7RmtuMy5BLmeFkT9l4F5dznXZ9DyYpCZWYzjM9SeDTq/NirPYXZVFD0CxGISPipj1bGHwENYuCoysx807vhilWn0au93NyB6EG/2MwPxlsr9Si4NQ63cv1YaCUme+liNNFwKHUWgoHxHMQz33ZRpfoSfesPWV7A/HruVMTwf2upA6YQXh4Ltbl5u5bb+v9J7asCqGFb7CPI8vHCp/5VWhHDccOZODFsN5r/htoEX9lEqanF4T//IxPPcYvFd4k66Rb0uhAlAOPY8NrXUaPeNOBu7mgmTFvEmyDBy847xcvg7WpaLIyBgWhlyi9C0EFkvTp0GyDUNDd6pvBhJL5PgIZOwIzsqBIVM1bVHPl3XZrQhx8IZJQK+lVj17KqB64/Ky5c09EeUVbDrdxVUyKJlFXyFspnj0B8Xhep1BPdV0Sn508IT6XruJVmVjPXy/PR3e25TJRu9QoBj270YLLX+4aR6TaBpPOL1wKsKNIF7ODIz316x7RVUtr0WNzDlc/Oj6UOPyySd5polyZJntqLFL3K/mgeY8QI9S+ivUV5hJdWG3qsxvmllF0d4tIGFA07IRQWRfJDfTzjFYgyMsOjLXrD9qCNCMH159wSSxjQLRJXCyrAsnUje8CXKs3uMYVGJBMFBuD3ZCrzwwqHiKZk7+f2MNiekKmp+7WIQVub29NfX+rzY2QBQBRrNHFRJ1sCpWxyGN64cOphHHGD5ucxrHnNSEpV9SYiPI+eqoZ6vNGhvWgRCSUEjIhWSSkwU7jokFzFYHtLV9vreH5Wa87T5nlYMsjhrDy5LnDXHpPiGyJL2C9ut3Ht4VUJWE4wIkzHWJQzFK5JWZTih8TG3a1J1vcpU1AHQxn1k53osaC/3h0KullKlsB98d+cNp4cvaLmEv+lNWqKlQLcZpxBxYowo/+qxubOfFuK63+QzdJQ56IgQdg0XgXWiuU/MYFuFmD9VevULusl0J0oRi/lADUhu7t6cdM+yDV7/wBR5/72wYCvh1IGmkFIfHr4/enA7MVzlG/o1BmWKagoU+iaz86HK72ut5xuU6O92KhX9TA3op35qlAy4IdT24dr9WaqEOsdLhVLM8TnhpuPhlfVadnJHb5or7+ApiNDgi7ztsY3bbxfIhqATmxbwhLifz9NYiazL++IwZITh7oOn7qncLggOijWIbuLMXjbJlTsCXzw/aGv0JoC3/7njBsJhKV55jqdaE36s690gGwZYQaCMnWmOv9vs89VA21NEBn8FL2gQ8W0LbKlOSEQ5GYgUGu46SMc6ZZoum2iS40J5bePh1JPAfb/aa/9Sjj8TWWglMqEL7JPSRnwCg0EG/keepxrgGiT9WpAZm1/GSgDJg8c4V+sOKvALhFj7QZfCwflMj20GnB/bhlzcfAmxkYART5mRRw66ovtKyJ45KFN4zieOxxvnJBVOpI7yLRIxfn3WVqnAbUOSnoPLBxWv/wrUxPo7pXfQD9KYRjOJCGhUmImngAVVoNbGaEIb4l03llVANEwq7sR3mj44DuDZSkmDneGbqYchZ36X9T2iZeNgA8P8gZNBzFG18pDflbWnWgLcid6XZYtEWn6K8gCZORwykYHslucPSYYAQ636aEdSAOpRPuqsBWO20iB1TlDecUijwy2Lbz81x3kuupvN96IwgTvZoMeEioIvc8BE8jI4pRtHHEwu9Wxoq2trVI2A0y5JQ6EZC20AM5X4JsRdB+CMFCgHjgUxkQiQQSODQZy7rr8Hqa8+L62tUMjM55VLp5sT8uzP+9QIm7/cTvw6E/AcQQRwN2Qc0dOLX+k1y7/zVVazOENdqVhC+earrWBmoutBgLdr1VZEOLniZg92klOvUH+M8LhrbVgmOjlTNvqFs8sR0UNMczx6hrdE/pD065HYcsilO4PYqLZwDF2yMvO4DbEXbrcOfcrmBKfX3YlgZmX1s9IkAwHTgbUM11mT+8Nh25QtB8wc+PQiwgS+wf1TmPNGe4WiiZzDkQCsfPZ8lL+zWU3iBR7L6xvg3tX8DfWzSZO3iV/CpTdk7d1FeHjVKTjpUWQ76ZRV8NYUuG0ueV21W1jSkkGNFKL73H0IOVw4UIN6NVim+j49mlsauF6nrDzfd+QCLjBDsKKypomb9HwTry388L5qQG5PCrCoRRl8+AKmEW8xxhGrfYVcl0uIvOLSH4zsTbLS3M7B1AUJVWhMHDuppiUQE3LnbkiS489bapeuVpGX4V89/GErUdlltjqV+gwDdn/yAdNgKSKjLNA8Z/+XZt94F97jwVS74rYHIcnTqpLgW5SqxbVF9n5NNJLlD/NyQaFALUC0IfAYDCHWeE5L/G8nf0k4q6cd9GDyY70fTYREFxhv9HEBJFysA+/hiXqcsBvrxMbxDxdS2Qr1+nxfEb6JnG0hP6pSJX+MbcRPaykmSAb0VASPn2JKvrsancorxMay4g4jM4MgV7W7bDepVYywVA5R5wba6IztjCU/OHs+46PE57+7hOoyAq+inxI1dUscK6g2ANLTO/c4cxAI1KDepuq5c/PvcQzNCk9KvAOAELHuXY1Rk0AAGCqP7EXobqEZwBEpYmBUpLeER6rT9UHyPvP+YNoPbzEcN9cpQzksgsqErjTDbmXi/04PgPbQXsYDKTKdHYTp7wW6MCGy8XCymJMEFD23swq4cFEEynUzXrwc6bv8PELu1PTl3N30Y9xRACzJE/DzpfXMX1K3FmV1p+XCFxJqhfWFEYjN/4HzAAAAAaHAAAAA';
 let gtalkOpen=false, gtalkSeen={};
 function homePotsOn(L, bx){ return L.tg.filter(q=>bx.some(b=>!b.gone && b.kind==='log' && b.r===q[0] && b.c===q[1])).length; }
@@ -5629,7 +5681,8 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
   // 옆·뒤에서 밀었다 — 게임의 원래 막힘 연출(공이 튕겨 돌아와 맥스가 쿵)에 더해 집이 부르르 떤다.
   tryMove=function(dr,dc){
     if(gtalkOpen){ gtalkClose(); return; }                            // 할아버지 한마디 — 아무 입력이나 닫는다
-    if(homeIntro) return;                                             // 첫 판 등장 연출 중엔 안 움직인다
+    if(homeIntro || (!houseMode && L && L.d1 && d1Enter && d1Enter.lv===level)) return;
+    if(pendingWin && L && L.d1 && !houseMode) return;                                          // 꽃 필 때까지 승리 대기 — 이동을 안 받는다                                  // 첫 판 등장 연출·16판 꼬꼬 등장 중엔 안 움직인다
     let hit=false;
     try{ if(L && L.home && state==='play' && !isAnimating()){
       const b=boxes.find(x=>x.sink===0 && x.r===dog.r+dr && x.c===dog.c+dc);
@@ -5646,15 +5699,43 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
   function drawHomeBack(g){ const s=cell, x=cx(L.home[1]), y=cy(L.home[0])+s*.5; g.save(); g.fillStyle='#FFFFFF'; g.fillRect(x-s*.2,y-s*.5,s*.4,s*.44);
     g.strokeStyle='rgba(150,135,120,.22)'; g.lineWidth=Math.max(.8,s*.008); for(const k of [.2,.36]){ g.beginPath(); g.moveTo(x-s*.2,y-s*k); g.lineTo(x+s*.2,y-s*k); g.stroke(); }
     g.fillStyle='#BFE0F5'; g.strokeStyle='#A98F78'; g.lineWidth=Math.max(1,s*.014); g.beginPath(); g.arc(x,y-s*.3,s*.085,0,7); g.fill(); g.stroke(); g.restore(); }
+  // 옆으로 들어가는 집(시안 mock/fixpot-1-10/art.js side·mat) — 문 없는 긴 벽 + 깔개가 입구 쪽. dir: -1 왼쪽 입구, 1 오른쪽 입구. g 원점 = 집 발치.
+  function homeMat(g,s,x,y,hw,hh,rot){ g.save(); g.translate(x*s,y*s);
+    g.fillStyle='rgba(52,84,40,.2)'; g.beginPath(); g.roundRect(-hw*s,-hh*s+s*.015,hw*2*s,hh*2*s,s*.035); g.fill();
+    g.fillStyle='#D9694F'; g.strokeStyle='#B24E38'; g.lineWidth=.6; g.beginPath(); g.roundRect(-hw*s,-hh*s,hw*2*s,hh*2*s,s*.035); g.fill(); g.stroke();
+    g.strokeStyle='rgba(255,236,200,.75)'; g.lineWidth=s*.009; g.beginPath(); g.roundRect((-hw+.022)*s,(-hh+.022)*s,(hw*2-.044)*s,(hh*2-.044)*s,s*.02); g.stroke();
+    g.rotate(rot); const k=.72; g.fillStyle='rgba(255,243,214,.95)'; g.beginPath(); g.ellipse(0,s*.022*k,s*.05*k,s*.04*k,0,0,7); g.fill();                       // 발바닥 — 발가락이 가는 쪽
+    for(const q of [[-.06,-.035],[-.021,-.066],[.021,-.066],[.06,-.035]]){ g.beginPath(); g.arc(s*q[0]*k,s*q[1]*k,s*.019*k,0,7); g.fill(); }
+    g.restore(); }
+  function drawHomeSide(g,s,dir){ const w=s*.34, wh=s*.42, rh=s*.5, ew=s*.2, OLc='#B9A592', lw=.6;
+    g.save(); g.translate(-dir*s*.135,-s*.02); g.scale(.72,.72); g.scale(dir<0?1:-1,1);                                   // 왼쪽 기준으로 그리고 오른쪽은 뒤집는다
+    g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.01,w*1.3,s*.11,0,0,7); g.fill(); g.lineJoin='round';
+    g.fillStyle='#B98558'; g.strokeStyle='#8A5F3C'; g.lineWidth=lw; g.beginPath(); g.roundRect(-w-ew-s*.02,-s*.075,w*2+ew+s*.05,s*.095,s*.02); g.fill(); g.stroke();
+    g.fillStyle='#ECE7DE'; g.strokeStyle=OLc; g.beginPath(); g.moveTo(-w-ew,-s*.06); g.lineTo(-w-ew,-wh+s*.02); g.lineTo(-w-ew*.5,-wh-rh*.62); g.lineTo(-w,-wh); g.lineTo(-w,-s*.06); g.closePath(); g.fill(); g.stroke();   // 끝 벽
+    g.fillStyle='#FFFFFF'; g.fillRect(-w,-wh,w*2,wh-s*.06);                                                                 // 긴 벽
+    g.strokeStyle='rgba(150,135,120,.16)'; g.lineWidth=lw; for(let i=1;i<=3;i++){ const yy=-s*.06+(-wh+s*.06)*i/4; g.beginPath(); g.moveTo(-w,yy); g.lineTo(w,yy); g.stroke(); }
+    const roof=()=>{ g.beginPath(); g.moveTo(-w-ew-s*.06,-wh+s*.05); g.lineTo(-w-ew*.5-s*.02,-wh-rh); g.lineTo(w+s*.02,-wh-rh); g.lineTo(w+s*.07,-wh+s*.05); g.closePath(); };   // 지붕 비탈
+    const rg=g.createLinearGradient(0,-wh-rh,0,-wh); rg.addColorStop(0,'#6FAAE8'); rg.addColorStop(1,'#4F8FD6'); g.fillStyle=rg; roof(); g.fill();
+    g.save(); roof(); g.clip(); g.strokeStyle='rgba(255,255,255,.3)'; g.lineWidth=lw; for(const k of [.25,.5,.75]){ g.beginPath(); g.moveTo(-w-ew-s*.1,-wh+s*.05-rh*k); g.lineTo(w+s*.1,-wh+s*.05-rh*k); g.stroke(); } g.restore();
+    g.strokeStyle='#5B8FCC'; roof(); g.stroke();
+    g.fillStyle='#FFFFFF'; g.strokeStyle=OLc; g.beginPath(); g.roundRect(-w-ew-s*.07,-wh+s*.03,w*2+ew+s*.15,s*.06,s*.015); g.fill(); g.stroke();   // 처마 널
+    g.restore(); }
+  // 집 한 채 — 입구 방향(L.home[2])대로. 아래: 문이 앞 / 위: 흰 벽+창, 깔개가 지붕 너머 / 옆: 문 없는 긴 벽, 깔개가 입구 쪽.
+  function drawHomeAll(g){ const s=cell, {x,y}=homeXY(), hd=L.home[2]&3, st=g.stroke;
+    if(hd===1||hd===3){ const dir=hd===1? 1 : -1; g.save(); g.translate(x,y); homeMat(g,s,dir*.405,-.1,.08,.15,dir<0? Math.PI/2 : -Math.PI/2); g.restore(); }
+    else if(hd===0){ g.save(); g.translate(x,y); homeMat(g,s,0,-.848,.16,.062,Math.PI); g.restore(); }
+    g.stroke=()=>{};                                                                                                     // 집은 선 없이 — 면·그림자만(10-14 사람)
+    try{ if(hd===0){ g.save(); g.translate(x,y+s*.035); g.scale(.8,.8); g.translate(-x,-y); drawHome(g); drawHomeBack(g); g.restore(); } else drawHome(g); } finally { g.stroke=st; } }
   function drawHome(g){
-    const s=cell, {x,y}=homeXY(), w=HB.w*s, wh=HB.wallH*s, pk=HB.peak*s;
+    const s=cell, {x,y}=homeXY(), w=HB.w*s, wh=HB.wallH*s, pk=HB.peak*s, hd=L.home[2]&3, sd=hd===1? 1 : hd===3? -1 : 0;
     const age=homeFx? animT-homeFx.t0 : 9, pop=age>=0 && age<.55? Math.sin(age/.55*Math.PI)*(1-age/.55*.5) : 0;
     const hAge=homeHit? animT-homeHit.t0 : 9, shk=hAge>=0 && hAge<.3? Math.sin(hAge*54)*s*.035*(1-hAge/.3) : 0;
     const wig=age>=0 && age<.9? Math.sin(age*26)*.5*(1-age/.9) : 0;
     g.save(); g.translate(x+shk,y);
-    g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.01,w*1.22,s*.11,0,0,7); g.fill();      // 바닥 그림자
+    if(!sd){ g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.01,w*1.22,s*.11,0,0,7); g.fill(); }      // 바닥 그림자
     g.scale(1+pop*.09,1-pop*.11); g.translate(0,-pop*s*.05);
     g.lineJoin='round'; g.lineCap='round';
+    if(sd) drawHomeSide(g,s,sd); else {
     // 2.5D 파란 지붕 집(10-12) — 판과 같은 3/4 내려다보는 눈: 앞 박공 벽 + 뒤로(위로) 물러나는 지붕 두 면 + 앞 처마 널.
     const OL='#A98F78', lw=Math.max(1,s*.014), dz=s*.2, ov=w*1.3, ey=-wh+s*.1, th=s*.085;
     // 받침(나무 단) — 화단 상자와 같은 갈색
@@ -5696,6 +5777,7 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
     g.fillStyle='#FFF3D6'; const bw=s*.062, br=s*.026; g.fillRect(-bw,-br*.62,bw*2,br*1.24);
     for(const sx of [-1,1]) for(const sy of [-1,1]){ g.beginPath(); g.arc(sx*bw,sy*br*.72,br,0,7); g.fill(); }
     g.restore();
+    }
     g.restore();
     if(age>=0 && age<.7){                                                                                   // 반짝 — 문에서 퍼지는 네 꼭지 별
       const u=age/.7; g.save(); g.translate(x,y-wh*.6); g.globalAlpha=1-u*u;
@@ -5710,7 +5792,7 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
   function homeIntroTick(){
     if(gtalkOpen && level===1 && !homeIntroSeen && moves===0){ homeIntroHold(); return; }                 // 한마디가 떠 있는 동안은 기다린다 — 닫히면 공이 날아온다
     if(L!==homeIntroL){ homeIntroL=L; homeIntro=null;
-      if(level===1 && !homeIntroSeen && state==='play' && !tutMode && moves===0 && boxes.length===1){ homeIntroSeen=true; homeIntro={t0:animT, landed:false, out:false}; } }
+      if(level===1 && !homeIntroSeen && state==='play' && !tutMode && moves===0 && boxes.filter(gcIsBall).length===1 && gcIsBall(boxes[0])){ homeIntroSeen=true; homeIntro={t0:animT, landed:false, out:false}; } }
     const I=homeIntro; if(!I) return; const b=boxes[0], age=animT-I.t0, s=cell;
     if(!b || state!=='play'){ homeIntro=null; if(b){ b.houseHop=false; b.air=0; b.rr=b.r; b.cc=b.c; } dog.rr=dog.r; dog.cc=dog.c; return; }
     if(age<INTRO_FLY){ const u=age/INTRO_FLY, e=u*u*(3-2*u);                      // 공 — 왼쪽 울타리 밖에서 포물선으로
@@ -5719,7 +5801,7 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
       ctx.save(); ctx.fillStyle='rgba(52,84,40,'+(.26*k).toFixed(3)+')'; ctx.beginPath(); ctx.ellipse(cx(b.cc),cy(b.rr)+s*.3,s*.26*k,s*.08*k,0,0,7); ctx.fill(); ctx.restore();
       try{ G0.drawGoalFeelToy(cx(b.cc), cy(b.rr)-b.air*s, s, b.roll); }catch(e){ G0.drawBall(cx(b.cc), cy(b.rr)-b.air*s, s, b.color, b.roll, 1, 1); } }   // houseHop — 판이 공 자리를 제 칸으로 당기지 않게
     else { b.houseHop=false; b.cc=b.c; b.rr=b.r; const v=age-INTRO_FLY; b.air=v<.3? Math.sin(v/.3*Math.PI)*.22 : 0;   // 통 — 한 번 튄다
-      if(!I.landed){ I.landed=true; b.landT=1; try{ spark(b.r,b.c,'#FFF3B0',8,2); tone(300,0.08,'triangle',0.05,200); buzz([12]); }catch(e){} homeHit={t0:animT+.12}; homeBang={t0:animT+.16}; } }
+      if(!I.landed){ I.landed=true; b.landT=1; try{ spark(b.r,b.c,'#FFF3B0',8,2); tone(300,0.08,'triangle',0.05,200); buzz([12]); }catch(e){} homeHit={t0:animT+.12}; homeBang={t0:animT+.16}; try{ gtalkShow('story.home1b'); }catch(e){} } }   // 공이 떨어졌다 — 둘째 말
     const o=age-INTRO_FLY-INTRO_BANG;                                                    // 맥스 — 공 소리를 듣고 문으로 나온다
     if(o<0){ dog.rr=-60; dog.cc=dog.c; }
     else if(o<INTRO_OUT){ const u=o/INTRO_OUT, e=u*u*(3-2*u); if(!I.out){ I.out=true; homeFx={t0:animT}; try{ tone(520,0.07,'triangle',0.04,780); }catch(e){} }
@@ -5734,13 +5816,16 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
       g.fillStyle=on? '#F3EAD6' : '#DDD3BE'; g.strokeStyle=on? '#E2B64A' : '#B9AC93'; g.lineWidth=Math.max(1,s*.022); g.beginPath(); g.ellipse(x,y,s*.34,s*.115,0,0,7); g.fill(); g.stroke();
       if(!on){ g.setLineDash([s*.06,s*.05]); g.strokeStyle='rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(x,y,s*.24,s*.075,0,0,7); g.stroke(); g.setLineDash([]); }
       g.restore(); } }
-  liquidFx=function(){ const r=G0.liquidFx.apply(this,arguments); if(L && L.home && !houseMode) try{ if(L.tg) drawPotSpots(ctx); homeIntroTick(); { const st=ctx.stroke; ctx.stroke=()=>{}; try{ drawHome(ctx); if((L.home[2]&3)===0) drawHomeBack(ctx); } finally { ctx.stroke=st; } }   // 집은 선 없이 — 면·그림자만(10-14 사람)
+  liquidFx=function(){ const r=G0.liquidFx.apply(this,arguments); if(L && L.home && !houseMode) try{ if(L.tg) drawPotSpots(ctx); homeIntroTick(); d1EnterTick(); drawHomeAll(ctx);
       if(homeBang){ const u=(animT-homeBang.t0)/.8; if(u>=1) homeBang=null; else if(u>=0){ if(!homeBang.s){ homeBang.s=1; try{ tone(880,0.06,'triangle',0.04,1180); }catch(e){} } ctx.save(); ctx.translate(cx(L.home[1])-cell*.56, cy(L.home[0])+cell*.3); ctx.scale(1.6,1.6); drawAlertMark(0, 0, u); ctx.restore(); } } }catch(e){} return r; };
   // 들어가는 공 — 문 아치 안쪽만 보이게 잘라 그리고, 들어갈수록 작아지며 어두워진다(문 안으로 쏙).
-  const entering=(x,y)=>{ if(!L || !L.home || houseMode || (L.home[2]&3)!==2) return null;
-    const h=homeXY(), top=cy(L.home[0]), bot=cy(L.home[0]+1);
-    if(Math.abs(x-h.x)>cell*.3 || y>bot-cell*.02 || y<top-cell*.3) return null;
-    return Math.max(0,Math.min(1,(bot-y)/cell)); };
+  const entering=(x,y)=>{ if(!L || !L.home || houseMode) return null;
+    const hd=L.home[2]&3, h=homeXY(), top=cy(L.home[0]), bot=cy(L.home[0]+1);
+    if(hd===2){ if(Math.abs(x-h.x)>cell*.3 || y>bot-cell*.02 || y<top-cell*.3) return null;
+      return Math.max(0,Math.min(1,(bot-y)/cell)); }
+    const v=DOOR_CV[hd], dx=x-h.x, dy=y-top-cell*.5, d=dx*v[1]+dy*v[0], lat=Math.abs(dx*v[0]+dy*v[1]);   // 위·옆 입구 — 입구 칸 가운데(d=cell)에서 집 칸 가운데(d=0)로 갈수록 빨려 든다
+    if(lat>cell*.3 || d>cell*.98 || d<-cell*.3) return null;
+    return Math.max(0,Math.min(1,1-d/cell)); };
   drawBall=function(){ return drawIn('drawBall',this,arguments); };
   drawGoalFeelToy=function(){ return drawIn('drawGoalFeelToy',this,arguments); };
   drawToyColorMark=function(){ return drawIn('drawToyColorMark',this,arguments); };
@@ -5748,15 +5833,304 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
     const f0=G0[nm], p=entering(a[0],a[1]); if(p==null) return f0.apply(self,a);
     const h=homeXY(), s=cell, e=p*p*(3-2*p);
     ctx.save();
+    if((L.home[2]&3)===2){
     ctx.beginPath(); ctx.rect(h.x-s, h.y, s*2, s*2);                                   // 집 발치 아래는 그대로 보인다
     { const w=HB.doorW*s*.94, dh=HB.doorH*s*.97; ctx.moveTo(h.x-w,h.y+1); ctx.lineTo(h.x-w,h.y-dh+w); ctx.arc(h.x,h.y-dh+w,w,Math.PI,0); ctx.lineTo(h.x+w,h.y+1); ctx.closePath(); }
-    ctx.clip();
+    ctx.clip(); }
     ctx.globalAlpha*=1-Math.max(0,(e-.35)/.65);
     const k=1-.4*e, ax=h.x, ay=h.y-HB.doorH*s*.45;                                      // 문 가운데로 빨려 든다
     ctx.translate(ax,ay); ctx.scale(k,k); ctx.translate(-ax,-ay);
     try{ return f0.apply(self,a); } finally{ ctx.restore(); }
   };
 })();
+// ───────── D1: 화분 굳기·목표·청소 중 (시안 docs/superpowers/specs/mock/fixpot-1-10/core.js 와 같은 규칙) ─────────
+// 화분(log)은 같은 꽃 화분·화단에 4방향으로 닿으면 닿은 것 전부가 화단(bed)이 되어 굳는다. 다른 꽃은 안 굳는다.
+const D1_SHAPES={H2:'0,0;0,1',V2:'0,0;1,0',H3:'0,0;0,1;0,2',V3:'0,0;1,0;2,0',
+  L3a:'0,0;1,0;1,1',L3b:'0,0;0,1;1,0',L3c:'0,0;0,1;1,1',L3d:'0,1;1,0;1,1',
+  O4:'0,0;0,1;1,0;1,1',H4:'0,0;0,1;0,2;0,3',V4:'0,0;1,0;2,0;3,0',
+  T4:'0,0;0,1;0,2;1,1',Ja4:'0,0;0,1;0,2;1,0',Lb4:'0,0;0,1;0,2;1,2',L4:'0,0;1,0;2,0;2,1',J4:'0,1;1,1;2,0;2,1',S4:'0,1;0,2;1,0;1,1',Z4:'0,0;0,1;1,1;1,2'};
+function d1Key(nm){ if(nm.includes('|')) return nm; const [s,c]=nm.split(':'); return (c|0)+'|'+D1_SHAPES[s]; }   // 'H2'(분홍)·'H2:1'(노랑)·'col|모양' 원키
+function d1Comp(at, k0){                                   // at: 칸 → 꽃. k0 에서 같은 꽃끼리 이어진 칸들
+  const col=at.get(k0), comp=new Set([k0]), q=[k0];
+  while(q.length){ const k=q.pop(), r=(k/GN)|0, c=k%GN;
+    for(const [m,ok] of [[k-GN,r>0],[k+GN,r<GN-1],[k-1,c>0],[k+1,c<GN-1]]) if(ok && at.get(m)===col && !comp.has(m)){ comp.add(m); q.push(m); } }
+  return comp;
+}
+// (r,c) 에 방금 선 화분에서 같은 꽃 연결 성분이 2칸 이상이면 그 칸 화분 전부 화단. st.boxes 를 고친다. 굳었으면 true.
+function d1Merge(L, st, r, c){
+  const at=new Map(), idx=new Map();
+  st.boxes.forEach((b,i)=>{ if(!b.gone && (b.kind==='log'||b.kind==='bed')){ const k=b.r*GN+b.c; at.set(k,b.color); idx.set(k,i); } });
+  const k0=r*GN+c; if(!at.has(k0)) return false;
+  const comp=d1Comp(at,k0); if(comp.size<2) return false;
+  for(const k of comp){ const i=idx.get(k), b=st.boxes[i]; if(b.kind==='log') st.boxes[i]={...b,kind:'bed'}; }
+  return true;
+}
+// 목표 — 윤곽(ol) 판: 윤곽 칸마다 같은 꽃 화분/화단, 윤곽 밖 화단 없음(낱개는 밖에 있어도 된다). 아니면 화단 덩이의 (꽃|모양) 목록이 gs 와 같다.
+function d1Open(L, st){
+  const on=new Map(), at=new Map();
+  for(const b of st.boxes){ if(b.gone) continue; if(b.kind==='log') on.set(b.r*GN+b.c,b.color); else if(b.kind==='bed'){ on.set(b.r*GN+b.c,b.color); at.set(b.r*GN+b.c,b.color); } }
+  if(L.ol && L.ol.length){ const out=new Map(L.ol.map(q=>[q[0]*GN+q[1],q[2]|0]));
+    for(const [k,col] of at) if(out.get(k)!==col) return false;
+    for(const [k,col] of out) if(on.get(k)!==col) return false;
+    return true; }
+  const seen=new Set(), keys=[];
+  for(const k0 of at.keys()){ if(seen.has(k0)) continue; const comp=d1Comp(at,k0); comp.forEach(k=>seen.add(k));
+    let r0=1e9,c0=1e9; for(const k of comp){ r0=Math.min(r0,(k/GN)|0); c0=Math.min(c0,k%GN); }
+    keys.push(at.get(k0)+'|'+[...comp].map(k=>(((k/GN)|0)-r0)+','+(k%GN-c0)).sort().join(';')); }
+  return keys.sort().join('/')===(L.gs||[]).map(d1Key).sort().join('/');
+}
+// 마당일이 다 끝났나 — 목표 + 꼬꼬 전원 우리 안 + 우리 문 목표 방향(일자문은 반 바퀴 동치)
+function d1Ready(L, st){
+  if(!d1Open(L,st)) return false;
+  if(L.pen.size && !st.boxes.every(b=>b.kind!=='hen' || b.gone || L.pen.has(b.r*GN+b.c))) return false;
+  if(L.drot && L.doors) for(let i=0;i<L.drot.length;i++){ const q=L.drot[i]; if(q==null) continue;
+    const a=doorRot(L,st.filled,i); if(L.doors[i].sh===1? (a&1)!==(q&1) : a!==q) return false; }
+  return true;
+}
+// 꼬꼬 칸 비었나 — 마당 안, 벽·문짝·개집 아님, 맥스·다른 물건(공·화분·화단·꼬꼬) 없음. hen 은 이동 뒤 상태(res)로 본다.
+function d1HenFree(L, res, r, c){
+  if(!inYard(L,r,c) || tileAt(L,res.filled,r,c)===WALL) return false;
+  if(L.home && L.home[0]===r && L.home[1]===c) return false;
+  if(res.dog.r===r && res.dog.c===c) return false;
+  return !res.boxes.some(b=>!b.gone && b.r===r && b.c===c);
+}
+// 도망 — 맥스가 이번 수에 움직였고 새 칸과 4방향으로 붙은 꼬꼬는 맥스 반대쪽 한 칸(막히면 제자리). skip = 방금 shoo/hop 한 꼬꼬의 칸. 시안 flee 와 같이 칸 번호순으로 하나씩.
+// next.boxes 를 고친다. [[from,to],…] (칸=r*GN+c) 를 돌려준다.
+function d1Flee(L, prev, next, skip){
+  const out=[]; if(prev.dog.r===next.dog.r && prev.dog.c===next.dog.c) return out;
+  const hs=[]; next.boxes.forEach((b,i)=>{ if(b.kind==='hen' && !b.gone) hs.push(i); });
+  hs.sort((a,b)=>(next.boxes[a].r*GN+next.boxes[a].c)-(next.boxes[b].r*GN+next.boxes[b].c));
+  for(const i of hs){ const b=next.boxes[i], k=b.r*GN+b.c; if(k===skip) continue;
+    const dr=b.r-next.dog.r, dc=b.c-next.dog.c; if(Math.abs(dr)+Math.abs(dc)!==1) continue;
+    const tr=b.r+dr, tc=b.c+dc; if(!d1HenFree(L,next,tr,tc)) continue;
+    next.boxes[i]={...b,r:tr,c:tc}; out.push([k,tr*GN+tc]); }
+  return out;
+}
+// 맥스가 꼬꼬 칸으로 — 꼬꼬 앞이 비면 shoo(꼬꼬는 앞으로), 아니면 hop(자리 바꿈). 맥스는 꼬꼬 자리로. 못 움직이는 칸이면 null.
+function d1HenStep(L, st, dr, dc){
+  const nr=st.dog.r+dr, nc=st.dog.c+dc, i=st.boxes.findIndex(b=>b.kind==='hen' && !b.gone && b.r===nr && b.c===nc);
+  if(i<0) return undefined;
+  const res={dog:{r:nr,c:nc}, boxes:st.boxes.map(b=>({...b})), filled:new Set(st.filled), carry:false, pushed:false, slid:0, sunk:false, recolored:false};
+  const from=nr*GN+nc, ahead=d1HenFree(L,res,nr+dr,nc+dc)? {r:nr+dr,c:nc+dc} : null;   // 맥스가 아직 hen 칸에 있어도 앞 칸 판정엔 영향 없음
+  const to=ahead||{r:st.dog.r,c:st.dog.c};
+  res.boxes[i]={...res.boxes[i],r:to.r,c:to.c};
+  const t=to.r*GN+to.c; res[ahead?'henShoo':'henHop']=[from,t];
+  const fl=d1Flee(L,st,res,t); if(fl.length) res.henFlee=fl;
+  return res;
+}
+// 공에 놀란 꼬꼬 — 맥스가 공을 미는데 공 다음 칸이 꼬꼬: 꼬꼬 앞이 비면 앞으로, 막혔으면 공·맥스를 넘어 맥스가 있던 칸으로. 공은 꼬꼬 자리, 맥스는 공 자리.
+function d1Spook(L, st, dr, dc){
+  const nr=st.dog.r+dr, nc=st.dog.c+dc, bi=st.boxes.findIndex(b=>b.kind==='ball' && !b.gone && b.r===nr && b.c===nc);
+  if(bi<0) return undefined;
+  const hr=nr+dr, hc=nc+dc, hi=st.boxes.findIndex(b=>b.kind==='hen' && !b.gone && b.r===hr && b.c===hc);
+  if(hi<0) return undefined;
+  const res={dog:{r:nr,c:nc}, boxes:st.boxes.map(b=>({...b})), filled:new Set(st.filled), carry:false, pushed:true, slid:1, sunk:false, recolored:false, kind:'ball', restR:hr, restC:hc, landCell:null, path:[{r:hr,c:hc}]};
+  const hop=!d1HenFree(L,res,hr+dr,hc+dc), to=hop? {r:st.dog.r,c:st.dog.c} : {r:hr+dr,c:hc+dc};
+  res.boxes[bi]={...res.boxes[bi],r:hr,c:hc}; res.boxes[hi]={...res.boxes[hi],r:to.r,c:to.c};
+  const t=to.r*GN+to.c; res.henSpook=[hr*GN+hc,t]; if(hop) res.henSpookHop=1;
+  const fl=d1Flee(L,st,res,hop? t : -1); if(fl.length) res.henFlee=fl;
+  return res;
+}
+(function(){
+  const G1={applyMove, isGoal, deadlockNow};
+  // 한 수: ① 청소 중(lk)이면 이동 전 상태로 d1Ready 를 재 둔다 ② 원래 이동(HOME 포함) — 개집에 들어갔는데 ①이 거짓이면 그 수는 무효 ③ 움직인 화분 굳기 ④ 도망 ⑤ 승리는 isGoal
+  applyMove=function(L, st, dr, dc){
+    if(!L.d1) return G1.applyMove(L, st, dr, dc);
+    const hs=d1HenStep(L, st, dr, dc); if(hs!==undefined) return hs;
+    const sk=d1Spook(L, st, dr, dc); if(sk!==undefined) return sk;
+    const locked=L.lk && !d1Ready(L, st);
+    const res=G1.applyMove(L, st, dr, dc);
+    if(!res) return res;
+    if(locked && res.home) return null;
+    // 직접 민 화분만 굳는다 — d1 판엔 경사·쿵으로 화분이 움직이는 기믹이 없다.
+    if(res.pushed && res.kind==='log' && !res.sunk) d1Merge(L, res, res.restR, res.restC);
+    const fl=d1Flee(L, st, res, -1); if(fl.length) res.henFlee=fl;
+    return res;
+  };
+  // 받침(tg) 조건은 d1 에서 건너뛴다 — 승리는 d1Ready.
+  const noTg=(L,f)=>{ const tg=L.tg; L.tg=null; try{ return f(); } finally{ L.tg=tg; } };
+  isGoal=function(L, st){ return !L.d1? G1.isGoal(L, st) : noTg(L,()=>G1.isGoal(L, st)) && d1Ready(L, st); };
+  deadlockNow=function(){ return (!L || !L.d1)? G1.deadlockNow() : noTg(L,()=>G1.deadlockNow()); };
+})();
+// ───────── D1 그림·연출 (시안 docs/superpowers/specs/mock/fixpot-1-10/art.js·play.html 에서 옮김) ─────────
+// 꽃 두 가지 — 0 분홍(둥근 다섯 잎)·1 노랑(가는 여덟 잎 데이지). 색약도 모양으로 가른다. 화분 몸통은 라이브 2.5D(drawLog 래퍼의 d1Pot).
+const D1_FCOL=[['#EF6C98','#F8A0BC','#E0527F','#F48FB1'],['#FFE04A','#FFF08A','#F7C416','#FFE96B']];   // 분홍은 진하게·노랑은 밝게 — 명도로 갈라 색약도 구분(10-17 플레이 피드백)
+const D1_RIM=[['#F2A3B9','#F9C4D2'],['#F2CC5C','#F8E08A']];   // 화분·화단 윗면/테 — 꽃 색별(앞면·흙은 테라코타 그대로)
+const D1_BLOOM_GAP=.11, D1_BLOOM_DUR=.52, D1_LIFT=.2;   // 꽃 핌 — 개집에서 한 칸 멀어질 때마다 0.11초 늦게, 한 송이 0.52초. 화단 윗면은 0.2칸 들린다
+let d1BloomAt=null, d1BloomKey='', d1TickL=null, d1TickM=-1, d1OpenAt=null, d1CoopAt=null, d1LatchAt=-9, d1CleanAt=-9;
+const d1CleanSaid=new Set();                              // 청소 중 말풍선은 판마다 처음 한 번
+function d1Leaf(g,x,y,a,len,wd,col){ g.save(); g.translate(x,y); g.rotate(a); g.fillStyle=col; g.beginPath(); g.moveTo(0,0); g.quadraticCurveTo(wd,-len*.5,0,-len); g.quadraticCurveTo(-wd,-len*.5,0,0); g.fill(); g.restore(); }
+function d1Flower(g,fx,fy,r,col){ g.fillStyle=col; for(let i=0;i<5;i++){ const a=i/5*6.283-1.57; g.beginPath(); g.arc(fx+Math.cos(a)*r,fy+Math.sin(a)*r,r*.78,0,7); g.fill(); } g.fillStyle='#FFF3B0'; g.beginPath(); g.arc(fx,fy,r*.62,0,7); g.fill(); }
+function d1Daisy(g,fx,fy,r,col){ g.fillStyle=col; for(let i=0;i<8;i++){ const a=i/8*6.283; g.beginPath(); g.ellipse(fx+Math.cos(a)*r*.95,fy+Math.sin(a)*r*.95,r*.62,r*.3,a,0,7); g.fill(); } g.fillStyle='#C9822E'; g.beginPath(); g.arc(fx,fy,r*.5,0,7); g.fill(); }
+function d1Bud(g,fx,fy,r,col){ g.fillStyle='#5FA85C'; g.beginPath(); g.moveTo(fx-r*.55,fy+r*.2); g.lineTo(fx,fy+r*.9); g.lineTo(fx+r*.55,fy+r*.2); g.fill(); g.fillStyle=col; g.beginPath(); g.ellipse(fx,fy-r*.1,r*.55,r*.85,0,0,7); g.fill(); }
+function d1BackOut(t){ const c=1.9; return 1+(c+1)*Math.pow(t-1,3)+c*Math.pow(t-1,2); }
+// 꽃 덤불 한 무더기. bl: 0 봉오리 → 1 활짝(꽃마다 조금씩 늦게)
+function d1Bush(g,x,y,s,k,col,bl){ col=col|0; bl=bl||0; const LC=['#4E9A50','#5FA85C','#86C977'], C=D1_FCOL[col]||D1_FCOL[0], fl=col? d1Daisy : d1Flower;
+  for(const [a,len,ci] of [[-.85,.15,0],[.85,.15,0],[-.38,.19,1],[.38,.19,1],[0,.23,2]]) d1Leaf(g,x,y,a,s*len,s*.075,LC[ci]);
+  [[x-s*.09,y-s*.15,s*.055,k%4],[x+s*.1,y-s*.17,s*.055,(k+1)%4],[x,y-s*.24,s*.062,(k+2)%4]].forEach(([fx,fy,r,ci],j)=>{
+    const p=Math.max(0,Math.min(1,(bl-j*.15)/.7));
+    if(p<=0){ d1Bud(g,fx,fy,r,C[ci]); return; }
+    const e=d1BackOut(p); g.save(); g.translate(fx,fy); g.rotate((1-p)*.9); g.scale(e,e); fl(g,0,0,r,C[ci]); g.restore(); }); }
+// 화단 한 칸 — 같은 꽃 화단 이웃 쪽으로는 테 없이 이어진다. has(dr,dc) = 그 쪽 칸도 같은 화단인가. (X,Y) = 칸 왼쪽 위
+function d1PlanterCell(g,X,Y,s,has,k,col,bl){ const m=s*.07, Lf=s*D1_LIFT, l=has(0,-1)?0:m, r=has(0,1)?0:m, t=has(-1,0)?0:m+s*.06, b=has(1,0)?0:m;
+  const x0=X+l, x1=X+s-r, y0=Y+t-Lf, y1=Y+s-b-Lf;
+  if(!has(1,0)){ g.fillStyle='rgba(52,84,40,.24)'; g.fillRect(x0-s*.02,Y+s-b-s*.02,x1-x0+s*.04,s*.07);                       // 앞면 — 아래 이웃이 없을 때만
+    const bg=g.createLinearGradient(0,y1,0,y1+Lf); bg.addColorStop(0,'#D2804F'); bg.addColorStop(1,'#B5653C'); g.fillStyle=bg; g.fillRect(x0+(l?s*.015:0),y1,x1-x0-(l?s*.015:0)-(r?s*.015:0),Lf);
+    g.fillStyle='rgba(120,60,30,.14)'; g.fillRect(x0,y1,x1-x0,s*.025); }
+  const RM=D1_RIM[col|0]||D1_RIM[0];
+  g.fillStyle=RM[0]; g.fillRect(x0,y0,x1-x0,y1-y0);                                                                         // 윗면 테 — 꽃 색별
+  if(!has(-1,0)){ g.fillStyle=RM[1]; g.fillRect(x0,y0,x1-x0,s*.04); }
+  const im=s*.06, sx0=x0+(l?im:0), sx1=x1-(r?im:0), sy0=y0+(t?im:0), sy1=y1-(b?im:0);
+  g.fillStyle='#7A5536'; g.fillRect(sx0,sy0,sx1-sx0,sy1-sy0);                                                                    // 흙
+  d1Bush(g,X+s*.3,Y+s*.42-Lf,s*.82,k,col,bl); d1Bush(g,X+s*.7,Y+s*.5-Lf,s*.82,k+1,col,bl-.12); d1Bush(g,X+s*.5,Y+s*.78-Lf,s*.86,k+2,col,bl-.24); }
+// 꽃 필 때 꽃잎이 흩날린다 — (x,y) 칸 위쪽
+function d1Petals(g,x,y,s,k,col,t){ if(!(t>0 && t<1.6)) return; g.save(); g.globalAlpha=Math.max(0,1-t/1.6);
+  for(let i=0;i<6;i++){ const a=i/6*6.283+k, d=s*(.15+t*.35); g.fillStyle=(D1_FCOL[col]||D1_FCOL[0])[i%4]; g.beginPath(); g.ellipse(x+Math.cos(a)*d,y+Math.sin(a)*d*.7-t*s*.15+t*t*s*.25,s*.035,s*.02,a+t*3,0,7); g.fill(); }
+  if(t<.5){ g.fillStyle='rgba(255,244,190,'+(.6-t)+')'; g.beginPath(); g.arc(x,y+s*.1,s*(.25+t*.5),0,7); g.fill(); } g.restore(); }
+// 흰 꼬꼬 — 위에서 살짝 본 2.5D. f: 보는 쪽(0 위·1 오른·2 아래·3 왼). flap: 0 접은 날개, 아니면 −1~1 퍼덕 위상
+function d1Hen(g,x,y,s,f,flap){ g.save(); g.translate(x,y); const side= f===1? 1 : f===3? -1 : 0; flap=flap||0;
+  g.fillStyle='rgba(52,84,40,.24)'; g.beginPath(); g.ellipse(0,s*.2,s*.22,s*.06,0,0,7); g.fill();
+  g.fillStyle='#F2EADB'; g.beginPath(); g.ellipse(-side*s*.17,-s*.05,s*.09,s*.12,-side*.5,0,7); g.fill();                     // 꼬리
+  g.fillStyle='#FFFFFF'; g.beginPath(); g.ellipse(0,0,s*.2,s*.17,0,0,7); g.fill();                                              // 몸
+  g.fillStyle='#EFE6D6';
+  if(flap){ for(const e of [-1,1]){ g.beginPath(); g.ellipse(e*s*.2,-s*.1-Math.abs(flap)*s*.04,s*.13,s*.055,e*(-.75+flap*.45),0,7); g.fill(); } }
+  else { g.beginPath(); g.ellipse(-side*s*.04,s*.03,s*.11,s*.07,0,0,7); g.fill(); }
+  const hx= side*s*.13, hy= f===0? -s*.2 : f===2? -s*.08 : -s*.14;
+  g.fillStyle='#FFFFFF'; g.beginPath(); g.arc(hx,hy,s*.1,0,7); g.fill();
+  g.fillStyle='#E8574E'; for(const [a,b,rr] of [[-.035,-.1,.03],[0,-.12,.034],[.035,-.1,.03]]){ g.beginPath(); g.arc(hx+a*s,hy+b*s,rr*s,0,7); g.fill(); }
+  if(f!==0){ g.fillStyle='#F2A33A'; g.beginPath(); const bx=hx+side*s*.09; g.moveTo(bx,hy-s*.015); g.lineTo(bx+side*s*.06,hy+s*.01); g.lineTo(bx,hy+s*.035);
+    if(!side){ g.moveTo(hx-s*.025,hy+s*.03); g.lineTo(hx+s*.025,hy+s*.03); g.lineTo(hx,hy+s*.07); } g.fill();
+    g.fillStyle='#3a2a1e'; if(side){ g.beginPath(); g.arc(hx+side*s*.035,hy-s*.02,s*.016,0,7); g.fill(); } else for(const e of [-1,1]){ g.beginPath(); g.arc(hx+e*s*.04,hy-s*.01,s*.015,0,7); g.fill(); } }
+  g.fillStyle='#F2A33A'; for(const e of [-1,1]) g.fillRect(e*s*.06-s*.012,s*.14,s*.024,s*.06);
+  g.restore(); }
+// 우리(짚 깔린 칸) — 짚빛 바탕 + 짚 가닥 + 갈색 점선 테
+function d1PenCell(g,X,Y,s,has){ const m=s*.05; g.fillStyle='#EBD596'; g.fillRect(X+(has(0,-1)?0:m),Y+(has(-1,0)?0:m),s-(has(0,-1)?0:m)-(has(0,1)?0:m),s-(has(-1,0)?0:m)-(has(1,0)?0:m));
+  g.strokeStyle='rgba(176,138,70,.55)'; g.lineWidth=Math.max(1,s*.012);
+  for(let i=0;i<7;i++){ const u=((i*37+X)%97)/97, v=((i*53+Y)%89)/89, a=(i*1.3)%3; g.beginPath(); g.moveTo(X+s*(.15+u*.7),Y+s*(.15+v*.7)); g.lineTo(X+s*(.15+u*.7)+Math.cos(a)*s*.14,Y+s*(.15+v*.7)+Math.sin(a)*s*.14); g.stroke(); }
+  d1DashEdge(g,X,Y,s,has,m,'#A07A3E',Math.max(1.5,s*.03),[s*.08,s*.06]); }
+// 칸 둘레 점선 — 같은 무리 이웃 쪽은 선 없음
+function d1DashEdge(g,X,Y,s,has,m,col,lw,dash){ g.save(); g.strokeStyle=col; g.lineWidth=lw; g.setLineDash(dash); g.lineCap='round'; g.beginPath();
+  if(!has(-1,0)){ g.moveTo(X+m,Y+m); g.lineTo(X+s-m,Y+m); } if(!has(1,0)){ g.moveTo(X+m,Y+s-m); g.lineTo(X+s-m,Y+s-m); }
+  if(!has(0,-1)){ g.moveTo(X+m,Y+m); g.lineTo(X+m,Y+s-m); } if(!has(0,1)){ g.moveTo(X+s-m,Y+m); g.lineTo(X+s-m,Y+s-m); } g.stroke(); g.restore(); }
+// 청소 중 개집 — 문 앞 노란 표지판(빗자루 그림)·물 양동이·지붕 위 비눗방울. 원점 = 개집 발치. u: 0 청소 중 → 1 다 치움. poke: 0~1 빗자루가 문밖으로 쓱
+function d1Cleaning(g,s,dx,dy,u,now,poke){ const cx= dy? 0 : -dx*s*.135, cy= dy>0? -s*.27 : dy<0? -s*.15 : -s*.17;
+  if(u<1) for(let i=0;i<3;i++){ const t=((now/1.4)+i/3)%1, bx=cx+Math.sin(t*6+i*2)*s*.08+(i-1)*s*.07, by=-s*.62-t*s*.45;   // 비눗방울
+    g.save(); g.globalAlpha=(1-u)*(1-t)*.85; g.strokeStyle='#9FD3EA'; g.fillStyle='rgba(225,245,255,.55)'; g.lineWidth=.9; g.beginPath(); g.arc(bx,by,s*(.04+t*.035),0,7); g.fill(); g.stroke();
+    g.fillStyle='#FFFFFF'; g.beginPath(); g.arc(bx-s*.012,by-s*.012,s*.008,0,7); g.fill(); g.restore(); }
+  if(poke>0){ const e=Math.sin(poke*Math.PI), ox=cx+dx*e*s*.32, oy=cy+(dy>0? e*s*.3 : dy<0? -e*s*.2 : 0);                        // 빗자루
+    g.save(); g.translate(ox,oy); g.rotate(Math.atan2(dy||0,dx||0)+Math.sin(poke*Math.PI*4)*.25); g.fillStyle='#A9784F'; g.fillRect(-s*.22,-s*.012,s*.2,s*.024);
+    g.fillStyle='#E8C25A'; g.beginPath(); g.moveTo(-s*.03,-s*.05); g.lineTo(s*.06,-s*.07); g.lineTo(s*.06,s*.07); g.lineTo(-s*.03,s*.05); g.closePath(); g.fill(); g.restore(); }
+  if(u>=1) return;
+  g.save(); g.translate(cx-s*.06,cy+s*.13-u*s*.35); g.globalAlpha=1-u; g.rotate(-u*.6); g.scale(1.35,1.35);
+  g.fillStyle='#7FB8D8'; g.beginPath(); g.moveTo(s*.15,-s*.1); g.lineTo(s*.27,-s*.1); g.lineTo(s*.25,0); g.lineTo(s*.17,0); g.closePath(); g.fill();          // 물 양동이
+  g.fillStyle='#CFEAF6'; g.beginPath(); g.ellipse(s*.21,-s*.1,s*.06,s*.02,0,0,7); g.fill(); g.strokeStyle='#5E93B3'; g.lineWidth=.9; g.beginPath(); g.arc(s*.21,-s*.1,s*.055,Math.PI,0); g.stroke();
+  g.fillStyle='rgba(52,84,40,.25)'; g.beginPath(); g.ellipse(0,s*.005,s*.12,s*.025,0,0,7); g.fill();                                                    // A자 표지판
+  g.fillStyle='#E9B53A'; g.beginPath(); g.moveTo(-s*.035,-s*.27); g.lineTo(s*.035,-s*.27); g.lineTo(s*.11,0); g.lineTo(-s*.11,0); g.closePath(); g.fill();
+  g.fillStyle='#FFD95E'; g.beginPath(); g.moveTo(-s*.03,-s*.255); g.lineTo(s*.03,-s*.255); g.lineTo(s*.09,-s*.02); g.lineTo(-s*.09,-s*.02); g.closePath(); g.fill();
+  g.strokeStyle='#7A5536'; g.lineWidth=Math.max(1,s*.014); g.lineCap='round'; g.beginPath(); g.moveTo(s*.03,-s*.22); g.lineTo(-s*.015,-s*.09); g.stroke();   // 빗자루 그림
+  g.fillStyle='#7A5536'; g.beginPath(); g.moveTo(-s*.015,-s*.1); g.lineTo(-s*.05,-s*.05); g.lineTo(s*.02,-s*.04); g.closePath(); g.fill();
+  g.restore(); }
+// 1동네 공 = 축구공(10-15 사람 B안: 판 공은 지난 동네에서 받은 장난감). a: 굴러간 각
+function d1Soccer(g,x,y,s,a){ const R=s*.21; y+=s*.05; g.fillStyle='rgba(52,84,40,.24)'; g.beginPath(); g.ellipse(x,y+R*1.05,R*1.05,s*.065,0,0,7); g.fill();
+  g.save(); g.beginPath(); g.arc(x,y,R,0,7); g.clip(); g.fillStyle='#FFFFFF'; g.fillRect(x-R,y-R,R*2,R*2);
+  g.translate(x,y); g.rotate(a||0);
+  const pent=(cx0,cy0,r,t0)=>{ g.beginPath(); for(let i=0;i<5;i++){ const t=t0+i/5*6.283; g[i?'lineTo':'moveTo'](cx0+Math.cos(t)*r,cy0+Math.sin(t)*r); } g.closePath(); g.fill(); };
+  g.fillStyle='#3A3A44'; pent(0,0,R*.36,-1.57); for(let i=0;i<5;i++){ const t=-1.57+i/5*6.283+.628; pent(Math.cos(t)*R*.98,Math.sin(t)*R*.98,R*.34,t+3.14); }
+  g.strokeStyle='rgba(58,58,68,.45)'; g.lineWidth=Math.max(.7,s*.008); for(let i=0;i<5;i++){ const t=-1.57+i/5*6.283; g.beginPath(); g.moveTo(Math.cos(t)*R*.36,Math.sin(t)*R*.36); g.lineTo(Math.cos(t)*R*.7,Math.sin(t)*R*.7); g.stroke(); }
+  g.rotate(-(a||0)); g.fillStyle='rgba(255,255,255,.35)'; g.beginPath(); g.ellipse(-R*.35,-R*.4,R*.28,R*.16,-.6,0,7); g.fill(); g.restore();   // 빛은 안 돈다
+  g.strokeStyle='#C9C2B6'; g.lineWidth=Math.max(.8,s*.01); g.beginPath(); g.arc(x,y,R,0,7); g.stroke(); }
+// 꽃 핌 — 승리가 정해지면(potMergeHold 가 처음 부를 때) 개집에서 가까운 칸부터. 판·수가 바뀌면 다시 봉오리.
+function d1Bl(r,c){ if(d1BloomAt===null || d1BloomKey!==level+':'+moves || !L || !L.home) return 0;
+  return (animT-d1BloomAt-(Math.abs(r-L.home[0])+Math.abs(c-L.home[1]))*D1_BLOOM_GAP)/D1_BLOOM_DUR; }
+function d1BloomHold(){ const key=level+':'+moves; if(d1BloomKey!==key){ d1BloomKey=key; d1BloomAt=Math.max(animT,...boxes.filter(b=>b.kind==='bed' && b.bedAt!=null).map(b=>b.bedAt+(b.bedN||1)*.12+.06+.25)); }   // 굳는 통통·부풀기가 끝난 뒤에 꽃이 핀다
+  let m=0; for(const b of boxes) if(b.sink===0 && (b.kind==='log'||b.kind==='bed')) m=Math.max(m,Math.abs(b.r-L.home[0])+Math.abs(b.c-L.home[1]));
+  return animT-d1BloomAt < m*D1_BLOOM_GAP+D1_BLOOM_DUR+.9; }
+// 마당일이 끝난 순간(청소 표지판이 걷히고, 30판은 닭장 테두리가 둘린다) — 그림 전용 시각. 무르면 되돌아간다.
+function d1Tick(){
+  if(moves===0){ d1BloomAt=null; d1BloomKey=''; }                                  // 판을 새로 열거나 다시하면 봉오리부터(같은 수로 또 이겨도 다시 핀다)
+  if(d1TickL===L && d1TickM===moves) return; d1TickM=moves;                       // 수가 바뀔 때만 다시 잰다(무르기·다시하기도 moves 가 바뀐다)
+  const rd=d1Ready(L,curState());
+  if(d1TickL!==L){ d1TickL=L; d1OpenAt=rd? -9 : null; d1CoopAt=rd? -9 : null; }
+  if(!rd){ d1OpenAt=null; d1CoopAt=null; }
+  else if(d1OpenAt===null){ d1OpenAt=animT+.26; if(L.coop) d1CoopAt=animT+.12; } }
+// 바닥층(타일 위·물건 아래) — 화단 자리 윤곽(꽃 색 점선), 짚·꼬꼬 자리, 테두리 없는 판의 앞마당 울타리
+function d1Floor(){ if(!L || !L.d1 || houseMode) return; d1Tick(); const g=ctx, s=cell, m=s*.07;
+  if(L.ol.length){ const out=new Map(L.ol.map(q=>[q[0]*GN+q[1],q[2]|0]));
+    for(const [k,col] of out){ const r=(k/GN)|0, c=k%GN, X=c*s, Y=r*s, has=(dr,dc)=>c+dc>=0 && c+dc<GN && out.get((r+dr)*GN+c+dc)===col;
+      g.fillStyle=col? 'rgba(255,214,70,.30)' : 'rgba(240,100,150,.26)'; g.fillRect(X+(has(0,-1)?0:m),Y+(has(-1,0)?0:m),s-(has(0,-1)?0:m)-(has(0,1)?0:m),s-(has(-1,0)?0:m)-(has(1,0)?0:m));
+      d1DashEdge(g,X,Y,s,has,m,col? '#E8B800' : '#D6406F',Math.max(1.5,s*.05),[s*.09,s*.07]); } }
+  const inS=(S,r,c)=>c>=0 && c<GN && S.has(r*GN+c);
+  if(L.straw.size){ for(const k of L.straw){ const r=(k/GN)|0, c=k%GN; d1PenCell(g,c*s,r*s,s,(dr,dc)=>inS(L.straw,r+dr,c+dc)); }
+    for(const k of L.pen){ const r=(k/GN)|0, c=k%GN; d1DashEdge(g,c*s,r*s,s,(dr,dc)=>inS(L.pen,r+dr,c+dc),m,'#5FA85C',Math.max(1.5,s*.035),[s*.09,s*.07]); } }   // 꼬꼬를 보낼 자리 — 초록 점선
+  else for(const k of L.pen){ const r=(k/GN)|0, c=k%GN; d1PenCell(g,c*s,r*s,s,(dr,dc)=>inS(L.pen,r+dr,c+dc)); }
+  if(L.openEdge) d1OpenFence(); }
+// 테두리 없는 판(21·22·26~30) — 판 밖이 캔버스 밖이라 판 둘레 안쪽에 낮은 흰 말뚝 울타리(1동네 테두리 drawYardEdgeFence 와 같은 말뚝·가로대). 아래쪽은 판 립 위.
+// ponytail: 캔버스 안쪽 띠에 낮게 그린다. 판 밖 반 칸에 제대로 세우려면 fit 이 open 판에도 여백을 줘야 한다.
+function d1OpenFence(){ const g=ctx, s=cell, R=boardRows(L), W=GN*s, H=R*s, k=.42;
+  houseFencePicketSet(g, HOUSE_FENCE.white, s*k);
+  for(const by of [s*.2, H+s*.12]){ g.fillStyle='rgba(60,50,30,.10)'; g.fillRect(0,by-s*.02,W,s*.04);
+    houseFenceRail(0,by-s*.5*k,W); houseFenceRail(0,by-s*.24*k,W);
+    for(let c=0;c<GN;c++) for(let i=0;i<4;i++) houseFencePicket(c*s+s*(.125+i*.25),by,s*.16*k,s*.58*k,false); }
+  for(const px of [s*.05, W-s*.05]){ g.fillStyle=HOUSE_FENCE.white.rail; g.fillRect(px-s*.025,s*.1,s*.05,H);
+    for(let r=1;r<R;r++) houseFencePicket(px,r*s+s*.2,s*.14*k,s*.5*k,true); } }
+// 개집 위(물건 아래) — 청소 표지판·빗자루, 30판 닭장 나무 테두리
+function d1Top(){ if(!L || !L.d1 || houseMode || !L.home) return; const g=ctx, s=cell, h=L.home, v=DOOR_CV[h[2]&3];
+  if(L.lk){ const u=d1OpenAt===null? 0 : Math.max(0,Math.min(1,(animT-d1OpenAt)/.3)), pk=animT-d1LatchAt;
+    g.save(); g.translate(cx(h[1]),(h[0]+.97)*s); d1Cleaning(g,s,v[1],v[0],u,animT,pk>=0 && pk<.45? pk/.45 : 0); g.restore(); }
+  if(L.coop && d1CoopAt!==null && animT>=d1CoopAt) d1Coop(g,s,L.coop,Math.min(1,(animT-d1CoopAt)/.65),animT-d1CoopAt); }
+// 닭장 완성 — 고리 가운데 줄을 따라 나무 테두리가 한 바퀴 이어진다(10-16 사람: 지붕 없이 테두리만). q=[r0,c0,r1,c1]. 울타리 위에 덧그리고 문짝은 숨긴다(drawDoors)
+function d1Coop(g,s,q,t,age){ const [r0,c0,r1,c1]=q, e=1-Math.pow(1-t,3), x0=(c0+.5)*s, y0=(r0+.5)*s, x1=(c1+.5)*s, y1=(r1+.5)*s, Ln=2*((x1-x0)+(y1-y0));
+  const path=()=>{ g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y0); g.lineTo(x1,y1); g.lineTo(x0,y1); g.closePath(); };
+  g.save(); g.lineJoin='round'; g.setLineDash([Ln*e,Ln]);
+  g.strokeStyle='rgba(70,45,25,.25)'; g.lineWidth=s*.34; g.translate(0,s*.05); path(); g.stroke(); g.translate(0,-s*.05);
+  g.strokeStyle='#B97A47'; g.lineWidth=s*.3; path(); g.stroke();
+  g.strokeStyle='#DDA56E'; g.lineWidth=s*.08; g.translate(0,-s*.07); path(); g.stroke(); g.restore();
+  if(age<1){ g.save(); g.fillStyle='rgba(255,236,150,'+(1-age)+')'; for(let i=0;i<8;i++){ const a=i/8*6.283+age*2, d=s*(1.3+age*.9); g.beginPath(); g.arc((x0+x1)/2+Math.cos(a)*d,(y0+y1)/2+Math.sin(a)*d,s*.045,0,7); g.fill(); } g.restore(); } }
+function d1CoopShut(){ return !!(L && L.d1 && L.coop && d1CoopAt!==null && animT>=d1CoopAt+.2); }
+// 굳은 화단 상자(kind 'bed') — 칸마다 그리고 같은 꽃 이웃과 잇는다. 막 굳은 칸은 잠깐 화분으로 있다가 꾹 눌리며 화단이 된다.
+function d1DrawBed(b,bx,by){ const s=cell, X=bx-s/2, Y=by-s/2, k=b.r*GN+b.c, col=b.color|0;
+  const T=b.bedAt!=null? animT-b.bedAt : 9, sw=(b.bedN||1)*.12+.06;
+  if(T<sw){ const u=(T-(b.bedK||0)*.12)/.16, p= T>=0 && u>0 && u<1? Math.sin(u*Math.PI)*.12 : 0;   // 옛 톡톡 — 화분 모양으로 왼쪽부터 차례로 통
+    if(T>=0 && !b.bedTone && (b.bedK||0)===0){ b.bedTone=1; try{ tone(620,0.05,'sine',0.03,880); }catch(e){} }
+    return drawLog(bx,by-p*s*.6,s,1-p*.3,1+p,0,b); }
+  const has=(dr,dc)=>boxes.some(o=>o!==b && o.sink===0 && o.kind==='bed' && (o.color|0)===col && o.r===b.r+dr && o.c===b.c+dc && !(o.bedAt!=null && animT<o.bedAt+(o.bedN||1)*.12+.06));
+  const sq=1+Math.sin(Math.min(1,(T-sw)/.25)*Math.PI)*.05, bl=d1Bl(b.r,b.c);
+  ctx.save(); if(sq!==1){ ctx.translate(bx,Y+s); ctx.scale(sq,sq); ctx.translate(-bx,-(Y+s)); }
+  d1PlanterCell(ctx,X,Y,s,has,k,col,bl); ctx.restore();
+  d1Petals(ctx,bx,by-s*.25,s,k,col,bl); }
+// 꼬꼬(kind 'hen') — 방향·날갯짓·깃털·느낌표는 그림 전용(상태에 안 넣는다). b.henFx 는 화면 동기화(tryMove)가 단다.
+function d1DrawHen(b,bx,by){ const s=cell, fx=b.henFx, mv=!!b.path;
+  let u=1; if(mv && fx){ const tot=Math.abs(b.r-fx.fr)+Math.abs(b.c-fx.fc)||1; u=Math.max(0,Math.min(1,1-(Math.abs(b.r-b.rr)+Math.abs(b.c-b.cc))/tot)); }
+  const dz= !mv && fx && fx.dizzy && fx.mv===moves;
+  let f= b.henFace==null? 2 : b.henFace;
+  if(mv && fx){ const dr=b.r-fx.fr, dc=b.c-fx.fc; if(dr||dc) f= Math.abs(dr)>=Math.abs(dc)? (dr<0?0:2) : (dc>0?1:3); }   // 가는 쪽을 본다
+  else if(dz){}                                                                                                     // 맞은 꼬꼬는 다음 수까지 그대로
+  else if(L.straw.size && L.pen.has(b.r*GN+b.c)) f=2;                                                               // 짚 깔린 제자리에선 앞을 본다
+  else if(!mv){ const dr=b.r-dog.r, dc=b.c-dog.c; f= Math.abs(dr)>=Math.abs(dc)? (dr<0?0:2) : (dc>0?1:3); }          // 가만히 있을 땐 맥스 반대쪽(달아날 쪽)
+  b.henFace=f;
+  const kH= !mv || !fx? 0 : fx.ev==='hop'? .55 : fx.over? .2 : fx.flown? .5 : .12, hop=Math.sin(u*Math.PI)*s*kH;   // 넘는 꼬꼬는 길(2칸)이 이미 띄운다(b.air) — 조금만 더
+  d1Hen(ctx,bx,by+s*.05-hop,s,f,mv && fx && (fx.flown||fx.over)? Math.sin(animT*26) : 0);
+  if(mv && fx && fx.flown){ ctx.save(); ctx.globalAlpha=1-u; ctx.fillStyle='#FFFFFF';                               // 깃털 세 장
+    for(let j=0;j<3;j++){ const a=j*2.1+u*5; ctx.beginPath(); ctx.ellipse(bx+Math.cos(a)*s*.28,by-s*.1-hop+Math.sin(a)*s*.12,s*.05,s*.022,a,0,7); ctx.fill(); } ctx.restore(); }
+  if(dz){ if(fx.t1==null) fx.t1=animT; drawAlertMark(bx+s*.22, by-s*.2+Math.sin(animT*6.25)*s*.03, Math.min(1,(animT-fx.t1)/.8)); } }   // 문짝·공에 맞은 꼬꼬 — 다음 수까지 빨간 !
+// 화면 동기화가 꼬꼬를 옮길 때 — 무슨 일로 움직였나(연출용). fk = 옮기기 전 칸
+function d1HenFx(res,fk,fr,fc){ const at=q=>q && q[0]===fk, ev= at(res.henKnock)? 'knock' : at(res.henSpook)? (res.henSpookHop? 'spookHop' : 'spook') : at(res.henShoo)? 'shoo' : at(res.henHop)? 'hop' : 'flee';
+  return {ev, fr, fc, flown:ev==='knock'||ev==='spook'||ev==='spookHop', over:ev==='spookHop', dizzy:ev==='knock'||ev==='spook'||ev==='spookHop', mv:moves}; }
+// 청소 중 개집에 공·맥스를 밀었다 — 빗자루 콕, 판마다 처음 한 번 할아버지 말풍선
+{ const T0=tryMove; tryMove=function(dr,dc){
+    try{ if(L && L.d1 && L.lk && L.home && state==='play' && !isAnimating() && !gtalkOpen && !homeIntro){ const h=L.home, nr=dog.r+dr, nc=dog.c+dc, at=(r,c)=>r===h[0] && c===h[1];
+      const ball=boxes.some(b=>b.sink===0 && !b.carried && b.kind==='ball' && b.r===nr && b.c===nc);
+      if((at(nr,nc) || (ball && at(nr+dr,nc+dc))) && !d1Ready(L,curState())){ d1LatchAt=animT; if(!d1CleanSaid.has(level)){ d1CleanSaid.add(level); d1CleanAt=animT; } } } }catch(e){}
+    return T0.apply(this,arguments); }; }
+// 「아직 네 집 청소 중이란다~」 — 개집 위 흰 알약 1.8초(맥스·물건 위)
+function d1CleanBubble(){ if(!L || !L.d1 || houseMode || !L.home) return; const t=(animT-d1CleanAt)/1.8; if(t<0 || t>=1) return;
+  const g=ctx, s=cell, txt=I18N.t('story.cleaning'), r=L.home[0], c=L.home[1];
+  g.save(); g.globalAlpha= t<.85? 1 : (1-t)/.15; g.font=Math.round(s*.24)+'px '+CFONT;
+  const w=g.measureText(txt).width+s*.4, hh=s*.46, W=GN*s, tx=c*s+s/2; let x=Math.max(s*.1,Math.min(W-w-s*.1,tx-w/2)); const y=Math.max(s*.05,r*s-hh-s*.12+(t<.1?(.1-t)*s*.6:0));
+  g.fillStyle='rgba(60,40,20,.15)'; g.beginPath(); g.roundRect(x,y+s*.04,w,hh,hh/2); g.fill();
+  g.fillStyle='#FFF9F0'; g.strokeStyle='rgba(43,32,54,.25)'; g.lineWidth=s*.02; g.beginPath(); g.roundRect(x,y,w,hh,hh/2); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(tx-s*.08,y+hh-1); g.lineTo(tx+s*.08,y+hh-1); g.lineTo(tx,y+hh+s*.12); g.closePath(); g.fill();
+  g.fillStyle='#5A4632'; g.textAlign='center'; g.textBaseline='middle'; g.fillText(txt,x+w/2,y+hh/2+1); g.restore(); }
 (function(){
   const G1={drawLog, acornCells};
   const homeLv=lv=>!!(BAKED[lv-1] && BAKED[lv-1].home);
@@ -5782,6 +6156,19 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
     potFlower(g,-s*.1,top-s*.16,s*.042,'#F7A8BE'); potFlower(g,s*.11,top-s*.18,s*.042,'#FFFFFF'); potFlower(g,0,top-s*.26,s*.048,'#FFD95E');
     g.fillStyle='#C8B4F0'; g.beginPath(); g.arc(s*.04,top-s*.1,s*.022,0,7); g.fill();
     g.restore(); }
+  // 1동네 화분 — 같은 2.5D 토분, 흙 위엔 제 꽃 색 덤불 하나(봉오리 → 판 끝에 핌). b = 그 화분 상자(색·자리)
+  function d1Pot(x,y,s,sx,sy,rot,b){ const g=ctx, by=s*.33, col=b? b.color|0 : 0, bl=b? d1Bl(b.r,b.c) : 0; g.save(); g.translate(x,y+by);
+    g.fillStyle='rgba(52,84,40,.26)'; g.beginPath(); g.ellipse(0,-s*.005,s*.27,s*.07,0,0,7); g.fill();
+    g.rotate(rot||0); g.scale((sx||1)*1.15,(sy||1)*1.15);
+    const W=s*.22, w=s*.15, h=s*.27, Dp=s*.085, top=-h-Dp;
+    potFront(g,s,W,w,top); g.fillStyle='rgba(255,255,255,.16)'; g.beginPath(); g.ellipse(-W*.55,top+h*.55,s*.02,h*.3,.12,0,7); g.fill();
+    { const yb=top+h*.42, hb=h*.3, wb=W-(W-w)*.42;   // 몸통 띠 — 꽃 색을 화분 앞면 넓게(작은 꽃만으론 두 색이 안 갈렸다)
+      g.fillStyle=col? '#F2B820' : '#E5608C'; g.beginPath(); g.moveTo(-wb,yb); g.lineTo(wb,yb); g.lineTo(wb-(W-w)*.3,yb+hb); g.lineTo(-wb+(W-w)*.3,yb+hb); g.closePath(); g.fill(); }
+    { const RM=D1_RIM[col]||D1_RIM[0]; g.fillStyle=RM[0]; g.beginPath(); g.ellipse(0,top,W+s*.03,Dp+s*.025,0,0,7); g.fill();
+    g.fillStyle=RM[1]; g.beginPath(); g.ellipse(0,top-s*.012,W+s*.02,Dp+s*.012,0,Math.PI,0); g.fill(); }
+    g.fillStyle='#7A5536'; g.beginPath(); g.ellipse(0,top+s*.005,W-s*.02,Dp-s*.01,0,0,7); g.fill();
+    d1Bush(g,0,top+s*.01,s,0,col,bl); g.restore();
+    if(b) d1Petals(g,x,y-s*.25,s,b.r*GN+b.c,col,bl); }
   function drawPlanter(g,n,s){ const W= n===2? s*.8 : n===3? s*1.3 : s*.98, h= n===4? s*.42 : s*.34, Dp= n===4? s*.62 : s*.2, R=Math.min(Dp,s*.18), top=-h-Dp;   // 원점 = 앞 바닥 가운데
     potFront(g,s,W,W*.95,top);
     g.fillStyle='rgba(255,255,255,.14)'; g.fillRect(-W*.82,top+Dp*.9,s*.05,h*.7); g.fillStyle='rgba(120,60,30,.12)'; g.fillRect(-W,top+Dp*.9,W*2,s*.03);
@@ -5797,6 +6184,7 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
       g.fillStyle=POT_COL[(k+1)%4]; g.beginPath(); g.arc(fx+s*.07,fy-s*.13,s*.022,0,7); g.fill(); } }
   drawLog=function(x,y,s,sx,sy,rot){
     if(!L || !L.home || houseMode) return G1.drawLog.apply(this,arguments);
+    if(L.d1) return d1Pot(x,y,s,sx,sy,rot,arguments[6]);
     if(!L.tg || L.tg.length<2) return drawPot25(x,y,s,sx,sy,rot);
     const all=homePotsOn(L,boxes)===L.tg.length && !boxes.some(b=>b.kind==='log' && b.path);
     if(potMergeLv!==level){ potMergeAt=null; potMergeLv=level; }
@@ -5815,12 +6203,25 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
 // 집 판에선 「공을 방석까지」 카드를 안 띄운다(그림도 글도 방석이다) — 집은 판에 서 있고, 틀린 쪽에서 밀면 집이 부르르 떤다.
 // ponytail: 집 그림 안내 카드는 아직 없다 — 사람이 판을 해 보고 필요하다면 그때 만든다.
 { const eg=enterLevelGo; enterLevelGo=function(lv){ const r=eg.apply(this,arguments);
-    try{ gtalkClose(); const k=HOME_STORY[lv]; if(k && HOME_LEVELS_ON && BAKED[lv-1].home && !(starMap[lv]|0) && !gtalkSeen[lv] && !tutMode){ gtalkSeen[lv]=1; if(HARD_LV.includes(lv)) setTimeout(()=>{ if(level===lv && state==='play' && moves===0) gtalkShow(k); },1500); else { gtalkShow(k); if(lv===1 && !homeIntroSeen) homeIntroHold(); } } }catch(e){}
+    try{ gtalkClose(); d1Enter=null; const k=HOME_STORY[lv]; if(k && HOME_LEVELS_ON && BAKED[lv-1].home && !(starMap[lv]|0) && !gtalkSeen[lv] && !tutMode){ if(lv===16 && d1EnterStart(k)){} else { gtalkSeen[lv]=1; if(HARD_LV.includes(lv)) setTimeout(()=>{ if(level===lv && state==='play' && moves===0) gtalkShow(k); },1500); else { gtalkShow(k); if(lv===1 && !homeIntroSeen) homeIntroHold(); } } } }catch(e){}
     return r; }; }
 { const sg=showGintro; showGintro=function(k){ if(k==='base' && typeof L!=='undefined' && L && L.home) return; return sg.apply(this,arguments); }; }
 // ── 할 일 칩(10-14 사람, 시안 F6) ── 1동네 판 위 왼쪽에 [공 → 집/방석 a/b] [화분 a/b] [문 a/N]. 가운데는 규칙 칩, 오른쪽은 젬.
 // 해낼 때마다 그 물건 자리에서 아이콘이 칩으로 날아가고 칩이 한 번만 통 튄다. 칩을 누르면 한두 줄 설명.
 // 문 N = 해답(par 길)에서 문을 돌리는 수. 문은 끝내는 조건이 아니라 할아버지 부탁(잘 도는지 봐 다오)이라 칩만 채워진다.
+// 16판 꼬꼬 등장(시안 enterPath) — 판 밖에서 종종종 와서 울타리를 폴짝 넘어 우리 쪽 제자리로. 끝나면 16판 대사. 그림 전용: 상태엔 안 넣고(꼬꼬 상자는 그동안 houseHop 으로 쉰다) 입력만 막는다.
+function d1EnterStart(say){ if(!L || !L.d1) return false; const hb=boxes.find(b=>b.kind==='hen' && !b.gone); if(!hb) return false;
+  const r=hb.r, c=hb.c, kf=[[r,-1.6,0],[r,-1.1,.12],[r,-.6,.12],[r,1,.9]]; for(let cc=2;cc<=c;cc++) kf.push([r,cc,.14]);   // [행, 열, 뛰는 높이]
+  hb.houseHop=true; d1Enter={box:hb, kf, say, t0:null, n:0, lv:level}; return true; }
+function d1EnterTick(){ const E=d1Enter; if(!E) return;
+  if(state!=='play' || level!==E.lv || !boxes.includes(E.box)){ E.box.houseHop=false; d1Enter=null; return; }
+  const STEP=.17, kf=E.kf, n=kf.length, s=cell; if(E.t0===null) E.t0=animT;
+  const t=(animT-E.t0)/STEP;
+  while(E.n<=Math.floor(t) && E.n<n){ if(E.n) try{ tone(kf[E.n][2]>.5? 1100 : 880+(E.n%2)*120,0.04,'triangle',0.03); }catch(e){} E.n++; }
+  if(t>=n+.25/STEP){ E.box.houseHop=false; E.box.henFace=2; d1Enter=null; gtalkSeen[E.lv]=1; try{ tone(1000,0.06,'triangle',0.04); setTimeout(()=>tone(1250,0.05,'triangle',0.04),90); }catch(e){} try{ gtalkShow(E.say); }catch(e){} return; }   // 대사는 실제로 띄울 때 읽음 — 등장 중 취소되면 다시 나온다
+  const i=Math.min(n-1,Math.floor(t)), e=Math.min(1,t-i), a0=kf[i], a1=kf[Math.min(n-1,i+1)];
+  const rr=a0[0]+(a1[0]-a0[0])*e, cc=a0[1]+(a1[1]-a0[1])*e, h= i>=n-1? 0 : Math.sin(e*Math.PI)*s*a1[2];
+  d1Hen(ctx,cx(cc),cy(rr)+s*.05-h,s,1,0); }
 const GOAL_CHIPS_TO=30;
 const GC_SV={
  ball:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="8" fill="#FFF7E8"/><circle cx="9.5" cy="5.3" r="2.1" fill="#C84F49"/><circle cx="12" cy="4.6" r="2.3" fill="#D95C54"/><circle cx="14.5" cy="5.3" r="2.1" fill="#C84F49"/><circle cx="9.6" cy="12.5" r="1.1" fill="#2B2036"/><circle cx="14.4" cy="12.5" r="1.1" fill="#2B2036"/><path d="M10.8 14.2h2.4l-1.2 1.8z" fill="#E6A23C"/></svg>',
@@ -5828,6 +6229,8 @@ const GC_SV={
  pot:'<svg class="ic" viewBox="0 0 24 24"><path d="M12 10c-1-3-4-4-6-3 1 2 3 3 6 3zm0 0c1-3 4-4 6-3-1 2-3 3-6 3z" fill="#6DB565"/><path d="M5.5 11h13l-1.6 9.5a1.5 1.5 0 0 1-1.5 1.2H8.6a1.5 1.5 0 0 1-1.5-1.2z" fill="#C9744A"/><rect x="4.5" y="10" width="15" height="3" rx="1.2" fill="#B05F3A"/></svg>',
  cushion:'<svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="14" rx="10" ry="6.5" fill="#E26055"/><ellipse cx="12" cy="12.5" rx="8" ry="4.6" fill="#F07A6E"/><circle cx="12" cy="12.6" r="1.6" fill="#FFF0E8"/><circle cx="9.6" cy="11.2" r=".9" fill="#FFF0E8"/><circle cx="14.4" cy="11.2" r=".9" fill="#FFF0E8"/><circle cx="10.6" cy="10" r=".8" fill="#FFF0E8"/><circle cx="13.4" cy="10" r=".8" fill="#FFF0E8"/></svg>',
  door:'<svg class="ic" viewBox="0 0 24 24"><rect x="4" y="4" width="2.6" height="17" rx="1.2" fill="#8A6646"/><rect x="7" y="7" width="13" height="4" rx="1.5" fill="#D9A766"/><rect x="7" y="13" width="13" height="4" rx="1.5" fill="#D9A766"/><path d="M19 3.5a8 8 0 0 1 2 5" stroke="#6DB565" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M21.6 6.6l-.6 2.3-2.1-1" stroke="#6DB565" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+ soccer:'<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#FFFFFF" stroke="#8A8A92" stroke-width="1.2"/><path d="M12 7.2l4 2.9-1.5 4.7h-5L8 10.1z" fill="#34323C"/><path d="M12 7.2V3.4M16 10.1l3.6-1.2M14.5 14.8l2.3 3.2M9.5 14.8l-2.3 3.2M8 10.1 4.4 8.9" stroke="#8A8A92" stroke-width="1.2" fill="none"/></svg>',
+ pen:'<svg class="ic" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="3" fill="#F3DE9A" stroke="#5FA85C" stroke-width="1.8" stroke-dasharray="3 2.4"/><path d="M7 14c2-1.6 3.6-1.6 5 0s3 1.6 5 0" stroke="#D9B45A" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
  arrow:'<svg class="ic" viewBox="0 0 24 24" style="width:18px"><path d="M4 12h13m-5-5 5 5-5 5" stroke="#B08A5E" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
 let gcLv=0, gcKey='', gcPrev=null, gcDoor={n:0, sig:'', mv:0, log:[]}, gcTip='', gcTipTO=0;
 const gcIsBall=b=>!b.gone && !b.carried && (b.kind==='ball' || !b.kind);
@@ -5838,17 +6241,29 @@ function gcDoorN(){ try{ const row=BAKED[level-1]; if(!L.doors || !L.doors.lengt
 function gcCounts(){ const balls=boxes.filter(gcIsBall), at=b=>b.sink>0 || (!b.path && (L.home? homeAt(L,b.r,b.c) : holes.has(kk(b.r,b.c))));
   const o={ball:[balls.filter(at).length, balls.length]};
   if(L.home && L.tg && L.tg.length) o.pot=[homePotsOn(L,boxes), L.tg.length];
-  if(gcDoor.n>0) o.door=[Math.min(gcDoor.log.length, gcDoor.n), gcDoor.n];
+  if(L.d1) d1Chips(o);
+  else if(gcDoor.n>0) o.door=[Math.min(gcDoor.log.length, gcDoor.n), gcDoor.n];
   return o; }
+// 1동네 칩 — 화단(윤곽 칸 a/b, 윤곽 없는 판은 목표 덩이 a/b), 꼬꼬 → 꼬꼬 자리, 우리 문 닫기. 규칙의 판정은 d1Ready 와 같다(다 찼는데 안 끝났으면 한 칸 모자라게 보인다).
+function d1Chips(o){ const st=curState();
+  let a=0, b=0;
+  if(L.ol.length){ const on=new Map(); for(const x of boxes){ if(x.gone || x.sink>0 || x.path || (x.kind!=='log' && x.kind!=='bed')) continue; on.set(x.r*GN+x.c,x.color|0); }
+    b=L.ol.length; for(const q of L.ol) if(on.get(q[0]*GN+q[1])===(q[2]|0)) a++; }
+  else if(L.gs.length){ b=L.gs.length; const want=L.gs.map(d1Key), at=new Map(); for(const x of boxes) if(!x.gone && x.sink===0 && !x.path && x.kind==='bed') at.set(x.r*GN+x.c,x.color|0);
+    const seen=new Set(); for(const k0 of at.keys()){ if(seen.has(k0)) continue; const comp=d1Comp(at,k0); comp.forEach(k=>seen.add(k)); let r0=1e9,c0=1e9; for(const k of comp){ r0=Math.min(r0,(k/GN)|0); c0=Math.min(c0,k%GN); }
+      const i=want.indexOf(at.get(k0)+'|'+[...comp].map(k=>(((k/GN)|0)-r0)+','+(k%GN-c0)).sort().join(';')); if(i>=0){ want.splice(i,1); a++; } } }
+  if(b){ if(a>=b && !d1Open(L,st)) a=b-1; o.bed=[a,b]; }
+  if(L.pen.size){ const hens=boxes.filter(x=>x.kind==='hen' && !x.gone); o.hen=[hens.filter(x=>!x.path && L.pen.has(x.r*GN+x.c)).length, hens.length]; }
+  if(L.drot && L.doors){ const ds=L.drot.map((q,i)=>[q,i]).filter(x=>x[0]!=null); if(ds.length) o.gate=[ds.filter(([q,i])=>{ const r=doorRot(L,filled,i); return L.doors[i].sh===1? (r&1)===(q&1) : r===q; }).length, ds.length]; } }
 function gcScreen(r,c){ const cv=ctx.canvas.getBoundingClientRect(), k=cv.width/(GN*cell); return [cv.left+cx(c)*k, cv.top+cy(r)*k]; }
 function gcFly(k,r,c){ const box=el('goalChips'), chip=box && box.querySelector('[data-k="'+k+'"]'); if(!chip || !chip.animate) return;
-  const [x,y]=gcScreen(r,c), rc=chip.getBoundingClientRect(), f=document.createElement('div'); f.className='gcfly'; f.innerHTML=GC_SV[k==='ball'? 'ball' : k]; f.style.left=x+'px'; f.style.top=y+'px'; document.body.appendChild(f);
+  const [x,y]=gcScreen(r,c), rc=chip.getBoundingClientRect(), f=document.createElement('div'); f.className='gcfly'; f.innerHTML=GC_SV[k==='ball'? (L.d1? 'soccer' : 'ball') : k==='bed'? 'pot' : k==='hen'? 'ball' : k==='gate'? 'door' : k]; f.style.left=x+'px'; f.style.top=y+'px'; document.body.appendChild(f);
   const tx=rc.left+16-x, ty=rc.top+rc.height/2-y;
   f.animate([{transform:'translate(-50%,-50%) scale(1.4)'},{transform:`translate(calc(-50% + ${tx*.5}px),calc(-50% + ${ty*.5-60}px)) scale(1.1)`,offset:.5},{transform:`translate(calc(-50% + ${tx}px),calc(-50% + ${ty}px)) scale(.8)`}],{duration:560,easing:'cubic-bezier(.3,.1,.3,1)'}).onfinish=()=>{ f.remove(); chip.classList.remove('bump'); void chip.offsetWidth; chip.classList.add('bump'); };
 }
 function gcTipShow(k){ const tip=el('goalTip'); if(!tip) return; clearTimeout(gcTipTO);
   if(!k || gcTip===k){ gcTip=''; tip.hidden=true; return; } gcTip=k;
-  const key=k==='ball'? (L && L.home? 'goal.tip.ball' : 'goal.tip.cushion') : 'goal.tip.'+k, chip=el('goalChips').querySelector('[data-k="'+k+'"]');
+  const key=k==='ball'? (L && L.d1? 'goal.tip.dball' : L && L.home? 'goal.tip.ball' : 'goal.tip.cushion') : 'goal.tip.'+k, chip=el('goalChips').querySelector('[data-k="'+k+'"]');
   tip.textContent=I18N.t(key); tip.hidden=false; tip.style.left=(chip? chip.offsetLeft : 0)+'px'; gcTipTO=setTimeout(()=>gcTipShow(''),4200); }
 function goalChipsTick(){
   const box=el('goalChips'); if(!box) return;
@@ -5863,7 +6278,7 @@ function goalChipsTick(){
   if(moves<gcDoor.mv) gcDoor.log=gcDoor.log.filter(m=>m<=moves);
   gcDoor.sig=sig; gcDoor.mv=moves;
   const C=gcCounts(), key=JSON.stringify(C)+(L.home?'h':'c'); if(key===gcKey) return;
-  const ic={ball:GC_SV.ball+GC_SV.arrow+(L.home? GC_SV.house : GC_SV.cushion), pot:GC_SV.pot, door:GC_SV.door};
+  const ic={ball:(L.d1? GC_SV.soccer : GC_SV.ball)+GC_SV.arrow+(L.home? GC_SV.house : GC_SV.cushion), pot:GC_SV.pot, door:GC_SV.door, bed:GC_SV.pot, hen:GC_SV.ball+GC_SV.arrow+GC_SV.pen, gate:GC_SV.door};
   let row=el('goalChipRow'); if(!row){ row=document.createElement('span'); row.id='goalChipRow'; box.insertBefore(row, box.firstChild); }
   row.innerHTML=Object.keys(C).map(k=>{ const [a,b]=C[k]; return `<button class="gchip${a>=b?' done':''}" data-k="${k}">${ic[k]}<span>${a}/${b}</span></button>`; }).join('');
   if(gcPrev && moves>0) for(const k of Object.keys(C)) if(gcPrev[k] && C[k][0]>gcPrev[k][0]){
@@ -5871,6 +6286,8 @@ function goalChipsTick(){
     if(k==='ball'){ const b=boxes.find(b=>gcIsBall(b) && (b.sink>0 || (L.home? homeAt(L,b.r,b.c) : holes.has(kk(b.r,b.c))))); if(L.home){ r=L.home[0]; c=L.home[1]; } else if(b){ r=b.r; c=b.c; } }
     if(k==='pot'){ const q=L.tg.find(q=>boxes.some(b=>b.kind==='log' && b.r===q[0] && b.c===q[1] && !b.path)); if(q){ r=q[0]; c=q[1]; } }
     if(k==='door' && L.doors[0]){ r=L.doors[0].r; c=L.doors[0].c; }
+    if(k==='gate' && L.doors[0]){ r=L.doors[0].r; c=L.doors[0].c; }
+    if(k==='hen'){ const h=boxes.find(b=>b.kind==='hen' && !b.gone && !b.path && L.pen.has(b.r*GN+b.c)); if(h){ r=h.r; c=h.c; } }
     setTimeout(()=>gcFly(k,r,c),120); }
   gcPrev=C; gcKey=key;
   try{ const par=box.offsetParent, bw=el('boardWrap'), br=(bw||ctx.canvas).getBoundingClientRect(); if(par){ const x=br.left-par.getBoundingClientRect().left+6; box.style.left=x+'px'; el('goalTip').style.marginLeft=(x+2)+'px'; } }catch(e){}   // 판 왼쪽 끝에 맞춘다(HUD 줄은 판 번호 뒤에서 시작한다)
@@ -5891,7 +6308,7 @@ function drawCushionCue(){
   for(const k of holes.keys()){ const r=(k/GN)|0, c=k%GN; ctx.beginPath(); ctx.arc(cx(c),cy(r),cell*(.56+.05*p),0,7); ctx.stroke(); }
   ctx.restore(); }
 // ── 집으로 끝 ──
-const KINDS=['ball','log','bone','cartV','cartH','crop','mower','tub','pump','treeSmall','stump','treeBig','log2','log2End','hillLog'];   // crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
+const KINDS=['ball','log','bone','cartV','cartH','crop','mower','tub','pump','treeSmall','stump','treeBig','log2','log2End','hillLog','bed','hen'];   // bed = 굳은 화단(D1), hen = 꼬꼬(D1). crop = 밭두렁 작물(색 0·1·2 = 당근·가지·옥수수)
 const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그대로일 때만 적용 — 판이 고쳐지면 저절로 꺼진다. 3칸 이상 이어진 덩이만: 풀이 길에서 떨어진 풀칸·바위·장식 나무 칸. 칸을 막아도 풀이가 같고 최단=par 인 것만(tests/void-board.test.js)
   '11e11110v1e0111111e1111v11e1111111e1111101e111v011e011111110000011111v1010101110':[46,54,59,60,61,62,68,69,70],   // 61판 9칸
   '1v10111v1v10111111111101011001110001111111ffffff01111110v10111111011110101v1v110':[57,58,65,66],   // 62판 4칸
@@ -5937,6 +6354,8 @@ const VOID_BOARD={   // 판 문자열(T) → 비는 칸(r*8+c). 문자열이 그
   '111111111111111111111111111611111111111111111111111111111111151111111111v111111v':[13,14,22,65,66,67],   // 119판 6칸
 };
 
+// D1: 마당 안인가 — 테두리 있는 판은 바깥 한 줄이 울타리(1..크기-2), open 판은 전부 마당.
+function inYard(L,r,c){ const rows=L.T.length, e=L.openEdge?0:1; return r>=e && r<=rows-1-e && c>=e && c<=GN-1-e; }
 function fromBaked(o, lv){
   // lv 를 넘기면 그 판이 도구 필수인지(L.tc)가 같이 실린다. 안 넘기면 null —
   // 기존 호출부 50여 곳은 한 인자로 부르므로 동작이 그대로다.
@@ -5946,6 +6365,7 @@ function fromBaked(o, lv){
   const vdCells=VOID_BOARD[o.T]||null; if(vdCells) for(const i of vdCells) T[(i/GN)|0][i%GN]=WALL;   // 판이 없는 칸 — 막힌 칸(벽)이지만 바위 대신 바닥을 도려낸다(voidCut)
   const holes=new Map(o.h); const paintCol={}; for(const kv of o.p) paintCol[kv[0]]=kv[1];
   const boxes=o.b.map(x=>({r:x[0],c:x[1],color:x[2],kind:KINDS[x[3]]}));
+  if(o.fx) for(const x of o.fx) boxes.push({r:x[0],c:x[1],color:x[2],kind:'bed'});   // D1: 처음부터 굳은 화단
   const walk=o.cw? {p:o.cw.p.slice(), i:o.cw.i|0, d:o.cw.d||1} : null;      // 순찰 고양이: 경로 셀 목록 + 시작 위치/방향
   // 깬 고양이가 다닐 두 줄(가로·세로) — 방석에서 벽에 막힐 때까지 뻗은 구간.
   // 레벨 데이터가 아니라 지형에서 유도하므로 BAKED 형식은 그대로다.
@@ -5965,7 +6385,10 @@ function fromBaked(o, lv){
   // 상태는 고양이가 선 칸(fc) 하나 — fc 가 null 이면 아직 순찰 중(ci 가 위치를 진다),
   // 값이 있으면 따라오는 중이다. 두 모드가 한 필드로 갈린다.
   const fw = (o.fw!=null)? o.fw : null;
-  return { L:{tc:(lv!=null? toolCutKey(lv) : null),T,openEdge:!!o.open,holes,paintCol,needBone:boxes.some(b=>b.kind==='bone'),billiard:!!o.bi,deepMower:!!o.deepMower,treat:(o.tr==null?null:o.tr),cat:(o.ct==null?null:o.ct),walk,catP,wind,wl:(o.wl||null),cb:(o.cb||null),cbm:(o.cbm||null),np:(o.np||null),pk,fw,bn:(o.bn||null),nap:(o.nap==null?null:o.nap),_bnB:(o.bn? new Set(o.bn) : null),
+  // D1 새 규칙 판 — 필드가 하나라도 있으면 d1. 다른 동네 행에는 이 값들이 전부 비어 있다.
+  const d1=!!(o.ol||o.gs||o.fx||o.lk||o.pn||o.sw||o.dg||o.cp);
+  const D1={d1, ol:(o.ol||[]), gs:(o.gs||[]), lk:!!o.lk, pen:new Set((o.pn||[]).map(q=>q[0]*GN+q[1])), straw:new Set((o.sw||o.pn||[]).map(q=>q[0]*GN+q[1])), drot:(o.dg||null), coop:(o.cp||null)};
+  return { L:{...D1,tc:(lv!=null? toolCutKey(lv) : null),T,openEdge:!!o.open,holes,paintCol,needBone:boxes.some(b=>b.kind==='bone'),billiard:!!o.bi,deepMower:!!o.deepMower,treat:(o.tr==null?null:o.tr),cat:(o.ct==null?null:o.ct),walk,catP,wind,wl:(o.wl||null),cb:(o.cb||null),cbm:(o.cbm||null),np:(o.np||null),pk,fw,bn:(o.bn||null),nap:(o.nap==null?null:o.nap),_bnB:(o.bn? new Set(o.bn) : null),
        _pkCells:(pk? new Set(pk.flat()) : null),
        doors:(o.dr? o.dr.map(x=>({k:x[0], r:(x[0]/GN)|0, c:x[0]%GN, rot:x[1]|0, sh:x[2]|0})) : null), doorHit:o.dh!==0, doorLock:!!o.dl,  // 문으로 공 치기는 11판부터 기본(2026-10-02 사람) — dh:0 일 때만 끈다
        forks:(o.fg? o.fg.map(x=>({k:x[0]*GN+x[1], r:x[0], c:x[1], dir:x[2]|0})) : null),   // 연잎 개구리 — fg:[[r,c,dir]], 자리는 filled 의 FROG_F
@@ -8029,7 +8452,9 @@ const MAX_SKIN_ASSETS={
   "space":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
   "ranger":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
   "mail":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
-  "rain":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]}
+  "rain":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "squirrel":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]},
+  "cow":{"format":"webp","motions":["walk-down","walk-left","walk-up","push-down","push-left","push-up","wall-down","wall-left","wall-up","sit-left","sit-up","sit-front","sleep-left","sleep-up","sleep-front","idle-front","victory-front"]}
 };
 const MAX_SKIN_SHEETS=Object.fromEntries(Object.entries(MAX_SKIN_ASSETS).map(([id,asset])=>[id,asset.motions]));
 // 가로는 좌측 한 장을 렌더가 뒤집어 쓴다. 세로 아래쪽 이름은 모션마다 다르다 —
@@ -8081,7 +8506,9 @@ function hoodLegacy(){
   return hoodLegacyN;
 }
 function hoodBundleOpened(n){ const t=STAGE_TOYS[n-1]; for(const lv of giftOpenedSet()){ const it=furnAtLv(lv); if(it && it.kind==='hood' && it.m===t) return true; } return false; }
-function hoodEarned(n){ if(FREEPLAY) return true; if(!HOUSE_ON) return districtCleared(n); return hoodBundleOpened(n) || hoodLegacy().includes(n); }
+// 10-16 사람: 후디는 그 동네 동물이 판에 등장한 뒤 — 1동네는 20판(꼬꼬 묶음 끝)을 깨면. 자리가 없는 동네는 아직 옛 길(꾸러미·완주).
+const HOOD_AT={1:20};
+function hoodEarned(n){ if(FREEPLAY) return true; if(HOOD_AT[n] && (starMap[HOOD_AT[n]]|0)) return true; if(!HOUSE_ON) return districtCleared(n); return hoodBundleOpened(n) || hoodLegacy().includes(n); }
 // ── 번외 스킨(2026-10-03 사람: "가게로 넣자") — 동네 후디는 꾸러미로 받지만 이 넷은 상점 「옷」 구역에서 간식(pawBal)으로 산다.
 // 산 기록은 roll_house 의 skins — 집 물건과 같은 저장·같은 장부 영수증(economySpend grant)이라 따로 지키지 않아도 된다.
 // 값은 임시(통창 240·무드등 160 과 같은 처지). 시트가 다 갖춰진 것만 진열한다(skinComplete).
@@ -10208,7 +10635,7 @@ function trailHTML(from, to){
       // 번호는 원 **안**으로 들어온다 — 밖 라벨이 사라져 알 하나가 딱 34px 이 된다.
       +(hard && !nx? '<span class="lscrown" aria-hidden="true">'+HARD_CROWN_SVG+'</span>' : '')
       // 선물 상자 — 아직 안 받은 험한 판 선물만. 다음에 걸을 험한 판의 상자는 빛을 두르고 통통 뛴다.
-      +((hard && HOUSE_ON && !giftOpenedSet().has(lv))? '<span class="lshgift'+((lv===nextHardLv())? ' next' : '')+(late? ' far' : '')+(furnAtLv(lv)&&furnAtLv(lv).kind==='hood'? ' gold' : '')+'" aria-hidden="true">'+hardGiftSvg(lv)+'</span>' : '')
+      +((hard && HOUSE_ON && !giftOpenedSet().has(lv) && giftHas(lv))? '<span class="lshgift'+((lv===nextHardLv())? ' next' : '')+(late? ' far' : '')+(furnAtLv(lv)&&furnAtLv(lv).kind==='hood'? ' gold' : '')+'" aria-hidden="true">'+hardGiftSvg(lv)+'</span>' : '')
       +'<span class="lso">'+((late && !hard)? LS_LOCK : '<i class="lsn">'+lvLabel(lv)+'</i>')+'</span>'
       // 밖으로 나오는 표식은 **빚 하나뿐**이다. 규칙은 위 줄(lsLeftOver)과 같다 —
       // 한 번에 하나만 말한다: 재료가 남았으면 재료를, 다 캤으면 그때 도전을.
@@ -10299,7 +10726,7 @@ function lsProgHTML(n){
   let done=0, tot=0;
   for(let lv=d.from; lv<=to; lv++){ tot++; if((starMap[lv]|0)>0) done++; }
   const pct=tot? Math.round(done/tot*100) : 0;
-  const hs=HARD_LV.filter(lv=>lv>=d.from && lv<=d.to);
+  const hs=HARD_LV.filter(lv=>lv>=d.from && lv<=d.to && giftHas(lv));
   let dots='', nextLock=0;
   hs.forEach((lv,i)=>{
     // 끝 눈금이 100%면 완주 선물과 겹친다 — 5~95 로 좁힌다.
@@ -10902,7 +11329,10 @@ function gemPeekChip(got, tot){
   let chip=el('gemPeek');
   if(!chip){ chip=document.createElement('div'); chip.id='gemPeek'; chip.innerHTML='<img alt="" src="'+UI_GEM_ICON+'"><b></b>'; document.body.appendChild(chip); }
   const r=bar.getBoundingClientRect();
-  chip.style.cssText='position:fixed;right:'+Math.max(12,innerWidth-r.right+14)+'px;top:'+(r.bottom+6)+'px;z-index:59;display:flex;align-items:center;gap:4px;padding:4px 12px 4px 8px;border-radius:999px;background:#FFF8EC;box-shadow:0 0 0 2px #E8C887,0 3px 0 rgba(0,0,0,.08);font-weight:800;font-size:16px;color:#5A4636;pointer-events:none;transition:opacity .25s,transform .25s;opacity:1;transform:none';
+  // 목표 칩 줄이 떠 있으면 그 줄 오른쪽 끝에 붙인다 — 걸음 막대 밑은 칩 줄과 같은 높이라 화분 칩을 덮었다(10-17 찍기로 확인)
+  const gc=el('goalChips'), gr= gc && !gc.hidden && gc.getBoundingClientRect(), side= gr && gr.width>0 && gr.right+8+80<=innerWidth;
+  const pos= side? 'left:'+Math.round(gr.right+8)+'px;top:'+Math.round(gr.top)+'px' : 'right:'+Math.max(12,innerWidth-r.right+14)+'px;top:'+Math.round(gr && gr.width>0? gr.bottom+6 : r.bottom+6)+'px';   // 자리가 없으면 칩 줄 아래로
+  chip.style.cssText='position:fixed;'+pos+';z-index:59;display:flex;align-items:center;gap:4px;padding:4px 12px 4px 8px;border-radius:999px;background:#FFF8EC;box-shadow:0 0 0 2px #E8C887,0 3px 0 rgba(0,0,0,.08);font-weight:800;font-size:16px;color:#5A4636;pointer-events:none;transition:opacity .25s,transform .25s;opacity:1;transform:none';
   chip.querySelector('img').style.cssText='width:22px;height:22px';
   chip.querySelector('b').textContent=Math.max(0,got-1)+'/'+tot;
   clearTimeout(gemPeekTO); gemPeekTO=setTimeout(()=>{ chip.style.opacity='0'; chip.style.transform='translateY(-6px)'; }, 1700);
@@ -11865,6 +12295,7 @@ function drawGoalFeelToyV2(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
   ctx.restore();
 }
 function drawGoalFeelToy(x,y,s,rotation,sleep,motion=0,arrival=0,matchColor){
+  if(L && L.d1 && !houseMode && !goalToyOverride) return d1Soccer(ctx,x,y,s,typeof rotation==='number'? rotation : rotation? (rotation.x||0)+(rotation.y||0) : 0);   // 1동네 공 = 축구공
   const kind=goalFeelToyKind();
   if(GOAL_FEEL_V2_KINDS.has(kind))return drawGoalFeelToyV2(x,y,s,rotation,sleep,motion,arrival,matchColor);
   const r=s*.30;
@@ -12624,7 +13055,7 @@ function applyScene(g){
   filled=new Set();
   par=g.par; moves=0; undoStack=[]; state="play"; undoFacing=null; undoFx=null;
   if(!tutMode) tutSlide=0;
-  fx=[]; liqFx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; praisePops=[]; treatAllPend=0; seatCombo=0; seatLastMove=-99;
+  fx=[]; liqFx=[]; hearts=[]; hitstop=0; shake=0; holePulse={}; pendingWin=false; d1BloomAt=null; d1BloomKey=''; praisePops=[]; treatAllPend=0; seatCombo=0; seatLastMove=-99;
   matIntroT=(menuMode||moonMode||tutMode)? -1 : 0;
   deadT=0; deadPend=false; trail=[]; walkPulse=[]; rollPulse=[];
   joyT=0; joyN=0; glum=0;                                        // 판 안 맥스 반응도 판마다 처음부터
@@ -12672,6 +13103,7 @@ function hudPilotForLevel(lv){ return true; }
 function uiuxPolishForLevel(lv){ return lv>=1; }
 // keepTries: 같은 판을 다시 까는 것이라 시도 횟수를 이어 센다(재시작). 안 주면 새 입장이다.
 function loadLevel(lv, moon, keepTries){
+  if(d1Enter){ if(d1Enter.box) d1Enter.box.houseHop=false; d1Enter=null; }   // 꼬꼬 등장 중 다른 판으로 — 입력 잠금이 남지 않게
   // 바닥 캐시는 판 번호로 묶인다 — 연습판(1판 번호를 쓴다)에서 진짜 1판으로 넘어오면 번호가 같아 옛 판의 벽이 남았다가
   // 첫 걸음에야 바뀌었다(2026-10-13 사람 보고). 판을 새로 얹을 때마다 캐시를 버리고 정지 판정도 다시 잰다.
   tileKey=''; tileAnimFor='';
@@ -19038,7 +19470,8 @@ function giftOpenedSet(){
   return giftOpened;
 }
 function giftOpenedSave(){ try{ LS.set('roll_giftopen', JSON.stringify([...giftOpenedSet()])); }catch(e){} }
-function giftReady(lv){ return (starMap[lv]|0)>0 && !giftOpenedSet().has(lv); }
+function giftHas(lv){ return !HOUSE_ON || HOUSE_FURN_ON || !!giftAtLv(lv); }   // 10-17 가구 끔 — 꾸러미가 남은 험한 판(후디)만 상자가 선다
+function giftReady(lv){ return (starMap[lv]|0)>0 && !giftOpenedSet().has(lv) && giftHas(lv); }
 function giftPendingLvs(n){
   const d=n? DISTRICTS[n-1] : null;
   return HARD_LV.filter(lv=>giftReady(lv) && (!d || (lv>=d.from && lv<=d.to)));
@@ -19046,8 +19479,10 @@ function giftPendingLvs(n){
 function giftAtLv(lv){
   const gn=districtOfLv(lv), gxs=DISTRICT_GROWTH[gn]||[], gi=gxs.findIndex(x=>x.level===lv);
   if(gi<0) return null;
+  const fu=HOUSE_ON? ((HOUSE_FURN[gn-1]||[])[gi]||null) : null;
+  if(HOUSE_ON && !HOUSE_FURN_ON && !(fu && fu.kind==='hood')) return null;   // 10-17 사람: 가구는 아예 끔 — 후디 꾸러미만 남고 나머지 험한 판은 받을 게 없다(설계도로 떨어지지 않게)
   return {paw:HARD_GIFT_PAW, mat:matOfDistrict(gn), matN:HARD_GIFT_MAT, n:gn, i:gi,
-    item:gxs[gi].item, furn: HOUSE_ON? ((HOUSE_FURN[gn-1]||[])[gi]||null) : null,     // 하우스가 켜져 있으면 꾸러미엔 설계도 대신 방 가구
+    item:gxs[gi].item, furn: fu,     // 하우스가 켜져 있으면 꾸러미엔 설계도 대신 방 가구
     was: gi>0? GROWTH_STAGE(gxs[gi].item, gxs[gi-1].phase) : -1,
     now: GROWTH_STAGE(gxs[gi].item, gxs[gi].phase), fromBar:1};
 }
@@ -21324,12 +21759,13 @@ function houseFurnState(){ const f=houseTheme.furn||(houseTheme.furn={}); f.on=f
 // 간식 가게 물건은 따로 — 벽 두 자리(HOUSE_WALL_SPOTS) + 바닥 두 자리(HOUSE_DECO_SPOTS)에만 놓는다.
 // 예전엔 가진 바닥 가구가 전부 방에 흩어졌고, 목록은 한 줄 가로 스크롤이라 24개 중 7개만 보였다.
 const HOUSE_DECO_SPOTS=[[1,1],[1,6]];                  // 바닥 소품 — 방 위쪽 양 구석, 뒷벽에 붙어 선다. 푯말처럼 밟고 지나간다
-const HOUSE_SLOT_TABS=['rug','bed','paper','floor','thing','hood'];
+const HOUSE_FURN_ON=false;                              // 10-16 사람: 방 가구 항목(러그·방석·대표 가구·벽지·바닥)은 전부 비활성 — 옷(후디)만 남긴다. 보상은 동네 완료 공 + 동물 등장 뒤 후디
+const HOUSE_SLOT_TABS=HOUSE_FURN_ON? ['rug','bed','paper','floor','thing','hood'] : ['hood'];
 let hdPing=null;                                        // 방에서 짚은 자리 — 0.45초 고리(짚은 것이 그 종류로 넘어갔다는 대답)
-let hdTab='rug', hdSpot=2;                              // 소품 탭에서 고른 자리 — 0·1 벽, 2·3 바닥
+let hdTab=HOUSE_SLOT_TABS[0], hdSpot=2;                              // 소품 탭에서 고른 자리 — 0·1 벽, 2·3 바닥
 function houseSlotItem(kind,n){ return (HOUSE_FURN[n-1]||[]).find(it=>it.kind===kind)||null; }
 // 방에 선 대표 가구 — 하나. 푼(seen) 꾸러미 가구만.
-function houseThingOn(){ const f=houseFurnState(), it=f.on.thing && HOUSE_FURN_BY[f.on.thing];
+function houseThingOn(){ const f=houseFurnState(), it=HOUSE_FURN_ON && f.on.thing && HOUSE_FURN_BY[f.on.thing];   // 10-17: 가구가 꺼지면 옛 세이브의 대표 가구도 안 둔다
   return (it && !it.shop && it.kind==='thing' && f.seen.includes(it.k))? [it] : []; }
 // 옛 세이브 — 푼 바닥 가구가 여럿이면 자리가 있던 것 하나를 방에 남기고, 가게 가구는 앞 둘을 바닥 소품 자리로(fv 4).
 function houseDecoMigrate(){
@@ -21351,8 +21787,8 @@ function houseDecoPut(kind,k,idx){
   const was=arr.indexOf(k); if(was>=0 && was!==idx) arr[was]=arr[idx]; arr[idx]=k;
   if(!f.seen.includes(k)) f.seen.push(k);
 }
-function furnAtLv(lv){ const gn=districtOfLv(lv), gxs=DISTRICT_GROWTH[gn]||[], gi=gxs.findIndex(x=>x.level===lv); return gi<0? null : ((HOUSE_FURN[gn-1]||[])[gi]||null); }
-function houseFurnOwned(){ const out=new Set(); for(const lv of giftOpenedSet()){ const it=furnAtLv(lv); if(it && it.kind!=='hood') out.add(it); }   // 후디는 가구가 아니다 — 옷걸이로 간다
+function furnAtLv(lv){ const gn=districtOfLv(lv), gxs=DISTRICT_GROWTH[gn]||[], gi=gxs.findIndex(x=>x.level===lv), it=gi<0? null : ((HOUSE_FURN[gn-1]||[])[gi]||null); return it && (HOUSE_FURN_ON || it.kind==='hood')? it : null; }   // 10-17: 가구 꾸러미는 없다 — 후디만
+function houseFurnOwned(){ if(!HOUSE_FURN_ON) return []; const out=new Set(); for(const lv of giftOpenedSet()){ const it=furnAtLv(lv); if(it && it.kind!=='hood') out.add(it); }   // 후디는 가구가 아니다 — 옷걸이로 간다
   for(const b of houseTheme.buy||[]) if(b.startsWith('furn:')){ const it=HOUSE_FURN_BY[b.slice(5)]; if(it) out.add(it); }   // 가게에서 산 것 + 옛 꾸러미로 받아 둔 것
   return [...out]; }
 // 들어가 본 동네 — 가게는 여기까지의 물건만 편다(안 배운 건 숨긴다).
@@ -21926,7 +22362,7 @@ function houseGiftRefill(){
     houseToys.push('g:'+it.k); houseGiftAt[it.k]=sp; shown.add(it.k);
   }
 }function toyOwned(){ return STAGE_TOYS.filter((t,i)=>FREEPLAY || districtCleared(i+1)); }
-function houseBoxOn(){ return toyOwned().length>0; }   // 장난감이 하나도 없으면 상자도 없다(안 배운 건 숨긴다)
+function houseBoxOn(){ return !HOUSE_FURN_ON || toyOwned().length>0; }   // 10-17: 공 자리 = 장난감 상자 — 공이 없어도 방에 늘 있다(가구가 켜진 옛 모드만 공이 있어야)
 function houseRoomSpec(at){
   const g=houseGrid(); for(let c=0;c<GN;c++) g[GN-2][c]='0'; g[GN-2][3]='1'; g[GN-2][4]='1';
   if(houseBoxOn()) g[HOUSE_BOX[0]][HOUSE_BOX[1]]='0';
@@ -22420,7 +22856,7 @@ function houseDecoRender(){
   // 소품(사는 탭)은 가게가 열린 뒤부터 — 방은 5판에 열리는데 가게는 40판이라, 그 사이엔 가게보다
   // 35판 먼저 물건을 파는 셈이었다(2026-10-02 사람: 안 배운 건 숨긴다). 이미 산 게 있으면 그대로 보인다.
   const decoOn=shopUnlocked() || F.deco.some(Boolean) || F.wall.some(Boolean);
-  if(!decoOn && hdTab==='deco') hdTab='rug';
+  if((!decoOn && hdTab==='deco') || (hdTab!=='deco' && !HOUSE_SLOT_TABS.includes(hdTab))) hdTab=HOUSE_SLOT_TABS[0];
   el('hdBal').hidden=!decoOn;
   let h='';
   for(const kind of HOUSE_SLOT_TABS) h+='<button class="hdtab'+(hdTab===kind?' on':'')+'" data-tab="'+kind+'" aria-label="'+escAttr(lab(kind))+'"><u>'+got(kind)+'/10</u><canvas width="72" height="72" data-k="'+(onK(kind)||'')+'"'+(kind==='hood'? ' data-h="'+(cur||'')+'"' : '')+' data-kind="'+kind+'"></canvas><em>'+lab(kind)+'</em></button>';
@@ -22537,6 +22973,7 @@ function hoodieWear(k){                                  // 이름 주의: hoodP
 }
 function houseOnMat(){ return false; }                  // 매트는 물렸다 — 옷걸이 쿵 + 거울(2026-09-30)
 function openHouse(lot, opts){
+  if(d1Enter){ if(d1Enter.box) d1Enter.box.houseHop=false; d1Enter=null; }   // 꼬꼬 등장 중 집으로 — 잠금이 남지 않게
   roomWinPick=null; roomWinFx=null; mirPick=null;                 // 창문·거울 고르기와 연출은 방을 새로 열면 접는다
   roomSlotFocus=null;
   opts=opts||{}; lot=(lot==null)? HOUSE_YARD : lot;
@@ -22881,12 +23318,12 @@ function roomSlotGeo(){
     {k:'bed',   tag:[bx,by+c*0.42], shape:g=>g.roundRect(bx-c*0.44,by-c*0.5,c*0.88,c*0.92,c*0.16), ghost:[bx,by,c], box:[bx-c*0.44,by-c*0.5,c*0.88,c*0.92]},
     {k:'thing', tag:[tx,ty+c*0.42], shape:g=>g.roundRect(tx-c*0.42,ty-c*0.5,c*0.84,c*0.9,c*0.16), ghost:[tx,ty,c], box:[tx-c*0.42,ty-c*0.5,c*0.84,c*0.9]},
     {k:'hood',  tag:[hx,hy+c*0.42], shape:g=>g.roundRect(hx-c*0.3,hy-c*0.3,c*0.6,c*0.66,c*0.12), ghost:'hood', box:[hx-c*0.3,hy-c*0.3,c*0.6,c*0.66]},
-  ];
+  ].filter(s=>HOUSE_FURN_ON || s.k==='window' || s.k==='hood');   // 10-17: 러그·방석·대표 가구·벽지·바닥 자리는 없다(공은 장난감 상자로)
 }
 function roomSlotHand(){                                       // 손가락 — 첫 창문, 그다음엔 선물이 기다리는 살 수 있는 자리
   if(roomWinPick) return null;
   if(!roomSlotOwns('window')) return 'window';
-  return ROOM_SLOT_KINDS.find(k=>roomSlotState(k)==='wait' && pawBal>=ROOM_SLOT_COST[k]) || null;
+  return ROOM_SLOT_KINDS.find(k=>(HOUSE_FURN_ON || k==='window' || k==='hood') && roomSlotState(k)==='wait' && pawBal>=ROOM_SLOT_COST[k]) || null;
 }
 // 방을 눌렀다 — 값이 붙은 자리(잠김·선물 대기)면 살까요? 카드.
 function roomSlotTap(x,y){
@@ -23454,7 +23891,7 @@ function drawHouseRoom(bare){                                    // bare — 첫
   g.fillStyle='#3A2C33'; g.fillRect(0,T,W,W-T);                                  // 방 밖 — 따뜻한 밤빛
   const wx0=c*0.62, wx1=c*7.38;
   // 벽지 — 크림 줄무늬 + 작은 분홍 점, 위 몰딩, 아래 걸레받이
-  const FS=bare? {on:{},wall:[],deco:[]} : houseFurnState(), paper=FS.on.paper && HOUSE_FURN_BY[FS.on.paper];
+  const FS=bare? {on:{},wall:[],deco:[]} : HOUSE_FURN_ON? houseFurnState() : {...houseFurnState(), on:{}}, paper=FS.on.paper && HOUSE_FURN_BY[FS.on.paper];
   if(paper) drawHousePattern(paper, wx0, T, wx1-wx0, c-T, c);                     // 동네 벽지
   else {
   const PP=(!bare && HOUSE_ROOM_PAPER[houseTheme.paperC])||HOUSE_ROOM_PAPER.cream;
@@ -23768,6 +24205,7 @@ function drawHouseToyBox(){
   g.fillStyle='#5E3B21'; g.beginPath(); g.ellipse(bx,top+c*0.02,w*0.46,c*0.1,0,0,7); g.fill();                     // 입구 안쪽 어둠
   inside.forEach((k,i)=>{ const bob=nextTo? Math.abs(Math.sin(animT*6+i*1.3))*c*0.07 : 0;
     head(k, bx+(i-(inside.length-1)/2)*c*0.27, top-c*0.02-(i===1&&inside.length===3?c*0.07:0)-jolt-bob, c*0.17); });
+  if(!toyOwned().length){ g.fillStyle='rgba(255,244,226,.3)'; g.beginPath(); g.arc(bx,top-c*0.03,c*0.19,0,7); g.fill(); }   // 아직 공이 없다 — 흐린 공 실루엣(10-17, 글자 없음)
   g.fillStyle='#D69A5C'; rr(bx-w/2,top,w,h,c*0.1); g.fill();                                           // 몸통
   g.fillStyle='#C4854A'; for(const f of [0.36,0.7]) g.fillRect(bx-w/2+c*0.04,top+h*f,w-c*0.08,c*0.028);
   g.fillStyle='#E3AE72'; g.fillRect(bx-w/2+c*0.05,top+c*0.02,w-c*0.1,c*0.045);                          // 윗 테두리 빛
@@ -24907,7 +25345,7 @@ function restoreSnap(s){
   dog.r=s.d.r; dog.c=s.d.c;
   boxes=s.b.map(b=>({r:b.r,c:b.c,color:b.color,kind:b.kind,rr:b.r,cc:b.c,roll:0,sqT:0,sdr:0,sdc:0,landT:0,sink:b.sink||0,covered:!!b.covered,wet:!!b.wet,coverT:0,carried:!!b.carried,buried:!!b.buried,buriedBall:!!b.buriedBall,buryT:0}));
   dog.carry=!!s.d.carry;
-  filled=new Set(s.f); moves=s.m; pendingWin=false; deadT=0; deadBalls=[]; deadPend=true; syncMoves();
+  d1BloomAt=null; d1BloomKey=''; filled=new Set(s.f); moves=s.m; pendingWin=false; deadT=0; deadBalls=[]; deadPend=true; syncMoves();
   moundTrail=new Set(s.mt||[]);
   doorFx=null; doorWind=null;                      // 문은 filled 가 되돌린다 — 도는 중이던 연출만 버린다
   if(L.cat!=null){ catAwake=s.ca|0; catPos=s.ck==null?L.cat:s.ck; }
@@ -24942,7 +25380,8 @@ function tryMove(dr,dc){
   if(houseMode && mirPick){ if(dc) mirPickStep(dc>0? 1 : -1); else if(dr>0) mirPick=null; return false; }   // 거울 앞 — 옆으로 쓸면 갈아입고, 아래로 쓸면 닫는다
   if(houseMode && roomWinPick){ if(dc) roomWinPickStep(dc>0? 1 : -1); else if(dr>0) roomWinPickCancel(); return false; }   // 창문 고르기 — 옆으로 쓸면 넘기고, 아래로 쓸면 닫는다
   if(houseZooming) return false;                             // 문을 지나는 0.5초 — 걸음을 안 받는다
-  if(houseMode && houseGramps) return false;                  // 할아버지가 상자를 갖다 주는 중 — 판을 누르면 끝난다(houseTap)
+  if(houseMode && houseGramps) houseGrampsEnd();               // 할아버지가 상자를 갖다 주는 중 — 걸으려 하면 연출을 바로 마무리(상자는 배달된 것으로)하고 그 걸음을 받는다(탭도 끝낸다: houseTap)
+  if(houseMode && houseWakeAt){ houseWakeAt=0; if(dog.maxEvent==='sitSleep'){ dog.maxEvent=null; dog.maxEventNext=null; dog.maxEventT=0; } }   // 낮잠 중 — 걸으려 하면 바로 깬다
   if(houseMode && houseHoodPhoto) return false;               // 후디 사진을 기다리는 중 — 걸음을 안 받는다
   if(houseMode && housePlacePending()){ housePlaceGo(); return false; }   // 선물이 떠 있다 — 걸음 대신 놓는다(쓸어도·방향 버튼도 같은 뜻)
   // 오디오가 일시 중지되어도 게임 입력은 막지 않는다. 모바일 브라우저의 자동재생
@@ -25195,6 +25634,8 @@ function tryMove(dr,dc){
   }
   if(chapterMaxAppliesToLevel(level)){
     dog.protoFromR=dog.rr; dog.protoFromC=dog.cc;
+    // 앞 걸음이 덜 끝났는데 꺾으면 중간 자리에서 새 칸으로 곧장 가 대각선으로 미끄러졌다(10-17 사람) — 옆으로 남은 몫은 걷는 줄에 붙인다
+    if(dr && !dc) dog.protoFromC=dog.c; else if(dc && !dr) dog.protoFromR=dog.r;
     dog.protoMoveT=0;
     dog.protoMoveDur=chapterMaxPrototypeDuration(!!(res.pushed||res.door));
     // 한 타일은 보행 주기의 정확히 절반이다. 다음 칸은 반대 발이 앞으로
@@ -25390,7 +25831,7 @@ function tryMove(dr,dc){
   }
   if(res.pushed){
     if(res.kind==='mower'){ dog.lungeT=1.2; dog.hop=0; }
-    else if(res.kind==='log'||res.kind==='cartV'||res.kind==='cartH'){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } // 상자와 대차는 재질을 구분한다
+    else if(res.kind==='log'||res.kind==='cartV'||res.kind==='cartH'){ if(res.kind==='log') sfxSelected('boxPush'); else sfxHeavy(); if(res.kind==='log' && L && L.d1){ buzz([10]); dog.lungeT=1.5; dog.hop=0; } else { buzz([22,50,22]); dog.lungeT=1.5; dog.hop=0; dog.heavy=1; shake=Math.min(1,shake+0.1); } } // 상자와 대차는 재질을 구분한다
     else if((MAX_DEPTH_PROTO_ENABLED||MAX_CHAPTER_HYBRID_ENABLED)&&level===1){
       // 전용 밀기 포즈의 접촉 프레임(.42)에서 소리와 공이 함께 출발한다.
       fxAfter((dog.protoMoveDur||.34)*.42,()=>{sfxBallPush();feedbackPulse('push');});
@@ -25476,6 +25917,20 @@ function tryMove(dr,dc){
     sfxBlocked(); buzz([12,34,12]); hitstop=Math.max(hitstop,0.055); shake=Math.min(1,shake+0.16);
   }
   prepareBallContacts(boxes);
+  if(L.d1){                                           // 1동네 — 화면 상자를 엔진 결과(굳은 화분·움직인 꼬꼬)와 맞춘다. 한 수가 끝나면 stKey(curState()) == 엔진 결과 키
+    // 엔진은 이번 수에 사라진 공(구덩이·개집)을 res.boxes 에서 빼고 원래 번호를 res.goneIdx 에 남긴다 — 화면엔 가라앉는 연출이 끝날 때까지 남아 있으니 짝짓기에서 뺀다
+    const gi=new Set(res.goneIdx||[]), live=boxes.filter(x=>x.sink===0 && !x.carried).filter((_,i)=>!gi.has(i)), out=res.boxes.filter(x=>!x.gone);
+    if(live.length===out.length) { out.forEach((o,i)=>{ const b=live[i];
+      if(b.kind==='log' && o.kind==='bed') b.bedAt=animT+.12+(Math.abs(b.rr-o.r)+Math.abs(b.cc-o.c))*.25;   // 굳기 — 밀린 화분이 닿은 뒤 시작(그림 전용)
+      if(o.kind==='hen' && (b.r!==o.r || b.c!==o.c)) b.henFx=d1HenFx(res,b.r*GN+b.c,b.r,b.c);
+      b.kind=o.kind; b.color=o.color;
+      if(b.r!==o.r || b.c!==o.c){ const d=res.henKnock? DOOR_DUR*DOOR_HIT_T : (res.henSpook? acc : 0.1);   // 꼬꼬 이동 — 문짝이 닿은 뒤·공이 도착한 뒤·도망은 곧바로 (ponytail: spook 만 acc, 나머지 0.1 — 연출은 T7 이 다듬는다)
+        b.r=o.r; b.c=o.c; b.path=[{r:o.r,c:o.c}]; b.pathI=0; b.delay=d; } });
+      // 새로 굳는 칸들 — 가장 늦게 닿는 화분 뒤에 왼쪽부터 0.12초 간격으로 차례로 통통(옛 톡톡). 이미 굳어 있던 이웃은 안 뛴다
+      const nw=live.filter(b=>b.kind==='bed' && b.bedAt!=null && b.bedAt>animT-.01 && b.bedK==null);
+      if(nw.length){ const t0=Math.max(...nw.map(b=>b.bedAt)); nw.sort((p,q)=>(cx(p.c)+cy(p.r)*.01)-(cx(q.c)+cy(q.r)*.01)).forEach((b,k)=>{ b.bedAt=t0; b.bedK=k; b.bedN=nw.length; }); } }
+    else boxes=out.map(o=>({r:o.r,c:o.c,color:o.color,kind:o.kind,rr:o.r,cc:o.c,roll:0,sqT:0,sdr:0,sdc:0,landT:0,sink:0,carried:false,buried:!!o.buried}));   // 짝이 안 맞으면 조용히 건너뛰지 않고 엔진 결과로 통째로 바꾼다
+  }
   if(res.blockedKnock && L.hl2){                      // the move stood, but a log (squirrel run / slope slide) stopped in front of a ball whose far side is blocked: once it has stopped, the log teeters and the ball jiggles (rules unchanged)
     const kb=res.blockedKnock;
     fxAfter(acc+0.12, ()=>{
@@ -26420,7 +26875,7 @@ function deadlockNow(){
   if(L.np) L._npB=npCells(L,npState);                            // 화단 고양이도 지금 자리가 벽
   if(L.fw!=null) L._fwB = fcState;                              // 따라오는 고양이 — 공에게만 벽
   // 통나무·그루터기·나무는 방석을 못 채운다 — isGoal 과 같은 목록
-  const live=boxes.filter(b=>b.sink===0 && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig');
+  const live=boxes.filter(b=>b.sink===0 && b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='bed' && b.kind!=='hen' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig');
   const need={}, have={}; let wild=0;
   for(const [,col] of holes) need[col]=(need[col]|0)+1;
   for(const b of live){ if(b.color<0) wild++; else have[b.color]=(have[b.color]|0)+1; }
@@ -26506,7 +26961,7 @@ function waterExhausted(live){
     for(const st of frontier) for(const [dr,dc] of DIRS){
       const r=applyMove(L, st, dr, dc); if(!r) continue;
       const ns={dog:r.dog, boxes:r.boxes, filled:r.filled, carry:!!r.carry};
-      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig') bc++;
+      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='bed' && b.kind!=='hen' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig') bc++;
       if(bc < L.holes.size) continue;                        // 공 부족 가지는 더 안 본다
       const k=stKey(ns); if(seen.has(k)) continue; seen.add(k);
       if(isGoal(L,ns)) return false;
@@ -26900,7 +27355,7 @@ const SEAT_COMBO_GAP=5;
 let ruleChipKey=null;
 function syncRuleChip(){
   const b=el('ruleChip'); if(!b) return;
-  const k=(tutMode||moonMode||menuMode||tsMode||lunchMode)? null : (guideKeysForStage(level)[0]||null);
+  const k=(tutMode||moonMode||menuMode||tsMode||lunchMode||level<=GHOST_ONLY_TO)? null : (guideKeysForStage(level)[0]||null);   // 1동네는 그림자만(GHOST_ONLY_TO)
   const g=(k && k!=='base')? guideCopy(k) : null;
   ruleChipKey= g? k : null; b.hidden=!g;
   if(g) el('ruleChipT').textContent=g.name;
@@ -27948,7 +28403,7 @@ function win(){
       if(k && bpMade.indexOf(k)<0){ winChipN=dn; winChipMade=k; } }   // 이 판이 10번째 — 작은 가구 도면 완성
     if(firstClear) colBpNew=colBpAt(level);                       // 수집품 설계도 — 그 판을 처음 깬 값
     // 꾸러미 — 험한 판을 **처음** 깬 값. 다시 깨면 안 준다(starMap 이 그걸 기억한다).
-    if(firstClear && isHardLv(level)){
+    if(firstClear && isHardLv(level) && (!HOUSE_ON || HOUSE_FURN_ON || giftAtLv(level))){   // 가구를 끈 뒤(10-17)엔 후디 꾸러미 판만 상자가 걸린다
       // 조각은 따로 저장하지 않는다 — starMap 이 이미 "이 험한 판을 깼다"를 기억하고,
       // 사다리가 그걸 읽는다. 저장을 하나 더 두면 언젠가 둘이 어긋난다.
       const gn=districtOfLv(level), gxs=DISTRICT_GROWTH[gn]||[];
@@ -29645,7 +30100,7 @@ function hintStep(){
       const nst={dog:r.dog, boxes:r.boxes, filled:r.filled, carry:!!r.carry};
       if(L.walk){ nst.ci=r.ci; nst.cd=r.cd; }
       if(L.cat!=null){ nst.ca=r.ca|0; if(nst.ca){ nst.ci=r.ci; nst.cd=r.cd; } }
-      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig') bc++;
+      let bc=0; for(const b of r.boxes) if(b.kind!=='log' && b.kind!=='bone' && b.kind!=='cartV' && b.kind!=='cartH' && b.kind!=='mower' && b.kind!=='tub' && b.kind!=='pump' && b.kind!=='bed' && b.kind!=='hen' && b.kind!=='hillLog' && b.kind!=='log2' && b.kind!=='log2End' && b.kind!=='stump' && b.kind!=='treeSmall' && b.kind!=='treeBig') bc++;
       if(bc < L.holes.size) continue;                  // 공 부족 = 사구
       if(L.needBone && !r.carry && !r.boxes.some(b=>b.kind==='bone')) continue;
       const k=stKey(nst); if(J.parent.has(k)) continue;
@@ -29982,7 +30437,8 @@ function fit(){
   const longDockH=rows>GN ? Math.max((el('dock')&&el('dock').getBoundingClientRect().height)||50,
     parseFloat(getComputedStyle(wrap).paddingBottom)||0) : 0;
   // 테두리 없는 판(open:1)은 판 윗변이 그대로 보여 규칙 칩(? 물살)이 걸친다 — 칩 자리 34px 를 판 위에 비운다(게시판 서는 gbtop 은 CSS 가 이미 비운다)
-  const oeTop=(L && L.openEdge && !menuMode && !(typeof houseMode!=='undefined' && houseMode))? 34 : 0;
+  // 맨 윗줄 개집(입구 아래 — 지붕이 칸 위로 솟는다)은 칩 줄에 덮이므로 솟는 만큼(칸의 ~0.45) 더 비운다
+  const oeTop=(L && L.openEdge && !menuMode && !(typeof houseMode!=='undefined' && houseMode))? 34 + (L.d1 && L.home && L.home[0]===0 && (L.home[2]&3)===2? Math.round(wrap.clientWidth/GN*0.45) : 0) : 0;
   wrap.style.paddingTop=oeTop? oeTop+'px' : ''; wrap.style.boxSizing=oeTop? 'border-box' : '';
   const fitH=Math.max(1,wrap.clientHeight-longDockH-oeTop);
   const s=Math.min(wrap.clientWidth, fitH*GN/(rows+band)) * GN/(GN-trim);
@@ -30045,7 +30501,7 @@ const DISTRICT_SCENE_ART={
 };
 // 쪽지 — 그 판까지 배운 것만 말한다(안 배운 건 숨긴다). 판 번호로 고르므로 같은 판은 늘 같은 쪽지다.
 const GBOARD_NOTES=[{k:'gboard.pull',from:1},{k:'gboard.undo',from:1},{k:'gboard.corner',from:3},{k:'gboard.treat',from:3},{k:'gboard.gate',from:7},{k:'gboard.walk',from:6}];
-const GBOARD_LEVEL_NOTES={21:'gboard.mower',22:'gboard.mowerTurn'};
+const GBOARD_LEVEL_NOTES={6:'gboard.twoColor',16:'gboard.hen',21:'gboard.gateBend'};   // 1동네 새 기믹 첫 판(10-17) — 카드 대신 한 줄 쪽지
 // 명언(2026-10-07 사람) — 31판부터는 할아버지가 걷기·여정·꾸준함에 관한 옛말을 붙인다. 1~30판은 배우는 구간이라 조작 쪽지 그대로.
 // 7 과 24 가 서로소라 판을 넘길 때마다 스물넷이 한 바퀴 다 돈다. 문구는 한 줄 알약에 들어가게 골랐다(작은 폰 288px).
 const GBOARD_QUOTES=24, GBOARD_QUOTE_FROM=31;
@@ -35212,7 +35668,7 @@ function drawDoorPost(g, x, y, s){
   g.fillStyle='rgba(255,255,255,.55)'; g.beginPath(); g.arc(x-s*.03, top-s*.05, s*.03, 0, 7); g.fill();
 }
 function drawDoors(){
-  if(!L || !L.doors) return;
+  if(!L || !L.doors || d1CoopShut()) return;                // 30판 닭장 완성 — 문짝은 나무 테두리 속으로
   const pv=(!doorFx && teachShown())? teachDoor() : null, pk=pv? teachPushK(teachPhase()) : 0;   // 맥스 그림자가 미는 동안 문이 살짝 돌았다 돌아온다
   if(pv && pk>.01){ doorFx={i:pv.i, from:pv.from, s:pv.s, t:.06*pk, preview:true}; try{ drawDoorsNow(); } finally { doorFx=null; } return; }
   drawDoorsNow();
@@ -35240,6 +35696,15 @@ function drawDoorsNow(){
         g.lineCap='round'; g.lineWidth=s*.09;
         g.strokeStyle=DOOR_P.railDk; g.beginPath(); g.moveTo(x0,y0+s*.02); g.lineTo(x1,y1+s*.02); g.stroke();
         g.strokeStyle=DOOR_P.rail; g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke(); });
+      if(wf<.35 && !window.__doorStyle){                               // 세로 문짝 — 살 넷이 위아래로 겹쳐 통나무 더미로 읽혔다(10-17 블라인드 판정). 금 그은 판자 한 장으로
+        const ya=gy+uy*s*L0, yb=gy+uy*s*LEAF, top=Math.min(ya,yb)-s*.46, bot=Math.max(ya,yb), pw=s*.2;
+        items.push({y:Math.max(ya,yb), f:()=>{ g.fillStyle='rgba(60,50,30,.16)'; g.beginPath(); g.ellipse(px+s*.02, bot+s*.01, pw*.8, s*.05, 0, 0, 7); g.fill();
+          g.fillStyle=DOOR_P.slatDk; g.beginPath(); g.roundRect(px-pw/2+s*.03, top+s*.02, pw, bot-top, s*.05); g.fill();      // 옆면(두께)
+          g.fillStyle=DOOR_P.slat; g.beginPath(); g.roundRect(px-pw/2, top, pw, bot-top-s*.02, s*.05); g.fill();
+          g.strokeStyle=DOOR_P.slatDk; g.lineWidth=Math.max(1,s*.018);                                                      // 살 사이 금
+          for(let k=1;k<4;k++){ const yy=top+(bot-top-s*.02)*k/4; g.beginPath(); g.moveTo(px-pw/2+s*.02,yy); g.lineTo(px+pw/2-s*.02,yy); g.stroke(); }
+          g.fillStyle='rgba(255,255,255,.3)'; g.fillRect(px-pw*.3, top+s*.04, pw*.18, bot-top-s*.1); }});
+      } else
       for(let k=0;k<4;k++){ const u=L0+(LEAF-L0)*(k+.5)/4, bx=px+ux*s*u, by=gy+uy*s*u; items.push({y:by, f:()=>drawDoorPicket(g, bx, by, s, wf)}); }
       if(window.__doorStyle==='ranch'){ const o=s*.13*(1-wf), A=[px+ux*s*L0,gy+uy*s*L0], B=[px+ux*s*LEAF,gy+uy*s*LEAF];   // 목장 울타리 — 굵은 가로대 셋 + X자
         items.push({y:(A[1]+B[1])/2, f:()=>{ g.lineCap='round';
@@ -39966,6 +40431,7 @@ function render(){
                                                            //   첫 줄 칸막이 위 소품(오리·화분)이 띠 위로 올라와 안 잘린다(10-07 사람)
   drawTilesCached();
   creekRipples();                                          // 냇가 — 물결 층(바닥 사본 위, 물건 아래)
+  d1Floor();                                               // 1동네 — 화단 자리 윤곽·짚·꼬꼬 자리·앞마당 울타리(바닥 위, 물건 아래)
   floorsNext=0; floorsDecalFn=null;                        // 1층/2층 — 2층 줄을 물건 사이에 끼워 그리는 순번(floorsPlatTo)
   creekFrogDraw();                                       // 졸졸 냇가 — 연잎 개구리(바닥 위·물체 아래, 매 프레임)
   drawHouseOverlay();
@@ -40309,7 +40775,8 @@ function render(){
       ctx.beginPath(); ctx.arc(cx(b.c),cy(b.r),cell*(.38+.08*pulse),0,7); ctx.stroke(); }
     ctx.restore(); }
   liquidFx();                                                     // 비눗물·맑은 물 위 — 공 거품 꼬리/물살, 맥스 찰박 발자국
-  for(const b of (creekArt()? boxes.slice().sort((p,q)=>p.rr-q.rr) : boxes)){   // 냇가 — 뒷줄부터(큰 도끼 나무가 윗줄에 겹친다)
+  d1Top();                                                        // 1동네 — 청소 표지판(개집 앞)·닭장 나무 테두리
+  for(const b of ((creekArt() || L.d1)? boxes.slice().sort((p,q)=>p.rr-q.rr) : boxes)){   // 냇가·1동네 — 뒷줄부터(큰 도끼 나무가 윗줄에 겹친다, 화단·꼬꼬도 행 순서로 겹친다)
     goalToyOverride = houseMode ? ((houseToys[boxes.indexOf(b)]||'').indexOf(':')<0? (houseToys[boxes.indexOf(b)]||null) : null) : (obActive()? STAGE_TOYS[0] : null);
     if(b.sink>=1 || b.carried || b.houseHop) continue;
     floorsPlatTo(Math.round(b.rr));                                      // 1층/2층 — 이 물건 줄까지의 2층 윗면을 먼저 깐다(북쪽 1층 물건은 윗면 아래로 가려진다)
@@ -40383,9 +40850,11 @@ function render(){
           }
           else { b.cc+=dx/dist*step; b.rr+=dy/dist*step; }
         }
-      } else if(b.kind==='log'||b.kind==='hillLog'||b.kind==='cartV'||b.kind==='cartH'){
+      } else if(b.kind==='log'||b.kind==='bed'||b.kind==='hillLog'||b.kind==='cartV'||b.kind==='cartH'){   // bed — 밀려 와 굳은 1동네 화분
         const pr2=b.rr, pc2=b.cc;
-        { const kL=decay(LOG_K); b.rr+=(b.r-b.rr)*kL; b.cc+=(b.c-b.cc)*kL; }
+        const d1p=!!(L && L.d1 && (b.kind==='log'||b.kind==='bed'));                   // 1동네 화분·화단은 공과 같은 가벼운 추종(MOVE_K) — 무거운 상자 설정(LOG_K)이 버벅여 보였다
+        { const kL=decay(d1p? MOVE_K : LOG_K); b.rr+=(b.r-b.rr)*kL; b.cc+=(b.c-b.cc)*kL; }
+        if(d1p && Math.abs(b.r-b.rr)+Math.abs(b.c-b.cc)<.04){ b.rr=b.r; b.cc=b.c; }   // 끝 꼬리(0.004 문턱)까지 안 기다린다
         const sp=Math.abs(b.rr-pr2)+Math.abs(b.cc-pc2);
         b.tilt=(b.tilt||0)+((sp>0.002? (b.sdc||0)*0.1+(b.sdr||0)*0.05 : 0)-(b.tilt||0))*decay(0.18);      // 미는 방향으로 살짝 기울어짐
         if(sp>0.004){
@@ -40394,7 +40863,8 @@ function render(){
             fx.push({r:b.rr+(b.sdr||0)*-0.35, c:b.cc+(b.sdc||0)*-0.35, vx:(Math.random()-0.5)*1.2, vy:-0.6-Math.random(), t:0.8, col:"#B49A74"}); }
           b.wasMoving=true;
         } else if(b.wasMoving){ b.wasMoving=false; b.strain=0;                      // 다 밀고 나면 쿵
-          sfxThud(); buzz([16,20,14]); shake=Math.min(1,shake+0.22); b.sqT=0.5;
+          if(d1p){ tone(210,0.06,"sine",0.03,150); buzz([8]); b.sqT=0.3; }            // 1동네 — 작은 톡(공 멈춤 소리), 흔들림 없음
+          else { sfxThud(); buzz([16,20,14]); shake=Math.min(1,shake+0.22); b.sqT=0.5; }
           firePend(b); }                                                              // 구덩이 덮기 등 도착 효과
       } else {
         // kMul — 그 공만 느리게 당긴다. 연습 2판에서 공이 판 밖에서 굴러 들어올 때 쓴다.
@@ -40511,7 +40981,9 @@ function render(){
     else if(b.kind==='mower') drawMower(bx,by,cell,b);
     else if(b.kind==='tub') drawTub(bx,by,cell,b);
     else if(b.kind==='pump') drawPump(bx,by,cell,b);
-    else if(b.kind==='log') drawLog(bx,by,cell,sx,sy,b.tilt||0);
+    else if(b.kind==='log') drawLog(bx,by,cell,sx,sy,b.tilt||0,b);
+    else if(b.kind==='bed' && L.d1) d1DrawBed(b,bx,by);
+    else if(b.kind==='hen' && L.d1) d1DrawHen(b,bx,by);
     else if(b.kind==='hillLog'){ if(!treeFallHides(b)) drawHillLogObject(bx,by,cell,b,false); }
     else if(b.kind==='treeSmall'||b.kind==='treeBig') drawHillTreeObject(bx,by,cell,b);
     else if(b.kind==='stump'){ drawHillStump(bx,by,cell,b); creekTreeFallDraw(bx,by,cell,b); }   // 막 베인 나무는 그루터기 위에서 넘어간다(treeFallFx)
@@ -40727,6 +41199,7 @@ function render(){
   drawCritterPeeks();                                         // 옆에서 엿보는 동물 — 맥스에 안 가리게 맥스 위
   drawTeach();
   drawBubble();
+  d1CleanBubble();                                            // 1동네 — 「아직 네 집 청소 중이란다~」
   drawDoze();
   for(const h of hearts){                                     // 골인 하트: 살랑살랑 떠오르며 사라짐
     if(h.dly>0) continue;
@@ -41407,7 +41880,7 @@ function frameInner(ts){
   }
   if(state==="play" && !pendingWin && !isAnimating()) flushMoveBuffer();
   if(state==="play" && !pendingWin && !isAnimating() && !moveBuffer) flushWalkQueue();   // 끌어 둔 경로 — 반사 버퍼가 먼저
-  if(pendingWin && state==="play" && !isAnimating() && !potMergeHold()){ pendingWin=false; win(); }
+  if(pendingWin && state==="play" && !isAnimating() && !potMergeHold()){ pendingWin=false; if(!(L && L.d1 && !houseMode && !isGoal(L,curState()))) win(); }   // 1동네 — 대기 끝에 목표가 아직 맞는지 다시 본다
   // 걸음 제한 — 마지막 한 수로 이겼으면 그건 승리다. 그래서 승리 확정 뒤에 본다.
   if(state==="play" && !pendingWin && !isAnimating() && !tutMode && !moonMode && !tsMode
      && !menuMode && !failOn && moves>=stepLimit()) failNow();

@@ -1,16 +1,17 @@
 {
-  "sourceHead": "7bb6c94e388826af8a7c809fcc102a984dcb49b6",
-  "date": "2026-10-14T13:23:00.862Z",
-  "liveSha256": "4f1d261bd5301512e69d5a7c8fd2c85bccfc2095ef086e7748d3e1a0a8e16a6b",
-  "testSha256": "9607b1d331bdadb0a1e963938fe1250425ec5efd873c0c61b276e97726f8d1ef",
-  "files": 368,
-  "sourceCommit": "7bb6c94e388826af8a7c809fcc102a984dcb49b6",
+  "sourceHead": "e13a6ea9ac5017bc73ad3ea54bfbb441369ad5d3",
+  "date": "2026-10-17T14:15:37.310Z",
+  "liveSha256": "4a322119261a2d5f6e1cb7921682b122cb38f1babf0d87934f2e56587f6322ae",
+  "testSha256": "6ee0900b05b9f23836a004188fe3c2c01d95f7e6e2b3e079c92a2ce2117c83c0",
+  "files": 402,
+  "sourceCommit": "e13a6ea9ac5017bc73ad3ea54bfbb441369ad5d3",
   "kind": "live",
   "tests": {
     "scoped": false,
-    "passed": 1260,
-    "failed": 9,
-    "note": "full suite on candidate: 1324 tests, 9 baseline failures (audio/i18n/backgrounding/patrol-cat/districts 8-10/master atlas); 3 new failures fixed and re-run (skin manifest, known.json, restart preview)"
+    "passed": 1346,
+    "failed": 14,
+    "skipped": 60,
+    "note": "full suite on candidate 8a44de1e: 1415 tests, 14 baseline failures (skins/arrival assets, audio, i18n, backgrounding, patrol cat, districts 8-10, known.json); 5 furniture-gift tests now skipped (furniture off 10-17, e13a6ea9)"
   },
   "levelChecks": 300
 }
