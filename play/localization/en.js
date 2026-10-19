@@ -716,6 +716,7 @@
     "story.gramps": "Grandpa",
     "story.home1": "Max, while I clean your house,\nwant to go play ball?",
     "story.home1b": "Here you go!",
+    "story.home1c": "There, flowers love a sunny spot. Thank you, Max.\nAnd your house is all clean now!",
     "story.home2": "Pots are less lonely\nwhen there are two together.",
     "story.home3": "Maybe I should make the bed bigger…\nA corner border would be nice.",
     "story.home4": "One row across, one row down…\nWhich side should I join first?",
