@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ko"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex"><title>맥스 땅파기</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#231b22}body{font-family:system-ui,sans-serif}canvas{display:block;width:100%;height:100%;touch-action:none}#stats{position:fixed;inset:0;overflow:auto;touch-action:pan-y;background:#fbf6ed;color:#403b40;padding:24px;display:none}table{border-collapse:collapse;margin:20px 0;width:100%}th,td{text-align:left;border-bottom:1px solid #ddd;padding:8px}h1{font-size:24px}p{line-height:1.6}
+</style><canvas id="game" aria-label="맥스 땅파기. 왼쪽, 오른쪽, 아래로 밀어 파고 위로 밀어 올라가세요."></canvas><main id="stats"></main>
+<script id="game-logic">
+'use strict';
+globalThis.MaxDig = (() => {
+const LEVELS = [["PPGM.G", "PGGPYY", "YYGPPL", "LYBPLL", "LLGGYP", "PGGYYP", "GPPLLY", "YPLLGG", "GGYPBG", "PYYPGL", "LPGGYL", "LLPYYP", "PGALPP", "GGPPLG"], ["GPM.PY", "GSPYYS", "LLPGYY", "PLSGGB", "PPLLSP", "YGLPPG", "YGGSLL", "SYPPLG", "GYBLLS", "PGGYSP", "LPSYYG", "LLPGAG", "YPPSGG", "YYLLPP"], ["PPR.MG", "GPRYYG", "GLRPYB", "LLSPPR", "YLPGGR", "YYGGLR", "RPPSLL", "RGBYPP", "RGGYYS", "LLPRPG", "LSPRGG", "YYLRTP", "PGLRPP", "PPGRYY"], ["NNM.NN", "PPNNYY", "PGGNYL", "LGBPPL", "LLNNGG", "YYPPNA", "NYGGPP", "SNNLLY", "GGYYLN", "PNNGTY", "PPLLGG", "NYYPNS", "LLGPPN", "GGPPYY"], ["LLM.RP", "GLSPRP", "GGYYRN", "CPPNSL", "PPGGLL", "YSRBYY", "YYRPGN", "LGRPGS", "LLNNTY", "SPPGGY", "RRYAPP", "GNNLLS", "GGPPLY", "YYSPPG"]];
+const CORE_LOOP = {
+ '본다':'마당 아래 땅 단면: 색 흙덩이·돌·묻힌 뼈다귀/장난감, 위엔 마당과 할아버지',
+ '한다':'스와이프 한 번 = 그 방향 흙 한 칸 파기(좌·우·아래)',
+ '받는다':'받침 잃은 흙덩이가 떨어지고, 같은 색 넷 이상 닿으면 터지며 보물이 튀어 오름',
+ '실패':'돌이 흔들리다(예고) 떨어져 맥스에 맞으면 하트 −1. 공기 게이지(숨)가 다 되면 위로 돌아감',
+ '다시':'깊이마다 흙 색·돌 비율·보물 종류가 바뀜, 단단한 바위·물웅덩이 층',
+ '보기':'연쇄 붕괴 — 한 칸 팠는데 위가 우르르 무너지며 색 덩이가 연달아 터지는 순간',
+ '한 바퀴':'15~25초(보물 하나 캐기)'
+};
+const ASSET_FILES={yard:'yard-strip.png',soil:'soil-back.png',walk:'max-walk-master-v1-left-8f.png',push:'max-push-master-v1-left-8f-cute.png',backstep:'max-backstep-master-v1-left-8f.png',sit:'max-sit-master-v1-front-8f-blink.png',victory:'max-victory-master-v1-front-hop-loop-8f.png'};
+for(const name of ['peach','sage','lavender','yellow','stone','stone-crack','rock','sand','buried-bone','buried-ball','buried-tin','buried-crystal','bone','ball','tin','crystal']) ASSET_FILES[name]='tile-'+name+'.png';
+const NAMES={P:'peach',G:'sage',L:'lavender',Y:'yellow',N:'sand',S:'stone',R:'rock',B:'buried-bone',A:'buried-ball',T:'buried-tin',C:'buried-crystal'};
+const TREASURES={B:'bone',A:'ball',T:'tin',C:'crystal'};
+const DIRS={left:[-1,0],right:[1,0],down:[0,1],up:[0,-1]};
+const color=k=>'PGLY'.includes(k);
+class Game {
+ constructor(level=0,options={}) {this.events=[];this.load(level,options.map);}
+ load(level,map) {
+  const rows=map||LEVELS[level];let id=0,x=0,y=0;
+  const grid=rows.map((row,r)=>[...row].map((kind,c)=>{if(kind==='M'){x=c;y=r;return null;}return kind==='.'?null:{kind,id:++id,warn:0,falling:false};}));
+  this.s={level,grid,x,y,hearts:3,breath:90,phase:'play',transition:0,time:0,acc:0,gravity:0,chain:0,inputs:0,collected:[],total:grid.flat().filter(t=>t&&TREASURES[t.kind]).length,face:-1,pose:'walk',poseTime:0,moved:[],revision:0};
+  this.events=[];this.emit('load',{level});
+ }
+ emit(type,data={}){this.events.push({type,...data});}
+ drain(){const e=this.events;this.events=[];return e;}
+ input(direction) {
+  const d=DIRS[direction],s=this.s;if(!d||s.phase!=='play')return false;
+  s.inputs++;this.emit('input',{direction});
+  const x=s.x+d[0],y=s.y+d[1];if(x<0||x>=6||y<0||y>=s.grid.length)return false;
+  const t=s.grid[y][x];if(t&&(direction==='up'||t.kind==='R'||t.kind==='S'))return false;
+  if(t){s.grid[y][x]=null;this.emit('dig',{x,y,kind:t.kind});if(TREASURES[t.kind])this.collect(t,x,y);}
+  if(d[0])s.face=d[0];s.x=x;s.y=y;s.pose=t?(direction==='down'?'sit':'push'):'walk';s.poseTime=.38;s.revision++;
+  return true;
+ }
+ collect(t,x,y) {
+  const s=this.s;if(s.phase!=='play'||s.collected.some(a=>a.id===t.id))return;
+  s.collected.push({id:t.id,kind:t.kind});this.emit('treasure',{x,y,kind:t.kind,slot:s.collected.length-1});
+  if(s.collected.length===s.total){s.phase='win';s.transition=1.2;s.pose='victory';this.emit('win');}
+ }
+ hit() {
+  const s=this.s;s.hearts--;s.pose='backstep';s.poseTime=.5;s.revision++;this.emit('hit',{x:s.x,y:s.y});
+  if(!s.hearts)this.fail('hearts');
+ }
+ fail(reason){const s=this.s;if(s.phase!=='play')return;s.phase='fail';s.transition=1.2;this.emit('fail',{reason});}
+ groups(){
+  const s=this.s,seen=new Set(),groups=[];
+  for(let y=0;y<s.grid.length;y++)for(let x=0;x<6;x++){
+   const t=s.grid[y][x];if(!t||t.kind==='R'||seen.has(t.id))continue;
+   const group=[],queue=[[x,y]];seen.add(t.id);
+   while(queue.length){const [cx,cy]=queue.pop(),tile=s.grid[cy][cx];group.push({x:cx,y:cy,t:tile});
+    if(color(t.kind))for(const [dx,dy] of Object.values(DIRS)){const nx=cx+dx,ny=cy+dy,n=s.grid[ny]?.[nx];if(n&&n.kind===t.kind&&!seen.has(n.id)){seen.add(n.id);queue.push([nx,ny]);}}
+   }
+   groups.push(group);
+  }
+  return groups.sort((a,b)=>Math.max(...b.map(p=>p.y))-Math.max(...a.map(p=>p.y)));
+ }
+ canFall(group){const s=this.s,ids=new Set(group.map(p=>p.t.id));return group.every(({x,y,t})=>{
+  if(y+1>=s.grid.length)return false;const below=s.grid[y+1][x];
+  return (!below||ids.has(below.id))&&(t.kind==='S'||s.x!==x||s.y!==y+1);
+ });}
+ tick(dt){
+  const s=this.s;
+  if(s.phase!=='play'){s.transition-=dt;if(s.transition<=1e-8){const n=s.phase==='win'?(s.level+1)%LEVELS.length:s.level;this.load(n);}return;}
+  s.time+=dt;s.breath=Math.max(0,s.breath-dt);s.poseTime=Math.max(0,s.poseTime-dt);
+  if(s.breath<=1e-8){this.fail('breath');return;}
+  // Warning accumulates in real simulation time; a stone in flight does not re-warn per cell.
+  for(let y=0;y<s.grid.length;y++)for(let x=0;x<6;x++){const t=s.grid[y][x];if(t?.kind!=='S')continue;
+   const free=y+1<s.grid.length&&!s.grid[y+1][x];
+   if(free){if(!t.falling)t.warn+=dt;}else{t.warn=0;t.falling=false;}
+  }
+  s.gravity+=dt;if(s.gravity<.1-1e-8)return;s.gravity-=.1;
+  if(s.y+1<s.grid.length&&!s.grid[s.y+1][s.x]){s.y++;s.revision++;this.emit('maxfall',{x:s.x,y:s.y});}
+  const landed=[],moved=new Set(s.moved);let falling=false,warning=false;
+  for(const group of this.groups()){
+   const t=group[0].t;
+   if(this.canFall(group)){
+    if(t.kind==='S'&&!t.falling&&t.warn<.6-1e-8){warning=true;continue;}
+    for(const p of group)s.grid[p.y][p.x]=null;
+    for(const p of group){
+     if(p.t.kind==='S'&&p.x===s.x&&p.y+1===s.y){this.hit();moved.delete(p.t.id);if(s.phase!=='play'){s.moved=[...moved];return;}continue;}
+     s.grid[p.y+1][p.x]=p.t;p.t.falling=true;moved.add(p.t.id);
+     this.emit('fall',{id:p.t.id,x:p.x,y:p.y+1});
+    }
+    falling=true;s.revision++;
+   }else{
+    if(color(t.kind)&&group.some(p=>moved.has(p.t.id)))landed.push(group);
+    for(const p of group){p.t.falling=false;moved.delete(p.t.id);}
+   }
+  }
+  const pops=landed.filter(a=>a.length>=4);
+  if(pops.length){
+   s.chain++;const buried=new Map();
+   for(const group of pops){for(const p of group){s.grid[p.y][p.x]=null;
+     for(const [dx,dy] of Object.values(DIRS)){const x=p.x+dx,y=p.y+dy,t=s.grid[y]?.[x];if(t&&TREASURES[t.kind])buried.set(t.id,{x,y,t});}}
+    this.emit('pop',{cells:group.map(p=>({x:p.x,y:p.y})),kind:group[0].t.kind,chain:s.chain});
+   }
+   for(const {x,y,t} of buried.values()){s.grid[y][x]=null;this.collect(t,x,y);}
+   s.revision++;
+  }else if(!falling&&!warning)s.chain=0;
+  s.moved=[...moved];
+ }
+ step(dt){if(!Number.isFinite(dt)||dt<0||dt>600)throw new RangeError('dt must be seconds (0–600)');this.s.acc+=dt;
+  let n=Math.floor((this.s.acc+1e-9)/.02);this.s.acc-=n*.02;
+  while(n-->0){const remainder=this.s.acc;this.tick(.02);if(this.s.acc!==remainder)this.s.acc=remainder;}
+  return this.s;
+ }
+ clone(){const g=Object.create(Game.prototype);g.s=JSON.parse(JSON.stringify(this.s));g.events=[];return g;}
+}
+function randomCheck(level=0,seed=613){
+ const g=new Game(level),idle=new Game(level);let exceptions=0,changes=0,wins=0,idleWins=0;
+ try{for(let i=0;i<300;i++){seed=(Math.imul(seed,1664525)+1013904223)>>>0;const before=g.s.revision;g.input(Object.keys(DIRS)[(seed>>>16)%4]);g.step(.2);if(g.s.revision!==before)changes++;for(const e of g.drain())if(e.type==='win')wins++;idle.step(.2);for(const e of idle.drain())if(e.type==='win')idleWins++;}}catch(e){exceptions++;return {seconds:60,exceptions,error:String(e),changed:changes>0,idleWins};}
+ return {seconds:60,swipes:300,exceptions,changed:changes>0,changes,wins,idleWins};
+}
+// Bounded beam search in the exact runtime. A successful answer includes a replayable witness.
+// Failure is reported as unverified, never as a proof that a treasure is blocked.
+function solve(level,{width=500,depth=160}={}){
+ const initial=new Game(level);let beam=[{g:initial,path:[],score:0}],visited=new Set(),best=initial,bestPath=[];
+ const key=s=>s.grid.map(r=>r.map(t=>t?t.kind+(t.kind==='S'?Math.min(6,Math.round(t.warn*10)):''):'.').join('')).join('/')+':'+s.x+','+s.y+':'+s.hearts+':'+s.collected.map(t=>t.id).sort((a,b)=>a-b).join(',')+':'+s.moved.slice().sort((a,b)=>a-b).join(',');
+ function score(s){let distance=100;for(let y=0;y<s.grid.length;y++)for(let x=0;x<6;x++)if(TREASURES[s.grid[y][x]?.kind])distance=Math.min(distance,Math.abs(s.x-x)+Math.abs(s.y-y));
+  return s.collected.length*1000-distance*12+s.hearts*8-s.time*.7-s.grid.flat().filter(Boolean).length*.35;
+ }
+ for(let d=0;d<depth;d++){
+  const next=[];
+  for(const node of beam)for(const dir of Object.keys(DIRS)){
+   const g=node.g.clone();g.input(dir);g.step(.2);g.drain();const s=g.s,path=node.path.concat(dir);
+   if(s.phase==='win')return {level:level+1,solved:true,treasures:s.total,seconds:+s.time.toFixed(2),swipes:path.length,path,blocked:[]};
+   if(s.phase!=='play'||s.time<node.g.s.time)continue;
+   const k=key(s);if(visited.has(k))continue;visited.add(k);
+   const value=score(s);next.push({g,path,score:value});if(s.collected.length>best.s.collected.length){best=g;bestPath=path;}
+  }
+  next.sort((a,b)=>b.score-a.score);beam=next.slice(0,width);if(!beam.length)break;
+ }
+ const blocked=[];for(let y=0;y<best.s.grid.length;y++)for(let x=0;x<6;x++){const t=best.s.grid[y][x];if(TREASURES[t?.kind])blocked.push({kind:t.kind,column:x+1,row:y+1,status:'search-budget-unverified'});}
+ return {level:level+1,solved:false,collected:best.s.collected.length,blocked,path:bestPath};
+}
+return {Game,LEVELS,CORE_LOOP,ASSET_FILES,NAMES,TREASURES,DIRS,randomCheck,solve};
+})();
+</script>
+<script id="game-view">
+'use strict';
+(() => {
+const {Game,LEVELS,CORE_LOOP,ASSET_FILES,NAMES,TREASURES,DIRS,randomCheck,solve}=MaxDig;
+const BUILD='maxdig-s3-20261020',KEY='proto_maxdig_'+BUILD,params=new URLSearchParams(location.search);
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),stats=document.getElementById('stats');
+const game=new Game();let testing=params.has('check'),statsMode=params.has('stats'),ready=false,engaged=false;
+let data={days:{},loops:[]},loop=null,attempt=null,saveClock=0;
+try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored&&stored.days&&Array.isArray(stored.loops))data=stored;}catch(_e){}
+function date(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function day(){return data.days[date()]||(data.days[date()]={seconds:0,voluntary:0,levels:0});}
+function save(){if(testing||statsMode)return;try{localStorage.setItem(KEY,JSON.stringify(data));}catch(_e){}}
+// IDEA has no separate 이벤트 row: one loop begins on reveal/previous treasure,
+// succeeds on treasure collection, counts stone hits as failures, and aborts on retry/exit.
+function beginLoop(){if(testing||statsMode)return;loop={build:BUILD,date:date(),mode:'play',level:game.s.level+1,firstInput:null,inputs:0,duration:0,failures:0,interrupted:false,success:false};}
+function endLoop(success=false,interrupted=false){if(!loop)return;loop.success=success;loop.interrupted=interrupted;data.loops.push({...loop,duration:+loop.duration.toFixed(3)});loop=null;save();}
+function beginAttempt(){if(testing||statsMode)return;attempt={date:date(),eligible:day().seconds>=300,counted:false};beginLoop();}
+function noteInput(){if(testing||statsMode)return;engaged=true;if(!loop)beginLoop();loop.inputs++;if(loop.firstInput===null)loop.firstInput=+loop.duration.toFixed(3);
+ if(attempt?.date===date()&&attempt.eligible&&!attempt.counted){day().voluntary++;attempt.counted=true;save();}}
+function loggingTime(dt){if(testing||statsMode||document.hidden||!ready||game.s.phase!=='play')return;
+ if(loop)loop.duration+=dt;if(engaged)day().seconds+=dt;saveClock+=dt;if(saveClock>=5){saveClock=0;save();}}
+function showStats(){
+ stats.style.display='block';canvas.style.display='none';stats.replaceChildren();
+ function el(tag,text,parent=stats){const e=document.createElement(tag);e.textContent=text;parent.appendChild(e);return e;}
+ function table(headers,rows){const t=el('table',''),head=el('tr','',t);for(const h of headers)el('th',h,head);for(const row of rows){const tr=el('tr','',t);for(const v of row)el('td',String(v??'—'),tr);}}
+ el('h1','맥스 땅파기 · 코어 루프 기록');el('p',BUILD+' · 실제 전경 플레이 시간만 집계 · 의무 5분을 채운 뒤 시작한 판에서 입력하면 자발 판수 +1');
+ table(['날짜','플레이(초)','자발 판수','완료 판수'],Object.entries(data.days).map(([d,v])=>[d,v.seconds.toFixed(1),v.voluntary,v.levels]));
+ const records=data.loops.filter(r=>r.mode==='play');
+ table(['판','바퀴','보물 성공','실패','중단','첫 입력(초) 평균','성공 입력 평균','바퀴(초) 평균'],LEVELS.map((_,i)=>{
+  const a=records.filter(r=>r.level===i+1),success=a.filter(r=>r.success),first=a.filter(r=>r.firstInput!==null);
+  const avg=(arr,key)=>arr.length?(arr.reduce((n,r)=>n+r[key],0)/arr.length).toFixed(2):'—';
+  return [i+1,a.length,success.length,a.reduce((n,r)=>n+r.failures,0),a.filter(r=>r.interrupted).length,avg(first,'firstInput'),avg(success,'inputs'),avg(a,'duration')];}));
+ table(['날짜','판','첫 입력(초)','입력 수','시간(초)','실패','중단','성공'],records.map(r=>[r.date,r.level,r.firstInput,r.inputs,r.duration,r.failures,r.interrupted?'✓':'',r.success?'✓':'']));
+ table(['코어 루프','IDEA.md'],Object.entries(CORE_LOOP));
+ el('p','이벤트: 판 표시/이전 보물 → 루프 시작 · 닿음→뗌 스와이프 → 입력 · 보물 획득 → 성공 · 돌 피격/숨 소진 → 실패 · 재시작/페이지 종료 → 중단. 전환 1.2초·백그라운드는 시간에서 제외.');
+}
+const assets={},failures=new Set(),silhouettes=new Set(),errors=[];
+window.addEventListener('error',e=>errors.push(String(e.message)));
+window.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
+function imageLoad(key,file){return new Promise(resolve=>{const img=new Image();assets[key]={img,status:'pending'};
+ img.onload=()=>{assets[key].status='loaded';resolve();};img.onerror=()=>{assets[key].status='failed';failures.add(file);resolve();};img.src='art/sprites/'+file;});}
+let viewport={scale:1,left:0,top:0,dpr:1},camera=0,clock=0,shake=0,fx=[],flights=[],tileOffsets=new Map(),maxView={x:game.s.x,y:game.s.y},pointer=null,audio=null;
+function resize(){const dpr=window.devicePixelRatio||1,w=innerWidth,h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);const scale=Math.min(w/1080,h/2340);viewport={scale,left:(w-1080*scale)/2,top:(h-2340*scale)/2,dpr};}
+addEventListener('resize',resize);resize();
+function rounded(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=4;ctx.stroke();}}
+function drawImage(key,x,y,w,h){const a=assets[key];if(a?.status==='loaded'){ctx.drawImage(a.img,x,y,w,h);return true;}
+ silhouettes.add(key);rounded(x,y,w,h,Math.min(w,h)*.18,'#cbc6d7');return false;}
+function unlockAudio(){try{const Audio=window.AudioContext||window.webkitAudioContext;if(Audio&&!audio)audio=new Audio();if(audio?.state==='suspended')audio.resume().catch(()=>{});}catch(_e){}}
+function popSound(chain=1){if(!audio)return;try{const osc=audio.createOscillator(),gain=audio.createGain(),t=audio.currentTime;osc.type='sine';osc.frequency.setValueAtTime(520+chain*95,t);osc.frequency.exponentialRampToValueAtTime(130,t+.15);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.13,t+.008);gain.gain.exponentialRampToValueAtTime(.0001,t+.19);osc.connect(gain);gain.connect(audio.destination);osc.start(t);osc.stop(t+.2);}catch(_e){}}
+function slotPoint(index){const count=game.s.total;return {x:1080-54-(count-index-.5)*86,y:84};}
+function burst(x,y,kind,chain=1){const strength=1+Math.min(chain-1,4)*.26;fx.push({type:'burst',x,y,age:0,life:.85,strength,kind});
+ for(let i=0;i<12;i++){const a=i*Math.PI*2/12+Math.random()*.35,v=(190+Math.random()*270)*strength;fx.push({type:'shard',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-100,age:0,life:.7+Math.random()*.2,size:25+Math.random()*30,spin:Math.random()*6,kind});}
+ for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,v=Math.random()*450*strength;fx.push({type:'spark',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,age:0,life:.55+Math.random()*.4,size:3+Math.random()*8});}
+ shake=Math.max(shake,.14+.06*Math.min(chain,4));popSound(chain);
+}
+function handleEvents(){for(const e of game.drain()){
+ if(e.type==='input')noteInput();
+ if(e.type==='load'){endLoop(false,true);beginAttempt();maxView={x:game.s.x,y:game.s.y};tileOffsets.clear();camera=0;fx=[];flights=[];}
+ if(e.type==='dig'){for(let i=0;i<8;i++)fx.push({type:'shard',kind:e.kind,x:(e.x+.5)*180,y:420+(e.y+.5)*180,vx:(Math.random()-.5)*250,vy:-Math.random()*240,age:0,life:.35,size:18,spin:i});}
+ if(e.type==='fall')tileOffsets.set(e.id,-180);
+ if(e.type==='pop'){const x=e.cells.reduce((n,p)=>n+p.x,0)/e.cells.length,y=e.cells.reduce((n,p)=>n+p.y,0)/e.cells.length;burst((x+.5)*180,420+(y+.5)*180,e.kind,e.chain);}
+ if(e.type==='treasure'){flights.push({kind:e.kind,slot:e.slot,x:(e.x+.5)*180,y:420+(e.y+.5)*180-camera,age:0,life:.85});burst((e.x+.5)*180,420+(e.y+.5)*180,'Y',Math.max(1,game.s.chain));endLoop(true);if(e.slot<game.s.total-1)beginLoop();}
+ if(e.type==='hit'){shake=.3;if(loop)loop.failures++;burst((e.x+.5)*180,420+(e.y+.5)*180,'S');}
+ if(e.type==='fail'){if(loop&&e.reason==='breath')loop.failures++;endLoop(false,true);}
+ if(e.type==='win'){if(!testing&&!statsMode)day().levels++;save();}
+}}
+function input(kind){if(!ready||statsMode)return false;const result=game.input(kind);handleEvents();return result;}
+canvas.addEventListener('pointerdown',e=>{if(pointer||!ready)return;e.preventDefault();unlockAudio();pointer={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer=null;if(Math.hypot(dx,dy)<18)return;input(Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down'));});
+canvas.addEventListener('pointercancel',()=>{pointer=null;});
+addEventListener('keydown',e=>{const k={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'up'}[e.key];if(k){e.preventDefault();if(!e.repeat){unlockAudio();input(k);}}});
+document.addEventListener('visibilitychange',()=>{pointer=null;last=0;save();});
+addEventListener('pagehide',()=>{endLoop(false,true);save();});
+function animate(dt){clock+=dt;shake=Math.max(0,shake-dt);const target=Math.max(0,420+(game.s.y+1)*180-780);camera+=(target-camera)*(1-Math.exp(-dt*9));
+ maxView.x+=(game.s.x-maxView.x)*(1-Math.exp(-dt*22));maxView.y+=(game.s.y-maxView.y)*(1-Math.exp(-dt*22));
+ for(const [id,value] of tileOffsets){const n=value*Math.exp(-dt*26);if(Math.abs(n)<1)tileOffsets.delete(id);else tileOffsets.set(id,n);}
+ for(const f of fx){f.age+=dt;if(f.vx!==undefined){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vy+=f.type==='shard'?650*dt:0;}}
+ fx=fx.filter(f=>f.age<f.life);for(const f of flights)f.age+=dt;flights=flights.filter(f=>f.age<f.life);
+}
+function drawSoil(){const step=358,top=Math.floor((camera-420)/step);for(let r=top;r<top+9;r++)for(let c=0;c<4;c++){ctx.save();ctx.translate(c*step,420+r*step-camera);if((r+c)%2===0){ctx.translate(360,0);ctx.scale(-1,1);}drawImage('soil',0,0,360,360);ctx.restore();}}
+function drawMax(){const s=game.s,x=(maxView.x+.5)*180,y=420+(maxView.y+1)*180-camera-7;const lift=s.phase==='fail'?(1-s.transition/1.2)*(-2340):0;
+ ctx.save();ctx.globalAlpha=s.phase==='fail'?Math.max(.1,s.transition/1.2):1;ctx.fillStyle='rgba(41,24,38,.2)';ctx.beginPath();ctx.ellipse(x,y,72,15,0,0,Math.PI*2);ctx.fill();
+ let pose=s.phase==='win'?'victory':s.poseTime>0?s.pose:'walk';const a=assets[pose],scale=171/205,frame=(s.poseTime>0||s.phase==='win'||Math.abs(s.x-maxView.x)>.01||Math.abs(s.y-maxView.y)>.01)?Math.floor(clock*12)%8:0;
+ ctx.translate(x,y+lift);if(s.face>0&&(pose==='walk'||pose==='push'||pose==='backstep'))ctx.scale(-1,1);
+ if(a?.status==='loaded')ctx.drawImage(a.img,frame*256,0,256,256,-128*scale,-232*scale,256*scale,256*scale);else{silhouettes.add(pose);rounded(-90,-171,180,171,45,'#cbc6d7');}ctx.restore();
+}
+function drawEffects(){for(const f of fx){const t=f.age/f.life,y=f.y-camera;ctx.save();ctx.globalAlpha=1-t;
+ if(f.type==='burst'){const radius=(110+t*190)*f.strength,glow=ctx.createRadialGradient(f.x,y,0,f.x,y,radius);glow.addColorStop(0,'rgba(255,255,211,.8)');glow.addColorStop(.45,'rgba(255,226,159,.4)');glow.addColorStop(1,'rgba(255,234,178,0)');ctx.fillStyle=glow;ctx.beginPath();ctx.arc(f.x,y,radius,0,Math.PI*2);ctx.fill();ctx.strokeStyle='white';ctx.lineWidth=7*(1-t)+1;for(const ratio of [.76,1]){ctx.beginPath();ctx.arc(f.x,y,radius*ratio,0,Math.PI*2);ctx.stroke();}}
+ else if(f.type==='shard'){ctx.translate(f.x,y);ctx.rotate(f.spin+f.age*4);drawImage(NAMES[f.kind]||'peach',-f.size/2,-f.size/2,f.size,f.size);}
+ else{ctx.fillStyle='#fffde1';ctx.beginPath();ctx.arc(f.x,y,f.size*(1-t*.6),0,Math.PI*2);ctx.fill();if(f.size>8){ctx.fillRect(f.x-2,y-f.size*1.8,4,f.size*3.6);ctx.fillRect(f.x-f.size*1.8,y-2,f.size*3.6,4);}}
+ ctx.restore();}}
+function heart(x,y,filled){ctx.save();ctx.translate(x,y);ctx.scale(1.8,1.8);ctx.beginPath();ctx.moveTo(0,7);ctx.bezierCurveTo(-27,-9,-17,-25,0,-13);ctx.bezierCurveTo(17,-25,27,-9,0,7);ctx.fillStyle=filled?'#f08391':'#e4d6db';ctx.fill();ctx.restore();}
+function hud(){
+ rounded(38,43,380,82,41,'rgba(255,255,255,.95)');rounded(58,62,338,43,22,'#deecef');const width=338*game.s.breath/90;if(width>0)rounded(58,62,width,43,Math.min(22,width/2),game.s.breath<20?'#f0a2a6':'#7bcbe6');
+ for(let i=0;i<3;i++)heart(76+i*64,166,i<game.s.hearts);
+ const count=game.s.total;rounded(1080-54-count*86,39,count*86+20,90,45,'rgba(255,255,255,.95)');
+ const planned=LEVELS[game.s.level].join('').split('').filter(k=>TREASURES[k]);const remaining=planned.slice();for(const c of game.s.collected){const i=remaining.indexOf(c.kind);if(i>=0)remaining.splice(i,1);}
+ for(let i=0;i<count;i++){const p=slotPoint(i),filled=game.s.collected[i],flying=flights.some(f=>f.slot===i);ctx.save();ctx.globalAlpha=filled&&!flying?1:.24;const kind=filled?.kind||remaining[i-game.s.collected.length];if(kind)drawImage(TREASURES[kind],p.x-32,p.y-33,64,64);ctx.restore();}
+ if(day().seconds>=300&&!testing){ctx.fillStyle='white';ctx.font='28px system-ui';ctx.fillText('✓',432,98);}
+ // Minimal directional hints are HUD, never an inter-level overlay.
+ ctx.save();ctx.globalAlpha=.68;ctx.strokeStyle='white';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';for(let i=0;i<4;i++){ctx.save();ctx.translate(1080/2+(i-1.5)*70,2240);ctx.rotate([Math.PI/2,-Math.PI/2,0,Math.PI][i]);ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(0,20);ctx.moveTo(-12,7);ctx.lineTo(0,20);ctx.lineTo(12,7);ctx.stroke();ctx.restore();}ctx.restore();
+ for(const f of flights){const t=Math.min(1,f.age/f.life),p=slotPoint(f.slot),q=1-t,x=q*q*f.x+2*q*t*(f.x+100)+t*t*p.x,y=q*q*f.y+2*q*t*(Math.min(f.y,p.y)-280)+t*t*p.y,size=126*(1-t)+64*t;ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(t*Math.PI)*.22);drawImage(TREASURES[f.kind],-size/2,-size/2,size,size);ctx.restore();}
+}
+function render(){
+ const {scale,left,top,dpr}=viewport;ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle='#231b22';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.setTransform(scale*dpr,0,0,scale*dpr,left*dpr,top*dpr);ctx.save();ctx.beginPath();ctx.rect(0,0,1080,2340);ctx.clip();
+ ctx.save();if(shake>0)ctx.translate(Math.sin(clock*113)*shake*40,Math.cos(clock*97)*shake*30);
+ drawSoil();if(camera<420){const a=assets.yard;if(a?.status==='loaded'){ctx.drawImage(a.img,0,0,a.img.width,1,0,-camera,1080,61);drawImage('yard',0,60-camera,1080,360);}else drawImage('yard',0,-camera,1080,420);}
+ const s=game.s;for(let y=0;y<s.grid.length;y++)for(let x=0;x<6;x++){const t=s.grid[y][x];if(!t)continue;const py=420+y*180-camera+(tileOffsets.get(t.id)||0);if(py>2340||py<-180)continue;const wobble=t.kind==='S'&&t.warn>0&&!t.falling?Math.sin(clock*70)*5:0;drawImage(t.kind==='S'&&t.warn>0?'stone-crack':NAMES[t.kind],x*180+2+wobble,py+2,176,176);}
+ drawMax();drawEffects();ctx.restore();hud();ctx.restore();
+}
+function advance(dt,log=true){if(log)loggingTime(dt);game.step(dt);handleEvents();animate(dt);}
+let last=0;
+function frame(ts){if(last&&ready&&!document.hidden&&!statsMode)advance(Math.min((ts-last)/1000,.1));last=ts;if(ready&&!statsMode)render();requestAnimationFrame(frame);}
+function enableTesting(){if(!testing){endLoop(false,true);testing=true;loop=null;attempt=null;}}
+window.T={
+ state:()=>JSON.parse(JSON.stringify({...game.s,camera,coreLoop:CORE_LOOP,checkMode:testing})),
+ step(dt){enableTesting();advance(dt,false);render();return this.state();},
+ input(kind,...args){enableTesting();if(kind==='swipe')kind=typeof args[0]==='string'?args[0]:Math.abs(args[0])>Math.abs(args[1])?(args[0]<0?'left':'right'):(args[1]<0?'up':'down');return input(kind);},
+ load(n){enableTesting();if(!Number.isInteger(n)||n<1||n>5)throw new RangeError('load expects level 1–5');game.load(n-1);handleEvents();render();return this.state();},
+ assets:()=>({ready,total:Object.keys(ASSET_FILES).length,loaded:Object.values(assets).filter(a=>a.status==='loaded').length,pending:Object.values(assets).filter(a=>a.status==='pending').length,failed:[...failures],silhouettes:[...silhouettes]}),
+ check(){enableTesting();const result=randomCheck(game.s.level);render();const a=this.assets();return {...result,consoleErrors:errors.slice(),assetFailures:a.failed,silhouettes:a.silhouettes,ready:a.ready,passed:result.exceptions===0&&result.changed&&result.idleWins===0&&errors.length===0&&a.ready&&a.failed.length===0&&a.silhouettes.length===0};},
+ solve(n){enableTesting();return solve(n-1);}
+};
+window.T.ready=Promise.all(Object.entries(ASSET_FILES).map(([key,file])=>imageLoad(key,file))).then(()=>{ready=true;game.drain();beginAttempt();render();if(statsMode)showStats();return window.T.assets();});
+requestAnimationFrame(frame);
+})();
+</script></html>
