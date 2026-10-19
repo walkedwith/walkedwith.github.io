@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-19T05:18:07.221Z",
-  "totalBytes": 35157223,
+  "generatedAt": "2026-10-19T12:02:31.091Z",
+  "totalBytes": 35220633,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3483715
+      "bytes": 3488216
     },
     {
       "path": "css/game.css",
@@ -15,12 +15,12 @@
     {
       "path": "localization/ko.js",
       "source": "localization/ko.js",
-      "bytes": 84106
+      "bytes": 84233
     },
     {
       "path": "localization/en.js",
       "source": "localization/en.js",
-      "bytes": 76435
+      "bytes": 76542
     },
     {
       "path": "localization/i18n.js",
@@ -383,14 +383,74 @@
       "bytes": 130919
     },
     {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.avif",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.avif",
+      "bytes": 48547
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.avif",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.avif",
+      "bytes": 57345
+    },
+    {
       "path": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
       "source": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
       "bytes": 57516
     },
     {
+      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.avif",
+      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.avif",
+      "bytes": 65217
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
+      "source": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
+      "bytes": 51346
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.avif",
+      "source": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.avif",
+      "bytes": 61953
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.avif",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.avif",
+      "bytes": 64000
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.avif",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.avif",
+      "bytes": 49807
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.avif",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.avif",
+      "bytes": 56281
+    },
+    {
       "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
       "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
       "bytes": 61487
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.avif",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.avif",
+      "bytes": 50033
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.avif",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.avif",
+      "bytes": 60112
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.avif",
+      "source": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.avif",
+      "bytes": 70357
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.avif",
+      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.avif",
+      "bytes": 61135
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
@@ -1966,71 +2026,6 @@
       "path": "art/max-master/thumbnails/skins/max-rain.webp",
       "source": "art/max-master/thumbnails/skins/max-rain.webp",
       "bytes": 11616
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.webp",
-      "source": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.webp",
-      "bytes": 43136
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.webp",
-      "source": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.webp",
-      "bytes": 49928
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.webp",
-      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.webp",
-      "bytes": 52776
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.webp",
-      "source": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.webp",
-      "bytes": 40100
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.webp",
-      "source": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.webp",
-      "bytes": 48360
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.webp",
-      "source": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.webp",
-      "bytes": 51236
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.webp",
-      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.webp",
-      "bytes": 40218
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.webp",
-      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.webp",
-      "bytes": 44848
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp",
-      "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp",
-      "bytes": 50018
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.webp",
-      "source": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.webp",
-      "bytes": 39600
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.webp",
-      "source": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.webp",
-      "bytes": 48296
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.webp",
-      "source": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.webp",
-      "bytes": 79796
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.webp",
-      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.webp",
-      "bytes": 49146
     }
   ]
 }

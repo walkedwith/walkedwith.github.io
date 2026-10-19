@@ -1,17 +1,17 @@
 {
-  "sourceHead": "a011d4114f52b8722a1ca937207dc374d5a49d08",
-  "date": "2026-10-19T05:18:17.770Z",
-  "liveSha256": "f8805397d1ec72d2622d6a19cb35ec1e73d72e774bf0071fbb59f03a70c9c9d4",
-  "testSha256": "a860d923e7341abd1ddb41100f1ee13537fbddd447d8f3ab01a4f88b3c6bfb20",
-  "files": 407,
-  "sourceCommit": "a011d4114f52b8722a1ca937207dc374d5a49d08",
+  "sourceHead": "5af7e407a11b53cf57962799fdeb6a9f441f41e8",
+  "date": "2026-10-19T12:08:14.811Z",
+  "liveSha256": "465bc5284585471123b8acb55ce6166f65632822f6bdb4aabe73044b51ad8552",
+  "testSha256": "8a2b96a67a06b1e0db8c6fa9fa9a43d41628029914fcbc77bb456bc0981461aa",
+  "files": 406,
+  "sourceCommit": "5af7e407a11b53cf57962799fdeb6a9f441f41e8",
   "kind": "test",
   "tests": {
     "scoped": false,
-    "passed": 1357,
+    "passed": 1355,
     "failed": 9,
-    "skipped": 55,
-    "note": "full suite on candidate 68ed281a (+ a011d411 UI_TEXT hash only): 1421 tests, 9 baseline failures (audio, i18n x4, backgrounding, patrol cat, districts 8-10, known.json); skins/arrival failures fixed"
+    "skipped": 59,
+    "note": "full suite on candidate 501ac6a0 + lawn-test skip 5af7e407: 1423 tests, 9 baseline failures (audio, i18n, backgrounding, patrol cat, districts 8-10, known.json); yard lawn tests skipped while the yard mower is off"
   },
   "levelChecks": 300
 }
