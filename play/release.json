@@ -1,17 +1,17 @@
 {
-  "sourceHead": "e13a6ea9ac5017bc73ad3ea54bfbb441369ad5d3",
-  "date": "2026-10-17T14:15:37.310Z",
-  "liveSha256": "4a322119261a2d5f6e1cb7921682b122cb38f1babf0d87934f2e56587f6322ae",
-  "testSha256": "6ee0900b05b9f23836a004188fe3c2c01d95f7e6e2b3e079c92a2ce2117c83c0",
+  "sourceHead": "6226e54ed62fedf2d23eb9506139b06b6239bd78",
+  "date": "2026-10-19T01:52:17.478Z",
+  "liveSha256": "f8805397d1ec72d2622d6a19cb35ec1e73d72e774bf0071fbb59f03a70c9c9d4",
+  "testSha256": "f0213f7c84219c9441ae4511f5186a39a6c244493937e5c63eb4722f30dadf53",
   "files": 402,
-  "sourceCommit": "e13a6ea9ac5017bc73ad3ea54bfbb441369ad5d3",
+  "sourceCommit": "6226e54ed62fedf2d23eb9506139b06b6239bd78",
   "kind": "live",
   "tests": {
     "scoped": false,
-    "passed": 1346,
-    "failed": 14,
-    "skipped": 60,
-    "note": "full suite on candidate 8a44de1e: 1415 tests, 14 baseline failures (skins/arrival assets, audio, i18n, backgrounding, patrol cat, districts 8-10, known.json); 5 furniture-gift tests now skipped (furniture off 10-17, e13a6ea9)"
+    "passed": 1350,
+    "failed": 13,
+    "skipped": 55,
+    "note": "full suite on candidate 6226e54e: 1418 tests, 13 baseline failures (skins/arrival assets, audio, i18n, backgrounding, patrol cat, districts 8-10, known.json)"
   },
   "levelChecks": 300
 }
