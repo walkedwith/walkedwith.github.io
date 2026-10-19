@@ -10951,7 +10951,7 @@ const LS_MAX_MOTION_CHICKEN={
   turn:'art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp',
   sit:'art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.'+MAX_SKIN_ASSETS.chicken.format
 };
-const LS_MAX_MOTION_SKIN_VERSIONS={duck:'v2',frog:'v2',bunny:'v2',mouse:'v2',sheep:'v2'};
+const LS_MAX_MOTION_SKIN_VERSIONS={duck:'v2',frog:'v2',bunny:'v2',mouse:'v2',sheep:'v2',cow:'v2'};
 const LS_MAX_MOTION_BONUS_SKINS=['space','ranger','mail','rain'];
 const LS_MAX_MOTION_SKINS=Object.fromEntries([...new Set([...['chicken','duck','frog','hedgehog','bunny','pig','beaver','peacock','mouse','sheep','squirrel','cow'],...LS_MAX_MOTION_BONUS_SKINS])].filter(skin=>MAX_SKIN_ASSETS[skin]).map(skin=>   // 후디 시트가 있는 것만 — 고슴도치·비버는 동네에서 빠졌어도 이미 얻은 후디는 입는다(순서 고정), 다람쥐·젖소는 시트가 생기면 저절로 들어온다
 [skin,skin==='chicken'?LS_MAX_MOTION_CHICKEN:{
@@ -10979,7 +10979,7 @@ function lsMaxMotionReady(set=LS_MAX_MOTION){
   if(lsMaxLoads.has(set)) return lsMaxLoads.get(set);
   const load=Promise.all(Object.values(set).map(src=>new Promise((resolve,reject)=>{
     const img=new Image();
-    img.onload=()=>img.naturalWidth===2048 && img.naturalHeight===256?resolve(img):reject(new Error('Invalid map sprite size'));
+    img.onload=()=>img.naturalHeight>0 && img.naturalWidth===img.naturalHeight*8?resolve(img):reject(new Error('Invalid map sprite size'));   // 8칸 한 줄이면 받는다 — 출고 묶음의 앉기 시트는 192px 칸(1536×192)이고, CSS 가 800% 로 늘린다
     img.onerror=()=>reject(new Error('Map sprite unavailable'));
     img.src=src;
   }))).catch(()=>{lsMaxLoads.delete(set); if(set===LS_MAX_MOTION) lsMaxLoad=null; return null;});
