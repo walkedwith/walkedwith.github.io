@@ -1,17 +1,17 @@
 {
-  "sourceHead": "5af7e407a11b53cf57962799fdeb6a9f441f41e8",
-  "date": "2026-10-19T12:10:05.604Z",
-  "liveSha256": "b1be05439b6c55251b8dbfc57e2b9d46f423b1b530201ef3eb7d7eed7857589e",
-  "testSha256": "8a2b96a67a06b1e0db8c6fa9fa9a43d41628029914fcbc77bb456bc0981461aa",
+  "sourceHead": "ad76b04dc200fa9e6ef779d92aca8af508571051",
+  "date": "2026-10-19T16:22:42.316Z",
+  "liveSha256": "f0a9f906c382a9617a980c395443714989838035fef18974eb3cd14bd446fdb2",
+  "testSha256": "c640941d1c26abac4b298a09587fa667fff3970e9dd02d0f7d49aed4a9eb427a",
   "files": 406,
-  "sourceCommit": "5af7e407a11b53cf57962799fdeb6a9f441f41e8",
+  "sourceCommit": "ad76b04dc200fa9e6ef779d92aca8af508571051",
   "kind": "live",
   "tests": {
     "scoped": false,
     "passed": 1355,
     "failed": 9,
     "skipped": 59,
-    "note": "full suite on candidate 501ac6a0 + lawn-test skip 5af7e407: 1423 tests, 9 baseline failures (audio, i18n, backgrounding, patrol cat, districts 8-10, known.json); yard lawn tests skipped while the yard mower is off"
+    "note": "full suite on candidate ad76b04d: 1423 tests, 9 baseline failures (same list as 5af7e407 release)"
   },
   "levelChecks": 300
 }

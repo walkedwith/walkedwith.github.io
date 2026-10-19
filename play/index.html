@@ -5653,7 +5653,7 @@ function gtalkClose(){ if(gtalkOpen && Date.now()-gtalkAt<250) return;          
     if(!L || !L.home) return G0.deadlockNow();
     if(G0.deadlockNow()) return true;
     const h=L.home, v=DOOR_CV[h[2]&3], dr0=h[0]+v[0], dc0=h[1]+v[1];
-    const solid=(r,c)=>tileAt(L,filled,r,c)===WALL;
+    const solid=(r,c)=>tileAt(L,filled,r,c)===WALL && !(L.doors && doorLeafAt(L,filled,r,c));   // 문짝은 돌면 비킨다 — 원래 검사(G0)와 같이. 빠져 있어 21판이 첫 수에 "벽에 붙은 공은 못 꺼내요"를 띄웠다(10-20)
     for(const b of boxes){ if(b.sink!==0 || b.kind!=='ball' || homeAt(L,b.r,b.c)) continue;
       if(b.r===dr0 && b.c===dc0) continue;
       if((solid(b.r-1,b.c)||solid(b.r+1,b.c)) && (solid(b.r,b.c-1)||solid(b.r,b.c+1))) return true; }
@@ -6130,9 +6130,13 @@ function d1DrawBed(b,bx,by){ const s=cell, X=bx-s/2, Y=by-s/2, k=b.r*GN+b.c, col
     if(T>=0 && !b.bedTone && (b.bedK||0)===0){ b.bedTone=1; try{ tone(620,0.05,'sine',0.03,880); }catch(e){} }
     return drawLog(bx,by-p*s*.6,s,1-p*.3,1+p,0,b); }
   const has=(dr,dc)=>boxes.some(o=>o!==b && o.sink===0 && o.kind==='bed' && (o.color|0)===col && o.r===b.r+dr && o.c===b.c+dc && !(o.bedAt!=null && animT<o.bedAt+(o.bedN||1)*.12+.06));
-  const sq=1+Math.sin(Math.min(1,(T-sw)/.25)*Math.PI)*.05, bl=d1Bl(b.r,b.c);
-  ctx.save(); if(sq!==1){ ctx.translate(bx,Y+s); ctx.scale(sq,sq); ctx.translate(-bx,-(Y+s)); }
+  // 굳는 순간 — 예전엔 5% 들썩여 화분이 한 프레임에 상자로 바뀐 것처럼 보였다(10-20 25ms 찍기). 눌렸다 솟고 흙먼지가 퍼진다
+  const u=Math.min(1,(T-sw)/.3), sy= u<.35? .8+.2*(u/.35) : 1+Math.sin((u-.35)/.65*Math.PI)*.08, sx=1+(1-sy)*.45, bl=d1Bl(b.r,b.c);
+  ctx.save(); if(u<1){ ctx.translate(bx,Y+s); ctx.scale(sx,sy); ctx.translate(-bx,-(Y+s)); }
   d1PlanterCell(ctx,X,Y,s,has,k,col,bl); ctx.restore();
+  if(u<1){ ctx.save(); ctx.globalAlpha=.55*(1-u); ctx.fillStyle='#B58A5E';                                    // 흙먼지 — 상자 밑에서 양옆으로
+    for(let j=0;j<5;j++){ const a=Math.PI*(.08+.21*j), d=s*(.28+.42*u); ctx.beginPath(); ctx.arc(bx+Math.cos(a)*d*(j%2? 1:-1)*1.1, Y+s*.92-Math.sin(a)*d*.35, s*(.07+.05*u), 0, 7); ctx.fill(); }
+    ctx.restore(); }
   d1Petals(ctx,bx,by-s*.25,s,k,col,bl); }
 // 꼬꼬(kind 'hen') — 방향·날갯짓·깃털·느낌표는 그림 전용(상태에 안 넣는다). b.henFx 는 화면 동기화(tryMove)가 단다.
 function d1DrawHen(b,bx,by){ const s=cell, fx=b.henFx, mv=!!b.path;
@@ -25640,6 +25644,17 @@ function tryMove(dr,dc){
         if(blocker){ if(blocker.kind==='ball'){ blocker.bump=1; blocker.bumpK=0.45; blocker.bumpR=dr; blocker.bumpC=dc; } sfxBlocked(); buzz([10,40,10]); }
         else { sfxWallBlocked(); buzz([8,30,8]); } });
       fxAfter(tBack, ()=>{ bonkStart(); buzz(8); });
+      return;
+    }
+    const heavy=boxes.find(x=>x.sink===0&&!x.carried&&x.r===tr&&x.c===tc);
+    if(heavy){
+      // 화분·화단·깎이처럼 공이 아닌 것을 밀었는데 막혔다 — 예전엔 어느 갈래에도 안 걸려 별·떨림·소리가 다 빠졌다
+      // (10-20 막힘 모으기: 공은 별이 뜨는데 화분만 조용). 무거우니 튕겨 나가진 않고 그 자리에서 멈칫, 막은 것도 같이 떤다.
+      const bl=boxes.find(x=>x.sink===0&&!x.carried&&x.r===tr+dr&&x.c===tc+dc);
+      fxAfter(tHit, ()=>{ heavy.bump=1; heavy.bumpK=0.28; heavy.bumpR=dr; heavy.bumpC=dc;
+        if(bl){ bl.bump=1; bl.bumpK=0.3; bl.bumpR=dr; bl.bumpC=dc; }
+        else if(L.T[tr+dr] && L.T[tr+dr][tc+dc]===WALL && !(matHitFx && matHitFx.r===tr+dr && matHitFx.c===tc+dc)) matHitFx={r:tr+dr, c:tc+dc, w:null, t:0.3};
+        sfxWallBlocked(); bonkStart(true); buzz([8,30,8]); });
       return;
     }
     if(tileAt(L,filled,tr,tc)===WALL) fxAfter(tHit, ()=>{ sfxWallBlocked(); bonkStart(true);   // 벽쿵 — 이마가 닿는 순간 별
