@@ -21001,8 +21001,10 @@ let tutMode=false, tutIdx=0, tutTO=[];
 // 1.5초 안에 깨는 게 예사라서 실제로 난다 — 판을 바꿀 때 예약된 안내를 전부 취소한다.
 function tutClearTO(){ for(const t of tutTO) clearTimeout(t); tutTO=[]; }
 function storyHide(){ document.body.classList.remove('instory'); }
+// 시작 그림책(MaxComicIntro) — 10-20 사람 요청으로 끔. 켜면 시작하기 뒤 농장 그림책이 먼저 나온다.
+const COMIC_INTRO_ON=false;
 function startStory(){
-  if(window.MaxComicIntro){ window.MaxComicIntro.start(); return; }
+  if(COMIC_INTRO_ON && window.MaxComicIntro){ window.MaxComicIntro.start(); return; }
   playTut(0);
 }
 el('chStoryOk').onclick=uiAction(el('chStoryOk'),chapterStoryClose);
