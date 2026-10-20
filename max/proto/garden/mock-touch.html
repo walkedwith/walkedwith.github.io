@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#d9e5b2">
+<link rel="manifest" href='data:application/manifest+json,{"name":"할아버지 텃밭","display":"standalone","start_url":"./mock-touch.html","background_color":"%23d9e5b2","theme_color":"%23d9e5b2"}'>
+<title>할아버지 텃밭 · 눌러 보는 목업</title>
+<style>
+*{box-sizing:border-box;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#d9e5b2;font-family:system-ui,-apple-system,sans-serif}body{height:100dvh;display:flex;justify-content:center}main{position:relative;width:min(100%,600px,calc((100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom)) * .6));height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);background:linear-gradient(#c9dfa4,#e7edc6 50%,#e9dec4)}canvas{display:block;width:100%;height:100%}header{position:absolute;left:max(18px,env(safe-area-inset-left));right:max(18px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 10px);height:60px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;color:#665035;font-size:16px;font-weight:800}button{pointer-events:auto;min-width:80px;min-height:60px;border:2px solid #b2854e;border-radius:22px;background:#fff4d9;color:#73502c;box-shadow:0 3px #b58c58;font:700 16px system-ui}button:active{transform:translateY(2px);box-shadow:0 1px #b58c58}canvas:focus-visible{outline:3px solid #578e60;outline-offset:-4px}
+</style>
+</head>
+<body><main><canvas aria-label="씨앗을 탭하고 같은 물건끼리 끌어 합치세요. 당근은 위 주문 쪽지로 끌어 주세요."></canvas><header><span>할아버지 텃밭</span><button type="button">다시</button></header></main>
+<script>
+(() => {
+'use strict';
+const canvas=document.querySelector('canvas'), ctx=canvas.getContext('2d');
+const assetKeys=['tile-dirt','tile-flower','grandpa','max-basket','order-card','cell','seed-carrot','sprout','sprout2','carrot','basket-carrot','can'];
+const pictures={}, failures=[];
+for(const key of assetKeys){const pic=new Image();pic.onload=()=>pictures[key]=pic;pic.onerror=()=>failures.push(key);pic.src='art/sprites/'+key+'.png';}
+let viewH=1920,baseY=0,boardY=0,water=20,remaining=3,flowerCount=6,clock=0,drag=null,delivery=null,particles=[],pops={},shake=0,audioCtx=null,notice='',noticeUntil=0;
+let items=[];
+const nextStage={'seed-carrot':'sprout',sprout:'sprout2',sprout2:'carrot',carrot:'basket-carrot'};
+const cellPoint=i=>({x:164+(i%5)*188,y:boardY+94+Math.floor(i/5)*182});
+const cardBox=()=>({x:450,y:baseY+24,w:345,h:228});
+function reset(){items=['seed-carrot',null,'sprout',null,'sprout',null,'sprout',null,'carrot',null,null,null,'sprout',null,null,'seed-carrot',null,null,null,'seed-carrot'];water=20;remaining=3;flowerCount=6;drag=null;delivery=null;particles=[];pops={};shake=0;notice='';noticeUntil=0;}
+function resize(){const bounds=canvas.getBoundingClientRect(),dpr=window.devicePixelRatio||1;canvas.width=Math.round(bounds.width*dpr);canvas.height=Math.round(bounds.height*dpr);viewH=bounds.height/bounds.width*1080;baseY=(viewH-1430)/2-12;boardY=baseY+690;ctx.setTransform(canvas.width/1080,0,0,canvas.height/viewH,0,0);}
+function rounded(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=5;ctx.stroke();}}
+function sprite(key,x,y,w,h,scale=1){const pic=pictures[key];ctx.save();ctx.translate(x+w/2,y+h/2);ctx.scale(scale,scale);if(pic)ctx.drawImage(pic,-w/2,-h/2,w,h);else rounded(-w/2,-h/2,w,h,28,'#c9c2d3');ctx.restore();}
+function label(value,x,y,size=54,color='#765330'){ctx.fillStyle=color;ctx.font='800 '+size+'px system-ui,-apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(value,x,y);}
+function sound(success=false){try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();audioCtx.resume().catch(()=>{});[0,1,2].forEach((v)=>{const osc=audioCtx.createOscillator(),gain=audioCtx.createGain(),at=audioCtx.currentTime+v*.075;osc.type='sine';osc.frequency.value=(success?523:640)*[1,1.25,1.5][v];gain.gain.setValueAtTime(0,at);gain.gain.linearRampToValueAtTime(.075,at+.008);gain.gain.exponentialRampToValueAtTime(.001,at+.18);osc.connect(gain);gain.connect(audioCtx.destination);osc.start(at);osc.stop(at+.2);});}catch{}}
+function burst(x,y,big=false){for(let i=0;i<(big?42:18);i++){const angle=Math.random()*Math.PI*2,speed=80+Math.random()*(big?400:200);particles.push({x,y,vx:Math.cos(angle)*speed,vy:Math.sin(angle)*speed,life:.6+Math.random()*.4,max:1,color:['#fff8b0','#ffcf54','#fff','#f3a7b8'][i%4],r:5+Math.random()*9});}shake=big?.22:.08;}
+function tell(message){notice=message;noticeUntil=clock+2;}
+function seedTap(i){if(delivery)return;if(water<=0){tell('물이 없어요');return;}const empty=items.indexOf(null);if(empty<0){tell('빈 칸이 없어요');return;}items[empty]='sprout';water--;pops[empty]=clock;const pt=cellPoint(empty);burst(pt.x,pt.y);sound();}
+function dropItem(from,to,toOrder=false){if(delivery||!items[from])return false;if(toOrder){if(items[from]!=='carrot'){tell('당근을 주세요');return false;}items[from]=null;remaining--;burst(610,baseY+135);sound();if(remaining===0){delivery={started:clock,painted:0,startCount:flowerCount};sound(true);}return true;}if(to<0||to>=20||from===to)return false;const held=items[from];if(items[to]===held&&nextStage[held]){items[to]=nextStage[held];items[from]=null;pops[to]=clock;const pt=cellPoint(to);burst(pt.x,pt.y);sound();}else{items[from]=items[to];items[to]=held;}return true;}
+function hitCell(pt){const col=Math.floor((pt.x-70)/188),row=Math.floor((pt.y-boardY)/182);return col>=0&&col<5&&row>=0&&row<4?row*5+col:-1;}
+function pointer(e){const bounds=canvas.getBoundingClientRect();return{x:(e.clientX-bounds.left)*1080/bounds.width,y:(e.clientY-bounds.top)*viewH/bounds.height};}
+canvas.addEventListener('pointerdown',e=>{if(drag||delivery||!e.isPrimary)return;const pt=pointer(e),idx=hitCell(pt);if(idx<0||!items[idx])return;try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();audioCtx.resume().catch(()=>{});}catch{}drag={idx,pid:e.pointerId,startX:pt.x,startY:pt.y,x:pt.x,y:pt.y,moved:false};canvas.setPointerCapture(e.pointerId);});
+canvas.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.pid)return;const pt=pointer(e);drag.x=pt.x;drag.y=pt.y;if(Math.hypot(pt.x-drag.startX,pt.y-drag.startY)>20)drag.moved=true;});
+canvas.addEventListener('pointerup',e=>{if(!drag||e.pointerId!==drag.pid)return;const held=drag,pt=pointer(e);drag=null;if(!held.moved){if(items[held.idx]==='seed-carrot')seedTap(held.idx);return;}const card=cardBox();dropItem(held.idx,hitCell(pt),pt.x>=card.x&&pt.x<=card.x+card.w&&pt.y>=card.y&&pt.y<=card.y+card.h);});
+canvas.addEventListener('pointercancel',()=>drag=null);canvas.addEventListener('lostpointercapture',()=>drag=null);
+window.addEventListener('blur',()=>drag=null);document.addEventListener('visibilitychange',()=>{drag=null;lastFrame=0;});
+document.querySelector('button').addEventListener('click',reset);document.addEventListener('contextmenu',e=>e.preventDefault());window.addEventListener('resize',resize);
+function step(dt){clock+=dt;shake=Math.max(0,shake-dt);for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=240*dt;p.life-=dt;}particles=particles.filter(p=>p.life>0);if(delivery){const elapsed=clock-delivery.started;const target=Math.min(6,Math.max(0,Math.floor((elapsed-1.05)/.15)+1));while(delivery.painted<target){const idx=delivery.startCount+delivery.painted;if(idx<24){flowerCount=idx+1;burst(145+(idx%6)*158,baseY+290+Math.floor(idx/6)*103,true);}delivery.painted++;}if(elapsed>2.5){delivery=null;remaining=4;}}}
+function render(){ctx.clearRect(0,0,1080,viewH);ctx.save();if(shake)ctx.translate(Math.sin(clock*95)*shake*22,Math.cos(clock*83)*shake*16);
+// Both boards share one fixed coordinate system; taller screens add margins only.
+for(let i=0;i<24;i++)sprite(i<flowerCount?'tile-flower':'tile-dirt',66+(i%6)*158,baseY+220+Math.floor(i/6)*103,161,151);
+sprite('grandpa',210,baseY-5,220,300);
+const card=cardBox();sprite('order-card',card.x,card.y,card.w,card.h);sprite('carrot',505,baseY+78,85,101);label(remaining,668,baseY+137,68);if(drag&&items[drag.idx]==='carrot'){ctx.strokeStyle='#fff7ad';ctx.lineWidth=9;ctx.strokeRect(card.x+12,card.y+18,card.w-24,card.h-35);}
+let dogX=660,dogY=baseY+200;if(delivery){const run=Math.min(1,(clock-delivery.started)/1.05);dogX=660-260*run;dogY=baseY+200-115*run-Math.abs(Math.sin(run*22))*20;}sprite('max-basket',dogX,dogY,220,212);
+rounded(51,boardY-14,978,756,36,'#bc8853','#936239');
+for(let i=0;i<20;i++){const pt=cellPoint(i);sprite('cell',pt.x-94,pt.y-92,188,184);if(items[i]&&(!drag||drag.idx!==i)){const age=clock-(pops[i]??-10),pop=age<.4?1+Math.sin(age/.4*Math.PI)*.22:1;sprite(items[i],pt.x-67,pt.y-75,134,148,pop);}}
+if(drag){const idx=hitCell(drag);if(idx>=0){const pt=cellPoint(idx);rounded(pt.x-87,pt.y-85,174,170,24,'#fff8c533','#fff1ab');}sprite(items[drag.idx],drag.x-80,drag.y-130,160,174,1.07);}
+for(const p of particles){ctx.globalAlpha=Math.min(1,p.life*2);ctx.fillStyle=p.color;ctx.beginPath();ctx.ellipse(p.x,p.y,p.r,p.r*.5,clock*3,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+if(delivery){const a=Math.max(0,1-Math.abs(clock-delivery.started-1.6)/.8);ctx.globalAlpha=a*.18;ctx.fillStyle='#fff2a0';ctx.fillRect(0,baseY+200,1080,500);ctx.globalAlpha=1;}
+ctx.restore();const footY=viewH-135;rounded(125,footY-15,830,113,55,'#fff2d9','#b98b57');sprite('can',137,footY-37,174,143);if(noticeUntil>clock){label(notice,620,footY+41,54);}else{rounded(340,footY+18,340,40,20,'#c9d5cd');if(water>0)rounded(340,footY+18,340*water/20,40,20,'#61cce2');label(water+' / 20',800,footY+41,54);}}
+let lastFrame=0;function frame(ts){const dt=lastFrame?Math.min(.04,(ts-lastFrame)/1000):0;lastFrame=ts;if(!document.hidden)step(dt);render();requestAnimationFrame(frame);}
+// Read-only snapshots and deterministic actions for inspecting this throwaway mockup.
+window.T={state:()=>({items:[...items],water,remaining,flowerCount,delivering:!!delivery,viewH,baseY,boardY}),step:dt=>{step(Math.max(0,dt));render();},input:(kind,a,b)=>{if(kind==='tap')seedTap(a);if(kind==='drag')dropItem(a,b);if(kind==='order')dropItem(a,-1,true);render();},load:reset,assets:()=>({loaded:Object.keys(pictures),failed:[...failures]}),check:()=>({loaded:Object.keys(pictures).length===assetKeys.length,failures:[...failures],cells:items.length,initiallyComplete:remaining===0})};
+reset();resize();requestAnimationFrame(frame);
+})();
+</script></body></html>
