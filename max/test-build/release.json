@@ -1,17 +1,15 @@
 {
-  "sourceHead": "ad76b04dc200fa9e6ef779d92aca8af508571051",
-  "date": "2026-10-19T16:05:46.330Z",
-  "liveSha256": "b1be05439b6c55251b8dbfc57e2b9d46f423b1b530201ef3eb7d7eed7857589e",
-  "testSha256": "c640941d1c26abac4b298a09587fa667fff3970e9dd02d0f7d49aed4a9eb427a",
+  "sourceHead": "e54fa1e07b6cb38f4d9c0ca4f5b1192641be6710",
+  "date": "2026-10-20T14:11:30.802Z",
+  "liveSha256": "f0a9f906c382a9617a980c395443714989838035fef18974eb3cd14bd446fdb2",
+  "testSha256": "4786f5c684529843f7959d727411cead0ff2d35453d718ecc7a8c7901edd159f",
   "files": 406,
-  "sourceCommit": "ad76b04dc200fa9e6ef779d92aca8af508571051",
+  "sourceCommit": "e54fa1e07b6cb38f4d9c0ca4f5b1192641be6710",
   "kind": "test",
   "tests": {
-    "scoped": false,
-    "passed": 1355,
-    "failed": 9,
-    "skipped": 59,
-    "note": "full suite on candidate ad76b04d: 1423 tests, 9 baseline failures (same list as 5af7e407 release)"
+    "total": 1281,
+    "pass": 1281,
+    "fail": 0
   },
   "levelChecks": 300
 }
