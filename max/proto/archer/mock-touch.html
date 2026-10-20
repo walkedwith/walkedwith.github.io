@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#48b5f3">
+<link rel="manifest" href='data:application/manifest+json,{"name":"바람 궁수 목업","display":"standalone","start_url":"./mock-touch.html"}'>
+<title>바람 궁수 · 끌어 쏘기</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;background:#48b5f3;touch-action:none;font-family:system-ui,sans-serif}
+#field{position:relative;width:100%;height:100dvh;overflow:hidden;touch-action:none}
+canvas{display:block;width:100%;height:100%;touch-action:none}
+#reset{position:absolute;right:max(14px,env(safe-area-inset-right));top:calc(env(safe-area-inset-top) + 12px);min-width:48px;min-height:44px;border:1px solid #ffffffa0;border-radius:24px;background:#14558cbd;color:white;font:600 14px system-ui;box-shadow:0 2px 8px #15456b25}
+#hint{position:absolute;top:calc(env(safe-area-inset-top) + 76px);left:0;width:100%;text-align:center;color:white;font-size:16px;font-weight:650;pointer-events:none;text-shadow:0 2px 5px #205f9e;transition:opacity .3s}
+#loading{position:absolute;inset:45% 15px auto;text-align:center;color:white;font-size:16px;pointer-events:none}
+</style>
+</head>
+<body>
+<main id="field" aria-label="뒤로 끌었다 놓아 화살을 쏘는 목업">
+<canvas aria-label="화면 어디서든 뒤로 끌었다 놓으세요"></canvas>
+<button id="reset" type="button">다시</button>
+<div id="hint">뒤로 끌었다 놓으면 슝!</div><div id="loading">그림 불러오는 중…</div>
+</main>
+<script>
+(() => {
+'use strict';
+const field=document.querySelector('#field'), canvas=document.querySelector('canvas'), ctx=canvas.getContext('2d');
+const hint=document.querySelector('#hint'), loading=document.querySelector('#loading');
+const assetKeys=['sky','b-hills-far','b-hills-near','a-aim','a-release','a-happy','a-scratch','p-target','p-pin','p-pin-spin','p-balloon-r','p-balloon-y','p-balloon-b','p-hay','p-arrow','p-arrow-stuck','p-star','u-btn-bow'];
+const art={}, failed=[];
+let worldH=2340, clockTime=0, previous=0, drag=null, arrows=[], particles=[], rings=[], stuck=[];
+let targets=[], balloons=[], lowerDirection=-1, flash=0, pinTurn=0, shake=0, pose='a-aim', poseUntil=0;
+let audioCtx, ready=false, activePointer=null;
+const gravity=640, windAcceleration=850;
+const launchPoint=()=>({x:430,y:worldH-665});
+const pinPoint=()=>({x:390,y:worldH-955});
+// All scene heights are distances from the ground, never percentages of the viewport.
+const bands=()=>[{y:worldH-1500,x0:125,x1:1020,direction:1},{y:worldH-1180,x0:80,x1:965,direction:lowerDirection}];
+const waveY=(band,x)=>band.y+28*Math.sin((x-band.x0)/175);
+const insideBand=(band,x,y)=>x>=band.x0-35&&x<=band.x1+35&&Math.abs(y-waveY(band,Math.max(band.x0,Math.min(band.x1,x))))<=46;
+function fit(){
+ const bounds=field.getBoundingClientRect(), oldH=worldH;
+ worldH=1080*bounds.height/bounds.width;
+ const dpr=Math.min(window.devicePixelRatio||1,3);
+ canvas.width=Math.round(bounds.width*dpr);canvas.height=Math.round(bounds.height*dpr);
+ const delta=worldH-oldH;
+ for(const group of [arrows,particles,rings,stuck])for(const item of group)item.y+=delta;
+ if(drag)drag=null;
+ activePointer=null;
+}
+function reset(){
+ drag=null;activePointer=null;arrows=[];particles=[];rings=[];stuck=[];
+ lowerDirection=-1;flash=0;pinTurn=0;shake=0;pose='a-aim';poseUntil=0;
+ targets=[{x:930,dy:805,h:246},{x:650,dy:690,h:170},{x:978,dy:940,h:175}];
+ balloons=[{x:355,dy:1420,key:'p-balloon-y',color:'#ffcf3d',alive:true},{x:790,dy:1680,key:'p-balloon-r',color:'#ff666a',alive:true},{x:950,dy:1230,key:'p-balloon-b',color:'#58bafa',alive:true}];
+ hint.style.opacity='1';
+}
+function sprite(key,x,y,width,height,anchorX=.5,anchorY=1,angle=0){
+ const img=art[key];ctx.save();ctx.translate(x,y);ctx.rotate(angle);
+ if(img?.naturalWidth)ctx.drawImage(img,-width*anchorX,-height*anchorY,width,height);
+ else{ctx.fillStyle='#d6cede';ctx.beginPath();ctx.roundRect(-width*anchorX,-height*anchorY,width,height,Math.min(width,height)*.2);ctx.fill();}
+ ctx.restore();
+}
+function byHeight(key,x,y,height,anchorY=1,angle=0){const img=art[key];sprite(key,x,y,height*(img?.naturalWidth||1)/(img?.naturalHeight||1),height,.5,anchorY,angle);}
+function sound(kind){
+ if(!audioCtx)return;
+ const oscillator=audioCtx.createOscillator(), gain=audioCtx.createGain();
+ const t=audioCtx.currentTime;oscillator.type=kind==='hit'?'sine':'triangle';
+ oscillator.frequency.setValueAtTime(kind==='hit'?880:kind==='pop'?350:220,t);
+ oscillator.frequency.exponentialRampToValueAtTime(kind==='hit'?1320:95,t+.12);
+ gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.09,t+.008);gain.gain.exponentialRampToValueAtTime(.0001,t+.19);
+ oscillator.connect(gain).connect(audioCtx.destination);oscillator.start(t);oscillator.stop(t+.2);
+}
+function unlockSound(){try{audioCtx??=new(window.AudioContext||window.webkitAudioContext)();audioCtx.resume().catch(()=>{});}catch{}}
+function burst(x,y,color,stars=false){
+ for(let i=0;i<(stars?16:24);i++){const a=i*Math.PI*2/(stars?16:24),speed=110+Math.random()*220;particles.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed-70,life:.65+Math.random()*.3,maxLife:.95,color,star:stars&&i%2===0,spin:Math.random()*6});}
+}
+function react(next){pose=next;poseUntil=clockTime+.8;}
+function vector(){
+ if(!drag)return {vx:0,vy:0,power:0};
+ const dx=drag.sx-drag.x,dy=drag.sy-drag.y,distance=Math.hypot(dx,dy);
+ const power=Math.min(distance,370),factor=distance?power*5.8/distance:0;
+ return {vx:dx*factor,vy:dy*factor,power};
+}
+function pointFromEvent(event){const rect=canvas.getBoundingClientRect();return{x:(event.clientX-rect.left)*1080/rect.width,y:(event.clientY-rect.top)*worldH/rect.height};}
+function begin(x,y){if(!ready)return;drag={sx:x,sy:y,x,y};pose='a-aim';poseUntil=0;}
+function move(x,y){if(drag){drag.x=x;drag.y=y;}}
+function release(){
+ if(!drag)return;const aim=vector();drag=null;
+ if(aim.power<10)return;
+ arrows.push({...launchPoint(),vx:aim.vx,vy:aim.vy,life:0,pinHit:false,balloonHits:false});
+ pose='a-release';poseUntil=clockTime+.3;hint.style.opacity='0';sound('shoot');
+}
+canvas.addEventListener('pointerdown',event=>{
+ event.preventDefault();if(activePointer!==null||!ready)return;
+ activePointer=event.pointerId;canvas.setPointerCapture(event.pointerId);unlockSound();const p=pointFromEvent(event);begin(p.x,p.y);
+});
+canvas.addEventListener('pointermove',event=>{if(event.pointerId!==activePointer)return;event.preventDefault();const p=pointFromEvent(event);move(p.x,p.y);});
+canvas.addEventListener('pointerup',event=>{if(event.pointerId!==activePointer)return;event.preventDefault();const p=pointFromEvent(event);move(p.x,p.y);activePointer=null;release();});
+function cancel(){drag=null;activePointer=null;}
+canvas.addEventListener('pointercancel',cancel);canvas.addEventListener('lostpointercapture',cancel);
+window.addEventListener('blur',cancel);document.addEventListener('visibilitychange',()=>{previous=0;if(document.hidden)cancel();});
+field.addEventListener('contextmenu',event=>event.preventDefault());
+document.querySelector('#reset').addEventListener('click',reset);
+window.addEventListener('resize',fit);
+function step(dt){
+ // Fixed, short substeps keep fast arrows from crossing props between collision checks.
+ const count=Math.max(1,Math.ceil(dt/(1/240))), slice=dt/count;
+ for(let k=0;k<count;k++){
+ clockTime+=slice;flash=Math.max(0,flash-slice);shake=Math.max(0,shake-slice);
+ if(poseUntil&&clockTime>=poseUntil){pose='a-aim';poseUntil=0;}
+ for(const arrow of arrows){
+  if(arrow.dead)continue;
+  arrow.life+=slice;
+  for(const band of bands())if(insideBand(band,arrow.x,arrow.y))arrow.vx+=band.direction*windAcceleration*slice;
+  arrow.vy+=gravity*slice;arrow.x+=arrow.vx*slice;arrow.y+=arrow.vy*slice;
+  // The collision point is the visible arrowhead, not its center.
+  const direction=Math.atan2(arrow.vy,arrow.vx),tipX=arrow.x+49*Math.cos(direction),tipY=arrow.y+49*Math.sin(direction);
+  const pin=pinPoint();
+  if(!arrow.pinHit&&Math.hypot(tipX-pin.x,tipY-(pin.y-155))<83){arrow.pinHit=true;pinTurn=clockTime;lowerDirection*=-1;flash=.65;burst(pin.x,pin.y-155,'#fff2a0');sound('pop');}
+  for(const balloon of balloons){
+   if(balloon.alive&&Math.pow((tipX-balloon.x)/65,2)+Math.pow((tipY-(worldH-balloon.dy))/82,2)<1){
+    balloon.alive=false;arrow.balloonHits=true;const y=worldH-balloon.dy;
+    burst(balloon.x,y,balloon.color);rings.push({x:balloon.x,y,life:.7});sound('pop');
+   }
+  }
+  for(const target of targets){
+   const cy=worldH-target.dy-target.h*.57,radius=target.h*.34;
+   if(Math.pow((tipX-target.x)/radius,2)+Math.pow((tipY-cy)/radius,2)<1){
+    arrow.dead=true;stuck.push({x:tipX,y:tipY,angle:direction,target});burst(tipX,tipY,'#ffe47c',true);shake=.24;react('a-happy');sound('hit');break;
+   }
+  }
+  if(!arrow.dead&&(arrow.x < -130||arrow.x>1210||arrow.y < -120||tipY>worldH-320||arrow.life>9)){
+   arrow.dead=true;react('a-scratch');
+  }
+ }
+ arrows=arrows.filter(arrow=>!arrow.dead);
+ for(const p of particles){p.life-=slice;p.x+=p.vx*slice;p.y+=p.vy*slice;p.vy+=380*slice;}
+ particles=particles.filter(p=>p.life>0);
+ for(const r of rings)r.life-=slice;rings=rings.filter(r=>r.life>0);
+ }
+}
+function drawBand(band,index){
+ ctx.save();ctx.lineCap='round';ctx.lineJoin='round';ctx.beginPath();
+ for(let x=band.x0;x<=band.x1;x+=5){const y=waveY(band,x);if(x===band.x0)ctx.moveTo(x,y);else ctx.lineTo(x,y);}
+ ctx.strokeStyle='#ffffff88';ctx.lineWidth=92;ctx.shadowColor='#428cc14d';ctx.shadowBlur=12;ctx.stroke();ctx.shadowBlur=0;ctx.strokeStyle='#effaff6a';ctx.lineWidth=60;ctx.stroke();
+ ctx.strokeStyle=index===1&&flash>0?'#ffd144':'#4da6df';ctx.lineWidth=9;
+ const offset=(clockTime*34*band.direction)%88;
+ for(let x=band.x0+48+offset;x<band.x1-20;x+=88){if(x<band.x0+20)continue;const y=waveY(band,x),s=14*band.direction;ctx.beginPath();ctx.moveTo(x-s,y-16);ctx.lineTo(x+s,y);ctx.lineTo(x-s,y+16);ctx.stroke();}
+ for(const x of [band.x0,band.x1]){const y=waveY(band,x);ctx.beginPath();ctx.arc(x,y,32,0,Math.PI*2);ctx.fillStyle='#ffffffbd';ctx.fill();ctx.beginPath();ctx.arc(x,y,21,.3,Math.PI*1.8);ctx.strokeStyle='#a1d4eb';ctx.lineWidth=7;ctx.stroke();}
+ ctx.restore();
+}
+function preview(){
+ if(!drag)return;const aim=vector();if(aim.power<10)return;
+ let {x,y}=launchPoint(),vx=aim.vx,vy=aim.vy,spacing=0;
+ ctx.fillStyle='#fff';
+ for(let i=0;i<960;i++){
+  vy+=gravity/240;x+=vx/240;y+=vy/240;
+  if(bands().some(band=>insideBand(band,x,y))||x<0||x>1080||y<0||y>worldH-320)break;
+  spacing+=Math.hypot(vx,vy)/240;
+  if(spacing>34){spacing=0;ctx.beginPath();ctx.arc(x,y,5.5,0,Math.PI*2);ctx.fill();}
+ }
+ ctx.save();ctx.strokeStyle='#ffffffaa';ctx.lineWidth=5;ctx.setLineDash([9,13]);ctx.beginPath();ctx.moveTo(drag.sx,drag.sy);ctx.lineTo(drag.x,drag.y);ctx.stroke();ctx.setLineDash([]);
+ ctx.beginPath();ctx.arc(drag.sx,drag.sy,25,0,Math.PI*2);ctx.stroke();ctx.beginPath();ctx.arc(drag.x,drag.y,34,0,Math.PI*2);ctx.strokeStyle='#fff';ctx.stroke();
+ ctx.beginPath();ctx.arc(drag.x,drag.y,44,-Math.PI/2,-Math.PI/2+aim.power/370*Math.PI*2);ctx.strokeStyle='#ffdf70';ctx.lineWidth=9;ctx.stroke();ctx.restore();
+}
+function draw(){
+ ctx.setTransform(canvas.width/1080,0,0,canvas.height/worldH,0,0);ctx.clearRect(0,0,1080,worldH);
+ sprite('sky',0,0,1080,worldH,0,0);
+ // Match the G2 crop at a fixed camera scale; keep both landscape layers on the ground.
+ sprite('b-hills-far',540,worldH-1060,2376,484,.5,0);
+ sprite('b-hills-near',540,worldH-789,3240,814,.5,0);
+ for(const balloon of balloons)if(balloon.alive)byHeight(balloon.key,balloon.x,worldH-balloon.dy,175,.5);
+ bands().forEach(drawBand);
+ const pin=pinPoint();
+ // Small connector makes the lower band's relationship to the pin visible.
+ ctx.save();ctx.strokeStyle=flash>0?'#ffe17caa':'#ffffff50';ctx.lineWidth=3;ctx.setLineDash([5,14]);ctx.beginPath();ctx.moveTo(pin.x,pin.y-240);ctx.lineTo(305,waveY(bands()[1],305)+45);ctx.stroke();ctx.restore();
+ byHeight(pinTurn?'p-pin-spin':'p-pin',pin.x,pin.y,250);
+ for(const target of targets){const wobble=shake>0?Math.sin(clockTime*75)*8*shake/.24:0;byHeight('p-target',target.x+wobble,worldH-target.dy,target.h);}
+ byHeight('p-hay',790,worldH-665,136);
+ for(const item of stuck){
+  // This sprite's shaft points up-right by ~22 degrees; its right tip is the embed point.
+  ctx.save();ctx.translate(item.x,item.y);ctx.rotate(item.angle+.38);sprite('p-arrow-stuck',0,0,105,70,.95,.45);ctx.restore();
+ }
+ const bounce=pose==='a-happy'?-Math.abs(Math.sin((poseUntil-clockTime)*Math.PI*2.5))*30:0;
+ byHeight(pose,260,worldH-410+bounce,460);
+ byHeight('u-btn-bow',135,worldH-90,182);
+ preview();
+ for(const arrow of arrows)byHeight('p-arrow',arrow.x,arrow.y,26,.5,Math.atan2(arrow.vy,arrow.vx));
+ for(const r of rings){ctx.save();ctx.globalAlpha=r.life/.7;ctx.strokeStyle='#e3f9ff';ctx.lineWidth=9*r.life/.7;ctx.beginPath();ctx.arc(r.x,r.y,30+(1-r.life/.7)*210,0,Math.PI*2);ctx.stroke();ctx.restore();}
+ for(const p of particles){ctx.save();ctx.globalAlpha=Math.min(1,p.life/.3);if(p.star)byHeight('p-star',p.x,p.y,36,.5,p.spin+clockTime*2);else{ctx.fillStyle=p.color;ctx.translate(p.x,p.y);ctx.rotate(p.spin+clockTime*3);ctx.fillRect(-5,-8,10,16);}ctx.restore();}
+}
+function frame(timestamp){const dt=previous?Math.min((timestamp-previous)/1000,.05):0;previous=timestamp;if(ready){step(dt);draw();}requestAnimationFrame(frame);}
+// Read-only state plus direct input/step helpers for repeatable browser checks; no recording.
+window.T={
+ state:()=>({ready,worldH,pose,lowerDirection,flash,arrows:arrows.map(a=>({...a})),balloons:balloons.map(b=>({...b})),targets:targets.map(t=>({...t})),stuck:stuck.length,particles:particles.length,rings:rings.length,drag:drag?{...drag}:null,launch:launchPoint(),pin:pinPoint(),bands:bands()}),
+ step:(dt)=>{step(Math.max(0,Math.min(Number(dt)||0,10)));draw();},
+ input:(kind,x,y)=>{if(kind==='down')begin(x,y);else if(kind==='move')move(x,y);else if(kind==='up'){if(Number.isFinite(x)&&Number.isFinite(y))move(x,y);release();}else if(kind==='cancel')cancel();draw();},
+ load:reset,assets:()=>({loaded:assetKeys.filter(key=>art[key]?.naturalWidth),failed:[...failed]})
+};
+fit();reset();
+Promise.all(assetKeys.map(key=>new Promise(resolve=>{const img=new Image();art[key]=img;img.onload=resolve;img.onerror=()=>{failed.push(key);resolve();};img.src='art/sprites/'+key+'.png';}))).then(()=>{ready=true;loading.textContent=failed.length?'그림을 불러오지 못했어요: '+failed.join(', '):'';draw();});
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
