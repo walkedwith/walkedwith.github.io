@@ -25,17 +25,49 @@ const TREASURES={B:'bone',A:'ball',T:'tin',C:'crystal'};
 const DIRS={left:[-1,0],right:[1,0],down:[0,1],up:[0,-1]};
 const color=k=>'PGLY'.includes(k);
 class Game {
- constructor(level=0,options={}) {this.events=[];this.load(level,options.map);}
+ constructor(level=0,options={}) {
+  this.meta={counts:{B:0,A:0,T:0,C:0},unlocked:1,completed:false,descents:{win:0,breath:0,hearts:0}};
+  this.events=[];this.load(level,options.map);
+ }
+ shelf(){return JSON.parse(JSON.stringify({...this.meta,stars:Object.values(this.meta.counts).reduce((n,c)=>n+[1,3,6].filter(t=>c>=t).length,0)}));}
+ nextLevel(){
+  if(!this.meta.completed)return Math.min(this.s.level+1,4);
+  const scores=LEVELS.map(rows=>[...rows.join('')].filter(k=>TREASURES[k]&&this.meta.counts[k]<6).length);
+  return scores.indexOf(Math.max(...scores));
+ }
+ offer(kind){this.s.offer=kind;this.s.offerTime=2;this.emit('bm-show',{kind});}
+ finish(reason){
+  const s=this.s;s.phase=reason==='win'?'win':'fail';s.reason=reason;s.transition=1.2;
+  this.emit(reason==='win'?'win':'fail',{reason});
+  if(s.collected.length)this.offer('double');else this.deposit(1);
+ }
+ deposit(multiplier){
+  const s=this.s;if(s.deposited)return;s.deposited=true;s.offer=null;
+  const awards=s.collected.map(t=>({...t,amount:multiplier})),before=this.shelf();
+  for(const t of awards)this.meta.counts[t.kind]+=t.amount;
+  this.meta.descents[s.reason]++;
+  if(s.reason==='win'){this.meta.unlocked=Math.max(this.meta.unlocked,Math.min(5,s.level+2));if(s.level===4)this.meta.completed=true;}
+  this.emit('deposit',{awards,before,after:this.shelf()});
+ }
+ bm(kind){
+  const s=this.s;
+  if(kind==='pass'&&!s.pass&&s.phase!=='ad'){s.pass='open';this.emit('bm-show',{kind:'pass'});return true;}
+  if(kind==='close'&&s.pass){s.pass=null;return true;}
+  if(kind==='purchase'&&s.pass==='open'){s.pass='pending';s.passTime=.8;this.emit('bm-click',{kind:'pass'});return true;}
+  if(!['breath','double'].includes(kind)||s.pass||s.phase==='ad'||s.offer!==kind)return false;
+  this.emit('bm-click',{kind});s.offer=null;s.adKind=kind;s.adReturn=s.phase;s.phase='ad';s.adTime=5;return true;
+ }
+
  load(level,map) {
   const rows=map||LEVELS[level];let id=0,x=0,y=0;
   const grid=rows.map((row,r)=>[...row].map((kind,c)=>{if(kind==='M'){x=c;y=r;return null;}return kind==='.'?null:{kind,id:++id,warn:0,falling:false};}));
-  this.s={level,grid,x,y,hearts:3,breath:90,phase:'play',transition:0,time:0,acc:0,gravity:0,chain:0,inputs:0,collected:[],total:grid.flat().filter(t=>t&&TREASURES[t.kind]).length,face:-1,pose:'walk',poseTime:0,moved:[],revision:0};
+  this.s={level,grid,x,y,hearts:3,breath:50,breathMax:50,revived:false,offer:null,pass:null,deposited:false,phase:'play',transition:0,time:0,acc:0,gravity:0,chain:0,inputs:0,collected:[],total:grid.flat().filter(t=>t&&TREASURES[t.kind]).length,face:-1,pose:'walk',poseTime:0,moved:[],revision:0};
   this.events=[];this.emit('load',{level});
  }
  emit(type,data={}){this.events.push({type,...data});}
  drain(){const e=this.events;this.events=[];return e;}
  input(direction) {
-  const d=DIRS[direction],s=this.s;if(!d||s.phase!=='play')return false;
+  const d=DIRS[direction],s=this.s;if(!d||s.phase!=='play'||s.pass)return false;
   s.inputs++;this.emit('input',{direction});
   const x=s.x+d[0],y=s.y+d[1];if(x<0||x>=6||y<0||y>=s.grid.length)return false;
   const t=s.grid[y][x];if(t&&(direction==='up'||t.kind==='R'||t.kind==='S'))return false;
@@ -46,13 +78,16 @@ class Game {
  collect(t,x,y) {
   const s=this.s;if(s.phase!=='play'||s.collected.some(a=>a.id===t.id))return;
   s.collected.push({id:t.id,kind:t.kind});this.emit('treasure',{x,y,kind:t.kind,slot:s.collected.length-1});
-  if(s.collected.length===s.total){s.phase='win';s.transition=1.2;s.pose='victory';this.emit('win');}
+  if(s.collected.length===s.total){s.pose='victory';this.finish('win');}
  }
  hit() {
   const s=this.s;s.hearts--;s.pose='backstep';s.poseTime=.5;s.revision++;this.emit('hit',{x:s.x,y:s.y});
   if(!s.hearts)this.fail('hearts');
  }
- fail(reason){const s=this.s;if(s.phase!=='play')return;s.phase='fail';s.transition=1.2;this.emit('fail',{reason});}
+ fail(reason){const s=this.s;if(s.phase!=='play')return;
+  if(reason==='breath'&&!s.revived){s.phase='breath-offer';this.offer('breath');return;}
+  this.finish(reason);
+ }
  groups(){
   const s=this.s,seen=new Set(),groups=[];
   for(let y=0;y<s.grid.length;y++)for(let x=0;x<6;x++){
@@ -71,7 +106,14 @@ class Game {
  });}
  tick(dt){
   const s=this.s;
-  if(s.phase!=='play'){s.transition-=dt;if(s.transition<=1e-8){const n=s.phase==='win'?(s.level+1)%LEVELS.length:s.level;this.load(n);}return;}
+  if(s.pass){if(s.pass==='pending'){s.passTime-=dt;if(s.passTime<=1e-8)s.pass=null;}return;}
+  if(s.phase==='ad'){
+   s.adTime-=dt;if(s.adTime<=1e-8){const kind=s.adKind;s.phase=s.adReturn;s.adKind=null;
+    if(kind==='breath'){s.phase='play';s.revived=true;s.breath=25;}else this.deposit(2);
+   }return;
+  }
+  if(s.offer){s.offerTime-=dt;if(s.offerTime<=1e-8){const kind=s.offer;s.offer=null;if(kind==='breath')this.finish('breath');else this.deposit(1);}return;}
+  if(s.phase!=='play'){s.transition-=dt;if(s.transition<=1e-8){const n=s.phase==='win'?this.nextLevel():s.level;this.load(n);}return;}
   s.time+=dt;s.breath=Math.max(0,s.breath-dt);s.poseTime=Math.max(0,s.poseTime-dt);
   if(s.breath<=1e-8){this.fail('breath');return;}
   // Warning accumulates in real simulation time; a stone in flight does not re-warn per cell.
@@ -115,7 +157,7 @@ class Game {
   while(n-->0){const remainder=this.s.acc;this.tick(.02);if(this.s.acc!==remainder)this.s.acc=remainder;}
   return this.s;
  }
- clone(){const g=Object.create(Game.prototype);g.s=JSON.parse(JSON.stringify(this.s));g.events=[];return g;}
+ clone(){const g=Object.create(Game.prototype);g.s=JSON.parse(JSON.stringify(this.s));g.meta=JSON.parse(JSON.stringify(this.meta));g.events=[];return g;}
 }
 function randomCheck(level=0,seed=613){
  const g=new Game(level),idle=new Game(level);let exceptions=0,changes=0,wins=0,idleWins=0;
@@ -151,14 +193,23 @@ return {Game,LEVELS,CORE_LOOP,ASSET_FILES,NAMES,TREASURES,DIRS,randomCheck,solve
 'use strict';
 (() => {
 const {Game,LEVELS,CORE_LOOP,ASSET_FILES,NAMES,TREASURES,DIRS,randomCheck,solve}=MaxDig;
-const BUILD='maxdig-s3-20261020',KEY='proto_maxdig_'+BUILD,params=new URLSearchParams(location.search);
+const BUILD='maxdig-s3-20261020',KEY='proto_maxdig_'+BUILD,SHELF_KEY='proto_maxdig_shelf',params=new URLSearchParams(location.search);
 const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),stats=document.getElementById('stats');
 const game=new Game();let testing=params.has('check'),statsMode=params.has('stats'),ready=false,engaged=false;
-let data={days:{},loops:[]},loop=null,attempt=null,saveClock=0;
+let data={days:{},loops:[],bm:{}},loop=null,attempt=null,saveClock=0;
 try{const stored=JSON.parse(localStorage.getItem(KEY)||'null');if(stored&&stored.days&&Array.isArray(stored.loops))data=stored;}catch(_e){}
+data.bm=data.bm||{};
+if(!testing)try{
+ const stored=JSON.parse(localStorage.getItem(SHELF_KEY)||'null');
+ if(stored){for(const k of Object.keys(TREASURES))game.meta.counts[k]=Math.max(0,Math.floor(Number(stored.counts?.[k])||0));
+  game.meta.unlocked=Math.max(1,Math.min(5,Math.floor(Number(stored.unlocked)||1)));game.meta.completed=stored.completed===true;
+  for(const k of ['win','breath','hearts'])game.meta.descents[k]=Math.max(0,Math.floor(Number(stored.descents?.[k])||0));
+  game.load(game.meta.completed?game.nextLevel():game.meta.unlocked-1);
+ }
+}catch(_e){}
 function date(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
 function day(){return data.days[date()]||(data.days[date()]={seconds:0,voluntary:0,levels:0});}
-function save(){if(testing||statsMode)return;try{localStorage.setItem(KEY,JSON.stringify(data));}catch(_e){}}
+function save(){if(testing||statsMode)return;try{localStorage.setItem(KEY,JSON.stringify(data));localStorage.setItem(SHELF_KEY,JSON.stringify(game.meta));}catch(_e){}}
 // IDEA has no separate 이벤트 row: one loop begins on reveal/previous treasure,
 // succeeds on treasure collection, counts stone hits as failures, and aborts on retry/exit.
 function beginLoop(){if(testing||statsMode)return;loop={build:BUILD,date:date(),mode:'play',level:game.s.level+1,firstInput:null,inputs:0,duration:0,failures:0,interrupted:false,success:false};}
@@ -166,7 +217,7 @@ function endLoop(success=false,interrupted=false){if(!loop)return;loop.success=s
 function beginAttempt(){if(testing||statsMode)return;attempt={date:date(),eligible:day().seconds>=300,counted:false};beginLoop();}
 function noteInput(){if(testing||statsMode)return;engaged=true;if(!loop)beginLoop();loop.inputs++;if(loop.firstInput===null)loop.firstInput=+loop.duration.toFixed(3);
  if(attempt?.date===date()&&attempt.eligible&&!attempt.counted){day().voluntary++;attempt.counted=true;save();}}
-function loggingTime(dt){if(testing||statsMode||document.hidden||!ready||game.s.phase!=='play')return;
+function loggingTime(dt){if(testing||statsMode||document.hidden||!ready||game.s.phase!=='play'||game.s.pass)return;
  if(loop)loop.duration+=dt;if(engaged)day().seconds+=dt;saveClock+=dt;if(saveClock>=5){saveClock=0;save();}}
 function showStats(){
  stats.style.display='block';canvas.style.display='none';stats.replaceChildren();
@@ -180,6 +231,8 @@ function showStats(){
   const avg=(arr,key)=>arr.length?(arr.reduce((n,r)=>n+r[key],0)/arr.length).toFixed(2):'—';
   return [i+1,a.length,success.length,a.reduce((n,r)=>n+r.failures,0),a.filter(r=>r.interrupted).length,avg(first,'firstInput'),avg(success,'inputs'),avg(a,'duration')];}));
  table(['날짜','판','첫 입력(초)','입력 수','시간(초)','실패','중단','성공'],records.map(r=>[r.date,r.level,r.firstInput,r.inputs,r.duration,r.failures,r.interrupted?'✓':'',r.success?'✓':'']));
+ table(['날짜','BM 자리','제시','누름','수락률'],[...new Set([...Object.keys(data.days),...Object.keys(data.bm)])].sort().flatMap(d=>['breath','double','pass'].map(kind=>{const v=data.bm[d]?.[kind]||{shown:0,clicked:0};return [d,{breath:'한 숨 더',double:'두 배로',pass:'꾸미기 패스'}[kind],v.shown,v.clicked,v.shown?(100*v.clicked/v.shown).toFixed(1)+'%':'—'];})));
+ const shelf=game.shelf();table(['진열장 별','열린 판','내려가기','성공','숨','하트'],[[shelf.stars+'/12',shelf.unlocked,Object.values(shelf.descents).reduce((n,v)=>n+v,0),shelf.descents.win,shelf.descents.breath,shelf.descents.hearts]]);
  table(['코어 루프','IDEA.md'],Object.entries(CORE_LOOP));
  el('p','이벤트: 판 표시/이전 보물 → 루프 시작 · 닿음→뗌 스와이프 → 입력 · 보물 획득 → 성공 · 돌 피격/숨 소진 → 실패 · 재시작/페이지 종료 → 중단. 전환 1.2초·백그라운드는 시간에서 제외.');
 }
@@ -188,7 +241,7 @@ window.addEventListener('error',e=>errors.push(String(e.message)));
 window.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
 function imageLoad(key,file){return new Promise(resolve=>{const img=new Image();assets[key]={img,status:'pending'};
  img.onload=()=>{assets[key].status='loaded';resolve();};img.onerror=()=>{assets[key].status='failed';failures.add(file);resolve();};img.src='art/sprites/'+file;});}
-let viewport={scale:1,left:0,top:0,dpr:1},camera=0,clock=0,shake=0,fx=[],flights=[],tileOffsets=new Map(),maxView={x:game.s.x,y:game.s.y},pointer=null,audio=null;
+let viewport={scale:1,left:0,top:0,dpr:1},camera=0,clock=0,shake=0,fx=[],flights=[],tileOffsets=new Map(),maxView={x:game.s.x,y:game.s.y},pointer=null,audio=null,shelfFlights=[],shelfGlows=[];
 function resize(){const dpr=window.devicePixelRatio||1,w=innerWidth,h=innerHeight;canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);const scale=Math.min(w/1080,h/2340);viewport={scale,left:(w-1080*scale)/2,top:(h-2340*scale)/2,dpr};}
 addEventListener('resize',resize);resize();
 function rounded(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill();}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=4;ctx.stroke();}}
@@ -196,13 +249,21 @@ function drawImage(key,x,y,w,h){const a=assets[key];if(a?.status==='loaded'){ctx
  silhouettes.add(key);rounded(x,y,w,h,Math.min(w,h)*.18,'#cbc6d7');return false;}
 function unlockAudio(){try{const Audio=window.AudioContext||window.webkitAudioContext;if(Audio&&!audio)audio=new Audio();if(audio?.state==='suspended')audio.resume().catch(()=>{});}catch(_e){}}
 function popSound(chain=1){if(!audio)return;try{const osc=audio.createOscillator(),gain=audio.createGain(),t=audio.currentTime;osc.type='sine';osc.frequency.setValueAtTime(520+chain*95,t);osc.frequency.exponentialRampToValueAtTime(130,t+.15);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.13,t+.008);gain.gain.exponentialRampToValueAtTime(.0001,t+.19);osc.connect(gain);gain.connect(audio.destination);osc.start(t);osc.stop(t+.2);}catch(_e){}}
-function slotPoint(index){const count=game.s.total;return {x:1080-54-(count-index-.5)*86,y:84};}
+function slotPoint(index){const count=game.s.total;return {x:1080-54-(count-index-.5)*86,y:174};}
 function burst(x,y,kind,chain=1){const strength=1+Math.min(chain-1,4)*.26;fx.push({type:'burst',x,y,age:0,life:.85,strength,kind});
  for(let i=0;i<12;i++){const a=i*Math.PI*2/12+Math.random()*.35,v=(190+Math.random()*270)*strength;fx.push({type:'shard',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v-100,age:0,life:.7+Math.random()*.2,size:25+Math.random()*30,spin:Math.random()*6,kind});}
  for(let i=0;i<22;i++){const a=Math.random()*Math.PI*2,v=Math.random()*450*strength;fx.push({type:'spark',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,age:0,life:.55+Math.random()*.4,size:3+Math.random()*8});}
  shake=Math.max(shake,.14+.06*Math.min(chain,4));popSound(chain);
 }
 function handleEvents(){for(const e of game.drain()){
+ if((e.type==='bm-show'||e.type==='bm-click')&&!testing&&!statsMode){const slots=data.bm[date()]||(data.bm[date()]={});const v=slots[e.kind]||(slots[e.kind]={shown:0,clicked:0});v[e.type==='bm-show'?'shown':'clicked']++;save();}
+ if(e.type==='deposit'){
+  for(const [i,t] of e.awards.entries()){const type=Object.keys(TREASURES).indexOf(t.kind),stars=[1,3,6].filter(n=>e.after.counts[t.kind]>=n).length;
+   shelfFlights.push({kind:t.kind,x:slotPoint(i).x,y:174,tx:57+(type*3+Math.max(0,stars-1))*78,ty:58,age:0,life:.85});}
+  for(const [type,k] of Object.keys(TREASURES).entries())for(let j=0;j<3;j++)if(e.before.counts[k]<[1,3,6][j]&&e.after.counts[k]>=[1,3,6][j])shelfGlows.push({x:57+(type*3+j)*78,y:58,age:0});
+  save();
+ }
+
  if(e.type==='input')noteInput();
  if(e.type==='load'){endLoop(false,true);beginAttempt();maxView={x:game.s.x,y:game.s.y};tileOffsets.clear();camera=0;fx=[];flights=[];}
  if(e.type==='dig'){for(let i=0;i<8;i++)fx.push({type:'shard',kind:e.kind,x:(e.x+.5)*180,y:420+(e.y+.5)*180,vx:(Math.random()-.5)*250,vy:-Math.random()*240,age:0,life:.35,size:18,spin:i});}
@@ -213,14 +274,25 @@ function handleEvents(){for(const e of game.drain()){
  if(e.type==='fail'){if(loop&&e.reason==='breath')loop.failures++;endLoop(false,true);}
  if(e.type==='win'){if(!testing&&!statsMode)day().levels++;save();}
 }}
+function bm(kind){if(!ready||statsMode)return false;const result=game.bm(kind);handleEvents();return result;}
 function input(kind){if(!ready||statsMode)return false;const result=game.input(kind);handleEvents();return result;}
 canvas.addEventListener('pointerdown',e=>{if(pointer||!ready)return;e.preventDefault();unlockAudio();pointer={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});
-canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer=null;if(Math.hypot(dx,dy)<18)return;input(Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down'));});
+canvas.addEventListener('pointerup',e=>{if(!pointer||pointer.id!==e.pointerId)return;e.preventDefault();const dx=e.clientX-pointer.x,dy=e.clientY-pointer.y;pointer=null;if(Math.hypot(dx,dy)<18){tapUI(e.clientX,e.clientY);return;}input(Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'up':'down'));});
 canvas.addEventListener('pointercancel',()=>{pointer=null;});
 addEventListener('keydown',e=>{const k={ArrowLeft:'left',ArrowRight:'right',ArrowDown:'down',ArrowUp:'up'}[e.key];if(k){e.preventDefault();if(!e.repeat){unlockAudio();input(k);}}});
 document.addEventListener('visibilitychange',()=>{pointer=null;last=0;save();});
 addEventListener('pagehide',()=>{endLoop(false,true);save();});
-function animate(dt){clock+=dt;shake=Math.max(0,shake-dt);const target=Math.max(0,420+(game.s.y+1)*180-780);camera+=(target-camera)*(1-Math.exp(-dt*9));
+function tapUI(clientX,clientY){
+ const x=(clientX-viewport.left)/viewport.scale,y=(clientY-viewport.top)/viewport.scale,s=game.s;
+ if(x<0||x>1080||y<0||y>2340||s.phase==='ad')return;
+ if(s.pass){if(s.pass==='open'){if(x>=270&&x<=810&&y>=1270&&y<=1390)bm('purchase');else if(x>=800&&y>=700&&y<=820)bm('close');}return;}
+ if(x>=980&&y<=110){bm('pass');return;}
+ if(s.offer&&x>=220&&x<=860&&y>=1800&&y<=1940)bm(s.offer);
+}
+function animate(dt){
+ for(const f of shelfFlights)f.age+=dt;shelfFlights=shelfFlights.filter(f=>f.age<f.life);
+ for(const f of shelfGlows){const before=f.age;f.age+=dt;if(before<.85&&f.age>=.85)popSound(3);}shelfGlows=shelfGlows.filter(f=>f.age<1.8);
+clock+=dt;shake=Math.max(0,shake-dt);const target=Math.max(0,420+(game.s.y+1)*180-780);camera+=(target-camera)*(1-Math.exp(-dt*9));
  maxView.x+=(game.s.x-maxView.x)*(1-Math.exp(-dt*22));maxView.y+=(game.s.y-maxView.y)*(1-Math.exp(-dt*22));
  for(const [id,value] of tileOffsets){const n=value*Math.exp(-dt*26);if(Math.abs(n)<1)tileOffsets.delete(id);else tileOffsets.set(id,n);}
  for(const f of fx){f.age+=dt;if(f.vx!==undefined){f.x+=f.vx*dt;f.y+=f.vy*dt;f.vy+=f.type==='shard'?650*dt:0;}}
@@ -239,13 +311,33 @@ function drawEffects(){for(const f of fx){const t=f.age/f.life,y=f.y-camera;ctx.
  else{ctx.fillStyle='#fffde1';ctx.beginPath();ctx.arc(f.x,y,f.size*(1-t*.6),0,Math.PI*2);ctx.fill();if(f.size>8){ctx.fillRect(f.x-2,y-f.size*1.8,4,f.size*3.6);ctx.fillRect(f.x-f.size*1.8,y-2,f.size*3.6,4);}}
  ctx.restore();}}
 function heart(x,y,filled){ctx.save();ctx.translate(x,y);ctx.scale(1.8,1.8);ctx.beginPath();ctx.moveTo(0,7);ctx.bezierCurveTo(-27,-9,-17,-25,0,-13);ctx.bezierCurveTo(17,-25,27,-9,0,7);ctx.fillStyle=filled?'#f08391':'#e4d6db';ctx.fill();ctx.restore();}
-function hud(){
- rounded(38,43,380,82,41,'rgba(255,255,255,.95)');rounded(58,62,338,43,22,'#deecef');const width=338*game.s.breath/90;if(width>0)rounded(58,62,width,43,Math.min(22,width/2),game.s.breath<20?'#f0a2a6':'#7bcbe6');
- for(let i=0;i<3;i++)heart(76+i*64,166,i<game.s.hearts);
- const count=game.s.total;rounded(1080-54-count*86,39,count*86+20,90,45,'rgba(255,255,255,.95)');
+function label(text,x,y,size=34,color='#554454'){ctx.fillStyle=color;ctx.font=`${size}px system-ui`;ctx.textAlign='center';ctx.fillText(text,x,y);ctx.textAlign='start';}
+function shelfHUD(){
+ for(const [type,k] of Object.keys(TREASURES).entries())for(let j=0;j<3;j++){
+  const x=18+(type*3+j)*78,filled=game.meta.counts[k]>=[1,3,6][j]&&!shelfGlows.some(f=>f.x===x+39&&f.age<.85);
+  rounded(x,18,74,82,12,'rgba(255,250,239,.96)',filled?'#e7bf6a':'#c8bdc9');
+  ctx.save();ctx.globalAlpha=filled?1:.3;ctx.filter=filled?'none':'grayscale(1)';drawImage(TREASURES[k],x+10,24,54,54);ctx.restore();label('★',x+37,94,19,filled?'#d8a33a':'#bbb0bd');
+ }
+ rounded(982,18,80,82,18,'#dbc2e7');label('패스',1022,69,24);
+ label(`${game.s.level+1}층 · 열린 층 ${game.meta.unlocked}/5`,775,260,28,'#fff');
+ for(const f of shelfFlights){const t=f.age/f.life;drawImage(TREASURES[f.kind],f.x+(f.tx-f.x)*t-30,f.y+(f.ty-f.y)*t-Math.sin(t*Math.PI)*110-30,60,60);}
+ for(const f of shelfGlows)if(f.age>=.85){const t=(f.age-.85)/.95;ctx.save();ctx.globalAlpha=1-t;ctx.strokeStyle='#fff3ad';ctx.lineWidth=5;ctx.beginPath();ctx.arc(f.x,f.y,38+t*55,0,Math.PI*2);ctx.stroke();label('✦',f.x,f.y+15,65,'#fff7bf');ctx.restore();}
+}
+function metaOverlay(){const s=game.s;
+ if(s.offer){rounded(220,1800,640,140,50,'#fff5d9','#d3b67b');label(s.offer==='breath'?'한 숨 더':'두 배로',540,1860,44);label(`광고 · ${Math.max(1,Math.ceil(s.offerTime))}`,540,1910,28);}
+ if(s.pass){rounded(130,700,820,760,40,'#fcf4ed');label('꾸미기 패스',540,800,48);label('×',875,780,48);
+  for(let i=0;i<6;i++){const x=240+(i%3)*240,y=860+Math.floor(i/3)*190;rounded(x-70,y,140,130,30,'#cbc6d7');label(i<3?'후디':'진열장 장식',x,y+165,27);}
+  rounded(270,1270,540,120,40,'#ddc3e6');label(s.pass==='pending'?'준비 중':'패스',540,1348,44);
+ }
+ if(s.phase==='ad'){rounded(0,0,1080,2340,0,'rgba(15,10,20,.94)');label('광고 보는 중',540,1100,56,'white');label(String(Math.max(1,Math.ceil(s.adTime))),540,1240,100,'white');}
+}
+function hud(){shelfHUD();
+ rounded(38,133,380,82,41,'rgba(255,255,255,.95)');rounded(58,152,338,43,22,'#deecef');const width=338*game.s.breath/game.s.breathMax;if(width>0)rounded(58,152,width,43,Math.min(22,width/2),game.s.breath<20?'#f0a2a6':'#7bcbe6');
+ for(let i=0;i<3;i++)heart(76+i*64,256,i<game.s.hearts);
+ const count=game.s.total;rounded(1080-54-count*86,129,count*86+20,90,45,'rgba(255,255,255,.95)');
  const planned=LEVELS[game.s.level].join('').split('').filter(k=>TREASURES[k]);const remaining=planned.slice();for(const c of game.s.collected){const i=remaining.indexOf(c.kind);if(i>=0)remaining.splice(i,1);}
  for(let i=0;i<count;i++){const p=slotPoint(i),filled=game.s.collected[i],flying=flights.some(f=>f.slot===i);ctx.save();ctx.globalAlpha=filled&&!flying?1:.24;const kind=filled?.kind||remaining[i-game.s.collected.length];if(kind)drawImage(TREASURES[kind],p.x-32,p.y-33,64,64);ctx.restore();}
- if(day().seconds>=300&&!testing){ctx.fillStyle='white';ctx.font='28px system-ui';ctx.fillText('✓',432,98);}
+ if(day().seconds>=300&&!testing){ctx.fillStyle='white';ctx.font='28px system-ui';ctx.fillText('✓',432,188);}
  // Minimal directional hints are HUD, never an inter-level overlay.
  ctx.save();ctx.globalAlpha=.68;ctx.strokeStyle='white';ctx.lineWidth=6;ctx.lineCap='round';ctx.lineJoin='round';for(let i=0;i<4;i++){ctx.save();ctx.translate(1080/2+(i-1.5)*70,2240);ctx.rotate([Math.PI/2,-Math.PI/2,0,Math.PI][i]);ctx.beginPath();ctx.moveTo(0,-20);ctx.lineTo(0,20);ctx.moveTo(-12,7);ctx.lineTo(0,20);ctx.lineTo(12,7);ctx.stroke();ctx.restore();}ctx.restore();
  for(const f of flights){const t=Math.min(1,f.age/f.life),p=slotPoint(f.slot),q=1-t,x=q*q*f.x+2*q*t*(f.x+100)+t*t*p.x,y=q*q*f.y+2*q*t*(Math.min(f.y,p.y)-280)+t*t*p.y,size=126*(1-t)+64*t;ctx.save();ctx.translate(x,y);ctx.rotate(Math.sin(t*Math.PI)*.22);drawImage(TREASURES[f.kind],-size/2,-size/2,size,size);ctx.restore();}
@@ -255,15 +347,17 @@ function render(){
  ctx.save();if(shake>0)ctx.translate(Math.sin(clock*113)*shake*40,Math.cos(clock*97)*shake*30);
  drawSoil();if(camera<420){const a=assets.yard;if(a?.status==='loaded'){ctx.drawImage(a.img,0,0,a.img.width,1,0,-camera,1080,61);drawImage('yard',0,60-camera,1080,360);}else drawImage('yard',0,-camera,1080,420);}
  const s=game.s;for(let y=0;y<s.grid.length;y++)for(let x=0;x<6;x++){const t=s.grid[y][x];if(!t)continue;const py=420+y*180-camera+(tileOffsets.get(t.id)||0);if(py>2340||py<-180)continue;const wobble=t.kind==='S'&&t.warn>0&&!t.falling?Math.sin(clock*70)*5:0;drawImage(t.kind==='S'&&t.warn>0?'stone-crack':NAMES[t.kind],x*180+2+wobble,py+2,176,176);}
- drawMax();drawEffects();ctx.restore();hud();ctx.restore();
+ drawMax();drawEffects();ctx.restore();hud();metaOverlay();ctx.restore();
 }
-function advance(dt,log=true){if(log)loggingTime(dt);game.step(dt);handleEvents();animate(dt);}
+function advance(dt,log=true){let left=dt;while(left>1e-8){const slice=Math.min(.02,left);if(log)loggingTime(slice);game.step(slice);handleEvents();animate(slice);left-=slice;}}
 let last=0;
 function frame(ts){if(last&&ready&&!document.hidden&&!statsMode)advance(Math.min((ts-last)/1000,.1));last=ts;if(ready&&!statsMode)render();requestAnimationFrame(frame);}
-function enableTesting(){if(!testing){endLoop(false,true);testing=true;loop=null;attempt=null;}}
+function enableTesting(){if(!testing){testing=true;loop=null;attempt=null;}}
 window.T={
  state:()=>JSON.parse(JSON.stringify({...game.s,camera,coreLoop:CORE_LOOP,checkMode:testing})),
- step(dt){enableTesting();advance(dt,false);render();return this.state();},
+ step(dt){enableTesting();if(!Number.isFinite(dt)||dt<0||dt>600)throw new RangeError('dt must be seconds (0–600)');advance(dt,false);render();return this.state();},
+ shelf:()=>game.shelf(),
+ bm(kind){enableTesting();const result=bm(kind);render();return result;},
  input(kind,...args){enableTesting();if(kind==='swipe')kind=typeof args[0]==='string'?args[0]:Math.abs(args[0])>Math.abs(args[1])?(args[0]<0?'left':'right'):(args[1]<0?'up':'down');return input(kind);},
  load(n){enableTesting();if(!Number.isInteger(n)||n<1||n>5)throw new RangeError('load expects level 1–5');game.load(n-1);handleEvents();render();return this.state();},
  assets:()=>({ready,total:Object.keys(ASSET_FILES).length,loaded:Object.values(assets).filter(a=>a.status==='loaded').length,pending:Object.values(assets).filter(a=>a.status==='pending').length,failed:[...failures],silhouettes:[...silhouettes]}),
