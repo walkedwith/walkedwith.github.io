@@ -8748,6 +8748,9 @@ const MAX_MASTER_NATIVE_LOSSLESS=new Set([
   'art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png',
   'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png',
   'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png',
+  // 웅크린 장의 키를 되돌린 시트(10-21) — 얼굴 크기로 맞췄다. 손으로 고른 배율이라 AVIF 대신 무손실 WebP.
+  'art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.png',
+  'art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.png',
   // 뒷걸음은 투명 AVIF 내보내기가 아직 없다. 목록에서 빠져 있는 동안 네이티브가
   // 존재하지 않는 .avif 를 요청해 스프라이트가 통째로 비었다.
   'art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png'
@@ -8817,7 +8820,7 @@ function chapterMaxMasterWalkV1SheetSourceForDirection(dirR,dirC){
 }
 function chapterMaxMasterPushV1SheetSource(){
   const skin=chapterMaxSkinSheet('push','left'); if(skin) return skin;
-  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.png');
+  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.png');
 }
 function chapterMaxMasterPushV1SheetSourceForDirection(dirR,dirC){
   const skin=chapterMaxSkinSheetForDirection('push',dirR,dirC); if(skin) return skin;
@@ -8861,7 +8864,7 @@ function chapterMaxMasterSitV1MirrorsRight(dirR,dirC){
 }
 function chapterMaxMasterVictoryV1SheetSource(){
   const skin=chapterMaxSkinSheet('victory','front'); if(skin) return skin;
-  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.png');
+  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.png');
 }
 function chapterMaxMasterIdleV1SheetSource(){
   const skin=chapterMaxSkinSheet('idle','front'); if(skin) return skin;
