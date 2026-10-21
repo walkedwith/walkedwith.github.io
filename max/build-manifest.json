@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-21T02:20:49.032Z",
-  "totalBytes": 35439877,
+  "generatedAt": "2026-10-21T05:09:23.766Z",
+  "totalBytes": 35788566,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3490416
+      "bytes": 3491536
     },
     {
       "path": "css/game.css",
@@ -443,9 +443,9 @@
       "bytes": 60112
     },
     {
-      "path": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.avif",
-      "source": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.avif",
-      "bytes": 70357
+      "path": "art/max-master/motions/canonical/max-idle-master-v2-front-8f.webp",
+      "source": "art/max-master/motions/canonical/max-idle-master-v2-front-8f.webp",
+      "bytes": 212718
     },
     {
       "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.webp",
@@ -453,19 +453,19 @@
       "bytes": 175732
     },
     {
-      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
-      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
-      "bytes": 48258
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v8-up-8f.webp",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v8-up-8f.webp",
+      "bytes": 119024
     },
     {
-      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp",
-      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp",
-      "bytes": 48310
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-down-8f.webp",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-down-8f.webp",
+      "bytes": 118328
     },
     {
-      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.webp",
-      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.webp",
-      "bytes": 44432
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-left-8f.webp",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-left-8f.webp",
+      "bytes": 108856
     },
     {
       "path": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
