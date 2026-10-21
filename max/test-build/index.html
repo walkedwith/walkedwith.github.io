@@ -8745,12 +8745,14 @@ function chapterMaxMasterDrawScale(){
 const MAX_MASTER_NATIVE_LOSSLESS=new Set([
   'art/max-master/motions/canonical/max-run-master-v1-left-8f.png',
   'art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png',
-  'art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png',
-  'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png',
-  'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png',
+  'art/max-master/motions/canonical/max-sit-to-sleep-master-v8-up-8f.png',
+  'art/max-master/motions/canonical/max-sit-to-sleep-master-v4-down-8f.png',
+  'art/max-master/motions/canonical/max-sit-to-sleep-master-v4-left-8f.png',
   // 웅크린 장의 키를 되돌린 시트(10-21) — 얼굴 크기로 맞췄다. 손으로 고른 배율이라 AVIF 대신 무손실 WebP.
   'art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.png',
   'art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.png',
+  // 바깥 회색 실선을 털색으로 바꾼 정면 대기(10-21) — 다른 시트처럼 실선이 없다.
+  'art/max-master/motions/canonical/max-idle-master-v2-front-8f.png',
   // 뒷걸음은 투명 AVIF 내보내기가 아직 없다. 목록에서 빠져 있는 동안 네이티브가
   // 존재하지 않는 .avif 를 요청해 스프라이트가 통째로 비었다.
   'art/max-master/motions/canonical/max-backstep-master-v1-left-8f.png'
@@ -8868,7 +8870,7 @@ function chapterMaxMasterVictoryV1SheetSource(){
 }
 function chapterMaxMasterIdleV1SheetSource(){
   const skin=chapterMaxSkinSheet('idle','front'); if(skin) return skin;
-  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-idle-master-v1-front-8f.png');
+  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-idle-master-v2-front-8f.png');
 }
 function chapterMaxMasterStretchV1SheetSource(){
   return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-stretch-master-v1-front-8f.png');
@@ -8880,9 +8882,9 @@ function chapterMaxMasterSitSleepV2SheetSourceForDirection(dirR,dirC){
     return chapterMaxRuntimeSheet('art/max-master/motions/skins/max-garden-keeper-sleep-left-8f-runtime.png');
   const skin=chapterMaxSkinSheetForDirection('sleep',dirR,dirC); if(skin) return skin;
   if(Math.abs(dirR)>Math.abs(dirC)) return chapterMaxRuntimeSheet(dirR<0
-    ?'art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.png'
-    :'art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.png');
-  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.png');
+    ?'art/max-master/motions/canonical/max-sit-to-sleep-master-v8-up-8f.png'
+    :'art/max-master/motions/canonical/max-sit-to-sleep-master-v4-down-8f.png');
+  return chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-sit-to-sleep-master-v4-left-8f.png');
 }
 function chapterMaxMasterSitSleepV2MirrorsRight(dirR,dirC){
   return Math.abs(dirC)>Math.abs(dirR) && dirC>0;
@@ -23718,7 +23720,7 @@ const mirImg={};
 function mirSheet(k){ const key=k||'__base'; let im=mirImg[key];
   if(!im && typeof Image==='function'){ im=mirImg[key]=new Image(); im.decoding='async';
     if(k) im.src=chapterMaxRuntimeSheet('art/max-master/motions/skins/max-'+k+'-idle-front-8f-runtime.png');
-    else { const src=chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-idle-master-v1-front-8f.png'); im.src=src; } }
+    else { const src=chapterMaxRuntimeSheet('art/max-master/motions/canonical/max-idle-master-v2-front-8f.png'); im.src=src; } }
   return im; }
 function mirList(){ return [null].concat(hoodOwned()); }
 function mirDrawMax(g,k,x,y,s){ const im=mirSheet(k); if(!(im && im.complete && im.naturalWidth)) return;   // 대기 앞모습 시트 한 칸 — 발을 y 에
@@ -25806,6 +25808,7 @@ function tryMove(dr,dc){
     if(dr && !dc) dog.protoFromC=dog.c; else if(dc && !dr) dog.protoFromR=dog.r;
     dog.protoMoveT=0;
     dog.protoMoveDur=chapterMaxPrototypeDuration(!!(res.pushed||res.door));
+    if(res.pushed) maxStepFx(dog.r-dr,dog.c-dc,dr,dc,true);
     // 한 타일은 보행 주기의 정확히 절반이다. 다음 칸은 반대 발이 앞으로
     // 나온 구간에서 시작하므로, 연속 이동해도 같은 발부터 미끄러지지 않는다.
     dog.walkStride=dog.walkStride===0?1:0;
@@ -32158,6 +32161,12 @@ function chapterMaxNativeView(lungeR,lungeC,face){
   if(Math.abs(lungeC)>Math.abs(lungeR)) return {view:'side',face:lungeC<0?-1:1};
   if(lungeR<0) return {view:'back',face:face<0?-1:1};
   return {view:'front',face:face<0?-1:1};
+}
+// 맥스가 칸에 닿거나(push=false) 밀기 시작할 때(push=true) 발밑에 먼지가 인다(10-21 사람 채택 — 풀잎·골 앞 두근은 접음).
+function maxStepFx(r,c,dr,dc,push){
+  const t=tileAt(L,filled,r,c), wet=t===WATER||t===ICE||districtOfLv(level)===2, col=wet?'#F2FAFD':'#EFE4C4';   // 욕실은 흙먼지 대신 물기
+  for(let i=0;i<(push?3:2);i++){ const side=i%2?1:-1;
+    fx.push({kind:'puff', r, c:c+(dc? -dc*0.18 : side*0.16), dx:(dc? -dc : side)*(0.6+Math.random()*0.5), t:0.55, t0:0.55, col}); }
 }
 function chapterMaxPrototypeDuration(pushing){
   if(MAX_MASTER_WALK_V1_ENABLED) return pushing?.38:.20;
@@ -41223,6 +41232,7 @@ function render(){
     // 한 칸 동안 반 주기만 진행한다. 다음 칸에서 반대 구간이 이어져
     // 왼발·오른발이 교차하며 타일 사이를 실제로 걷는 것처럼 읽힌다.
     dog.walkT=(dog.walkT||0)+sp0*0.50; dog.moving=dog.protoMoveT<1;
+    if(dog.protoMoveT>=1) maxStepFx(dog.r,dog.c,dog.lungeR||0,dog.lungeC||0,false);
   } else if(!frozen){ let dk=dog.heavy>0? DOG_K*0.42 : DOG_K;
     const pr0=dog.rr, pc0=dog.cc;
     const kD=decay(dk); dog.rr+=(dog.r-dog.rr)*kD; dog.cc+=(dog.c-dog.cc)*kD;
@@ -41425,7 +41435,10 @@ function render(){
     ctx.beginPath(); ctx.moveTo(0,hs*1.5); ctx.bezierCurveTo(-hs*2,-hs*0.5,-hs*1.5,-hs*2.4,0,-hs*1.4);
     ctx.bezierCurveTo(hs*1.5,-hs*2.4,hs*2,-hs*0.5,0,hs*1.5); ctx.fill(); ctx.restore(); ctx.globalAlpha=1;
   }
-  for(const p of fx){ ctx.globalAlpha=Math.max(0,p.t); ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(cx(p.c)+p.vx*cell*0.2, cy(p.r)+p.vy*cell*0.2, cell*0.055,0,7); ctx.fill(); }
+  for(const p of fx){
+    if(p.kind==='puff'){ const u=1-p.t/p.t0; ctx.globalAlpha=0.85*(1-u); ctx.fillStyle=p.col; ctx.beginPath();   // 맥스 발밑 먼지
+      ctx.arc(cx(p.c)+p.dx*cell*u*0.38, cy(p.r)+cell*0.40-u*cell*0.14, cell*(0.07+0.08*u),0,7); ctx.fill(); continue; }
+    ctx.globalAlpha=Math.max(0,p.t); ctx.fillStyle=p.col; ctx.beginPath(); ctx.arc(cx(p.c)+p.vx*cell*0.2, cy(p.r)+p.vy*cell*0.2, cell*0.055,0,7); ctx.fill(); }
 
   // 조준 결과: 맥스가 설 자리와 공의 이동 방향을 구분한다.
   if(aimOn() && cell){
