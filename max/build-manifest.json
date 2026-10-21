@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-10-20T14:10:25.506Z",
-  "totalBytes": 35222506,
+  "generatedAt": "2026-10-21T02:20:49.032Z",
+  "totalBytes": 35439877,
   "files": [
     {
       "path": "index.html",
       "source": "dig.html",
-      "bytes": 3490089
+      "bytes": 3490416
     },
     {
       "path": "css/game.css",
@@ -398,9 +398,9 @@
       "bytes": 57516
     },
     {
-      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.avif",
-      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.avif",
-      "bytes": 65217
+      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.webp",
+      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.webp",
+      "bytes": 167664
     },
     {
       "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
@@ -448,9 +448,9 @@
       "bytes": 70357
     },
     {
-      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.avif",
-      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.avif",
-      "bytes": 61135
+      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.webp",
+      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.webp",
+      "bytes": 175732
     },
     {
       "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
