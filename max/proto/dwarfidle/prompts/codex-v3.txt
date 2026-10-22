@@ -1,0 +1,15 @@
+proto/dwarfidle/index.html 을 v3 「스테이지 진입형」으로 바꿔라(지금 v2 코드를 고친다 — 그림·3/4 대형·연출·기록 띠는 유지하고 규칙·화면 흐름을 교체). 쓰는 파일: proto/dwarfidle/index.html, proto/dwarfidle/tools/check.cjs, proto/dwarfidle/codex-report.txt 만. art/·BALANCE.md·balance_sim.py 수정 금지, 커밋 금지.
+읽기(정본, 전부): proto/dwarfidle/IDEA.md 「코어 루프」「규칙」1~11「페이스 목표」(봇 행동 포함), proto/dwarfidle/BALANCE.md §3·§4(스탯 표·대상 우선순위·수치)·§5(기대 결과), proto/dwarfidle/tools/balance_sim.py(같은 규칙의 파이썬 흉내 — RULES 를 이것과 같은 수치·같은 판정으로 옮긴다. 규칙 충돌 시 IDEA > BALANCE > sim), proto/dwarfidle/ART.md §3 v3 줄, proto/AGENTS.md §2·§2a·§2b·§4·§4a·§5. 나머지는 필요할 때만.
+규칙과 화면 분리(§2a)·페이스 봇(§2b) 그대로: RULES 구역, 논리 명령만, 틱, 난수 둘, 연출은 events.
+할 것:
+1. RULES 교체 = IDEA 「규칙」 1~11. 명령: {k:'sortie',stage}(깬 판 또는 다음 판만 허용) · {k:'skill',who} · {k:'buy',who:0..4} / {k:'buy',item:'pick'} · {k:'close'}(결과 카드 닫기) · {k:'resume',seconds} · {k:'chest'}. 상태에 stage(1..30)·cleared(깬 최고 판)·phase('hold'|'fight'|'result')·party[i]{hp,max,atk,dfn,interval,level,gauge}·enemies[]{kind,hp,max,atk,interval,target,slamAt,stunUntil}·shieldUntil·tauntUntil·fightTick·result{won,sec,bossLeft,powerGap,ore}·power·권장 전투력 표. data 블록 balance 에 BALANCE §3·§4 수치 전부(코드에 숫자 박지 말 것). v2 의 걷기·사냥·도전·무리 3번·30% 부활은 지운다.
+2. 요새 화면(phase hold): 전투 띠에 원정대 대형 그대로 서 있고(숨쉬기), 적 자리에 「출정 B○-○」 단추(ui-btn-gold, 44pt 이상) + 그 위 내 전투력 / 권장 전투력 두 숫자(모자라면 권장 쪽 붉게). 깊이 막대는 층 10 × 판 3 점: 깬 판·다음 판(빛남)·잠긴 판. 막대의 깬 판/다음 판 점을 탭하면 그 판으로 출정 대상 바뀜(논리 명령 {k:'pick_stage',stage}).
+3. 전투(phase fight): 출정 탭 → 적이 오른쪽에서 등장(짧은 들어옴 연출) → 자동 전투. 대장 예고: slamAt 90틱 전부터 대장 스케일 1.15·붉은 테·화면 가장자리 붉은 비네트, 내려찍기 때 흔들림 크게. 도발 중 방패병 발밑 고리. 90초 타이머는 작은 호(원) 하나로만.
+4. 결과 카드(phase result, ui-panel 모달): 승 = 「B○-○ 돌파」 + 초 + 광석 / 패 = 「강해져서 다시」 + 대장 체력 % 막대(대장전) + 「권장 전투력까지 −N」 + 광석(30%). 탭하면 요새. 승리 연출(입자·빛·효과음)·홀 복원·화로 점화는 v2 것 재사용.
+5. 대장간 창: 동료 줄 5(작은 초상 원·이름·Lv·비용·살 수 있으면 빛남·창 5 로 잠기면 자물쇠 + 「다른 동료부터」) + 곡괭이 줄(다음 단계 이름·아이콘·비용). 레벨업 때 그 동료 번쩍.
+6. 방치: resume 는 깬 최고 판 기준 분당 광석(IDEA 9 식) × 분. 상자 단추·연출 유지.
+7. 기록(§4a): 바퀴 = 판 하나(출정→결과 닫힘). 강화 선택 로그(틱·who/pick·레벨·광석 잔액)를 저장해 ?stats 에 「강화 선택」 표로 따로.
+8. 페이스 봇 T.bot(seconds): IDEA 「봇 행동」 그대로(필살기 타이밍·역할 우선 강화·저축·실패 뒤 지난 판 반복·두 번째 실패 뒤 resume 3600). metrics 다섯(firstB5BossMin·b5FailToWinMin·b10WinMin·b5NoSkillWinRate·bossFightSec)을 돌려주고 data pace 에 IDEA 표 min/max/why. 못 닿은 지표 null. 렌더 없이 RULES 만 돌려 빠르게. check.cjs 「페이스」 검사는 T.bot(7200). 범위 밖이면 data balance 를 조정하되 BALANCE §3·§4 의 구조(배수·우선순위)는 지키고 바꾼 수치를 보고서에 적는다.
+유지: 3/4 그림·대형·발 y 정렬·그림자·머리 위 체력 막대(headY)·필살기 연출·시작 장면·기록 띠·의무 5분·?check·?stats·?scene(hold·fight·result·boss·forge·chest·hall·fire 장면 추가)·window.T(state, step, input, load, assets, check, bot)·저장(스테이지·레벨·곡괭이·광석·상자·홀·화로 복원).
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 30개를 v3 규칙에 맞게 고쳐 유지(지우지 말고 고침). 추가 — 출정은 깬 판·다음 판만 · 출정 초기 상태(가득·게이지 50) · 90초 실패 · 대상 우선순위 다섯(도발 > 암살 > 앞줄, 내려찍기는 전원) · 예고 중 섬광이 내려찍기를 취소 · 창 5 잠김 · 실패 광석 30% · 전투력 식 · resume 가 깬 최고 판 기준 · 결과 카드가 입력을 막지 않고 탭 한 번에 닫힘 · 375×667·430×932 에서 요새·전투·결과·대장간 네 화면 겹침 0 · 페이스 다섯 지표 범위 안 · 상태 JSON 왕복. 실행 node --jitless proto/dwarfidle/tools/check.cjs(전체 3분 안). 보고 codex-report.txt 12줄 이하(되는 것·뺀 것·바꾼 수치·확인 못 한 것).
