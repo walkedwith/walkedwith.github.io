@@ -1,0 +1,12 @@
+proto/dwarfidle/index.html 의 전투 화면을 AFK 아레나식 3/4 시점 대형 배치로 바꿔라(지금 코드를 고친다). 쓰는 파일: proto/dwarfidle/index.html, proto/dwarfidle/tools/check.cjs, proto/dwarfidle/codex-report.txt 만. art/ 수정 금지, 커밋 금지.
+읽기: proto/AGENTS.md §2·§2a·§3·§5, proto/dwarfidle/IDEA.md 「규칙」 1(대형·맞는 순서), proto/dwarfidle/SPEC.md 맨 위 「시점」 줄과 원정대·적·배경 표, 목표 화면 proto/dwarfidle/art/mock/mock-afk.png(전투 띠 배치를 따른다. 그 안 영어·보석·단추 셋은 예시).
+규칙과 화면 분리(proto/AGENTS.md §2a)·페이스 봇(§2b) 그대로: 규칙은 RULES 구역, 논리 명령만, 틱, 난수 둘, 연출은 events.
+할 것:
+1. RULES: IDEA 「규칙」 1 대로 적이 치는 대상 = 앞줄(방패병 먼저, 다음 주인공) → 앞줄이 다 쓰러지면 뒷줄. 나머지 규칙·수치는 그대로 두고, 바뀐 대상 순서 때문에 페이스 네 지표가 범위 밖이면 data balance 만 조금 고쳐 다시 맞춘다.
+2. 전투 띠 = mock-afk.png 처럼 3/4 내려다봄: battle-bg(이제 1080×1620, 위 30% 벽·아래 70% 원근 바닥)를 바닥이 넉넉히 보이게 잘라 깔고, 원정대는 왼쪽에 앞줄 2(방패병 앞 위쪽·주인공 앞 아래쪽, 적과 가까운 쪽) · 뒷줄 3(화약꾼·등불지기·요리사, 왼쪽으로 물러나 위아래로 엇갈림), 적은 오른쪽에 1~3마리를 위아래로 엇갈려 세움(대장은 가운데 크게). 위쪽(먼) 줄은 0.9배쯤 작게.
+3. 그리기 순서 = 발 y 오름차순(아래쪽이 앞). 발밑 둥근 그림자(코드, 반투명 타원). 체력 막대·피해 숫자는 각자 머리 위.
+4. 움직임: 동료 공격 돌진·적 튀기는 각자 상대 쪽으로 비스듬히(대각선) 짧게. 무리 사이 걷기는 대형 그대로 오른쪽으로 걷고 배경이 흐름. 필살기 이펙트·받는 연출은 그대로.
+5. 그림 규격은 그대로(셀·칸·피벗 같음, 주인공 시트 256 셀 8칸 발 y 234, 동료·적 512 셀). 그림이 3/4 로 새로 들어오지만 파일명은 같다 — 표시 크기만 mock-afk 와 비슷하게 조정(앞줄 캐릭터 키가 전투 띠 높이의 약 30%).
+유지: 지금 되는 것 전부 — 규칙·초상 탭·대장간·사냥/도전·상자·홀 복원·화로 점화·시작 장면·기록 띠·의무 5분·?check·?stats·?scene·window.T(state, step, input, load, assets, check, bot)·저장.
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 26개 유지(바뀐 규칙에 맞게 고침). 추가 — 적 공격 대상이 앞줄 먼저·앞줄 전멸 뒤 뒷줄 · 그리기 순서가 발 y 오름차순 · 앞줄이 뒷줄보다 적에 가까움 · 375×667·430×932 에서 캐릭터가 전투 띠 밖(초상·깊이 막대 위)으로 나가지 않음 · 페이스 네 지표 범위 안. 실행 node --jitless proto/dwarfidle/tools/check.cjs. 보고 codex-report.txt 12줄 이하(되는 것·바꾼 수치·확인 못 한 것).
