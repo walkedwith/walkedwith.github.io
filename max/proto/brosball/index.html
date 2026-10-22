@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="theme-color" content="#eee8f2">
+<link rel="manifest" href='data:application/manifest+json,{"name":"Brosball","display":"standalone","start_url":"./index.html","background_color":"%23eee8f2","theme_color":"%23eee8f2"}'>
+<title></title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;background:#eee8f2}
+#game{display:block;width:100%;height:100dvh;touch-action:none}
+#insets{position:fixed;visibility:hidden;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+#stats{display:none;position:fixed;inset:0;overflow:auto;touch-action:pan-y;background:#fff;color:#302638;padding:20px;font:14px system-ui}
+table{border-collapse:collapse;margin:12px 0}th,td{padding:8px;border:1px solid #b8acbf;text-align:left}button{font:inherit;min-width:44px;min-height:44px}
+</style></head><body><canvas id="game"></canvas><div id="insets"></div><div id="stats"></div>
+<script type="application/json" id="data">{"pace":{"avgSeconds":{"min":30,"max":150,"why":"시뮬 초(조준 시간 제외, 턴당 ~2.5초×20) — 사람 경기는 여기에 조준 ~5초×10턴"},"randomWinRate":{"min":0,"max":25,"why":"무작위로는 못 이김"},"searchWinRate":{"min":35,"max":65,"why":"같은 탐색 vs AI 3"},"combosPerGame":{"min":0.2,"max":2,"why":"콤보 손맛 (30경기 표본 잡음 ±0.1)"},"goalsPerGame":{"min":2,"max":5,"why":"골키퍼 균형"},"savesPerGame":{"min":1,"max":6,"why":"다이빙이 보이되 다 막지는 않음"},"easySearchWinRate":{"min":70,"max":100,"why":"탐색 vs AI 1 — 난이도 차이가 분명하면 됨"}},"strings":{"brosball.tap":"탭하면 +1","brosball.aria":"형제 골목 축구. 노란 팀 선수를 뒤로 끌어 놓으세요.","brosball.loading":"로딩 {percent}%","brosball.score":"점수 {score}","brosball.duty.done":"의무 5분 ✓","brosball.duty.progress":"{seconds} / 300초","brosball.duty":"의무 5분","brosball.validation":"검증 시작","brosball.ad.button":"▶ 보상 광고","brosball.share":"공유","brosball.wanted":"오늘 켜고 싶었나?","brosball.yes":"예","brosball.no":"아니오","brosball.ad.playing":"광고 보는 중","brosball.check":"CHECK","brosball.check.ok":"CHECK ✓","brosball.check.fail":"CHECK 실패","brosball.stats.title":" 기록 · 빌드 ","brosball.stats.bias":"제작자 혼자의 판정, 편향 있음","brosball.stats.loop":"루프 (첫 빌드부터)","brosball.stats.bm":"BM","brosball.stats.social":"소셜","brosball.done":"완료","brosball.progress":"진행 중","brosball.unanswered":"미응답","brosball.column.0":"날짜","brosball.column.1":"모드","brosball.column.2":"실제 초","brosball.column.3":"자발 판수","brosball.column.4":"켜고 싶었나","brosball.column.5":"입력","brosball.column.6":"빌드","brosball.column.7":"판","brosball.column.8":"첫 입력 초","brosball.column.9":"입력 수","brosball.column.10":"시간 초","brosball.column.11":"실패","brosball.column.12":"중단","brosball.column.13":"자발","brosball.column.14":"자리","brosball.column.15":"제시","brosball.column.16":"누름","brosball.column.17":"누름률","brosball.column.18":"수락률","brosball.neighbor.0":"보리","brosball.neighbor.1":"콩이","brosball.neighbor.2":"두부","brosball.neighbor.3":"나리","brosball.neighbor.4":"봄이","brosball.neighbor.5":"초롱","brosball.neighbor.6":"달래","brosball.neighbor.7":"토리","brosball.neighbor.8":"호두","brosball.title":"형제 골목 축구","brosball.save":"막았다!","brosball.thinking":"?","brosball.goal":"골!","brosball.enemyGoal":"상대 골!","brosball.combo":"형제 콤보!","brosball.bounceGoal":"튕겨 골!","brosball.champion":"우리동네 축구왕!","brosball.sticker":"스티커 획득!","brosball.retry":"한 번 더!","brosball.scoreboard":"형제   {home} : {away}   {team}","brosball.sudden":"다음 골 승","brosball.remaining":"남은 {n}턴","brosball.enemyTurn":"상대 턴","brosball.myTurn":"내 턴 · 끌어서 차기","brosball.rolling":"공 굴러가는 중","brosball.turnLine":"{turn}  ·  {action}","brosball.leagueLabel":"{mark}{team}","brosball.star":"★ ","brosball.arrow":"▶ ","brosball.coins":"코인 +{n}","brosball.comboCoins":"형제 콤보 ×{n} +{coins}","brosball.wanted.short":"켜고 싶었나?","brosball.duty.running":"의무 {n} / 300초","brosball.duty.before":"검증 시작 뒤 의무 5분","brosball.check.prefix":"CHECK: {reason}","brosball.check.missing":"그림 없음","brosball.check.needed":"점검 필요","brosball.stats.totals":"누적 코인 {coins} · 콤보 {combos}","brosball.coinColumn":"코인","brosball.comboColumn":"콤보","brosball.players.0":"형","brosball.players.1":"동생","brosball.players.2":"다솜","brosball.players.3":"쌍둥이 A","brosball.players.4":"쌍둥이 B","brosball.players.5":"공구","brosball.league.0":"쌍둥이","brosball.league.1":"문방구","brosball.league.2":"분식집","brosball.league.3":"공터","brosball.league.4":"골목왕"},"physics":{"width":1080,"height":1500,"goalWidth":300,"playerRadius":48,"ballRadius":24,"restitution":0.8,"wallRestitution":0.7,"friction":0.99,"rollFriction":0.04,"settleSpeed":0.03,"minPull":60,"maxPull":360,"speedScale":0.12,"playerMass":1,"ballMass":0.25,"aiThinkTicks":10,"resetTicks":40,"matchEndTicks":60,"turnLimit":20,"winningGoals":3,"pullEpsilon":0.01,"kickPoseTicks":6,"goalPoseTicks":40,"substeps":4,"simulateTicks":600,"previewTicks":60,"diveTicks":12,"trailSpeed":0.15},"players":[{"label":"brosball.players.0","team":0,"power":1.3,"radiusScale":1,"x":350,"y":1000},{"label":"brosball.players.1","team":0,"power":0.8,"radiusScale":1,"x":750,"y":1000},{"label":"brosball.players.2","team":0,"power":1,"radiusScale":1.4,"x":540,"y":1370},{"label":"brosball.players.3","team":1,"power":1.3,"radiusScale":1,"x":730,"y":500},{"label":"brosball.players.4","team":1,"power":0.8,"radiusScale":1,"x":330,"y":500},{"label":"brosball.players.5","team":1,"power":1,"radiusScale":1.4,"x":540,"y":130}],"ai":{"level":3,"directions":[[10000,0],[9239,3827],[7071,7071],[3827,9239],[0,10000],[-3827,9239],[-7071,7071],[-9239,3827],[-10000,0],[-9239,-3827],[-7071,-7071],[-3827,-9239],[0,-10000],[3827,-9239],[7071,-7071],[9239,-3827]],"directionScale":10000,"pullBase":6,"pullRange":31,"pullStep":10,"counts":[24,10,1],"goalScore":1000,"ownGoalScore":-2000,"mateDistance":100,"mateScore":150,"comboScore":200,"enemyDistance":120,"enemyPenalty":80,"keeperDistance":200,"keeperPenalty":120},"league":[{"label":"brosball.league.0","color":"#d8413a"},{"label":"brosball.league.1","color":"#9b67cf"},{"label":"brosball.league.2","color":"#ed8a40"},{"label":"brosball.league.3","color":"#4a9fd0"},{"label":"brosball.league.4","color":"#e0b547"}],"keeper":{"slide":1,"depth":150,"width":200,"reaction":200},"coins":{"win":30,"lose":10,"combo":15},"rng":{"shiftA":13,"shiftB":17,"shiftC":5,"seed":2463534242}}</script>
+<script>
+(()=>{'use strict';
+const DATA=JSON.parse(document.getElementById('data').textContent);
+const COURT_RECT_IMG={x:160,y:185,w:700,h:1105};
+const PROTO='brosball',BUILD='brosball-v1',W=1080,DT=1/60;
+document.title=S('brosball.title');
+function S(key,values={}){return (DATA.strings[key]??key).replace(/\{(\w+)\}/g,(_,id)=>String(values[id]??''));}
+const SPEC=[
+ {file:'court.png',kind:'image',fps:0,loop:false,direction:'none',slice:null,cellW:1024,cellH:1536,cols:1,frames:1,pivotX:0,pivotY:0,displayW:1080,displayH:1620,layer:'bg',required:true},
+ ...['home','away'].map(key=>({file:key+'.png',kind:'sheet',fps:0,loop:false,direction:key==='home'?'up':'down',slice:null,cellW:256,cellH:256,cols:3,frames:9,pivotX:128,pivotY:233,displayW:150,displayH:150,layer:'actors',required:true})),
+ {file:'keeper-dive.png',kind:'sheet',fps:0,loop:false,direction:'none',slice:null,cellW:256,cellH:256,cols:2,frames:2,pivotX:128,pivotY:233,displayW:190,displayH:150,layer:'actors',required:true},
+ {file:'ball.png',kind:'sheet',fps:0,loop:false,direction:'none',slice:null,cellW:256,cellH:256,cols:1,frames:1,pivotX:128,pivotY:233,displayW:60,displayH:60,layer:'items',required:true}
+];
+// === RULES BEGIN ===
+function rngInt(s,n){const r=s.config.rng;let x=s.rng;x^=x<<r.shiftA;x>>>=0;x^=x>>>r.shiftB;x^=x<<r.shiftC;x>>>=0;s.rng=x;return x%n;}
+function copyState(s){return JSON.parse(JSON.stringify(s));}
+function appendEvents(events,items){for(const item of items)events.push(item);}
+function resetPitch(s){const p=s.config.physics;
+ s.players=[];for(let i=0;i<s.config.players.length;i++){const v=copyState(s.config.players[i]);v.id=i;v.r=p.playerRadius*v.radiusScale;v.m=p.playerMass;v.vx=0;v.vy=0;v.poseUntil=0;s.players.push(v);}
+ s.ball={x:p.width/2,y:p.height/2,vx:0,vy:0,r:p.ballRadius,m:p.ballMass};
+ s.wallHits=0;s.lastTouch=null;s.comboReady=false;s.shooter=-1;s.contacts=[];
+}
+function endMatch(s,events){if(s.phase==='end')return;s.phase='end';s.winner=s.score[0]>s.score[1]?0:1;s.jobs=[{at:s.tick+s.config.physics.matchEndTicks,k:'nextMatch'}];
+ s.coins=(s.winner===0?s.config.coins.win:s.config.coins.lose)+s.combos*s.config.coins.combo;events.push({k:'payout',win:s.winner===0,combos:s.combos,coins:s.coins});
+ const beaten=s.opponent;if(s.winner===0){s.stickers[beaten]=true;s.opponent=(beaten+1)%s.config.league.length;}
+ let all=true;for(const sticker of s.stickers)if(!sticker)all=false;const complete=s.winner===0&&all&&!s.leagueComplete;if(complete)s.leagueComplete=true;events.push({k:'matchEnd',winner:s.winner,opponent:beaten,complete});
+}
+function nextTurn(s,events){if(s.turns>=s.config.physics.turnLimit){if(s.score[0]!==s.score[1]){endMatch(s,events);return;}s.suddenDeath=true;}
+ s.team=1-s.team;enterAim(s,events);
+}
+function enterAim(s,events){s.phase='aim';if(s.team===1){s.phase='aiThink';aiTurn(s,events);}else events.push({k:'turn',team:0});}
+function aiTurn(s,events){const cmd=aiPick(s,s.config.ai.level);s.rng=cmd.nextRng;s.pending=cmd;s.jobs=[{at:s.tick+s.config.physics.aiThinkTicks,k:'aiFlick'}];events.push({k:'thinking',who:cmd.who+3,team:1});}
+function flick(s,cmd){const events=[],p=s.config.physics;
+ if(s.phase!=='aim'||cmd.k!=='flick'||!Number.isInteger(cmd.who)||cmd.who<0||cmd.who>2||!Number.isFinite(cmd.dx)||!Number.isFinite(cmd.dy))return {events};
+ const mag=Math.hypot(cmd.dx,cmd.dy);if(mag<p.minPull-p.pullEpsilon||mag>p.maxPull+p.pullEpsilon)return {events};
+ const who=cmd.who+s.team*3,v=s.players[who];v.vx=cmd.dx*p.speedScale*v.power;v.vy=cmd.dy*p.speedScale*v.power;v.poseUntil=s.tick+p.kickPoseTicks;
+ s.shooter=who;s.turns++;s.phase='settle';s.wallHits=0;s.lastTouch=null;s.comboReady=false;s.contacts=[];
+ events.push({k:'flick',who,team:s.team,until:v.poseUntil});return {events};
+}
+function contact(s,a,b,events){let dx=b.x-a.x,dy=b.y-a.y;const reach=a.r+b.r;if(dx*dx+dy*dy>=reach*reach)return;const dist=Math.hypot(dx,dy);
+ if(dist===0){dx=1;dy=0;}const nx=dist?dx/dist:1,ny=dist?dy/dist:0,invA=1/a.m,invB=1/b.m;
+ const overlap=reach-dist;a.x-=nx*overlap*invA/(invA+invB);a.y-=ny*overlap*invA/(invA+invB);b.x+=nx*overlap*invB/(invA+invB);b.y+=ny*overlap*invB/(invA+invB);
+ if(b===s.ball){
+  if(a.team!==s.team)s.comboReady=false;
+  else if(a.id!==s.shooter)s.comboReady=true;
+  s.lastTouch={team:a.team,who:a.id,flicker:s.shooter};
+ }
+ const relative=(b.vx-a.vx)*nx+(b.vy-a.vy)*ny;if(relative>=0)return;
+ if(b===s.ball&&a.id%3===2&&keeperInside(s,a)&&(a.team===0?b.vy>0:b.vy<0))events.push({k:'save',who:a.id,flip:b.vx<0,until:s.tick+s.config.physics.diveTicks});
+ const impulse=-(1+s.config.physics.restitution)*relative/(invA+invB);
+ a.vx-=impulse*invA*nx;a.vy-=impulse*invA*ny;b.vx+=impulse*invB*nx;b.vy+=impulse*invB*ny;
+ events.push({k:'contact',a:a.id??6,b:b.id??6,ax:a.x,ay:a.y,bx:b.x,by:b.y,x:b.x,y:b.y});
+
+}
+function walls(s,b,events){const p=s.config.physics;let bounced=false;
+ if(b.x<b.r){b.x=b.r;if(b.vx<0){b.vx=-b.vx*p.wallRestitution;bounced=true;}}
+ if(b.x>p.width-b.r){b.x=p.width-b.r;if(b.vx>0){b.vx=-b.vx*p.wallRestitution;bounced=true;}}
+ const opening=b===s.ball&&b.x>=(p.width-p.goalWidth)/2&&b.x<=(p.width+p.goalWidth)/2;
+ if(!opening||b!==s.ball){
+  if(b.y<b.r){b.y=b.r;if(b.vy<0){b.vy=-b.vy*p.wallRestitution;bounced=true;}}
+  if(b.y>p.height-b.r){b.y=p.height-b.r;if(b.vy>0){b.vy=-b.vy*p.wallRestitution;bounced=true;}}
+ }
+ if(bounced){if(b===s.ball)s.wallHits++;events.push({k:'bounce',x:b.x,y:b.y});}
+}
+function keeperInside(s,v){const p=s.config.physics,k=s.config.keeper;return Math.abs(v.x-p.width/2)<=k.width/2&&(v.team===0?p.height-v.y:v.y)<=k.depth;}
+function slideKeepers(s){const p=s.config.physics,k=s.config.keeper,b=s.ball;
+ for(const v of [s.players[2],s.players[5]]){const goalY=v.team===0?p.height:0,distance=Math.abs(goalY-b.y);
+  if(!keeperInside(s,v)||(v.team===0?b.vy<=0:b.vy>=0)||distance>k.reaction)continue;
+  const target=b.x+b.vx*(goalY-b.y)/b.vy;
+  v.x=Math.max(p.width/2-k.width/2,Math.min(p.width/2+k.width/2,v.x+Math.max(-k.slide,Math.min(k.slide,target-v.x))));
+ }
+}
+function physicsTick(s){const events=[],p=s.config.physics,bodies=s.players.slice();bodies.push(s.ball);
+ slideKeepers(s);
+ // Four fixed substeps avoid tunnelling at maximum shot speed. Friction is applied once per tick.
+ for(let sub=0;sub<p.substeps;sub++){
+  for(const b of bodies){b.x+=b.vx/p.substeps;b.y+=b.vy/p.substeps;}
+  for(let i=0;i<s.players.length;i++){for(let j=i+1;j<s.players.length;j++)contact(s,s.players[i],s.players[j],events);contact(s,s.players[i],s.ball,events);}
+  for(const b of bodies)walls(s,b,events);
+  const ball=s.ball;
+  if(score(s,events))return {events,settled:true};
+ }
+ let settled=true;for(const b of bodies){const sp=Math.hypot(b.vx,b.vy);const ns=Math.max(0,sp*p.friction-p.rollFriction);
+  if(ns<p.settleSpeed||sp===0){b.vx=0;b.vy=0;}else{b.vx*=ns/sp;b.vy*=ns/sp;settled=false;}}
+ return {events,settled};
+}
+function score(s,events){const p=s.config.physics,ball=s.ball;if(ball.y>=0&&ball.y<=p.height)return false;
+  const team=ball.y<0?0:1;s.score[team]++;s.phase='reset';s.team=1-team;s.jobs=[{at:s.tick+p.resetTicks,k:'reset'}];
+   events.push({k:'goal',team,x:ball.x,y:team===0?0:p.height,until:s.tick+p.goalPoseTicks});
+   if(s.comboReady&&s.lastTouch?.team===team&&team===s.players[s.shooter]?.team){if(team===0){s.combos++;s.coins+=s.config.coins.combo;}events.push({k:'combo',team});}
+   if(s.wallHits>0)events.push({k:'bounceGoal',team});
+   for(const v of s.players){v.poseUntil=s.tick+p.goalPoseTicks;v.vx=0;v.vy=0;}ball.vx=0;ball.vy=0;ball.y=team===0?0:p.height;
+   if(s.score[team]>=p.winningGoals||s.turns>=p.turnLimit&&s.score[0]!==s.score[1])endMatch(s,events);
+   return true;
+
+}
+function simulate(s,cmd,limit=null){const p=s.config.physics;if(limit===null)limit=p.simulateTicks;const clone=copyState(s);clone.phase='aim';clone.jobs=[];const events=flick(clone,cmd).events,trace=[];let ticks=0;
+ if(clone.phase!=='settle')return {s:clone,events,trace,ticks};
+ for(;ticks<Math.min(p.simulateTicks,limit);){clone.tick++;ticks++;const out=physicsTick(clone);appendEvents(events,out.events);
+  if(limit<=p.previewTicks){const v=clone.players[clone.shooter];let hit=null;for(const item of out.events)if(item.k==='contact'){hit=item;break;}
+   let x=v.x,y=v.y;if(hit){x=hit.bx;y=hit.by;if(hit.a===clone.shooter){x=hit.ax;y=hit.ay;}}trace.push({x,y});if(hit)break;}
+  if(out.settled||clone.phase!=='settle')break;
+ }
+ return {s:clone,events,trace,ticks};
+}
+function aiScore(before,out){const team=before.team,enemy=1-team,p=before.config.physics,a=before.config.ai,ball=out.s.ball,target=team===1?p.height:0;
+ let value=Math.hypot(before.ball.x-p.width/2,before.ball.y-target)-Math.hypot(ball.x-p.width/2,ball.y-target),mate=false,combo=false,nearMate=false,nearEnemy=false;
+ for(const item of out.events){if(item.k==='goal')value+=item.team===team?a.goalScore:a.ownGoalScore;
+  if(item.k==='contact'&&item.b===6&&item.a!==out.s.shooter&&before.players[item.a]&&before.players[item.a].team===team)mate=true;
+  if(item.k==='combo'&&item.team===team)combo=true;}
+ for(const v of out.s.players){const distance=Math.hypot(v.x-ball.x,v.y-ball.y);if(v.team===team&&distance<=a.mateDistance)nearMate=true;if(v.team===enemy&&distance<=a.enemyDistance)nearEnemy=true;}
+ if(mate||nearMate)value+=a.mateScore;if(combo)value+=a.comboScore;if(nearEnemy)value-=a.enemyPenalty;
+ const keeper=out.s.players[team*3+2];if(Math.hypot(keeper.x-p.width/2,keeper.y-(team===1?0:p.height))>a.keeperDistance)value-=a.keeperPenalty;
+ return value;
+}
+function aiPick(s,level){const rand={rng:s.rng,config:s.config},candidates=[],a=s.config.ai;
+ for(let who=0;who<3;who++)for(const dir of a.directions){const pull=(a.pullBase+rngInt(rand,a.pullRange))*a.pullStep,cmd={k:'flick',who,dx:dir[0]/a.directionScale*pull,dy:dir[1]/a.directionScale*pull};
+  const candidate={cmd,score:aiScore(s,simulate(s,cmd)),order:candidates.length};let at=candidates.length;
+  while(at>0&&candidates[at-1].score<candidate.score)at--;candidates.splice(at,0,candidate);}
+ const index=rngInt(rand,a.counts[level-1]),result=copyState(candidates[index].cmd);result.nextRng=rand.rng;result.candidates=candidates.length;return result;
+}
+function randomPick(s){const a=s.config.ai,who=rngInt(s,3),dir=a.directions[rngInt(s,a.directions.length)],pull=(a.pullBase+rngInt(s,a.pullRange))*a.pullStep;return {k:'flick',who,dx:dir[0]/a.directionScale*pull,dy:dir[1]/a.directionScale*pull};}
+function init(data,seed){const config={physics:data.physics,players:data.players,ai:data.ai,league:data.league,keeper:data.keeper,coins:data.coins,rng:data.rng};
+ const s={config:copyState(config),tick:0,rng:(seed>>>0)||data.rng.seed,round:1,jobs:[],score:[0,0],turns:0,team:0,phase:'aim',opponent:0,stickers:[],leagueComplete:false,suddenDeath:false,winner:-1,combos:0,coins:0,pending:null};
+ for(const team of data.league)s.stickers.push(false);resetPitch(s);return s;
+}
+function apply(s,cmd){const out=flick(s,cmd);if(out.events.length&&Number.isInteger(cmd.nextRng))s.rng=cmd.nextRng;return out;}
+function tick(s){s.tick++;const events=[],due=[],later=[];
+ for(const job of s.jobs){if(job.at<=s.tick)due.push(job);else later.push(job);}s.jobs=later;
+ for(const job of due){if(job.k==='aiFlick'&&s.phase==='aiThink'){s.phase='aim';appendEvents(events,flick(s,s.pending).events);s.pending=null;}
+  else if(job.k==='reset'&&s.phase==='reset'){resetPitch(s);enterAim(s,events);events.push({k:'reset'});}
+  else if(job.k==='nextMatch'&&s.phase==='end'){s.score=[0,0];s.combos=0;s.coins=0;s.turns=0;s.team=0;s.suddenDeath=false;s.winner=-1;s.round++;resetPitch(s);enterAim(s,events);events.push({k:'matchStart'});}
+ }
+ if(s.phase==='settle'){const out=physicsTick(s);appendEvents(events,out.events);if(s.phase==='settle'&&out.settled)nextTurn(s,events);}
+ for(const item of events)if(item.k==='save')item.flip=s.ball.vx<0;
+ events.push({k:'motion',tick:s.tick,moving:Math.hypot(s.ball.vx,s.ball.vy)>s.config.physics.trailSpeed});
+ return {events};
+}
+const RULES={init,apply,tick};
+// === RULES END ===
+const copy=v=>JSON.parse(JSON.stringify(v));
+// Strict §4 canon over a lossless ASCII/float64 transport envelope.
+function transport(value){
+ if(typeof value==='number'){
+  if(!Number.isFinite(value))throw Error('non-finite state');
+  if(Number.isSafeInteger(value)&&!Object.is(value,-0))return value;
+  const bytes=new DataView(new ArrayBuffer(8));bytes.setFloat64(0,value,false);let hex='';
+  for(let i=0;i<8;i++)hex+=bytes.getUint8(i).toString(16).padStart(2,'0');return {$f64:hex};
+ }
+ if(typeof value==='string'&&/[^\x00-\x7f]/.test(value)){const units=[];for(let i=0;i<value.length;i++)units.push(value.charCodeAt(i));return {$utf16:units};}
+ if(Array.isArray(value))return value.map(transport);
+ if(value&&typeof value==='object'){const out={};for(const key of Object.keys(value))out[key]=transport(value[key]);return out;}
+ return value;
+}
+function canon(value){
+ if(value===null)return 'null';
+ if(typeof value==='boolean')return value?'true':'false';
+ if(typeof value==='number'){if(!Number.isSafeInteger(value))throw Error('canon integer required');return String(value);}
+ if(typeof value==='string'){if(/[^\x00-\x7f]/.test(value))throw Error('canon ASCII required');return '"'+value.replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"';}
+ if(Array.isArray(value))return '['+value.map(canon).join(',')+']';
+ if(value&&typeof value==='object'){const keys=Object.keys(value).sort(),parts=[];for(const key of keys)parts.push(canon(key)+':'+canon(value[key]));return '{'+parts.join(',')+'}';}
+ throw Error('canon JSON required');
+}
+function fnv(bytes){let h=2166136261;for(const byte of bytes)h=Math.imul(h^byte,16777619)>>>0;return h.toString(16).padStart(8,'0');}
+function utf8(text){const bytes=[];for(const char of text){const n=char.codePointAt(0);if(n<128)bytes.push(n);else if(n<2048)bytes.push(192|(n>>6),128|(n&63));else if(n<65536)bytes.push(224|(n>>12),128|((n>>6)&63),128|(n&63));else bytes.push(240|(n>>18),128|((n>>12)&63),128|((n>>6)&63),128|(n&63));}return bytes;}
+// 규칙이 읽는 데이터만 해시 — 문구·페이스 표를 고쳐도 재생 로그·골든이 안 깨진다.
+const DATA_HASH=fnv(utf8(JSON.stringify({...DATA,strings:undefined,pace:undefined})));
+function stateHash(s){return fnv(utf8(canon(transport(s))));}
+function hash(){return stateHash(rules);}
+function recordEvents(log,items,s=rules){for(const item of items)log.events.push({t:s.tick,seq:log.events.length,...copy(item)});}
+function checkpoint(log,phase){log.checkpoints.push([rules.tick,phase,hash()]);}
+function beginReplay(){
+ matchLog={v:1,build:BUILD,dataHash:DATA_HASH,seed:DATA.rng.seed,start:copy(rules),cmds:[],endTick:rules.tick,checkpoints:[],events:[]};
+ if(recording()){archive.replays.push(matchLog);archive.replays=archive.replays.slice(-50);save();}
+}
+function exportLog(){return JSON.stringify(matchLog);}
+function replay(log){
+ if(typeof log==='string')log=JSON.parse(log);
+ if(log.dataHash!==DATA_HASH)throw Error('replay dataHash mismatch');
+ const s=log.start?copy(log.start):RULES.init(DATA,log.seed),events=[],checkpoints=[];let at=0;
+ while(s.tick<=log.endTick){
+  while(at<log.cmds.length&&log.cmds[at].t===s.tick){const cmd=log.cmds[at++];recordEvents({events},RULES.apply(s,cmd).events,s);checkpoints.push([s.tick,'cmd:'+cmd.seq,stateHash(s)]);}
+  if(s.tick===log.endTick)break;
+  if(at<log.cmds.length&&log.cmds[at].t<s.tick)throw Error('replay command order');
+  const round=s.round;recordEvents({events},RULES.tick(s).events,s);
+  if(s.tick%60===0||round!==s.round)checkpoints.push([s.tick,'tick',stateHash(s)]);
+ }
+ if(at!==log.cmds.length)throw Error('replay command outside endTick');
+ return {hash:stateHash(s),events,checkpoints};
+}
+
+const coreLoop={본다:'코트 전체 · 여섯 선수 · 공 · 점수판 · 남은 턴 · 내 턴 표시(노란 링)',한다:'선수 하나를 뒤로 끌었다 뗌(닿음→뗌 한 번) · 끄는 동안 예상 궤적 점선(첫 충돌까지)',받는다:'공이 굴러 결과가 보임 · 득점 시 입자·흔들림·빛·소리 · 콤보면 큰 글자',실패:'자책 · 상대 득점 · 20턴 패배 → 바로 재경기(같은 상대)',다시:'경기 끝 → 리그 띠에 스티커 → 다음 상대 바로',보기:'「형제 콤보!」 득점 · 현수막 획득',한바퀴:'한 경기 2~4분',이벤트:'루프 시작=경기 시작 · 입력 한 번=튕김 · 성공=승 · 실패=패 · 끝=리그 완주'};
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');canvas.setAttribute('aria-label',S('brosball.aria'));
+const query=new URLSearchParams(window.location.search),checkMode=query.has('check'),statsMode=query.has('stats');
+const storageKey='proto_brosball_records',errors=[],pictures={},assetInfo={};let silhouettes=0,inspecting=false;
+let rules,game,loopRow,pointer=null,fx=[],trail=[],shake=0,flash=0,message='',messageUntil=0,audioCtx=null,dives={},payout=null,accumulator=0,lastFrame=null,lastSave=0,checkResult=null,matchLog=null,view={poses:{},thinking:-1,moving:false,team:0,tick:0};
+let geom={H:2340,safeT:0,safeB:0,safeL:0,safeR:0,hud:[],buttons:{},recordStrip:{x:540,y:0,w:1080,h:0},play:{x:540,y:0,w:1080,h:0},league:{x:540,y:0,w:1080,h:0}};
+let archive={build:BUILD,dates:{},loops:[],replays:[],validation:null},rng=0x9756321;
+window.addEventListener('error',e=>errors.push(String(e.message)));window.addEventListener('unhandledrejection',e=>errors.push(String(e.reason)));
+try{const stored=JSON.parse(localStorage.getItem(storageKey)||'null');if(stored&&stored.build===BUILD)archive={...archive,...stored};}catch(_){}
+function fxRandom(){rng^=rng<<13;rng^=rng>>>17;rng^=rng<<5;return(rng>>>0)/4294967296;}
+function dateKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+function recording(){return !checkMode&&!statsMode&&!inspecting;}
+function save(){if(!recording())return;try{localStorage.setItem(storageKey,JSON.stringify(archive));}catch(_){}}
+function daily(){const key=dateKey();return archive.dates[key]||(archive.dates[key]={build:BUILD,date:key,mode:'play',active:0,voluntary:0,wanted:null,inputs:0});}
+function validationActive(){return archive.validation?.build===BUILD;}
+function wantedPrompt(){return recording()&&daily().wanted===null;}
+function beginLoop(){loopRow={build:BUILD,date:dateKey(),mode:'play',round:rules.round,opponent:rules.opponent,start:game.playTime,firstInput:null,inputs:0,failures:0,voluntary:false,eligible:recording()&&validationActive()&&daily().active>=300};}
+function endLoop(aborted=false){if(!loopRow)return;if(recording())archive.loops.push({...loopRow,duration:game.playTime-loopRow.start,aborted});loopRow=null;save();}
+function registerInput(){if(!loopRow)beginLoop();loopRow.inputs++;if(loopRow.firstInput===null)loopRow.firstInput=game.playTime-loopRow.start;
+ if(recording()){daily().inputs++;if(loopRow.eligible&&validationActive()&&!loopRow.voluntary){loopRow.voluntary=true;daily().voluntary++;}save();}}
+function load(n=1){endLoop(true);rules=RULES.init(DATA,2463534242);rules.opponent=Math.max(0,(Math.floor(Number(n))||1)-1)%DATA.league.length;rules.round=Math.max(1,Math.floor(Number(n))||1);
+ dives={};payout=null;game={clock:0,playTime:0,wins:0,losses:0};pointer=null;fx=[];trail=[];shake=0;flash=0;message='';accumulator=0;view={poses:{},thinking:-1,moving:false,team:0,tick:0};beginReplay();beginLoop();render();return state();}
+function assets(){const all=Object.values(assetInfo);return copy({files:assetInfo,failed:all.filter(v=>v.failed).length,pending:all.filter(v=>!v.loaded&&!v.failed).length,silhouettes});}
+function sprite(key,x,y,options={}){const info=assetInfo[key];if(!info)return;
+ const width=options.w??info.displayW,height=options.h??info.displayH,px=info.pivotX/info.cellW*width,py=info.pivotY/info.cellH*height;
+ ctx.save();ctx.translate(x,y);if(options.flip)ctx.scale(-1,1);
+ if(info.loaded){const frame=options.frame??0;ctx.drawImage(pictures[key],frame%info.cols*info.cellW,Math.floor(frame/info.cols)*info.cellH,info.cellW,info.cellH,-px,-py,width,height);}
+ else{silhouettes++;ctx.fillStyle='#c9bfd4';ctx.beginPath();ctx.roundRect(-px,-py,width,height,Math.min(width,height)*.2);ctx.fill();}ctx.restore();
+}
+function resize(){const box=canvas.getBoundingClientRect(),scale=W/Math.max(1,box.width),insets=getComputedStyle(document.getElementById('insets')),dpr=window.devicePixelRatio||1;
+ canvas.width=Math.round(box.width*dpr);canvas.height=Math.round(box.height*dpr);geom.H=box.height*scale;geom.safeT=(parseFloat(insets.paddingTop)||0)*scale;geom.safeB=(parseFloat(insets.paddingBottom)||0)*scale;geom.safeL=(parseFloat(insets.paddingLeft)||0)*scale;geom.safeR=(parseFloat(insets.paddingRight)||0)*scale;layout();render();}
+function layout(){const unit=W/Math.max(1,canvas.getBoundingClientRect().width),usable=W-geom.safeL-geom.safeR,middle=geom.safeL+usable/2;
+ const wanted=wantedPrompt(),validation=recording()&&!validationActive(),stripH=recording()?100*unit:0;
+ geom.recordStrip={x:middle,y:geom.safeT+stripH/2,w:usable,h:stripH};geom.buttons={};
+ if(validation)geom.buttons.validation={x:geom.safeL+48*unit,y:geom.safeT+25*unit,w:90*unit,h:44*unit};
+ if(wanted){geom.buttons.yes={x:geom.safeL+usable-72*unit,y:geom.safeT+25*unit,w:44*unit,h:44*unit};geom.buttons.no={x:geom.safeL+usable-24*unit,y:geom.safeT+25*unit,w:44*unit,h:44*unit};}
+ const hudY=geom.safeT+stripH;
+ geom.hud=[{id:'score',x:middle,y:hudY+65,w:usable-36,h:120},{id:'turn',x:middle,y:hudY+166,w:usable-130,h:72}];
+ geom.league={x:middle,y:geom.H-geom.safeB-62-(checkMode?50*unit:0),w:usable-24,h:112};
+ const start=hudY+214,end=geom.league.y-geom.league.h/2-12;
+ geom.play={x:middle,y:(start+end)/2,w:usable-32,h:Math.max(0,end-start)};
+ const imageScale=Math.min(geom.play.w/1024,geom.play.h/1536);
+ const scale=Math.min(COURT_RECT_IMG.w*imageScale/1080,COURT_RECT_IMG.h*imageScale/1500);
+ const sx=1080*scale/COURT_RECT_IMG.w,sy=1500*scale/COURT_RECT_IMG.h;
+ const imageX=middle-1024*sx/2,imageY=geom.play.y-1536*sy/2;
+ geom.court={x:imageX+COURT_RECT_IMG.x*sx,y:imageY+COURT_RECT_IMG.y*sy,w:1080*scale,h:1500*scale,scale};
+}
+function sound(combo=false,short=false){if(inspecting||checkMode||statsMode)return;try{audioCtx=audioCtx||new(window.AudioContext||window.webkitAudioContext)();audioCtx.resume();
+ for(let i=0;i<(combo?3:1);i++){const osc=audioCtx.createOscillator(),gain=audioCtx.createGain(),t=audioCtx.currentTime+i*.08;osc.frequency.setValueAtTime(440*(1+i*.5),t);gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(.12,t+.01);gain.gain.exponentialRampToValueAtTime(.0001,t+(short ? .07 : .2));osc.connect(gain);gain.connect(audioCtx.destination);osc.start(t);osc.stop(t+(short ? .09 : .22));}}catch(_){} }
+function burst(x,y,count=30){for(let i=0;i<count;i++){const a=fxRandom()*Math.PI*2,speed=80+fxRandom()*300;fx.push({x,y,vx:Math.cos(a)*speed,vy:Math.sin(a)*speed-90,life:.8,size:5+fxRandom()*8});}}
+function point(x,y){return {x:geom.court.x+x*geom.court.scale,y:geom.court.y+y*geom.court.scale};}
+function present(result){for(const item of result.events){
+ if(item.k==='save'){dives[item.who]={until:item.until,flip:item.flip};sound(false,true);}
+ if(item.k==='motion'){view.moving=item.moving;view.tick=item.tick;}
+ if(item.k==='thinking'){view.thinking=item.who;view.team=item.team;}
+ if(item.k==='turn'){view.thinking=-1;view.team=item.team;}
+ if(item.k==='flick'){view.team=item.team;view.poses[item.who]={until:item.until,frame:1};view.thinking=-1;}
+ if(item.k==='reset'||item.k==='matchStart')view.poses={};
+ if(item.k==='payout'){payout=item;if(loopRow){loopRow.coins=item.coins;loopRow.combos=item.combos;}}
+ if(item.k==='goal'){view.team=1-item.team;for(const p of rules.players)view.poses[p.id]={until:item.until,frame:2};const v=point(item.x,item.y);burst(v.x,v.y);shake=12;flash=.32;message=item.team===0?S('brosball.goal'):S('brosball.enemyGoal');messageUntil=game.clock+.7;sound();}
+ if(item.k==='combo'){message=S('brosball.combo');messageUntil=game.clock+1.1;shake=22;flash=.6;burst(W/2,geom.play.y,70);sound(true);}
+ if(item.k==='bounceGoal'&&message!==S('brosball.combo'))message=S('brosball.bounceGoal');
+ if(item.k==='bounce'){const v=point(item.x,item.y);burst(v.x,v.y,3);}
+ if(item.k==='matchEnd'){if(item.winner===0)game.wins++;else game.losses++;if(loopRow){loopRow.failures+=item.winner===1?1:0;loopRow.success=item.winner===0;loopRow.complete=item.complete;}endLoop();message=item.complete?S('brosball.champion'):item.winner===0?S('brosball.sticker'):S('brosball.retry');messageUntil=game.clock+1;burst(W/2,geom.league.y,36);}
+ if(item.k==='matchStart'){payout=null;dives={};beginLoop();}
+ }}
+function hit(x,y,box){return !!box&&Math.abs(x-box.x)<=box.w/2&&Math.abs(y-box.y)<=box.h/2;}
+function courtXY(x,y){return {x:(x-geom.court.x)/geom.court.scale,y:(y-geom.court.y)/geom.court.scale};}
+function dragCommand(x,y){if(!pointer||pointer.who===null)return null;const v=courtXY(x,y);let dx=pointer.start.x-v.x,dy=pointer.start.y-v.y;const mag=Math.hypot(dx,dy);if(mag>360){dx*=360/mag;dy*=360/mag;}return {k:'flick',who:pointer.who,dx,dy};}
+function input(kind,x=W/2,y=geom.H/2){if(!game||(statsMode&&!inspecting))return;
+ if(kind==='wanted'){if(recording()&&typeof x==='boolean'){daily().wanted=x;save();render();}return;}
+ if(kind==='validation'){if(recording()){archive.validation={build:BUILD,date:dateKey(),mode:'play'};for(const row of Object.values(archive.dates)){row.active=0;row.voluntary=0;}if(loopRow)loopRow.eligible=false;save();render();}return;}
+ if(kind==='cancel'){pointer=null;return;}
+ if(kind==='flick'){if(wantedPrompt())return;const cmd={t:rules.tick,seq:matchLog.cmds.length,k:'flick',who:x.who,dx:x.dx,dy:x.dy};const result=RULES.apply(rules,cmd);if(result.events.length){matchLog.cmds.push(cmd);recordEvents(matchLog,result.events);matchLog.endTick=rules.tick;checkpoint(matchLog,'cmd:'+cmd.seq);registerInput();present(result);}return;}
+ if(kind==='tap'||kind==='down'){
+  layout();for(const key of ['validation','yes','no'])if(hit(x,y,geom.buttons[key])){input(key==='validation'?'validation':'wanted',key==='yes');return;}
+  if(kind==='tap'||hit(x,y,geom.recordStrip)||wantedPrompt()||rules.phase!=='aim'||rules.team!==0)return;
+  const v=courtXY(x,y),who=rules.players.findIndex(p=>p.team===0&&Math.hypot(p.x-v.x,p.y-v.y)<=Math.max(p.r,22*W/canvas.getBoundingClientRect().width/geom.court.scale));
+  if(who<0)return;pointer={who,start:v,x,y,cmd:null,preview:null};return;
+ }
+ if(kind==='move'&&pointer){pointer.x=x;pointer.y=y;pointer.cmd=dragCommand(x,y);pointer.preview=pointer.cmd?simulate(rules,pointer.cmd,60):null;return;}
+ if(kind==='up'&&pointer){const cmd=dragCommand(x,y);pointer=null;if(cmd)input('flick',cmd);}
+}
+function runTick(){game.clock+=DT;
+ for(const p of fx){p.life-=DT;p.x+=p.vx*DT;p.y+=p.vy*DT;p.vy+=300*DT;}fx=fx.filter(p=>p.life>0);shake=Math.max(0,shake-DT*28);flash=Math.max(0,flash-DT);
+ if(wantedPrompt())return;if(loopRow&&loopRow.date!==dateKey()){endLoop(true);beginLoop();}
+ const active=rules.phase!=='reset'&&rules.phase!=='end';if(active){game.playTime+=DT;if(recording()&&validationActive())daily().active+=DT;}
+ const round=rules.round,result=RULES.tick(rules);recordEvents(matchLog,result.events);matchLog.endTick=rules.tick;if(rules.tick%60===0||round!==rules.round)checkpoint(matchLog,'tick');present(result);if(round!==rules.round)beginReplay();trail.push(point(rules.ball.x,rules.ball.y));if(trail.length>8)trail.shift();
+ if(recording()&&game.clock-lastSave>=1){lastSave=game.clock;save();}}
+function advance(seconds){if(!Number.isFinite(seconds)||seconds<0)throw Error('step: 유한한 0 이상 초');accumulator+=seconds;while(accumulator+1e-9>=DT){runTick();accumulator-=DT;}}
+function step(seconds=0){advance(seconds);render();if(seconds>0)save();return state();}
+function label(text,x,y,size=40,color='#fff3d6'){ctx.fillStyle=color;ctx.font=`bold ${size}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(text),x,y);}
+function panel(box,text,size=40){ctx.fillStyle='#1d2b45';ctx.strokeStyle='#5c92b5';ctx.lineWidth=5;ctx.beginPath();ctx.roundRect(box.x-box.w/2,box.y-box.h/2,box.w,box.h,28);ctx.fill();ctx.stroke();if(text)label(text,box.x,box.y,size);}
+function ring(v,color,r){ctx.strokeStyle=color;ctx.lineWidth=6;ctx.beginPath();ctx.ellipse(v.x,v.y,r,r*.45,0,0,Math.PI*2);ctx.stroke();}
+function render(){if(!game||!canvas.width)return;layout();silhouettes=0;ctx.setTransform(canvas.width/W,0,0,canvas.height/geom.H,0,0);ctx.fillStyle='#334e56';ctx.fillRect(0,0,W,geom.H);
+ const c=geom.court;ctx.save();ctx.beginPath();ctx.rect(geom.play.x-geom.play.w/2,geom.play.y-geom.play.h/2,geom.play.w,geom.play.h);ctx.clip();ctx.translate(Math.sin(game.clock*73)*shake,Math.cos(game.clock*67)*shake*.6);
+ const sx=c.w/COURT_RECT_IMG.w,sy=c.h/COURT_RECT_IMG.h;
+ sprite('court',c.x-COURT_RECT_IMG.x*sx,c.y-COURT_RECT_IMG.y*sy,{w:1024*sx,h:1536*sy});
+ for(const yy of [0,1500]){const v=point(390,yy);ctx.strokeStyle='rgba(255,243,214,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(v.x,v.y);ctx.lineTo(v.x+300*c.scale,v.y);ctx.stroke();}
+ if(view.team===1){ctx.fillStyle='rgba(30,65,160,.12)';ctx.fillRect(c.x,c.y,c.w,c.h);}
+ if(view.moving)trail.forEach((v,i)=>{ctx.globalAlpha=i/25;ctx.fillStyle='#ffe066';ctx.beginPath();ctx.arc(v.x,v.y,10*c.scale,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
+ const drawActors=[...rules.players.map(p=>({...p,kind:'player'})),{...rules.ball,kind:'ball'}].sort((a,b)=>a.y-b.y);
+ for(const p of drawActors){const v=point(p.x,p.y);ctx.fillStyle='#17282b44';ctx.beginPath();ctx.ellipse(v.x,v.y,Math.max(24,p.r)*c.scale,14*c.scale,0,0,Math.PI*2);ctx.fill();
+  if(p.kind==='ball'){sprite('ball',v.x,v.y,{w:60*c.scale,h:60*c.scale});continue;}
+  if(p.team===0&&rules.phase==='aim')ring(v,'#ffe066',60*c.scale);
+  if(p.team===1){ctx.setLineDash([12,9]);ring(v,'#ff5a4a',60*c.scale);ctx.setLineDash([]);}
+  const pose=view.poses[p.id]&&view.poses[p.id].until>view.tick?view.poses[p.id].frame:0;
+  const dive=dives[p.id];if(dive&&view.tick<dive.until){sprite('keeper-dive',v.x,v.y,{w:190*c.scale,h:150*c.scale,frame:p.team,flip:dive.flip});label(S('brosball.save'),v.x,v.y-160*c.scale,12*W/canvas.getBoundingClientRect().width,'#ffe066');}
+  else sprite(p.team===0?'home':'away',v.x,v.y,{w:150*c.scale,h:150*c.scale,frame:p.id%3*3+pose});
+  if(view.thinking===p.id)label(S('brosball.thinking'),v.x,v.y-160*c.scale,64*c.scale,'#99d8ff');
+ }
+ if(pointer?.cmd){const p=rules.players[pointer.who],v=point(p.x,p.y);ring(v,'#ffe066',70*c.scale);ctx.strokeStyle='#ffe066';ctx.lineWidth=7;ctx.beginPath();ctx.moveTo(v.x,v.y);ctx.lineTo(v.x-pointer.cmd.dx*c.scale,v.y-pointer.cmd.dy*c.scale);ctx.stroke();
+  ctx.setLineDash([12,12]);ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(v.x,v.y);for(const t of pointer.preview?.trace??[]){const pos=point(t.x,t.y);ctx.lineTo(pos.x,pos.y);}ctx.stroke();ctx.setLineDash([]);}
+ ctx.restore();
+ for(const p of fx){ctx.globalAlpha=Math.max(0,p.life/.8);ctx.fillStyle='#ffe066';ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+ if(flash){ctx.fillStyle=`rgba(255,235,121,${flash})`;ctx.fillRect(0,0,W,geom.H);}
+ panel(geom.hud[0],S('brosball.scoreboard',{home:rules.score[0],away:rules.score[1],team:S(DATA.league[rules.opponent].label)}),48);
+ const remaining=Math.max(0,DATA.physics.turnLimit-rules.turns),turnText=rules.suddenDeath?S('brosball.sudden'):S('brosball.remaining',{n:remaining});
+ panel(geom.hud[1],S('brosball.turnLine',{turn:turnText,action:rules.team===1?S('brosball.enemyTurn'):rules.phase==='aim'?S('brosball.myTurn'):S('brosball.rolling')}),12*W/canvas.getBoundingClientRect().width);
+ const unit=W/canvas.getBoundingClientRect().width;
+ if(messageUntil>game.clock)label(message,W/2,geom.play.y,72,'#ffe066');
+ panel(geom.league,'');const cell=geom.league.w/5;
+ DATA.league.forEach((team,i)=>{const x=geom.league.x-geom.league.w/2+cell*(i+.5);ctx.fillStyle=rules.stickers[i]?team.color:'#526077';ctx.beginPath();ctx.roundRect(x-cell*.44,geom.league.y-40,cell*.88,80,16);ctx.fill();label(S('brosball.leagueLabel',{mark:rules.stickers[i]?S('brosball.star'):i===rules.opponent?S('brosball.arrow'):'',team:S(team.label)}),x,geom.league.y,12*unit);});
+ if(payout){const box={x:W/2,y:geom.play.y+geom.play.h/2-90*unit,w:Math.min(960,geom.play.w),h:140*unit};panel(box,'');label(S('brosball.coins',{n:payout.coins}),box.x,box.y-24*unit,20*unit,'#ffe066');label(S('brosball.comboCoins',{n:payout.combos,coins:payout.combos*DATA.coins.combo}),box.x,box.y+24*unit,12*unit,'#ffe066');}
+ if(geom.recordStrip.h){ctx.fillStyle='#eee8f2';ctx.fillRect(geom.safeL,geom.safeT,geom.recordStrip.w,geom.recordStrip.h);
+  if(geom.buttons.validation)panel(geom.buttons.validation,S('brosball.validation'),12*unit);
+  if(geom.buttons.yes){label(S('brosball.wanted.short'),geom.safeL+155*unit,geom.safeT+25*unit,12*unit,'#302638');panel(geom.buttons.yes,S('brosball.yes'),12*unit);panel(geom.buttons.no,S('brosball.no'),12*unit);}
+  label(validationActive()?daily().active>=300?S('brosball.duty.done'):S('brosball.duty.running',{n:Math.floor(daily().active)}):S('brosball.duty.before'),W/2,geom.safeT+76*unit,12*unit,'#302638');
+ }
+ if(checkMode)label(checkResult?(checkResult.ok?S('brosball.check.ok'):S('brosball.check.prefix',{reason:assets().failed?S('brosball.check.missing'):S('brosball.check.needed')})):S('brosball.check'),W/2,geom.H-geom.safeB-25*unit,12*unit);
+}
+function state(){return copy({proto:PROTO,build:BUILD,...game,...rules,rules,loop:loopRow,geometry:geom,coreLoop,validation:archive.validation,records:archive,checkResult});}
+function botState(seed,level){const s=RULES.init(DATA,seed);s.config.ai.level=level;return s;}
+function chooseBot(s,mode){if(mode==='search'){const cmd=aiPick(s,3);s.rng=cmd.nextRng;return cmd;}return randomPick(s);}
+function validateBot(mode){if(!['random','search'].includes(mode))throw Error('mode: random | search');}
+function bot(seconds,mode='random'){validateBot(mode);if(!Number.isFinite(seconds)||seconds<=0)throw Error('bot: 유한한 양수 초');
+ const s=botState(2463534242,DATA.ai.level),ticks=Math.ceil(seconds*60);let inputs=0,wins=0,combos=0;
+ for(let i=0;i<ticks;i++){if(s.phase==='aim'&&s.team===0){RULES.apply(s,chooseBot(s,mode));inputs++;}for(const e of RULES.tick(s).events){if(e.k==='combo')combos++;if(e.k==='matchEnd'&&e.winner===0)wins++;}}
+ return {seconds,mode,inputs,wins,combos,changed:s.turns>0,metrics:{turns:s.turns},rules:copy(s)};
+}
+function sim(games,mode='random',level=3){validateBot(mode);if(!Number.isInteger(games)||games<1||!Number.isInteger(level)||level<1||level>3)throw Error('sim: games 양의 정수, level 1~3');
+ let wins=0,totalTicks=0,combos=0,goals=0,saves=0,unfinished=0;const flicks=[0,0,0];
+ for(let n=0;n<games;n++){const s=botState((2463534242+n*104729)>>>0,level);let finished=false;
+  for(let t=0;t<72000;t++){if(s.phase==='aim'&&s.team===0){const cmd=chooseBot(s,mode);flicks[cmd.who]++;RULES.apply(s,cmd);}const es=RULES.tick(s).events;
+   goals+=es.filter(e=>e.k==='goal').length;saves+=es.filter(e=>e.k==='save').length;
+   combos+=es.filter(e=>e.k==='combo').length;
+   const ended=es.find(e=>e.k==='matchEnd');if(ended){wins+=ended.winner===0?1:0;totalTicks+=s.tick;finished=true;break;}
+  }if(!finished){unfinished++;totalTicks+=s.tick;}
+ }
+ return {winRate:wins/games*100,avgSeconds:totalTicks/games/60,combosPerGame:combos/games,goalsPerGame:goals/games,savesPerGame:saves/games,flickShare:flicks.map(v=>v/Math.max(1,flicks.reduce((a,b)=>a+b,0))),unfinished};
+}
+function inspect(run){const saved={inspecting,rules:copy(rules),game:copy(game),loopRow:copy(loopRow),archive:copy(archive),pointer,fx,trail,shake,flash,message,messageUntil,dives,payout,rng,accumulator,lastSave,silhouettes,matchLog:copy(matchLog),view:copy(view)};inspecting=true;
+ try{return run();}finally{({inspecting,rules,game,loopRow,archive,pointer,fx,trail,shake,flash,message,messageUntil,dives,payout,rng,accumulator,lastSave,silhouettes,matchLog,view}=saved);if(recording()&&archive.replays.length)matchLog=archive.replays[archive.replays.length-1];render();}}
+function check(){return inspect(()=>{try{load(1);let changed=false;
+ for(let i=0;i<3600;i++){if(rules.phase==='aim'&&rules.team===0){const cmd=randomPick(rules);input('flick',cmd);changed=true;}runTick();}render();
+ const idle=botState(7,2);for(let i=0;i<3600;i++)RULES.tick(idle);const info=assets(),idleWin=idle.winner===0;
+ return {ok:errors.length===0&&info.failed===0&&info.pending===0&&info.silhouettes===0&&changed&&!idleWin,seconds:60,changed,idleWin,errors:errors.slice(),assets:info};
+ }catch(err){return {ok:false,seconds:60,error:String(err)};}});}
+function showStats(){const el=document.getElementById('stats');el.style.display='block';
+  const escape=value=>String(value??'—').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const table=(headers,rows)=>'<table><tr>'+headers.map(v=>'<th>'+escape(v)+'</th>').join('')+'</tr>'+rows.map(row=>'<tr>'+row.map(v=>'<td>'+escape(v)+'</td>').join('')+'</tr>').join('')+'</table>';
+  const percent=(a,b)=>b?Math.round(a/b*100)+'%':'0%';
+  el.innerHTML='<h2>'+escape(PROTO)+escape(S('brosball.stats.title'))+escape(BUILD)+'</h2><p>'+escape(S('brosball.stats.bias'))+'</p>'+
+    table([S('brosball.column.0'),S('brosball.column.1'),S('brosball.column.2'),S('brosball.duty'),S('brosball.column.3'),S('brosball.column.4'),S('brosball.column.5')],Object.entries(archive.dates).map(([d,r])=>[d,r.mode,Math.floor(r.active),r.active>=300?S('brosball.done'):S('brosball.progress'),r.voluntary,r.wanted===null?S('brosball.unanswered'):r.wanted?S('brosball.yes'):S('brosball.no'),r.inputs]))+
+    '<h3>'+escape(S('brosball.stats.loop'))+'</h3><p>'+escape(S('brosball.stats.totals',{coins:archive.loops.reduce((sum,r)=>sum+(r.coins??0),0),combos:archive.loops.reduce((sum,r)=>sum+(r.combos??0),0)}))+'</p>'+table([S('brosball.column.6'),S('brosball.column.0'),S('brosball.column.1'),S('brosball.column.7'),S('brosball.column.8'),S('brosball.column.9'),S('brosball.column.10'),S('brosball.column.11'),S('brosball.column.12'),S('brosball.column.13'),S('brosball.coinColumn'),S('brosball.comboColumn')],archive.loops.map(r=>[r.build,r.date,r.mode,r.round,r.firstInput,r.inputs,r.duration.toFixed(2),r.failures,r.aborted,r.voluntary,r.coins,r.combos]))+
+    '<h3>'+escape(S('brosball.stats.bm'))+'</h3>'+table([S('brosball.column.6'),S('brosball.column.0'),S('brosball.column.1'),S('brosball.column.14'),S('brosball.column.15'),S('brosball.column.16'),S('brosball.done'),S('brosball.column.17'),S('brosball.column.18')],[].map(r=>[r.build,r.date,r.mode,r.slot,r.shown,r.pressed,r.completed,percent(r.pressed,r.shown),percent(r.completed,r.shown)]))+
+    '<h3>'+escape(S('brosball.stats.social'))+'</h3>'+table([S('brosball.column.6'),S('brosball.column.0'),S('brosball.column.1'),S('brosball.column.14'),S('brosball.column.15'),S('brosball.column.16'),S('brosball.done')],[].map(r=>[r.build,r.date,r.mode,r.slot,r.shown,r.pressed,r.completed]));
+}
+
+window.T={state,step,input,load,assets,check,bot,sim};
+Object.assign(window.T,{hash,replay,export:exportLog});
+function pointerXY(e){const box=canvas.getBoundingClientRect();return[(e.clientX-box.left)*W/box.width,(e.clientY-box.top)*geom.H/box.height];}
+let pointerId=null;
+canvas.addEventListener('pointerdown',e=>{e.preventDefault();if(pointerId!==null)return;pointerId=e.pointerId;canvas.setPointerCapture(e.pointerId);input('down',...pointerXY(e));render();});
+canvas.addEventListener('pointermove',e=>{if(e.pointerId!==pointerId)return;e.preventDefault();input('move',...pointerXY(e));render();});
+canvas.addEventListener('pointerup',e=>{e.preventDefault();if(e.pointerId===pointerId){input('up',...pointerXY(e));pointerId=null;render();}});
+for(const kind of ['pointercancel','lostpointercapture'])canvas.addEventListener(kind,()=>{pointerId=null;input('cancel');});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());document.addEventListener('gesturestart',e=>e.preventDefault());window.addEventListener('resize',resize);
+document.addEventListener('visibilitychange',()=>{lastFrame=null;pointer=null;pointerId=null;if(document.hidden)save();});
+window.addEventListener('pagehide',()=>{endLoop(true);save();});window.addEventListener('pageshow',()=>{lastFrame=null;if(game&&!loopRow&&rules.phase!=='end')beginLoop();});
+for(const spec of SPEC){const key=spec.file.replace(/\.png$/,''),pic=new Image();pictures[key]=pic;const info=assetInfo[key]={...spec,src:'art/sprites/'+spec.file,loaded:false,failed:false};pic.onload=()=>{info.loaded=true;render();};pic.onerror=()=>{info.failed=true;render();};pic.src=info.src;}
+resize();load(1);if(statsMode)showStats();
+function frame(ms){if(!document.hidden&&!statsMode){if(lastFrame!==null)advance(Math.min(.1,(ms-lastFrame)/1000));if(checkMode&&checkResult===null&&assets().pending===0)checkResult=check();render();lastFrame=ms;}else lastFrame=null;requestAnimationFrame(frame);}requestAnimationFrame(frame);
+})();
+</script></body></html>

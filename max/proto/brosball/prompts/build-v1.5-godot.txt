@@ -1,0 +1,12 @@
+proto/brosball/index.html 을 Godot 이식이 쉬운 꼴로 다듬어라(규칙·화면 동작은 바꾸지 않는다). 쓰는 파일: proto/brosball/index.html, proto/brosball/tools/check.cjs, proto/brosball/tools/golden/*.json(새로), proto/brosball/PORT.md(새로), proto/brosball/codex-report.txt. art/ 수정 금지, 커밋 금지.
+읽기: docs/GODOT_PORT.md §2 표(규약 1~13)·§4 골든 재생, proto/AGENTS.md §2a.
+할 것 (GODOT_PORT §2 의 권장 항목을 이 시제품에선 전부 의무로):
+1. #6·#7 기록과 재생: 경기마다 {seed, data 해시, cmds:[{t,k,who,dx,dy}…]} 를 저장(최근 50, localStorage try/catch). 훅 `T.hash()`(§4 canon + FNV-1a 32)·`T.replay(log)→{hash,events}`·`T.export()`(현재 경기 로그 JSON 문자열). RULES 가 돌려주는 events 전부가 재생에서도 같은 순서로 나와야 한다.
+2. 골든 파일: `tools/golden/` 에 서로 다른 시드 3개로 search 봇 한 경기씩 {seed, cmds, hashPerTurn:[…], finalHash, events 수} 를 check.cjs 가 생성·검증(`--golden` 으로 다시 만들기, 평소엔 비교). Godot 쪽이 같은 cmds 를 넣고 hashPerTurn 을 맞추는 게 이식 검증.
+3. #8 데이터 분리: RULES 가 쓰는 숫자 전부(physics·players 역할표·keeper·ai·coins·turns·court 크기·초기 배치)를 data 블록에만. RULES 구역 안에 매직 넘버가 남아 있으면 data 로 옮긴다. check: RULES 구역 텍스트에서 2자리 이상 숫자 리터럴 0개(0·1·2 같은 한 자리와 배열 인덱스만 허용).
+4. #12 문구 키: 화면 글자 전부 `S('brosball.…')` 키로, data strings 에.
+5. #13 사건으로만 연출: RULES 가 돌려주는 events 목록을 PORT.md 에 표로(이름·인자·언제). 그리는 쪽이 RULES 내부 상태를 직접 읽어 연출하는 곳이 있으면 events 로 바꾼다(위치 읽기는 허용).
+6. RULES 구역을 GDScript 로 1:1 옮기기 쉬운 꼴로: 클로저·고차함수(map/filter/reduce/sort 콜백) 대신 for 루프, 객체 스프레드 대신 명시 복사 함수 `copyState(s)`(JSON 왕복), 화살표 함수 대신 `function` 선언, 삼항 중첩 금지. 함수 목록 = init·apply·tick·simulate·aiPick·score·collide·keeperStep·settle 정도로 각각 50줄 이하. 수학은 `Math.hypot/abs/min/max/floor` 만(이미 금지된 sin/cos/pow/sqrt/round 외에 `Math.random·Date` 도 금지 유지).
+7. PORT.md(한국어, 60줄 이하): 상태 필드 표(이름·타입·범위) · 명령 표 · events 표 · data 블록 키 표 · 함수 표(JS 이름 → GDScript 이름 제안) · 골든 검증 절차 · 부동소수 주의(Godot float 는 32비트 기본 — 이식 시 `float64` 또는 정수 ×1000 고정소수 권장, 어느 쪽인지 go 시 결정).
+유지: 지금 되는 것 전부·검사 전부. 전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 유지. 추가 — 「재생」 저장 로그 재생 해시 == 실제 해시 · 「골든」 3개 일치 · 「데이터」 RULES 매직 넘버 0 · 「문구」 캔버스 fillText 에 한글 리터럴 직접 사용 0. 실행 node --jitless proto/brosball/tools/check.cjs. 보고 codex-report.txt 12줄 이하.

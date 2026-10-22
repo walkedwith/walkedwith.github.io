@@ -1,0 +1,25 @@
+proto/brosball/index.html 에 골키퍼 자동 막기를 덧대라(지금 코드를 고친다). 쓰는 파일: proto/brosball/index.html, proto/brosball/tools/check.cjs, proto/brosball/codex-report.txt 만. art/ 수정 금지, 커밋 금지.
+읽기: proto/AGENTS.md §2a·§2b, proto/brosball/IDEA.md 「2a. 골키퍼 자동 막기」 절 전부(정본)와 「페이스 목표」 표, proto/brosball/SPEC.md(keeper-dive.png 행).
+규칙과 화면 분리·논리 명령·틱·난수 둘·events 연출 유지.
+할 것:
+1. IDEA §2a — RULES tick() 안에서 양쪽 골키퍼 자동 미끄러짐(구역 안·공 접근 중·반응 거리 안). 상수는 data `keeper` 로. simulate()/aiPick() 도 같은 규칙을 타게(AI 가 골키퍼를 알고 둠).
+2. 막으면 events `save`{who} — 화면: keeper-dive.png 해당 칸 12틱(공 방향이 왼쪽이면 좌우 뒤집기) + 「막았다!」 작은 글자 + 짧은 톤.
+3. IDEA 「페이스 목표」 추가 두 줄(총 골 2~5, 막았다 1~4)을 data `pace` 에 더하고 T.sim 반환에 goalsPerGame·savesPerGame 추가.
+새 그림(이미 있음, art/sprites/): keeper-dive.png — SPEC 표 그대로. 없으면 실루엣.
+유지: 지금 되는 것 전부(튕기기·AI·콤보·리그·기록 띠·?check·?stats·window.T·T.bot·T.sim).
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 검사 유지·고침. 추가 — 「골키퍼」 느린 정면 슛(속도 8, 골 중앙)은 구역 안 골키퍼가 막아 save 이벤트 · 강슛(속도 30, 구석)은 못 막고 goal · 골키퍼가 구역 밖으로 안 나감 · 「페이스」 T.sim(30,'search',2) 총 골 2~5, 막았다 1~4. 실행 node --jitless proto/brosball/tools/check.cjs. 보고 codex-report.txt 12줄 이하 + T.sim 숫자(승률·초·콤보·총 골·막았다).
+
+=== 같은 작업에서 이어서 ===
+proto/brosball/index.html 에 콤보 코인을 덧대라(지금 코드를 고친다). 쓰는 파일: proto/brosball/index.html, proto/brosball/tools/check.cjs, proto/brosball/codex-report.txt 만. art/ 수정 금지, 커밋 금지.
+읽기: proto/AGENTS.md §2a·§4a, proto/brosball/IDEA.md 「3. 콤보」 절 전부(정본).
+할 것:
+1. IDEA §3 코인 — RULES 상태 `s.coins`(경기 누적) + 경기 끝에 events `payout`{win, combos, coins}. 숫자는 data `coins`{win:30, lose:10, combo:15}.
+2. 경기 끝 보상 띠에 코인 합계와 콤보 보너스 줄(「형제 콤보 ×N +15N」) — 목업 mock-g2.jpg 4번 칸 톤.
+3. ?stats 에 경기별 코인·콤보 수 열 추가, 기록은 §4a 루프 행에 붙임.
+유지: 지금 되는 것 전부.
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 유지. 추가 — 「코인」 승 + 콤보 2 = 60, 패 + 콤보 0 = 10 · payout 이벤트가 경기 끝에 한 번. 실행 node --jitless proto/brosball/tools/check.cjs. 보고 codex-report.txt 12줄 이하.
+
+=== 밸런스 (둘 다 끝낸 뒤) ===
+v1 T.sim 결과: search 승률 100%·52초·콤보 0.03 — 골이 너무 쉽다. 골키퍼를 넣은 뒤 T.sim(30,'search',2)·(30,'random',2) 를 다시 돌려 IDEA 「페이스 목표」 표 전부를 맞춘다. 조정 허용 범위 = data 값만: physics(마찰·속도 min/max·탄성), keeper(slide·구역·반응 거리), players 의 힘 배율, ai.level 기본값(2 또는 3). 규칙 코드는 바꾸지 않는다. 각 시도의 값과 결과를 codex-report.txt 끝에 표로 남긴다(최대 8회). 다 못 맞추면 가장 가까운 값으로 두고 어느 지표가 남았는지 적는다. 또 T.sim 반환에 flickShare(선수별 튕김 비율 [형,동생,다솜])를 더한다.

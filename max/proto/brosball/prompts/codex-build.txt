@@ -1,0 +1,8 @@
+proto/<이름>/index.html 에 <무엇>을 덧대라(지금 코드를 고친다). 쓰는 파일: proto/<이름>/index.html, proto/<이름>/tools/check.cjs, proto/<이름>/codex-report.txt 만. art/ 수정 금지, 커밋 금지.
+읽기: proto/AGENTS.md, proto/<이름>/<규칙 문서> 「<절 이름>」 절 전부(정본). 나머지는 필요할 때만.
+규칙과 화면 분리(proto/AGENTS.md §2a)·보이는 정보와 기록 띠·페이스 봇(§2b — T.bot 을 이 게임에 맞게, IDEA 「페이스 목표」를 data pace 로)을 지킨다: 규칙은 RULES 구역, 논리 명령만, 시간은 틱, 난수 둘, 연출은 events 로.
+할 것: <번호 목록 — 규칙 문서 절 번호로 가리키고 내용은 붙이지 않는다>
+새 그림(이미 있음, art/sprites/): <파일명들>
+유지: <지금 되는 것 전부 — 조작·연출·BM·소셜·기록·?check·?stats·?scene·window.T>
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: RULES 격리·결정성 검사 유지. 기존 검사는 바뀐 규칙에 맞게 고쳐서 유지(지우지 말고 고침). 추가 — <바뀐 규칙마다 한 줄 + 375×667·430×932 겹침 0>. 실행 node --jitless proto/<이름>/tools/check.cjs. 보고 codex-report.txt 12줄 이하(되는 것·뺀 것·정한 것·확인 못 한 것).

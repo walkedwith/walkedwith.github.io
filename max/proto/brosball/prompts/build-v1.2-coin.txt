@@ -1,0 +1,9 @@
+proto/brosball/index.html 에 콤보 코인을 덧대라(지금 코드를 고친다). 쓰는 파일: proto/brosball/index.html, proto/brosball/tools/check.cjs, proto/brosball/codex-report.txt 만. art/ 수정 금지, 커밋 금지.
+읽기: proto/AGENTS.md §2a·§4a, proto/brosball/IDEA.md 「3. 콤보」 절 전부(정본).
+할 것:
+1. IDEA §3 코인 — RULES 상태 `s.coins`(경기 누적) + 경기 끝에 events `payout`{win, combos, coins}. 숫자는 data `coins`{win:30, lose:10, combo:15}.
+2. 경기 끝 보상 띠에 코인 합계와 콤보 보너스 줄(「형제 콤보 ×N +15N」) — 목업 mock-g2.jpg 4번 칸 톤.
+3. ?stats 에 경기별 코인·콤보 수 열 추가, 기록은 §4a 루프 행에 붙임.
+유지: 지금 되는 것 전부.
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 유지. 추가 — 「코인」 승 + 콤보 2 = 60, 패 + 콤보 0 = 10 · payout 이벤트가 경기 끝에 한 번. 실행 node --jitless proto/brosball/tools/check.cjs. 보고 codex-report.txt 12줄 이하.

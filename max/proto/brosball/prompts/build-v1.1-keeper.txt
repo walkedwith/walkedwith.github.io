@@ -1,0 +1,11 @@
+proto/brosball/index.html 에 골키퍼 자동 막기를 덧대라(지금 코드를 고친다). 쓰는 파일: proto/brosball/index.html, proto/brosball/tools/check.cjs, proto/brosball/codex-report.txt 만. art/ 수정 금지, 커밋 금지.
+읽기: proto/AGENTS.md §2a·§2b, proto/brosball/IDEA.md 「2a. 골키퍼 자동 막기」 절 전부(정본)와 「페이스 목표」 표, proto/brosball/SPEC.md(keeper-dive.png 행).
+규칙과 화면 분리·논리 명령·틱·난수 둘·events 연출 유지.
+할 것:
+1. IDEA §2a — RULES tick() 안에서 양쪽 골키퍼 자동 미끄러짐(구역 안·공 접근 중·반응 거리 안). 상수는 data `keeper` 로. simulate()/aiPick() 도 같은 규칙을 타게(AI 가 골키퍼를 알고 둠).
+2. 막으면 events `save`{who} — 화면: keeper-dive.png 해당 칸 12틱(공 방향이 왼쪽이면 좌우 뒤집기) + 「막았다!」 작은 글자 + 짧은 톤.
+3. IDEA 「페이스 목표」 추가 두 줄(총 골 2~5, 막았다 1~4)을 data `pace` 에 더하고 T.sim 반환에 goalsPerGame·savesPerGame 추가.
+새 그림(이미 있음, art/sprites/): keeper-dive.png — SPEC 표 그대로. 없으면 실루엣.
+유지: 지금 되는 것 전부(튕기기·AI·콤보·리그·기록 띠·?check·?stats·window.T·T.bot·T.sim).
+전역 이름 금지(top, name, status, parent, self, length, origin, screen, event, history, location).
+검사: 기존 검사 유지·고침. 추가 — 「골키퍼」 느린 정면 슛(속도 8, 골 중앙)은 구역 안 골키퍼가 막아 save 이벤트 · 강슛(속도 30, 구석)은 못 막고 goal · 골키퍼가 구역 밖으로 안 나감 · 「페이스」 T.sim(30,'search',2) 총 골 2~5, 막았다 1~4. 실행 node --jitless proto/brosball/tools/check.cjs. 보고 codex-report.txt 12줄 이하 + T.sim 숫자(승률·초·콤보·총 골·막았다).
