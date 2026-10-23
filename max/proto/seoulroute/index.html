@@ -326,7 +326,9 @@ let H = 1280, PLAYER_Y = 1090, CAM_H = 3.63;
 const zPlayer = () => V.camBack;                                    // view-only camera distance
 const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
 const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5 };
-const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {} };
+// feel (view only, rules untouched): px/pv = drawn x spring that overshoots the lane and settles; tilt/tv = lean spring;
+// bx/bv = the box on the rack lagging the bike; stop = hit-stop seconds; gust = side cars shiver after a squeeze
+const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
 
 // ---- run (state + command log for replay) ----
 let S, LOG;
@@ -334,6 +336,7 @@ function reset(seed = (Date.now() >>> 0)) {
   S = RULES.init(DATA, seed, ruleKnobs());
   LOG = { seed: (seed >>> 0) || 1, knobs: ruleKnobs(), cmds: [], endTick: 0 }; // init already advanced S.rng
   FX.pops = []; FX.shake = 0; FX.flash = 0; FX.bend = null; FX.lastCross = null; FX.age = {};
+  FX.px = 0; FX.pv = 0; FX.tilt = 0; FX.tv = 0; FX.bx = 0; FX.bv = 0; FX.stop = 0; FX.gust = 0;
 }
 function command(cmd) {
   if (S.done) return;
@@ -445,12 +448,16 @@ function blip(freq, len, type = 'sine', vol = 0.2, slide = 0) {
 
 function onEvents(events) {
   for (const e of events) {
-    if (e.k === 'lane') blip(220, 0.08, 'triangle', 0.08, 1.6);
+    if (e.k === 'lane') { blip(220, 0.08, 'triangle', 0.08, 1.6); FX.tv += (e.to - e.from) * 9; } // body leans before the bike moves
     if (e.k === 'bump') FX.shake = Math.max(FX.shake, 0.08);
-    if (e.k === 'hit') { FX.shake = 0.35; FX.flash = 0.25; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5); }
+    if (e.k === 'hit') {
+      FX.shake = 0.35; FX.flash = 0.25; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5);
+      const o = S.obs.find(o => o.id === e.id), side = o && o.x < S.x ? 1 : o && o.x > S.x ? -1 : (S.moveDir || 1); // thrown away from what you hit
+      FX.pv += side * 5; FX.tv += side * 18; FX.bv += side * 9;
+    }
     if (e.k === 'splash') { FX.shake = Math.max(FX.shake, 0.12); FX.flash = 0.12; FX.flashCol = '#7fc8ff'; blip(300, 0.15, 'sine', 0.1, 0.6); }
     if (e.k === 'brush') { FX.pops.push({ text: '스침!', size: 34, t: 0 }); blip(700, 0.1, 'sine', 0.08, 1.5); }
-    if (e.k === 'squeeze') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; FX.pops.push({ text: '틈새!', size: 50, t: 0 }); blip(900, 0.2, 'sine', 0.14, 1.8); }
+    if (e.k === 'squeeze') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; FX.pops.push({ text: '틈새!', size: 50, t: 0 }); blip(900, 0.2, 'sine', 0.14, 1.8); FX.stop = 0.11; FX.gust = 0.45; } // hit-stop: the moment lands
     if (e.k === 'blink') blip(1200, 0.04, 'square', 0.03);
     if (e.k === 'brake' && e.on) blip(1800, 0.18, 'sawtooth', 0.04, 0.7);
     if (e.k === 'miss') { FX.pops.push({ text: '길 잘못 듦! 돌아가요', size: 40, t: -0.3, col: '#ff7a6a' }); blip(160, 0.4, 'sawtooth', 0.12, 0.6); }
@@ -567,7 +574,7 @@ function draw(dt) {
   }
   items.sort((a, b) => b.z - a.z);
   for (const it of items) {
-    if (it.player) { drawPlayer(); continue; }
+    if (it.player) { drawPlayer(dt); continue; }
     if (it.side || it.sig) {
       if (it.z <= 0.3 || it.z > 90) continue;
       const p = project(it.z), a = Math.min(1, (90 - it.z) / 20);
@@ -580,7 +587,8 @@ function draw(dt) {
     if (it.z <= 0.3 || p.y > H + 200) continue;
     let a = Math.min(1, (90 - it.z) / 20);
     if (FX.age[o.id] !== undefined) { a *= Math.min(1, FX.age[o.id] / 0.6); if ((FX.age[o.id] += dt) > 0.6) delete FX.age[o.id]; } // new street's cars fade in
-    const cx = W / 2 + (o.x / 1000 + bendX(it.z)) * p.s;
+    const gust = FX.gust > 0 && kd.car && Math.abs(o.dz) < 3500 ? Math.sin(performance.now() / 18) * 0.05 * FX.gust : 0; // squeezed cars shiver in your wake
+    const cx = W / 2 + (o.x / 1000 + bendX(it.z) + gust) * p.s;
     if (kd.solid) { // contact shadow: pins the thing to its lane
       ctx.globalAlpha = 0.45 * a; ctx.fillStyle = '#000';
       ctx.beginPath(); ctx.ellipse(cx, p.y, kd.w / 1000 * p.s * 0.58, kd.w / 1000 * p.s * 0.13, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
@@ -619,21 +627,38 @@ function draw(dt) {
     }
   }
   if (FX.flash > 0) { ctx.globalAlpha = FX.flash * 1.4; ctx.fillStyle = FX.flashCol; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
-  FX.shake = Math.max(0, FX.shake - dt); FX.flash = Math.max(0, FX.flash - dt);
+  FX.shake = Math.max(0, FX.shake - dt); FX.flash = Math.max(0, FX.flash - dt); FX.gust = Math.max(0, FX.gust - dt);
   drawHud(v);
   ctx.restore();
 }
 
-function drawPlayer() {
+function spring(FXk, FXv, target, k, c, dt) { // underdamped: overshoots, settles. returns [pos, vel]
+  const v = FXv + ((target - FXk) * k - FXv * c) * dt;
+  return [FXk + v * dt, v];
+}
+function drawPlayer(dt) {
   FX.filt += ((S.filtering ? (S.lane > 0 ? -0.45 : 0.45) : 0) - FX.filt) * 0.25; // view: hug the lane line while filtering past stopped cars
-  const p = project(zPlayer()), x = W / 2 + (S.x / 1000 + FX.filt) * p.s;
+  const target = S.x / 1000 + FX.filt;
+  [FX.px, FX.pv] = spring(FX.px, FX.pv, target, 260, 16, dt);                 // bike: snaps over, overshoots ~8%, settles
+  const leanIn = S.moveT < S.cfg.laneTicks ? S.moveDir : 0;
+  [FX.tilt, FX.tv] = spring(FX.tilt, FX.tv, leanIn * 0.8 + FX.pv * 0.35, 220, 12, dt); // lean: into the move, then recoil with the overshoot
+  [FX.bx, FX.bv] = spring(FX.bx, FX.bv, FX.px, 90, 7, dt);                   // box on the rack: lags, swings, keeps swinging a beat
+  const p = project(zPlayer()), x = W / 2 + FX.px * p.s, foot = PLAYER_Y + Math.sin(S.tick / 2) * 1.5;
   let cell = 0;
   if (S.slow > DATA.slowTicks / 2) cell = 3;
   else if (S.moveT < S.cfg.laneTicks) cell = S.moveDir < 0 ? 1 : 2;
   else if (bendAmt() > 0.35) cell = FX.bend.dir < 0 ? 1 : 2; // lean into the turn
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(x, PLAYER_Y, 0.3 * p.s, 0.06 * p.s, 0, 0, Math.PI * 2); ctx.fill();
-  drawCell(IMG.hero, cell, x, PLAYER_Y + Math.sin(S.tick / 2) * 1.5, 0.62 * p.s);
+  if (!IMG.hero.complete || !IMG.hero.naturalWidth) return;
+  // the sprite in two slices around the foot: wheels/bike (bottom 45%) stay put, rider+box (top 55%) tilt and sway
+  const b = bbox(IMG.hero, cell, CELL, CELL), k = 0.62 * p.s / b.w, left = x - b.w * k / 2, top = foot - b.h * k;
+  const split = Math.round(b.h * 0.45), sx = (cell % 4) * CELL + b.x, sy = Math.floor(cell / 4) * CELL + b.y;
+  const sway = (FX.bx - FX.px) * p.s * 0.6, tilt = Math.max(-0.35, Math.min(0.35, FX.tilt * 0.22));
+  ctx.save(); ctx.translate(x, foot); ctx.rotate(tilt); ctx.translate(-x, -foot);
+  ctx.drawImage(IMG.hero, sx, sy + b.h - split, b.w, split, left, top + (b.h - split) * k, b.w * k, split * k);
+  ctx.drawImage(IMG.hero, sx, sy, b.w, b.h - split, left + sway, top, b.w * k, (b.h - split) * k);
+  ctx.restore();
   if (S.brake) glow(x, PLAYER_Y - 0.2 * p.s, 0.07 * p.s, '#ff2a2a', 0.95); // tail lamp
 }
 
@@ -715,7 +740,8 @@ reset();
 let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
-  if (!window.__pause) {
+  if (FX.stop > 0) FX.stop -= dt; // hit-stop: the world holds for a beat (ticks resume after; replay unaffected)
+  else if (!window.__pause) {
     acc += dt;
     while (acc >= 1 / 60) { acc -= 1 / 60; onEvents(RULES.tick(S).events); }
   }
