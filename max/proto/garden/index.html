@@ -66,6 +66,8 @@ function tutUnlock(icon,target,feature=null){const t=game.tut;t.unlockQueue.push
 function tutDrawerEmpty(key){if(!game?.tut||tutEarly()||!game.storage[key].every(v=>!v)||tutRecord.adSlots.includes(key))return;tutRecord.adSlots.push(key);tutUnlock('ui-play-s',key);tutSave();}
 function tutPending(key){const t=game.tut;return t.unlock?.feature===key||t.unlockQueue.some(v=>v.feature===key);}
 function tutNextUnlock(){const t=game.tut;t.unlock=t.unlockQueue.shift()||null;if(t.unlock){t.unlock.start=clockNow;if(t.unlock.feature&&!tutRecord.learned.includes(t.unlock.feature)){tutRecord.learned.push(t.unlock.feature);tutSave();}sound('order');}}
+// v5y fix: the bag button files food, tools and the rest into three drawers, so step 8 counts all of them.
+function stored(){return ['snack','tools','bag'].reduce((n,k)=>n+game.storage[k].filter(Boolean).length,0);}
 function tutEnter(stage){const t=game.tut;t.step=stage;game.itemInfo=null;game.hint=null;t.digs=0;t.lastInput=clockNow;t.fingerAfter=clockNow+.6;t.entered=clockNow;t.speech=tutLines[stage]?{text:tutLines[stage],until:clockNow+(checkMode?.35:5)}:null;tutRecord.step=stage;tutRecord.day=game.day;tutSave();
  const opened=tutOpen(stage);t.opened=opened;game.cells.forEach((c,i)=>c.locked=!opened.includes(i)&&!(stage>=9&&!c.cover));
  if(stage===3){game.maxCell=23;game.producers.toolbox.open=true;t.produced=0;tutUnlock('toolbox','toolbox');t.speech={text:'연장통에 뭐가 남았더라.',until:clockNow+2.4};}
@@ -73,7 +75,7 @@ function tutEnter(stage){const t=game.tut;t.step=stage;game.itemInfo=null;game.h
  if(stage===5){tutUnlock('ui-star','stars');tutUnlock('face-grandpa','orders');game.orderIssued=[];game.orders=[newOrder(0)];game.orders[0].face=0;game.orders[0].item='corn-sprout';game.orders[0].left=1;game.orderCursor=1;}
  if(stage===6){game.energy=20;game.regen=0;game.orders=[];tutUnlock('ui-bone-bar','energy');}
  if(stage===7){game.lastDrawerTab='snack';t.fed=false;tutUnlock('icon-snack','snack');}
- if(stage===8){game.lastDrawerTab='tools';tutUnlock('icon-tools','tools');tutUnlock('icon-bag','bag');}
+ if(stage===8){t.stored=stored();game.lastDrawerTab='tools';tutUnlock('icon-tools','tools');tutUnlock('icon-bag','bag');}
  if(stage===9){game.wanderDue=clockNow+4+random()*3;game.hintDue=clockNow+5;game.orderCursor=1;game.potatoOpen=true;game.orderIssued=[0];game.orders=neighborOrders();game.cells.forEach(c=>c.locked=false);t.giftCell=tutRecord.gift?null:emptyNear(game.maxCell);game.potatoOpen=true;seedFertile();tutUnlock('face-hen','orders');tutUnlock('seed-potato','goal');tutUnlock('coop-broken','goal');}
 }
 function tutStart(stage){for(const c of game.cells)if(c.cover==='weed'){c.cover=c.weedBase;c.weedPending=true;}game.tut={step:stage,digs:0,unlockQueue:[],unlock:null,glows:{},speech:null,holdUntil:0,giftCell:null,sniffCue:null};game.potatoOpen=stage>=9;game.producers.toolbox.open=stage>=3;game.producers.rice.open=stage>=6;game.fertile=[];game.cells.forEach(c=>{c.item=null;c.vine=false;});game.orders=[];game.orderCursor=0;game.orderIssued=[];game.cells[23].mound={uses:0,cool:0};if(stage<6){game.maxCell=31;pose('stand',point(31).x,point(31).y,.01);}
@@ -121,7 +123,7 @@ function tutTick(){const t=game.tut;if(!t)return;if(t.step===9&&!t.unlock&&!(t.s
  if(t.step===6&&tutRecord.discovery==='none'&&!t.unlock&&!t.unlockQueue.length&&!(t.speech?.until>clockNow)){if(t.discoveryAt===undefined)t.discoveryAt=clockNow+.5;if(clockNow+1e-9>=t.discoveryAt&&discoveryStart())discoveryCall();}
  if(t.step===6&&tutRecord.discovery!=='none'&&!(t.speech?.found&&t.speech.until>clockNow)&&(game.energy<=15||t.digs>=4)&&!game.motion&&transition<=0)tutEnter(7);
  if(t.step===7&&t.fed){closeDrawer();tutEnter(8);}
- if(t.step===8&&game.storage.bag.some(Boolean))tutEnter(9);
+ if(t.step===8&&stored()>(t.stored??0))tutEnter(9);
  if(game.energy===0&&!tutRecord.freeEnergy&&t.step>=6){tutRecord.freeEnergy=true;tutSave();grant('riceball',game.maxCell);grant('riceball',game.maxCell);game.energyAd=false;t.speech={text:'뼈다귀 과자 두 개, 맥스 몫이다.',until:clockNow+2.4};}
  if(FEATURES.walk&&game.day>=2&&!tutRecord.learned.includes('walk')&&!tutPending('walk')){if(!tutRecord.unlocks.includes('walk'))tutRecord.unlocks.push('walk');tutUnlock('icon-walk','walk','walk');tutSave();}
  if(game.day>=2&&(game.cells.some(c=>c.sniff&&!c.sniff.discovery)||tutRecord.unlocks.includes('sniff'))&&!tutRecord.learned.includes('sniff')&&!tutPending('sniff')){if(!tutRecord.unlocks.includes('sniff'))tutRecord.unlocks.push('sniff');t.sniffCue={cell:game.cells.findIndex(c=>c.sniff&&!c.sniff.discovery),until:clockNow+2.4};tutUnlock('sniff-mark','sniff','sniff');tutSave();}
