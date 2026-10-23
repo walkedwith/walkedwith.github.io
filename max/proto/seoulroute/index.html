@@ -332,9 +332,10 @@ const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0
 
 // ---- run (state + command log for replay) ----
 let S, LOG;
-function reset(seed = (Date.now() >>> 0)) {
-  S = RULES.init(DATA, seed, ruleKnobs());
-  LOG = { seed: (seed >>> 0) || 1, knobs: ruleKnobs(), cmds: [], endTick: 0 }; // init already advanced S.rng
+function reset(seed = (Date.now() >>> 0), extra) {
+  const knobs = Object.assign(ruleKnobs(), extra || {});
+  S = RULES.init(DATA, seed, knobs);
+  LOG = { seed: (seed >>> 0) || 1, knobs, cmds: [], endTick: 0 }; // init already advanced S.rng
   FX.pops = []; FX.shake = 0; FX.flash = 0; FX.bend = null; FX.lastCross = null; FX.age = {};
   FX.px = 0; FX.pv = 0; FX.tilt = 0; FX.tv = 0; FX.bx = 0; FX.bv = 0; FX.stop = 0; FX.gust = 0;
 }
@@ -493,6 +494,12 @@ function ground(pts) { // [[x lanes, depth]] -> polygon painted on the road plan
   ctx.fill();
 }
 const quad = (x0, x1, z0, z1) => ground([[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
+function wall(x, z0, z1, hLanes, col) { // vertical slab along the side, from the floor up hLanes (corridor scenes)
+  const p0 = project(Math.max(0.35, z0)), p1 = project(Math.max(0.35, z1));
+  ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(W / 2 + x * p0.s, p0.y); ctx.lineTo(W / 2 + x * p1.s, p1.y);
+  ctx.lineTo(W / 2 + x * p1.s, p1.y - hLanes * p1.s); ctx.lineTo(W / 2 + x * p0.s, p0.y - hLanes * p0.s); ctx.fill();
+}
 function drawCrossing(L, want) { // road paint for one intersection whose stop line is at depth L
   if (L < -16 || L > 95) return;
   ctx.fillStyle = '#2a3045'; quad(-14, 14, L + 3.2, L + 11);                    // cross street
@@ -697,7 +704,7 @@ function drawHud(v) {
     const t = '← → 밀어서 차선   ·   ↓ 누르고 있으면 브레이크';
     ctx.strokeText(t, W / 2, H - 60); ctx.fillText(t, W / 2, H - 60); ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
-  if (S.done) {
+  if (S.done && !APP.order) { // standalone test run (no flow): the old summary card
     ctx.fillStyle = '#0b1020e0'; ctx.beginPath(); ctx.roundRect(70, 420, 580, 420, 30); ctx.fill();
     ctx.fillStyle = S.win ? '#ffd84a' : '#ff6a5a'; ctx.textAlign = 'center'; ctx.font = 'bold 54px sans-serif';
     ctx.fillText(S.win ? `도착 ${(S.tick / 60).toFixed(1)}초` : '시간 초과', W / 2, 500);
@@ -709,50 +716,361 @@ function drawHud(v) {
   }
 }
 
-// ---- input: lane change fires mid-swipe, not on release ----
-let anchor = null, anchorY = 0;
+// ===== FLOW (10-24 사람 "강남구 플로우 모두") — order → plan(택1) → run → last 100m → result → map → next order =====
+// Paper UI drawn in code (ART.md: frames, buttons, gauges, lines, text only). Scenes stay the glass HUD.
+const PAPER = { bg: '#F7EAD0', shade: '#E8D7B5', edge: '#C9A86A', ink: '#3A2A1A', ink2: '#7A6448', orange: '#F28A2E', orangeDk: '#D9731F',
+  green: '#59B35A', blue: '#3F86D8', gold: '#FFD84A', red: '#E24B4B', paperDk: '#EBD9B6' };
+// Gangnam-gu only (10-24). Map coords 0..1 on the plan map; stamps go per dong.
+const DONGS = { 역삼: [0.42, 0.52], 논현: [0.30, 0.34], 삼성: [0.66, 0.40], 압구정: [0.36, 0.14], 청담: [0.58, 0.18], 대치: [0.60, 0.66], 도곡: [0.44, 0.78], 개포: [0.72, 0.86] };
+const FOODS = [{ n: '떡볶이 세트', hot: true }, { n: '물냉면', cold: true }, { n: '후라이드 치킨', hot: true }, { n: '아이스 아메리카노 4잔', cold: true }, { n: '김밥 두 줄', hot: false }];
+function xr(seed) { let x = (seed >>> 0) || 1; return n => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x % n; }; }
+function dayOrders(day) { // 오늘의 주문: the date is the seed, everyone gets the same five (IDEA 소셜)
+  const r = xr(day * 2654435761), names = Object.keys(DONGS), out = [];
+  for (let i = 0; i < 5; i++) {
+    const a = names[r(names.length)]; let b = names[r(names.length)]; while (b === a) b = names[r(names.length)];
+    const jam = r(100) < 45, rain = r(100) < 35, gap = 4 + r(5);
+    out.push({ id: i, food: FOODS[r(FOODS.length)], from: a, to: b, limit: 150 + r(4) * 15, tip: 2000 + r(4) * 500, jam, rain, gap, unit: `${10 + r(12)}0${1 + r(9)}호`,
+      estBike: 36 + (jam ? 5 : 0) + (rain ? 2 : 0) - 2 + r(5), estSub: 34 + (gap - 4) * 2 - 2 + r(5) });
+  }
+  return out;
+}
+const FLOW_KEY = 'proto_seoulroute_flow1', SEG_KEY = 'proto_seoulroute_seg';
+let META = { stamps: {}, gold: [], done: 0, best: {} };
+try { META = Object.assign(META, JSON.parse(localStorage.getItem(FLOW_KEY) || '{}')); } catch (e) {}
+const saveMeta = () => { try { localStorage.setItem(FLOW_KEY, JSON.stringify(META)); } catch (e) {} };
+const APP = { screen: 'order', day: Math.floor(Date.now() / 864e5), orders: [], idx: 0, order: null, choice: null, seg: null, last: null, res: null,
+  buttons: [], t: 0, planT: 0, trans: null, nextScreen: null };
+APP.orders = dayOrders(APP.day);
+try { const i = +(localStorage.getItem(FLOW_KEY + '_idx') || 0); APP.idx = i % 5; } catch (e) {}
+function go(screen) { APP.trans = { t: 0, to: screen }; } // paper slides over, screen swaps underneath, paper slides off
+function enter(screen) {
+  APP.screen = screen; APP.buttons = []; APP.t = 0;
+  if (screen === 'order') { APP.order = APP.orders[APP.idx]; APP.choice = null; APP.seg = null; APP.last = null; APP.res = null; }
+  if (screen === 'plan') APP.planT = 0;
+  if (screen === 'run') {
+    const o = APP.order;
+    reset(APP.day * 7 + o.id, { cars: o.jam ? 18 : 15, carChange: o.jam ? 16 : 12 });
+    if (engGain) engGain.gain.value = 0.05;
+  }
+  if (screen === 'last') APP.last = LAST.init(APP.day * 11 + APP.order.id);
+  if (screen === 'result') APP.res = makeResult();
+}
+// ---- last 100m: integer flick, one shot (brosball physics, redone in integers; rules-style but tiny) ----
+const LAST = {
+  init(seed) {
+    const r = xr(seed);
+    return { len: 9000, mat: 7600, box: 0, v: 0, pull: 0, released: false, done: false, t: 0, hitWall: false,
+      wet: 2600 + r(1500), wetLen: 1400, quality: null, side: [ { at: 2200 + r(1200), cell: 14, x: 1 }, { at: 4800 + r(1200), cell: 13, x: -1 } ] };
+  },
+  tick(L) {
+    if (L.done) return;
+    L.t++;
+    if (!L.released) return;
+    const onWet = L.box > L.wet && L.box < L.wet + L.wetLen;
+    L.v = Math.max(0, L.v - (onWet ? 1 : 4));
+    L.box += L.v;
+    if (L.box >= L.len) { L.box = L.len - 200; L.v = 0; L.hitWall = true; }
+    if (L.v === 0) { L.done = true; const d = Math.abs(L.box - L.mat); L.quality = L.hitWall ? 'wall' : d < 350 ? 'perfect' : d < 1000 ? 'near' : 'far'; }
+  },
+  release(L, power) { if (L.released) return; L.released = true; L.v = 40 + idiv(power * 300, 100); },
+};
+const QUAL = { perfect: ['딱 맞았다!', 1.0, 3], near: ['문 앞에 놓음', 0.9, 2], far: ['좀 멀리 놓음', 0.75, 1], wall: ['문에 쿵! 국물 쏟음', 0.6, 1] };
+function makeResult() {
+  const o = APP.order, seg = APP.seg, L = APP.last;
+  const win = seg.win && (!L || true);
+  const segSec = seg.tick / 60 + (seg.extra || 0) / 60, lastSec = L ? L.t / 60 : 0, total = segSec + lastSec;
+  const q = L ? QUAL[L.quality || 'far'] : QUAL.wall;
+  const shortcut = win && (seg.kind === 'bike' ? seg.squeezes >= 4 && seg.hits === 0 : seg.doorOk && seg.platOk);
+  const key = `${o.from}-${o.to}`;
+  const res = { win, total, segSec, lastSec, q, tip: win ? Math.round(o.tip * q[1] / 100) * 100 : 0, stars: win ? Math.min(3, q[2] + (seg.hits === 0 ? 0 : -1) + (shortcut ? 1 : 0)) : 0,
+    shortcut, newGold: shortcut && !META.gold.includes(key), newStamp: win && !META.stamps[o.to] };
+  if (win) { META.stamps[o.to] = (META.stamps[o.to] || 0) + 1; META.done++; if (res.newGold) META.gold.push(key); META.best[key] = Math.min(META.best[key] || 1e9, Math.round(total * 10)); saveMeta(); }
+  return res;
+}
+// ---- paper drawing helpers ----
+function paper(x, y, w, h, opts = {}) {
+  ctx.fillStyle = '#0000001f'; ctx.beginPath(); ctx.roundRect(x + 6, y + 8, w, h, 18); ctx.fill();
+  ctx.fillStyle = opts.fill || PAPER.bg; ctx.strokeStyle = PAPER.edge; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.roundRect(x, y, w, h, 18); ctx.fill(); ctx.stroke();
+  if (opts.spiral) for (let yy = y + 26; yy < y + h - 10; yy += 34) { ctx.fillStyle = '#5a4a3a'; ctx.beginPath(); ctx.arc(x + 18, yy, 6, 0, 7); ctx.fill(); ctx.fillStyle = PAPER.bg; ctx.beginPath(); ctx.arc(x + 18, yy - 1, 3, 0, 7); ctx.fill(); }
+  if (opts.tape) { ctx.save(); ctx.translate(x + w / 2, y); ctx.rotate(-0.06); ctx.fillStyle = '#ffffffb0'; ctx.fillRect(-60, -14, 120, 28); ctx.restore(); }
+}
+function txt(t, x, y, size, col = PAPER.ink, align = 'left', weight = 'bold') { ctx.fillStyle = col; ctx.font = `${weight} ${size}px sans-serif`; ctx.textAlign = align; ctx.fillText(t, x, y); }
+function chip(t, x, y, col, bg) { ctx.font = 'bold 22px sans-serif'; const w = ctx.measureText(t).width + 28; ctx.fillStyle = bg; ctx.beginPath(); ctx.roundRect(x, y, w, 40, 20); ctx.fill(); txt(t, x + 14, y + 28, 22, col); return w + 10; }
+function button(id, x, y, w, h, label, col = PAPER.orange, fg = '#fff') {
+  ctx.fillStyle = '#0000002a'; ctx.beginPath(); ctx.roundRect(x, y + 6, w, h, 22); ctx.fill();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, w, h, 22); ctx.fill();
+  ctx.fillStyle = '#ffffff33'; ctx.beginPath(); ctx.roundRect(x + 6, y + 6, w - 12, h / 2 - 6, 16); ctx.fill();
+  txt(label, x + w / 2, y + h / 2 + 11, Math.min(32, h * 0.46), fg, 'center');
+  APP.buttons.push({ id, x, y, w, h });
+}
+function gauge(x, y, w, h, f, col) { ctx.fillStyle = PAPER.paperDk; ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.fill(); ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x, y, Math.max(h, w * Math.max(0, Math.min(1, f))), h, h / 2); ctx.fill(); }
+function star(x, y, r, lit) { ctx.fillStyle = lit ? PAPER.gold : PAPER.paperDk; ctx.strokeStyle = lit ? '#C98A00' : PAPER.edge; ctx.lineWidth = 3; ctx.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.45 : r; ctx.lineTo(x + Math.cos(a) * rr, y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke(); }
+// Gangnam map: image when art/sprites/gangnam-map.png exists, otherwise an empty frame with roads as lines (ART.md: no grey boxes)
+IMG.map = img('art/sprites/gangnam-map.png');
+function drawMap(x, y, w, h, opts = {}) {
+  ctx.save(); ctx.beginPath(); ctx.roundRect(x, y, w, h, 14); ctx.clip();
+  ctx.fillStyle = '#EAF2DC'; ctx.fillRect(x, y, w, h);
+  if (IMG.map.complete && IMG.map.naturalWidth) ctx.drawImage(IMG.map, x, y, w, h);
+  else { // roads as lines: Han river top, Teheran-ro across, Gangnam-daero down
+    ctx.fillStyle = '#BFE0F5'; ctx.fillRect(x, y, w, h * 0.07);
+    ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 10; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x, y + h * 0.5); ctx.lineTo(x + w, y + h * 0.38); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w * 0.36, y + h * 0.07); ctx.lineTo(x + w * 0.44, y + h); ctx.stroke();
+    ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(x + w * 0.2, y + h * 0.75); ctx.lineTo(x + w * 0.9, y + h * 0.62); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x + w * 0.66, y + h * 0.07); ctx.lineTo(x + w * 0.72, y + h); ctx.stroke();
+    txt('강남구 지도 — 그림 자리', x + w / 2, y + h - 14, 18, PAPER.ink2, 'center', '500');
+  }
+  const P = n => [x + DONGS[n][0] * w, y + DONGS[n][1] * h];
+  for (const k of META.gold) { const [a, b] = k.split('-'); if (!DONGS[a] || !DONGS[b]) continue; const A = P(a), B = P(b); ctx.strokeStyle = PAPER.gold; ctx.lineWidth = 7; ctx.shadowColor = PAPER.gold; ctx.shadowBlur = 10; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo((A[0] + B[0]) / 2 + 20, (A[1] + B[1]) / 2 - 24); ctx.lineTo(B[0], B[1]); ctx.stroke(); ctx.shadowBlur = 0; }
+  if (opts.routes) { // orange road route + blue subway route between the order's dongs
+    const A = P(APP.order.from), B = P(APP.order.to), mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2;
+    ctx.lineWidth = 9; ctx.lineCap = 'round';
+    ctx.strokeStyle = PAPER.orange; ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], A[1] + (B[1] - A[1]) * 0.15); ctx.lineTo(B[0], B[1]); ctx.stroke();
+    ctx.strokeStyle = PAPER.blue; ctx.setLineDash([16, 10]); ctx.beginPath(); ctx.moveTo(A[0], A[1]); ctx.lineTo(A[0] + (B[0] - A[0]) * 0.15, B[1]); ctx.lineTo(B[0], B[1]); ctx.stroke(); ctx.setLineDash([]);
+    const bub = (t, bx, by, col) => { ctx.fillStyle = '#fff'; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(bx - 44, by - 22, 88, 40, 12); ctx.fill(); ctx.stroke(); txt(t, bx, by + 7, 22, col, 'center'); };
+    bub(`${APP.order.estBike}초`, B[0] + 6, A[1] + (B[1] - A[1]) * 0.15 - 30, PAPER.orange);
+    bub(`${APP.order.estSub}초`, A[0] + (B[0] - A[0]) * 0.15 - 6, B[1] + 32, PAPER.blue);
+  }
+  for (const n in DONGS) {
+    const [px, py] = P(n), stamped = !!META.stamps[n], isA = APP.order && n === APP.order.from, isB = APP.order && n === APP.order.to;
+    if (stamped) { ctx.strokeStyle = '#C98A00'; ctx.fillStyle = PAPER.gold + 'cc'; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(px, py, 22, 0, 7); ctx.fill(); ctx.stroke(); }
+    if (isA || isB) { ctx.fillStyle = isA ? PAPER.orange : PAPER.red; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 12, py - 22); ctx.arc(px, py - 24, 12, Math.PI * 0.8, Math.PI * 0.2, false); ctx.lineTo(px, py); ctx.fill(); }
+    txt(n, px, py + 34, 20, PAPER.ink, 'center');
+  }
+  ctx.restore();
+}
+// ---- screens ----
+function drawOrder() {
+  const o = APP.order;
+  ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, W, H);
+  txt('오늘의 주문', 40, 100, 34); txt(`${APP.idx + 1} / 5 · 강남구`, W - 40, 100, 24, PAPER.ink2, 'right');
+  paper(30, 130, W - 60, 620, { spiral: true, tape: true });
+  txt(`주문 #${String(APP.day % 1000).padStart(3, '0')}${o.id}`, 70, 190, 20, PAPER.ink2, 'left', '500');
+  txt(o.food.n, 70, 250, 46);
+  txt(`${o.from}동`, 70, 320, 34); txt('→', 70 + ctx.measureText(`${o.from}동`).width + 18, 320, 34, PAPER.orange); txt(`${o.to}동 ${o.unit}`, 70 + ctx.measureText(`${o.from}동`).width + 66, 320, 34);
+  ctx.fillStyle = PAPER.paperDk; ctx.beginPath(); ctx.roundRect(70, 350, 270, 90, 14); ctx.fill(); ctx.beginPath(); ctx.roundRect(360, 350, 290, 90, 14); ctx.fill();
+  txt('제한 시간', 90, 380, 18, PAPER.ink2, 'left', '500'); txt(`${Math.floor(o.limit / 60)}:${String(o.limit % 60).padStart(2, '0')}`, 90, 426, 40);
+  txt('팁', 380, 380, 18, PAPER.ink2, 'left', '500'); txt(`₩${o.tip.toLocaleString()}`, 380, 426, 40, PAPER.orangeDk);
+  txt('지금 길 상태 — 어느 쪽이 나을까', 70, 490, 22, PAPER.ink2, 'left', '500');
+  let cx = 70; cx += chip(o.jam ? '강남대로 정체 심함' : '강남대로 원활', cx, 506, o.jam ? '#8a1f1f' : '#2a5a2a', o.jam ? '#ffd6d0' : '#dcf2d8');
+  cx += chip(o.rain ? '비 · 웅덩이' : '맑음', cx, 506, o.rain ? '#1f3f6a' : '#6a5a1f', o.rain ? '#d6e8ff' : '#fff2c0');
+  chip(`2호선 배차 ${o.gap}분`, 70, 556, '#2a3a5a', '#e4e8f2');
+  if (o.food.cold) chip('차가운 음식 — 녹기 전에', 300, 556, '#1f3f6a', '#d6e8ff'); else if (o.food.hot) chip('뜨거운 음식 — 식기 전에', 300, 556, '#8a3a1f', '#ffe0cc');
+  txt('정보는 3분 전 기준 — 틀릴 수 있음', 70, 630, 18, PAPER.ink2, 'left', '500');
+  txt(`강남구 도장 ${Object.keys(META.stamps).length} / ${Object.keys(DONGS).length} · 지름길 ${META.gold.length}`, 70, 700, 22, PAPER.ink2, 'left', '500');
+  if (H - 230 - 790 > 200) { paper(30, 770, W - 60, H - 230 - 790); drawMap(46, 786, W - 92, H - 230 - 822); } // the district, the two pins, your gold lines
+  button('accept', 60, H - 200, W - 120, 84, '주문 받기');
+}
+function drawPlan(dt) {
+  const o = APP.order; APP.planT += dt;
+  ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, W, H);
+  txt('어떻게 갈까', 40, 100, 34); txt(`${o.food.n} · ${o.from} → ${o.to}`, W - 40, 100, 22, PAPER.ink2, 'right', '500');
+  const left = Math.max(0, 10 - APP.planT);
+  gauge(40, 118, W - 80, 14, left / 10, left < 3 ? PAPER.red : PAPER.orange);
+  txt(`${Math.ceil(left)}초 안에 고르기 — 안 고르면 오토바이`, 40, 160, 20, PAPER.ink2, 'left', '500');
+  paper(30, 180, W - 60, H - 470, { tape: true });
+  drawMap(46, 196, W - 92, H - 502, { routes: true });
+  const by = H - 270, bw = (W - 140) / 2;
+  button('bike', 60, by, bw, 150, '', PAPER.orange); button('subway', 80 + bw, by, bw, 150, '', PAPER.blue);
+  txt('오토바이', 60 + bw / 2, by + 46, 30, '#fff', 'center'); txt(`${o.estBike}초`, 60 + bw / 2, by + 96, 40, PAPER.gold, 'center');
+  txt(o.jam ? '정체 심함 · 흔들림 큼' : '길 원활', 60 + bw / 2, by + 132, 18, '#fff', 'center', '500');
+  txt('지하철', 80 + bw + bw / 2, by + 46, 30, '#fff', 'center'); txt(`${o.estSub}초`, 80 + bw + bw / 2, by + 96, 40, PAPER.gold, 'center');
+  txt(`배차 ${o.gap}분 · 놓치면 +8초`, 80 + bw + bw / 2, by + 132, 18, '#fff', 'center', '500');
+  if (left <= 0 && !APP.trans) choose('bike');
+}
+function choose(kind) {
+  APP.choice = kind;
+  if (kind === 'bike') go('run');
+  else { // the subway segment lives in subway.html: hand it the order, it hands back the result (SEG_KEY) and returns to #back
+    try { localStorage.setItem(FLOW_KEY + '_idx', String(APP.idx)); localStorage.setItem(SEG_KEY, JSON.stringify({ pending: true, gap: APP.order.gap, seed: APP.day * 7 + APP.order.id })); } catch (e) {}
+    location.href = 'subway.html?flow=1';
+  }
+}
+function drawLast(dt) {
+  const L = APP.last;
+  // corridor scene (glass HUD side): floor wedge, door at the end, mat, wet patch, side junk from props, the box, the boy
+  const sky = ctx.createLinearGradient(0, 0, 0, HORIZON); sky.addColorStop(0, '#FFCF8A'); sky.addColorStop(1, '#FF9A6E'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, HORIZON);
+  ctx.fillStyle = '#d9cfc2'; ctx.fillRect(0, HORIZON, W, H - HORIZON);
+  const F = focal(), zOfL = m => zPlayer() + (m - L.box) / 1000;
+  ctx.fillStyle = '#e4dbcf'; quad(-2.2, 2.2, 0.4, 60); ctx.fillStyle = '#d6ccbf';
+  for (let z = Math.floor(L.box / 1000 - zPlayer()); z < 60; z += 2) { const zz = z - L.box / 1000 + zPlayer(); if (zz > 0.4) quad(-2.2, 2.2, zz, zz + 1); }
+  wall(-2.2, 0.4, zOfL(L.len), 1.1, '#b9ab9c'); wall(2.2, 0.4, zOfL(L.len), 2.6, '#cbbfb0'); // left: balcony rail (open to the sky), right: flats
+  const dz = zOfL(L.len), pd = project(Math.max(0.5, dz));
+  ctx.fillStyle = '#9c8a78'; ctx.fillRect(W / 2 - 2.2 * pd.s, pd.y - 2.6 * pd.s, 4.4 * pd.s, 2.6 * pd.s); // end wall
+  ctx.fillStyle = '#5a4a3f'; ctx.fillRect(W / 2 - 0.5 * pd.s, pd.y - 1.9 * pd.s, 1.0 * pd.s, 1.9 * pd.s); // door
+  ctx.fillStyle = '#e8c070'; ctx.beginPath(); ctx.arc(W / 2 + 0.36 * pd.s, pd.y - 0.9 * pd.s, 0.04 * pd.s, 0, 7); ctx.fill();
+  txt(APP.order.unit, W / 2, pd.y - 2.05 * pd.s, Math.max(14, 0.22 * pd.s), '#fff', 'center');
+  ctx.fillStyle = '#8a7a60'; quad(-0.5, 0.5, zOfL(L.mat - 400), zOfL(L.mat + 400)); // mat
+  ctx.strokeStyle = PAPER.gold; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.beginPath(); const m0 = project(Math.max(0.5, zOfL(L.mat - 350))), m1 = project(Math.max(0.5, zOfL(L.mat + 350))); ctx.rect(W / 2 - 0.42 * m0.s, m1.y, 0.84 * m0.s, m0.y - m1.y); ctx.stroke(); ctx.setLineDash([]);
+  if (zOfL(L.wet + L.wetLen) > 0.4) { ctx.fillStyle = 'rgba(160,200,255,0.35)'; quad(-1.6, 1.6, Math.max(0.4, zOfL(L.wet)), zOfL(L.wet + L.wetLen)); }
+  for (const o of L.side) { const z = zOfL(o.at); if (z > 0.4 && z < 60) { const p = project(z); drawCell(IMG.props, o.cell, W / 2 + o.x * 1.55 * p.s, p.y, 0.7 * p.s); } }
+  // the box (art pending: empty frame per ART.md), then the boy behind it when not yet released
+  const bz = Math.max(0.5, zPlayer() + (L.box - L.box) / 1000), pb = project(bz);
+  const boxY = PLAYER_Y - 40;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(W / 2, boxY, 0.26 * pb.s, 0.06 * pb.s, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#F7EAD0'; ctx.strokeStyle = '#8a6a48'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(W / 2 - 0.22 * pb.s, boxY - 0.34 * pb.s, 0.44 * pb.s, 0.34 * pb.s, 8); ctx.fill(); ctx.stroke();
+  txt(APP.order.food.n.split(' ')[0], W / 2, boxY - 0.12 * pb.s, 0.1 * pb.s, '#4a3328', 'center');
+  if (!L.released) drawCell(IMG.hero, 0, W / 2 - 0.45 * pb.s, PLAYER_Y + 30, 0.6 * pb.s);
+  // pull gauge + instructions (glass)
+  ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(20, 112, 670, 110, 22); ctx.fill();
+  txt('마지막 100m — 문 앞에 놓기', 40, 152, 26, '#fff'); txt(`남은 시간 ${Math.max(0, APP.order.limit - APP.seg.tick / 60 - L.t / 60).toFixed(0)}초`, W - 40, 152, 22, '#ffb340', 'right');
+  txt(L.released ? (L.done ? QUAL[L.quality][0] : '미끄러지는 중…') : '상자를 아래로 끌었다 놓기 — 세게 끌수록 멀리', 40, 198, 22, '#c9d4ff', 'left', '500');
+  if (!L.released) { ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(60, H - 150, W - 120, 60, 30); ctx.fill(); gauge(80, H - 135, W - 160, 30, L.pull / 100, L.pull > 80 ? PAPER.red : PAPER.orange); txt('힘', 40, H - 112, 22, '#fff'); }
+  if (L.done) button('cont', 160, H - 200, W - 320, 76, '결과 보기', PAPER.green);
+}
+function drawResult(dt) {
+  const o = APP.order, r = APP.res, seg = APP.seg;
+  ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, W, H);
+  paper(30, 60, W - 60, H - 300, { spiral: true, tape: true });
+  txt(r.win ? '배달 완료!' : '배달 실패', 70, 140, 56, r.win ? PAPER.orangeDk : PAPER.red);
+  for (let i = 0; i < 3; i++) star(560 + i * 50, 120, 20, i < r.stars);
+  txt(r.win ? `${Math.floor(r.total / 60)}분 ${(r.total % 60).toFixed(0)}초 · 제한 ${Math.floor(o.limit / 60)}:${String(o.limit % 60).padStart(2, '0')} 안` : '시간 초과 — 주문 취소', 70, 184, 24, PAPER.ink2, 'left', '500');
+  txt(`팁 ₩${r.tip.toLocaleString()}`, W - 70, 184, 30, PAPER.orangeDk, 'right');
+  txt(r.q[0] + (r.win && r.q[1] < 1 ? ` · 팁 ×${r.q[1]}` : ''), 70, 222, 22, PAPER.ink, 'left', '500');
+  // where the time went
+  txt('어디서 늦었나', 70, 276, 24);
+  const rows = seg.kind === 'bike' ? [['차에 막힘', seg.stuck / 60, PAPER.orange], ['신호 대기', (seg.redWait || 0) / 60, PAPER.blue], ['쿵 · 첨벙', seg.hits * 1.6, PAPER.red], ['길 잘못 듦', (seg.misses || 0) * 10, PAPER.red], ['틈새 보너스', -seg.squeezes * 0.6, PAPER.green]]
+    : [['사람에 막힘', seg.stuck / 60, PAPER.orange], ['열차 대기', (seg.wait || 0) / 60, PAPER.blue], ['쿵', seg.hits * 1.6, PAPER.red], ['반대 승강장·다른 칸', (seg.extra || 0) / 60, PAPER.red], ['틈새 보너스', -seg.squeezes * 0.6, PAPER.green]];
+  let y = 300;
+  for (const [n, v, col] of rows) { if (Math.abs(v) < 0.05) continue; txt(n, 70, y + 20, 20, PAPER.ink2, 'left', '500'); gauge(250, y + 4, 300, 20, Math.abs(v) / 15, col); txt(`${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(1)}초`, W - 70, y + 20, 20, v < 0 ? '#2a7a2a' : PAPER.ink, 'right'); y += 34; }
+  txt(`마지막 100m ${r.lastSec.toFixed(1)}초`, 70, y + 20, 20, PAPER.ink2, 'left', '500'); y += 40;
+  // shortcut + stamps
+  if (r.shortcut) { ctx.fillStyle = '#fff6cc'; ctx.strokeStyle = PAPER.gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(70, y, W - 140, 64, 14); ctx.fill(); ctx.stroke(); txt(r.newGold ? '새 지름길 발견! 지도에 금선으로 남음' : '지름길로 왔다 (이미 지도에 있음)', 90, y + 40, 22, '#8a6a00'); y += 80; }
+  else if (r.win) { txt(seg.kind === 'bike' ? '지름길 힌트: 틈새 4번·쿵 0이면 금선' : '지름길 힌트: 맞는 승강장 + 빠른 하차 문이면 금선', 70, y + 24, 18, PAPER.ink2, 'left', '500'); y += 44; }
+  txt(`강남구 도장 ${Object.keys(META.stamps).length} / ${Object.keys(DONGS).length}${r.newStamp ? ` · ${o.to}동 새 도장!` : ''}`, 70, y + 24, 22, PAPER.ink); y += 40;
+  const mapH = Math.min(320, H - 330 - y - 100);
+  if (mapH > 140) { drawMap(70, y + 4, W - 140, mapH); y += mapH + 14; }
+  const nxt = APP.orders[(APP.idx + 1) % 5];
+  ctx.fillStyle = PAPER.paperDk; ctx.beginPath(); ctx.roundRect(70, y + 10, W - 140, 60, 12); ctx.fill();
+  txt('다음 주문', 90, y + 34, 16, PAPER.ink2, 'left', '500'); txt(`${nxt.food.n} · ${nxt.from} → ${nxt.to}${nxt.rain ? ' · 비' : ''}${nxt.jam ? ' · 정체' : ''}`, 90, y + 60, 20, PAPER.ink);
+  button('retry', 60, H - 200, 250, 76, '다시 (광고 ▶)', '#fff', PAPER.orangeDk); ctx.strokeStyle = PAPER.orange; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(60, H - 200, 250, 76, 22); ctx.stroke();
+  button('map', 330, H - 200, W - 390, 76, '지도 · 다음 주문', PAPER.green);
+}
+function drawMapScreen() {
+  ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, W, H);
+  txt('나의 강남구 지도', 40, 100, 34); txt(`도장 ${Object.keys(META.stamps).length} / ${Object.keys(DONGS).length}`, W - 40, 100, 24, PAPER.orangeDk, 'right');
+  paper(30, 130, W - 60, 620, { tape: true });
+  drawMap(46, 146, W - 92, 588);
+  paper(30, 770, W - 60, 150);
+  const key = `${APP.order.from}-${APP.order.to}`, mine = META.best[key] ? META.best[key] / 10 : null;
+  const r = xr(APP.day * 977 + APP.order.id), ghosts = Array.from({ length: 9 }, () => 60 + r(80)); ghosts.sort((a, b) => a - b);
+  const rank = mine === null ? '-' : 1 + ghosts.filter(g => g < mine).length;
+  txt('오늘의 주문 순위', 60, 810, 22, PAPER.ink2, 'left', '500');
+  txt(mine === null ? '기록 없음' : `${Math.floor(mine / 60)}분 ${(mine % 60).toFixed(0)}초 · ${rank}위 / 10`, 60, 856, 30, PAPER.ink);
+  txt(`1위 ${['민지', '하늘', '지우'][r(3)]} ${Math.floor(ghosts[0] / 60)}분 ${ghosts[0] % 60}초 · 지름길 ${META.gold.length}개 금선`, 60, 896, 18, PAPER.ink2, 'left', '500');
+  button('share', W - 230, 800, 170, 56, '공유', '#fff', PAPER.blue); ctx.strokeStyle = PAPER.blue; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(W - 230, 800, 170, 56, 22); ctx.stroke();
+  button('next', 60, H - 200, W - 120, 84, '다음 주문');
+}
+function drawFlow(dt) {
+  APP.buttons = []; APP.t += dt;
+  ctx.setTransform(scale, 0, 0, scale, offX, offY);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  if (APP.screen === 'order') drawOrder();
+  else if (APP.screen === 'plan') drawPlan(dt);
+  else if (APP.screen === 'last') drawLast(dt);
+  else if (APP.screen === 'result') drawResult(dt);
+  else if (APP.screen === 'map') drawMapScreen();
+  ctx.restore();
+}
+function drawTransition(dt) { // a sheet of paper slides up over everything, the screen swaps, the sheet slides on up
+  const tr = APP.trans; tr.t += dt;
+  const u = Math.min(1, tr.t / 0.5), y = u < 0.5 ? H - u * 2 * H : -(u - 0.5) * 2 * H;
+  if (u >= 0.5 && tr.to) { enter(tr.to); tr.to = null; }
+  ctx.setTransform(scale, 0, 0, scale, offX, offY);
+  ctx.fillStyle = PAPER.bg; ctx.fillRect(-20, y, W + 40, H + 40); ctx.fillStyle = PAPER.edge; ctx.fillRect(-20, y, W + 40, 6);
+  if (u >= 1) APP.trans = null;
+}
+function onRunDone(e) { // the segment is over: collect what the result card needs
+  APP.seg = { kind: 'bike', win: S.win, tick: S.tick, stuck: S.stuck, redWait: S.redWait, hits: S.hits, squeezes: S.squeezes, misses: S.misses, extra: 0 };
+  setTimeout(() => go(S.win ? 'last' : 'result'), 900);
+}
+function flowAction(id) {
+  if (id === 'accept') go('plan');
+  else if (id === 'bike' || id === 'subway') { if (!APP.trans) choose(id); }
+  else if (id === 'cont') go('result');
+  else if (id === 'map') go('map');
+  else if (id === 'retry') { APP.choice = null; go('plan'); }
+  else if (id === 'next') { APP.idx = (APP.idx + 1) % 5; try { localStorage.setItem(FLOW_KEY + '_idx', String(APP.idx)); } catch (e) {} go('order'); }
+  else if (id === 'share') { const key = `${APP.order.from}-${APP.order.to}`, t = `서울 루트 배달 — ${APP.order.from}→${APP.order.to} ${APP.choice === 'bike' ? '🛵' : '🚇'} ${META.best[key] ? (META.best[key] / 10).toFixed(0) + '초' : ''}`; if (navigator.share) navigator.share({ text: t }).catch(() => {}); }
+}
+// a subway run hands its result back here (subway.html?flow=1 → #back)
+(function resumeFromSubway() {
+  if (location.hash !== '#back') return;
+  try {
+    const seg = JSON.parse(localStorage.getItem(SEG_KEY) || 'null');
+    if (seg && !seg.pending) { APP.order = APP.orders[APP.idx]; APP.choice = 'subway'; APP.seg = seg; APP.screen = seg.win ? 'last' : 'result'; enter(APP.screen); }
+    localStorage.removeItem(SEG_KEY);
+  } catch (e) {}
+  history.replaceState(null, '', location.pathname + location.search);
+})();
+if (APP.screen === 'order') enter('order');
+
+// ---- input: lane change fires mid-swipe, not on release; paper screens take taps on their buttons ----
+let anchor = null, anchorY = 0, lastDrag = null;
+const toLogical = e => ({ x: (e.clientX * (devicePixelRatio || 1) - offX) / scale, y: (e.clientY * (devicePixelRatio || 1) - offY) / scale });
 cv.addEventListener('pointerdown', e => {
   audioOn();
-  if (S.done) { reset(); if (engGain) engGain.gain.value = 0.05; return; }
-  anchor = e.clientX; anchorY = e.clientY;
+  if (APP.trans) return;
+  if (APP.screen === 'run') {
+    if (S.done) { if (!APP.order) { reset(); if (engGain) engGain.gain.value = 0.05; } return; }
+    anchor = e.clientX; anchorY = e.clientY; return;
+  }
+  const q = toLogical(e);
+  for (const b of APP.buttons) if (q.x >= b.x && q.x <= b.x + b.w && q.y >= b.y && q.y <= b.y + b.h) { blip(600, 0.06, 'sine', 0.08, 1.3); flowAction(b.id); return; }
+  if (APP.screen === 'last' && APP.last && !APP.last.released) lastDrag = e.clientY;
 });
 cv.addEventListener('pointermove', e => { // sideways = lane change; held below where the finger landed = brake
-  if (anchor === null) return;
+  if (APP.screen === 'last' && lastDrag !== null) { APP.last.pull = Math.max(0, Math.min(100, (e.clientY - lastDrag) / 2.2)); return; }
+  if (anchor === null || APP.screen !== 'run') return;
   const dx = e.clientX - anchor;
   if (Math.abs(dx) > 28) { command({ k: 'lane', dir: Math.sign(dx) }); anchor = e.clientX; }
   const dy = e.clientY - anchorY;
   if (dy > 36 && !S.brake) command({ k: 'brake', on: true });
   if (dy < 18 && S.brake) command({ k: 'brake', on: false });
 });
-addEventListener('pointerup', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
-addEventListener('pointercancel', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
+function pointerEnd() {
+  anchor = null;
+  if (APP.screen === 'run' && S.brake) command({ k: 'brake', on: false });
+  if (APP.screen === 'last' && lastDrag !== null) { if (APP.last.pull > 8) { LAST.release(APP.last, APP.last.pull); blip(500, 0.15, 'triangle', 0.1, 0.6); } else APP.last.pull = 0; lastDrag = null; }
+}
+addEventListener('pointerup', pointerEnd);
+addEventListener('pointercancel', pointerEnd);
 addEventListener('keydown', e => {
   audioOn();
+  if (APP.screen !== 'run') { if (e.key === ' ' || e.key === 'Enter') { const b = APP.buttons[APP.buttons.length - 1]; if (b) flowAction(b.id); } return; }
   if (e.key === 'ArrowLeft') command({ k: 'lane', dir: -1 });
   if (e.key === 'ArrowRight') command({ k: 'lane', dir: 1 });
   if (e.key === 'ArrowDown' && !S.brake) command({ k: 'brake', on: true });
-  if ((e.key === ' ' || e.key === 'Enter') && S.done) reset();
+  if ((e.key === ' ' || e.key === 'Enter') && S.done && !APP.order) reset();
 });
 addEventListener('keyup', e => { if (e.key === 'ArrowDown' && S.brake) command({ k: 'brake', on: false }); });
 
 // ---- fixed 60-tick loop ----
-reset();
+if (!S) reset();
 let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
-  if (FX.stop > 0) FX.stop -= dt; // hit-stop: the world holds for a beat (ticks resume after; replay unaffected)
-  else if (!window.__pause) {
-    acc += dt;
-    while (acc >= 1 / 60) { acc -= 1 / 60; onEvents(RULES.tick(S).events); }
+  if (APP.screen === 'run') {
+    if (FX.stop > 0) FX.stop -= dt; // hit-stop: the world holds for a beat (ticks resume after; replay unaffected)
+    else if (!window.__pause) {
+      acc += dt;
+      while (acc >= 1 / 60) { acc -= 1 / 60; const ev = RULES.tick(S).events; onEvents(ev); if (APP.order && ev.some(e => e.k === 'done')) onRunDone(); }
+    }
+    draw(dt);
+  } else {
+    if (APP.screen === 'last' && APP.last && !window.__pause) { acc += dt; while (acc >= 1 / 60) { acc -= 1 / 60; LAST.tick(APP.last); } }
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, cv.width, cv.height);
+    drawFlow(dt);
   }
-  draw(dt);
+  if (APP.trans) drawTransition(dt);
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
 
 // ---- test hooks ----
 window.T = {
-  state: () => S, log: () => LOG, hash: () => fnv(canon(S)), replay, reset, command,
+  state: () => S, log: () => LOG, hash: () => fnv(canon(S)), replay, reset, command, app: () => APP, go, enter, meta: () => META,
   // pace bot: decides every `react` seconds; leaves a lane when something solid is close ahead or a car signals into it,
   // picks the adjacent lane with the longest clear run whose side is free right now.
   bot(react, runs = 10, seed = 1, plan = 20) {

@@ -291,6 +291,13 @@ const KNOBS = [
   ['wantPlat', '승강장(0 무작위)', 0, 2, 1, 0, v => v],
 ];
 const KNOB_KEY = 'proto_seoulroute_subway1';
+// Flow mode (index.html plan screen → here → index.html#back): the order's train gap sets how long a missed train costs
+const FLOW = new URLSearchParams(location.search).get('flow') === '1';
+let FLOW_SEED = null;
+if (FLOW) try {
+  const seg = JSON.parse(localStorage.getItem('proto_seoulroute_seg') || 'null');
+  if (seg && seg.pending) { DATA.phases[3].t = Math.max(240, Math.min(720, seg.gap * 60)); FLOW_SEED = seg.seed; }
+} catch (e) {}
 const V = {};
 let saved = {};
 try { saved = JSON.parse(localStorage.getItem(KNOB_KEY) || '{}'); } catch (e) {}
@@ -359,7 +366,11 @@ function onEvents(events) {
     if (e.k === 'miss') FX.pops.push({ text: '다른 칸! 환승 멀어짐', size: 38, t: -0.3, col: '#ff7a6a' });
     if (e.k === 'wrongplat') FX.pops.push({ text: '반대 승강장! 되돌아감', size: 38, t: -0.3, col: '#ff7a6a' });
     if (e.k === 'junction') { FX.bend = { dir: e.side ? 1 : -1, t: 0 }; FX.pops.push({ text: `${e.side + 1}번 승강장`, size: 46, t: 0 }); blip(500, 0.25, 'triangle', 0.12, 2); }
-    if (e.k === 'done') LOG.endTick = S.tick;
+    if (e.k === 'done') {
+      LOG.endTick = S.tick;
+      if (FLOW) try { localStorage.setItem('proto_seoulroute_seg', JSON.stringify({ kind: 'subway', win: S.win, tick: S.tick, extra: S.extra, stuck: S.stuck, wait: S.wait, hits: S.hits, squeezes: S.squeezes,
+        doorOk: S.boarded && S.lane === S.want, platOk: S.plat === S.wantPlat, via: S.via })); } catch (e) {}
+    }
   }
 }
 
@@ -576,12 +587,12 @@ function drawHud(v) {
     ctx.fillText(`틈새 ${S.squeezes} · 스침 ${S.brushes} · 쿵 ${S.hits}`, W / 2, 620);
     ctx.fillText(S.via < 0 ? '계단까지 못 감' : `${S.via ? '에스컬레이터' : '계단'} · ${S.plat < 0 ? '승강장 못 감' : S.plat === S.wantPlat ? `${S.plat + 1}번 승강장 ✓` : `반대 승강장 +${DATA.platPenalty / 60}초`}`, W / 2, 670);
     if (S.boarded) ctx.fillText(S.lane === S.want ? '빠른 하차 칸 ✓' : `다른 칸 +${DATA.missPenalty / 60}초`, W / 2, 715);
-    ctx.fillStyle = '#9fb3ff'; ctx.fillText('탭해서 다시', W / 2, 780);
+    ctx.fillStyle = '#9fb3ff'; ctx.fillText(FLOW ? '탭해서 계속 →' : '탭해서 다시', W / 2, 780);
   }
 }
 
 let anchor = null, anchorY = 0;
-cv.addEventListener('pointerdown', e => { audioOn(); if (S.done) { reset(); return; } anchor = e.clientX; anchorY = e.clientY; });
+cv.addEventListener('pointerdown', e => { audioOn(); if (S.done) { if (FLOW) { location.href = 'index.html#back'; return; } reset(); return; } anchor = e.clientX; anchorY = e.clientY; });
 cv.addEventListener('pointermove', e => {
   if (anchor === null) return;
   const dx = e.clientX - anchor;
@@ -601,7 +612,7 @@ addEventListener('keydown', e => {
 });
 addEventListener('keyup', e => { if (e.key === 'ArrowDown' && S.brake) command({ k: 'brake', on: false }); });
 
-reset();
+reset(FLOW_SEED !== null ? FLOW_SEED : undefined);
 let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
