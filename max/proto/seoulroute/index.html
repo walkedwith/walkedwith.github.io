@@ -34,6 +34,7 @@ const DATA = {
   slowTicks: 96, slowFloor: 150, boostTicks: 90, boostPermille: 1150,
   followGap: 1400,              // bumper gap kept behind a solid thing in your lane
   carGap: 900, carAccel: 3,
+  accel: 3, brakeDecel: 5,      // your speed rises this much per tick (milli-units/tick), and falls this much while braking
   filterPermille: 450,          // a stopped car does not block you: you ease past it on the lane line at this share of cruise     // cars keep this gap and speed back up this much per tick, so queues pull away one by one
   spawnDz: 45000, despawnBehind: 9000, spawnClear: 4000, laneClear: 1500,
   brushGap: 160,                // side gap (milli-lanes) that counts as brushing past
@@ -159,7 +160,7 @@ const RULES = {
   init(data, seed, knobs) {
     const cfg = Object.assign({}, data.knobs, knobs || {});
     const s = { v: data.version, tick: 0, rng: (seed >>> 0) || 1, cfg,
-      lane: 0, fromX: 0, x: 0, moveT: cfg.laneTicks, moveDir: 0, vp: 0,
+      lane: 0, fromX: 0, x: 0, moveT: cfg.laneTicks, moveDir: 0, vp: 0, brake: false,
       dist: 0, goal: idiv(idiv(cfg.speed, data.tickRate) * cfg.runTicks * cfg.goalPct, 100),
       obs: [], nextId: 1, slow: 0, boost: 0, hits: 0, brushes: 0, squeezes: 0, squeezing: false, stuck: 0,
       cross: null, commit: false, redWait: 0, turns: 0, misses: 0, filtering: false,
@@ -178,6 +179,7 @@ const RULES = {
         s.fromX = s.x; s.lane = to; s.moveT = 0; s.moveDir = cmd.dir;
       }
     }
+    if (cmd.k === 'brake' && !s.done && s.brake !== !!cmd.on) { s.brake = !!cmd.on; ev.push({ k: 'brake', on: s.brake }); }
     return { events: ev };
   },
   tick(s) {
@@ -190,18 +192,22 @@ const RULES = {
     if (s.moveT < k.laneTicks) { s.moveT++; s.x = smooth(s.fromX, s.lane * 1000, s.moveT, k.laneTicks); }
     else s.x = s.lane * 1000;
     // a light you were allowed through stays yours once you are this close (no slamming on the brakes at the line)
-    if (s.cross && !s.commit && lineGap(s) < DATA.cross.commit && mayGo(s, laneMove(s.lane))) s.commit = true;
+    if (s.brake) s.commit = false; // braking gives the light back to the rules: stop on yellow if you want
+    else if (s.cross && !s.commit && lineGap(s) < DATA.cross.commit && mayGo(s, laneMove(s.lane))) s.commit = true;
     const red = held(s) && lineGap(s) < 3 * DATA.followGap;
-    const vp = playerSpeed(s);
+    // traffic and lines cut your speed at once (they are already eased by distance); you pick it back up at `accel`,
+    // and the brake sheds `brakeDecel` per tick down to a stop
+    const want = playerSpeed(s);
+    const vp = s.brake ? Math.max(0, Math.min(want, s.vp - DATA.brakeDecel)) : want < s.vp ? want : Math.min(want, s.vp + DATA.accel);
     s.vp = vp; s.dist += vp;
     if (vp * 10 < idiv(k.speed, DATA.tickRate) * 7) { if (red) s.redWait++; else s.stuck++; }
     if (s.cross && s.dist >= s.cross.at) { // over the line: your lane was your move
       const c = s.cross, move = laneMove(s.lane);
       if (move !== c.turn) { s.misses++; s.goal += DATA.cross.missPenalty; ev.push({ k: 'miss', want: c.turn, move }); }
       ev.push({ k: 'cross', move, at: c.at, off: c.off });
-      if (move !== 0) { // new street: fresh traffic around you
-        s.turns++; s.obs = [];
-        for (let i = 0; i < k.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), null);
+      if (move !== 0) { // new street: what was ahead went straight on; the new street's traffic is already there
+        s.turns++; s.obs = s.obs.filter(o => o.dz < 3000);
+        for (let i = 0; i < k.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), ev);
       }
       newCross(s, c.at + k.crossGap); s.commit = false;
     }
@@ -320,14 +326,14 @@ let H = 1280, PLAYER_Y = 1090, CAM_H = 3.63;
 const zPlayer = () => V.camBack;                                    // view-only camera distance
 const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
 const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5 };
-const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', whip: null, filt: 0 };
+const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {} };
 
 // ---- run (state + command log for replay) ----
 let S, LOG;
 function reset(seed = (Date.now() >>> 0)) {
   S = RULES.init(DATA, seed, ruleKnobs());
   LOG = { seed: (seed >>> 0) || 1, knobs: ruleKnobs(), cmds: [], endTick: 0 }; // init already advanced S.rng
-  FX.pops = []; FX.shake = 0; FX.flash = 0; FX.whip = null; FX.lastCross = null;
+  FX.pops = []; FX.shake = 0; FX.flash = 0; FX.bend = null; FX.lastCross = null; FX.age = {};
 }
 function command(cmd) {
   if (S.done) return;
@@ -446,10 +452,12 @@ function onEvents(events) {
     if (e.k === 'brush') { FX.pops.push({ text: '스침!', size: 34, t: 0 }); blip(700, 0.1, 'sine', 0.08, 1.5); }
     if (e.k === 'squeeze') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; FX.pops.push({ text: '틈새!', size: 50, t: 0 }); blip(900, 0.2, 'sine', 0.14, 1.8); }
     if (e.k === 'blink') blip(1200, 0.04, 'square', 0.03);
+    if (e.k === 'brake' && e.on) blip(1800, 0.18, 'sawtooth', 0.04, 0.7);
     if (e.k === 'miss') { FX.pops.push({ text: '길 잘못 듦! 돌아가요', size: 40, t: -0.3, col: '#ff7a6a' }); blip(160, 0.4, 'sawtooth', 0.12, 0.6); }
-    if (e.k === 'cross') FX.lastCross = e.move === 0 ? { at: e.at, off: e.off } : null;
-    if (e.k === 'cross' && e.move !== 0) { // turned onto a new street: whip the camera, swap the neighbourhood
-      FX.whip = { dir: e.move, t: 0 }; setArea(AREA_KEY === 'gangnam' ? 'street' : 'gangnam');
+    if (e.k === 'spawn') FX.age[e.id] = 0;
+    if (e.k === 'cross') FX.lastCross = { at: e.at, off: e.off };
+    if (e.k === 'cross' && e.move !== 0) { // turned onto a new street: the road bends round, the neighbourhood changes past the corner
+      FX.bend = { dir: e.move, t: 0, at: e.at / 1000 + 12, old: AREA_KEY }; setArea(AREA_KEY === 'gangnam' ? 'street' : 'gangnam');
       FX.pops.push({ text: e.move > 0 ? '우회전!' : '좌회전!', size: 46, t: 0 }); blip(500, 0.25, 'triangle', 0.12, 2);
     }
     if (e.k === 'done') { LOG.endTick = e.tick; if (engGain) engGain.gain.value = 0.015; }
@@ -461,6 +469,10 @@ const rain = Array.from({ length: 45 }, () => ({ x: Math.random() * W, y: Math.r
 function project(z) { return { y: HORIZON + CAM_H * focal() / z, s: focal() / z }; }
 const camZ = () => S.dist / 1000;
 const zOf = worldMilli => zPlayer() + (worldMilli - S.dist) / 1000; // view depth of a world distance
+const BEND_S = 1.3, BEND_K = 0.012;
+const bendAmt = () => FX.bend ? Math.sin(Math.PI * Math.min(1, FX.bend.t / BEND_S)) : 0;
+// Turn = OutRun curve, view only: the road ahead swings toward the turn side by k*(depth past you)^2 lanes, peaking mid-turn.
+const bendX = z => FX.bend ? FX.bend.dir * bendAmt() * BEND_K * Math.max(0, z - zPlayer()) ** 2 : 0;
 const speedView = () => S.vp * DATA.tickRate / 1000; // units per second, for effects only
 function lightKey(off) { // same phase walk as RULES.phaseAt, for crossings the rules have already moved past
   let t = (S.tick + off) % CYCLE, i = 0;
@@ -470,7 +482,7 @@ function lightKey(off) { // same phase walk as RULES.phaseAt, for crossings the 
 function ground(pts) { // [[x lanes, depth]] -> polygon painted on the road plane
   const F = focal();
   ctx.beginPath();
-  pts.forEach(([x, z], i) => { const zz = Math.max(0.35, z), sx = W / 2 + x * F / zz, sy = HORIZON + CAM_H * F / zz; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+  pts.forEach(([x, z], i) => { const zz = Math.max(0.35, z), sx = W / 2 + (x + bendX(zz)) * F / zz, sy = HORIZON + CAM_H * F / zz; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
   ctx.fill();
 }
 const quad = (x0, x1, z0, z1) => ground([[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
@@ -508,14 +520,14 @@ function draw(dt) {
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
   ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, W, H);
   ctx.save();
-  if (FX.whip) { // turn: the new street swings in from the side you turned to
-    FX.whip.t += dt;
-    const u = Math.min(1, FX.whip.t / 0.45);
-    ctx.translate(FX.whip.dir * W * 0.9 * Math.pow(1 - u, 3), 0);
-    if (u >= 1) FX.whip = null;
-  }
+  if (FX.bend) { FX.bend.t += dt; if (FX.bend.t >= BEND_S && camZ() - zPlayer() > FX.bend.at + 2) FX.bend = null; }
   const bs = HORIZON / 520; // backdrop horizon sits at y=520 of 768
-  if (IMG.back.complete) ctx.drawImage(IMG.back, (W - 1024 * bs) / 2, 0, 1024 * bs, 768 * bs);
+  const bx = (W - 1024 * bs) / 2;
+  if (FX.bend && FX.bend.t < BEND_S) { // skyline pans away from the turn while the new neighbourhood slides in
+    const u = FX.bend.t / BEND_S, e = u * u * (3 - 2 * u), d = FX.bend.dir;
+    ctx.globalAlpha = 1 - e; ctx.drawImage(AREAS[FX.bend.old].backImg, bx - d * W * 0.7 * e, 0, 1024 * bs, 768 * bs);
+    ctx.globalAlpha = e; ctx.drawImage(IMG.back, bx + d * W * 0.7 * (1 - e), 0, 1024 * bs, 768 * bs); ctx.globalAlpha = 1;
+  } else if (IMG.back.complete) ctx.drawImage(IMG.back, bx, 0, 1024 * bs, 768 * bs);
   const F = focal();
   for (let y = HORIZON + 1; y < H; y++) { // ground bands every 4 units = classic pseudo-3D speed cue
     const z = CAM_H * F / (y - HORIZON);
@@ -527,7 +539,7 @@ function draw(dt) {
     for (let y = HORIZON + 1; y < H; y++) {
       const dy = y - HORIZON, z = CAM_H * F / dy, w = ROAD_TEX_W * dy / CAM_H;
       const ty = (th - 1 - Math.floor(((camZ() + z) / TILE_LEN * th) % th) + th) % th;
-      ctx.drawImage(IMG.road, 0, ty, tw, 1, W / 2 - w / 2, y, w, 1.5);
+      ctx.drawImage(IMG.road, 0, ty, tw, 1, W / 2 + bendX(z) * dy / CAM_H - w / 2, y, w, 1.5);
     }
     const fog = ctx.createLinearGradient(0, HORIZON, 0, HORIZON + 90);
     fog.addColorStop(0, 'rgba(40,48,90,0.9)'); fog.addColorStop(1, 'rgba(40,48,90,0)');
@@ -547,10 +559,11 @@ function draw(dt) {
   for (const [at, off] of crossings) for (const x of [-3.0, 3.0]) items.push({ z: zOf(at) + 11.2, sig: lightKey(off), x });
   const near = camZ() - zPlayer() + 0.4, far = camZ() - zPlayer() + 90;
   const inBox = wz => crossings.some(([at]) => wz > at / 1000 - 1 && wz < at / 1000 + 14); // nothing roadside on the cross street
-  for (const d of SIDE) for (let n = Math.ceil((near - d.off) / d.period); n * d.period + d.off < far; n++) {
-    if (inBox(n * d.period + d.off)) continue;
-    const z = n * d.period + d.off - camZ() + zPlayer();
-    for (const x of d.both ? [-d.x, d.x] : [d.x]) items.push({ z, side: d, x });
+  const sets = FX.bend ? [[AREAS[FX.bend.old], -1e9, FX.bend.at], [AREAS[AREA_KEY], FX.bend.at, 1e9]] : [[AREAS[AREA_KEY], -1e9, 1e9]];
+  for (const [area, from, to] of sets) for (const d of area.side) for (let n = Math.ceil((near - d.off) / d.period); n * d.period + d.off < far; n++) {
+    const wz = n * d.period + d.off;
+    if (inBox(wz) || wz < from || wz >= to) continue;
+    for (const x of d.both ? [-d.x, d.x] : [d.x]) items.push({ z: wz - camZ() + zPlayer(), side: d, sheet: area.sideImg, x });
   }
   items.sort((a, b) => b.z - a.z);
   for (const it of items) {
@@ -558,13 +571,16 @@ function draw(dt) {
     if (it.side || it.sig) {
       if (it.z <= 0.3 || it.z > 90) continue;
       const p = project(it.z), a = Math.min(1, (90 - it.z) / 20);
-      if (it.side) drawCell(IMG.side, it.side.cell, W / 2 + it.x * p.s, p.y, it.side.w * p.s, a, 256, 512);
-      else { const pt = drawCell(IMG.sig, SIG.cell, W / 2 + it.x * p.s, p.y, 1.7 * p.s, a, 256, 512, it.x > 0); if (pt) drawLamps(pt, it.sig); }
+      const sx = W / 2 + (it.x + bendX(it.z)) * p.s;
+      if (it.side) drawCell(it.sheet, it.side.cell, sx, p.y, it.side.w * p.s, a, 256, 512);
+      else { const pt = drawCell(IMG.sig, SIG.cell, sx, p.y, 1.7 * p.s, a, 256, 512, it.x > 0); if (pt) drawLamps(pt, it.sig); }
       continue;
     }
     const o = it.o, p = project(it.z), kd = DATA.kinds[o.kind];
     if (it.z <= 0.3 || p.y > H + 200) continue;
-    const cx = W / 2 + o.x / 1000 * p.s, a = Math.min(1, (90 - it.z) / 20);
+    let a = Math.min(1, (90 - it.z) / 20);
+    if (FX.age[o.id] !== undefined) { a *= Math.min(1, FX.age[o.id] / 0.6); if ((FX.age[o.id] += dt) > 0.6) delete FX.age[o.id]; } // new street's cars fade in
+    const cx = W / 2 + (o.x / 1000 + bendX(it.z)) * p.s;
     if (kd.solid) { // contact shadow: pins the thing to its lane
       ctx.globalAlpha = 0.45 * a; ctx.fillStyle = '#000';
       ctx.beginPath(); ctx.ellipse(cx, p.y, kd.w / 1000 * p.s * 0.58, kd.w / 1000 * p.s * 0.13, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
@@ -585,7 +601,7 @@ function draw(dt) {
     ctx.strokeStyle = '#3a2400'; ctx.lineWidth = 8; ctx.strokeText(p.text, x, y); ctx.fillText(p.text, x, y); ctx.globalAlpha = 1;
   }
   FX.pops = FX.pops.filter(p => p.t < 0.6);
-  ctx.restore(); // end of the turn whip
+  ctx.restore();
   const v = speedView(), lean = v * 0.9;
   ctx.strokeStyle = 'rgba(190,210,255,0.22)'; ctx.lineWidth = 2;
   for (const r of rain) {
@@ -614,9 +630,11 @@ function drawPlayer() {
   let cell = 0;
   if (S.slow > DATA.slowTicks / 2) cell = 3;
   else if (S.moveT < S.cfg.laneTicks) cell = S.moveDir < 0 ? 1 : 2;
+  else if (bendAmt() > 0.35) cell = FX.bend.dir < 0 ? 1 : 2; // lean into the turn
   ctx.fillStyle = 'rgba(0,0,0,0.35)';
   ctx.beginPath(); ctx.ellipse(x, PLAYER_Y, 0.3 * p.s, 0.06 * p.s, 0, 0, Math.PI * 2); ctx.fill();
   drawCell(IMG.hero, cell, x, PLAYER_Y + Math.sin(S.tick / 2) * 1.5, 0.62 * p.s);
+  if (S.brake) glow(x, PLAYER_Y - 0.2 * p.s, 0.07 * p.s, '#ff2a2a', 0.95); // tail lamp
 }
 
 function bar(x, y, w, h, f, col) {
@@ -648,6 +666,12 @@ function drawHud(v) {
     ctx.font = 'bold 22px sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
     ctx.fillText(`${Math.ceil(ph.left / 60)}`, 528, 304); ctx.textAlign = 'left';
   }
+  if (S.tick < 300 && !S.done) { // first seconds: how to steer
+    ctx.globalAlpha = Math.min(1, (300 - S.tick) / 60); ctx.textAlign = 'center'; ctx.font = 'bold 28px sans-serif';
+    ctx.strokeStyle = '#0b1020'; ctx.lineWidth = 6; ctx.fillStyle = '#fff';
+    const t = '← → 밀어서 차선   ·   ↓ 누르고 있으면 브레이크';
+    ctx.strokeText(t, W / 2, H - 60); ctx.fillText(t, W / 2, H - 60); ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  }
   if (S.done) {
     ctx.fillStyle = '#0b1020e0'; ctx.beginPath(); ctx.roundRect(70, 420, 580, 420, 30); ctx.fill();
     ctx.fillStyle = S.win ? '#ffd84a' : '#ff6a5a'; ctx.textAlign = 'center'; ctx.font = 'bold 54px sans-serif';
@@ -661,24 +685,30 @@ function drawHud(v) {
 }
 
 // ---- input: lane change fires mid-swipe, not on release ----
-let anchor = null;
+let anchor = null, anchorY = 0;
 cv.addEventListener('pointerdown', e => {
   audioOn();
   if (S.done) { reset(); if (engGain) engGain.gain.value = 0.05; return; }
-  anchor = e.clientX;
+  anchor = e.clientX; anchorY = e.clientY;
 });
-cv.addEventListener('pointermove', e => {
+cv.addEventListener('pointermove', e => { // sideways = lane change; held below where the finger landed = brake
   if (anchor === null) return;
   const dx = e.clientX - anchor;
   if (Math.abs(dx) > 28) { command({ k: 'lane', dir: Math.sign(dx) }); anchor = e.clientX; }
+  const dy = e.clientY - anchorY;
+  if (dy > 36 && !S.brake) command({ k: 'brake', on: true });
+  if (dy < 18 && S.brake) command({ k: 'brake', on: false });
 });
-addEventListener('pointerup', () => { anchor = null; });
+addEventListener('pointerup', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
+addEventListener('pointercancel', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
 addEventListener('keydown', e => {
   audioOn();
   if (e.key === 'ArrowLeft') command({ k: 'lane', dir: -1 });
   if (e.key === 'ArrowRight') command({ k: 'lane', dir: 1 });
+  if (e.key === 'ArrowDown' && !S.brake) command({ k: 'brake', on: true });
   if ((e.key === ' ' || e.key === 'Enter') && S.done) reset();
 });
+addEventListener('keyup', e => { if (e.key === 'ArrowDown' && S.brake) command({ k: 'brake', on: false }); });
 
 // ---- fixed 60-tick loop ----
 reset();
