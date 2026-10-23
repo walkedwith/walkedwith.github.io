@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b2238">
+<title>서울 루트 — 지하철 시험판</title>
+<style>
+  html,body{margin:0;height:100dvh;background:#1b2238;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif}
+  canvas{display:block;width:100vw;height:100dvh}
+  #gear{position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:8px;width:44px;height:44px;border-radius:22px;border:0;background:#0008;color:#fff;font-size:22px}
+  #panel{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 60px);background:#0b1020e8;color:#fff;border-radius:14px;padding:10px 14px;font-size:14px;display:none}
+  #panel label{display:flex;align-items:center;gap:8px;margin:6px 0}
+  #panel span.n{width:120px}#panel span.v{width:56px;text-align:right;font-variant-numeric:tabular-nums}
+  #panel input{flex:1}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="gear">⚙</button>
+<div id="panel"></div>
+<script>
+// Subway segment, silhouette build (no art yet). Same contract as index.html (PORT.md): RULES = integer state
+// machine, 60 ticks/s, milli-units, xorshift32. One run = corridor crowd -> stairs/escalator fork -> platform doors
+// -> board before the doors close. Same 45s limit and result card as the motorbike so the two can be compared.
+
+const DATA = {
+  version: 1,
+  tickRate: 60,
+  rng: { shiftA: 13, shiftB: 17, shiftC: 5 },
+  half: 2,                          // lanes -2..2 = five walking lines / five doors
+  playerW: 420, playerLen: 600,
+  slowTicks: 96, slowFloor: 150, boostTicks: 90, boostPermille: 1150,
+  followGap: 900, walkGap: 700, accel: 4, brakeDecel: 6,
+  spawnDz: 30000, despawnBehind: 6000, spawnClear: 2500, laneClear: 1000,
+  brushGap: 160,
+  // the three places, in world milli-units from the start
+  fork: 85000,                      // left lanes = stairs, right lanes = escalator (lane 0 counts as stairs)
+  stairs: { len: 12000, permille: 650 },          // short, crowded, you cannot run
+  esc: { len: 20000, belt: 2800, walk: 2200 },    // long, safe at belt speed; rightmost lane walks, standers block it
+  doorBack: 16000,                  // platform length before the door line
+  missPenalty: 600,                 // ticks added to your time when you board the wrong car (long transfer walk)
+  // train cycle at the door line: closed (arriving) / open / closing / gone
+  phases: [ { k: 'R', t: 300 }, { k: 'G', t: 240 }, { k: 'Y', t: 75 }, { k: 'X', t: 480 } ],
+  // kinds: w milli-lanes, len milli-units, v milli-units/s (negative = coming at you), pick = weight, zones where they appear
+  kinds: [
+    { id: 'walker', w: 500, len: 500, solid: true, walk: true, vMin: 800, vMax: 2000, pick: 50, zones: ['corridor', 'stairs', 'platform'], turn: true },
+    { id: 'oncoming', w: 500, len: 500, solid: true, free: true, vMin: -3800, vMax: -2400, pick: 25, zones: ['corridor', 'stairs'] },
+    { id: 'luggage', w: 650, len: 900, solid: true, walk: true, vMin: 500, vMax: 1100, pick: 12, zones: ['corridor'] },
+    { id: 'wet', w: 600, len: 600, solid: false, pick: 13, zones: ['corridor', 'platform'] },
+    { id: 'stander', w: 500, len: 500, solid: true, walk: true, vMin: 0, vMax: 0, pick: 0, zones: [] }, // escalator riders, door queues
+  ],
+  knobs: {
+    speed: 5000,                    // your walking pace, milli-units per second
+    people: 14,                     // crowd kept ahead of you
+    turnChance: 14,                 // per 10000 per tick: a walker turns their head and drifts a lane
+    blinkTicks: 48, laneTicks: 9, peopleLaneTicks: 36,
+    hitbox: 800,
+    runTicks: 2700,                 // same limit as the motorbike
+    wantDoor: 0,                    // 0 = random door each run, 1..5 fixed
+    queueMax: 4,                    // longest door queue
+  },
+};
+
+// === RULES BEGIN ===
+function idiv(a, b) { return Math.trunc(a / b); }
+function rngInt(s, n) {
+  const r = DATA.rng; let x = s.rng;
+  x ^= x << r.shiftA; x >>>= 0; x ^= x >>> r.shiftB; x ^= x << r.shiftC; x >>>= 0;
+  s.rng = x; return x % n;
+}
+function smooth(from, to, t, total) {
+  const u = idiv(t * 1000, total), e = idiv(u * u * (3000 - 2 * u), 1000000);
+  return from + idiv((to - from) * e, 1000);
+}
+function xOverlap(s, o) { return 2000 * Math.abs(s.x - o.x) < (DATA.kinds[o.kind].w + DATA.playerW) * s.cfg.hitbox; }
+function zOverlap(o) { return 2 * Math.abs(o.dz) < DATA.kinds[o.kind].len + DATA.playerLen; }
+function laneFree(s, lane, dz, len, skip) {
+  for (const o of s.obs) {
+    if (o === skip || (o.lane !== lane && o.to !== lane)) continue;
+    if (2 * Math.abs(o.dz - dz) < len + DATA.kinds[o.kind].len + 2 * DATA.laneClear) return false;
+  }
+  return true;
+}
+const CYCLE = DATA.phases.reduce((a, p) => a + p.t, 0);
+function zoneAt(s, world) { // 'corridor' | 'stairs' | 'esc' | 'platform' for a world distance; the branch is chosen at the fork
+  if (world < DATA.fork) return 'corridor';
+  if (s.branch === 0) return world < DATA.fork + DATA.stairs.len ? 'stairs' : 'platform';
+  if (s.branch === 1) return world < DATA.fork + DATA.esc.len ? 'esc' : 'platform';
+  return 'fork'; // past the fork but not chosen yet (never happens: the choice is made the tick you cross)
+}
+function doorAt(s) { return DATA.fork + (s.branch === 1 ? DATA.esc.len : DATA.stairs.len) + DATA.doorBack; }
+function phaseAt(s) {
+  let t = (s.tick + s.off) % CYCLE, i = 0;
+  while (t >= DATA.phases[i].t) { t -= DATA.phases[i].t; i++; }
+  return { i, left: DATA.phases[i].t - t };
+}
+function doorsOpen(s) { const k = DATA.phases[phaseAt(s).i].k; return k === 'G' || k === 'Y'; }
+function lineGap(s) { return s.branch < 0 ? 1 << 30 : doorAt(s) - s.dist - idiv(DATA.playerLen, 2); }
+function held(s) { return s.branch >= 0 && lineGap(s) > 0 && !doorsOpen(s); }
+function follow(target, aheadV, gap, keep) {
+  if (gap >= 3 * keep) return target;
+  if (gap <= keep) return Math.min(target, idiv(aheadV * Math.max(0, gap), keep));
+  return Math.min(target, aheadV + idiv((gap - keep) * target, 2 * keep));
+}
+function spawnOne(s, dz, ev, forceKind, forceLane, v0) {
+  const world = s.dist + dz, zone = zoneAt(s, world);
+  let kind = forceKind;
+  if (kind === undefined) {
+    const ok = DATA.kinds.map((k, i) => k.zones.includes(zone) ? k.pick : 0), sum = ok.reduce((a, b) => a + b, 0);
+    if (sum === 0) return;
+    let r = rngInt(s, sum); kind = 0;
+    while (r >= ok[kind]) { r -= ok[kind]; kind++; }
+  }
+  const kd = DATA.kinds[kind];
+  const lane = forceLane !== undefined ? forceLane : rngInt(s, 2 * DATA.half + 1) - DATA.half;
+  for (const o of s.obs) if (o.lane === lane && Math.abs(o.dz - dz) < DATA.spawnClear) return;
+  let v = v0 !== undefined ? v0 : idiv(kd.vMin + rngInt(s, kd.vMax - kd.vMin + 1), DATA.tickRate);
+  if (zone === 'esc' && kd.walk) v += idiv(DATA.esc.belt, DATA.tickRate); // everyone on the belt rides it
+  const o = { id: s.nextId++, kind, lane, to: lane, x: lane * 1000, fromX: lane * 1000, moveT: s.cfg.peopleLaneTicks,
+    dz, v, cv: v, blink: 0, touch: false, brushed: false };
+  s.obs.push(o);
+  if (ev) ev.push({ k: 'spawn', id: o.id, kind, lane });
+}
+function playerSpeed(s) {
+  const k = s.cfg, zone = zoneAt(s, s.dist);
+  let target = idiv(k.speed, DATA.tickRate);
+  if (zone === 'stairs') target = idiv(target * DATA.stairs.permille, 1000);
+  if (zone === 'esc') target = idiv(DATA.esc.belt + (s.lane === DATA.half ? DATA.esc.walk : 0), DATA.tickRate);
+  if (s.slow > 0) target = idiv(target * (DATA.slowFloor + idiv((1000 - DATA.slowFloor) * (DATA.slowTicks - s.slow), DATA.slowTicks)), 1000);
+  if (s.boost > 0) target = idiv(target * DATA.boostPermille, 1000);
+  for (const o of s.obs) {
+    const kd = DATA.kinds[o.kind];
+    if (!kd.solid || kd.free || o.dz <= 0 || !xOverlap(s, o)) continue; // oncoming people are not followed: dodge or bump
+    target = follow(target, o.cv, o.dz - idiv(kd.len + DATA.playerLen, 2), DATA.followGap);
+  }
+  if (held(s)) target = follow(target, 0, lineGap(s), DATA.followGap);
+  return target;
+}
+function peopleSpeed(s, o) { // walkers keep a gap behind whoever walks ahead in their line (you included); queues wait for the doors
+  const kd = DATA.kinds[o.kind];
+  let t = o.v;
+  if (kd.free) return t;
+  if (o.queue) t = doorsOpen(s) ? idiv(2000, DATA.tickRate) : 0;
+  for (const p of s.obs) {
+    if (p === o || !DATA.kinds[p.kind].solid || DATA.kinds[p.kind].free || p.dz <= o.dz || (p.lane !== o.lane && p.to !== o.lane)) continue;
+    t = follow(t, p.cv, p.dz - o.dz - idiv(kd.len + DATA.kinds[p.kind].len, 2), DATA.walkGap);
+  }
+  if (o.dz < 0 && s.lane === o.lane) t = follow(t, s.vp, -o.dz - idiv(kd.len + DATA.playerLen, 2), DATA.walkGap);
+  return t;
+}
+const RULES = {
+  init(data, seed, knobs) {
+    const cfg = Object.assign({}, data.knobs, knobs || {});
+    const s = { v: data.version, tick: 0, rng: (seed >>> 0) || 1, cfg,
+      lane: 0, fromX: 0, x: 0, moveT: cfg.laneTicks, moveDir: 0, vp: 0, brake: false,
+      dist: 0, obs: [], nextId: 1, slow: 0, boost: 0, hits: 0, brushes: 0, squeezes: 0, squeezing: false, stuck: 0, wait: 0,
+      branch: -1, queued: false, off: 0, want: 0, extra: 0, done: false, win: false, boarded: false };
+    s.off = rngInt(s, CYCLE);
+    s.want = cfg.wantDoor ? cfg.wantDoor - 1 - data.half : rngInt(s, 2 * data.half + 1) - data.half;
+    for (let i = 0; i < cfg.people; i++) spawnOne(s, 5000 + rngInt(s, 25000), null);
+    return s;
+  },
+  apply(s, cmd) {
+    const ev = [];
+    if (cmd.k === 'lane' && !s.done) {
+      const to = Math.max(-DATA.half, Math.min(DATA.half, s.lane + cmd.dir));
+      if (to === s.lane) ev.push({ k: 'bump', dir: cmd.dir });
+      else { ev.push({ k: 'lane', from: s.lane, to }); s.fromX = s.x; s.lane = to; s.moveT = 0; s.moveDir = cmd.dir; }
+    }
+    if (cmd.k === 'brake' && !s.done && s.brake !== !!cmd.on) { s.brake = !!cmd.on; ev.push({ k: 'brake', on: s.brake }); }
+    return { events: ev };
+  },
+  tick(s) {
+    const ev = [];
+    if (s.done) return { events: ev };
+    const k = s.cfg;
+    s.tick++;
+    if (s.slow > 0) s.slow--;
+    if (s.boost > 0) s.boost--;
+    if (s.moveT < k.laneTicks) { s.moveT++; s.x = smooth(s.fromX, s.lane * 1000, s.moveT, k.laneTicks); }
+    else s.x = s.lane * 1000;
+    const closed = held(s) && lineGap(s) < 3 * DATA.followGap;
+    const want = playerSpeed(s);
+    const vp = s.brake ? Math.max(0, Math.min(want, s.vp - DATA.brakeDecel)) : want < s.vp ? want : Math.min(want, s.vp + DATA.accel);
+    s.vp = vp; s.dist += vp;
+    if (vp * 10 < idiv(k.speed, DATA.tickRate) * 7 && zoneAt(s, s.dist) !== 'esc') { if (closed) s.wait++; else s.stuck++; }
+    if (s.branch < 0 && s.dist >= DATA.fork) { // the fork: your lane is your choice
+      s.branch = s.lane > 0 ? 1 : 0;
+      ev.push({ k: 'fork', branch: s.branch });
+      s.obs = s.obs.filter(o => o.dz < 2000);
+      if (s.branch === 1) { // escalator: everyone ahead rides the belt; the walking lane has a few standers in it
+        for (let i = 0; i < k.people; i++) {
+          const lane = rngInt(s, 2 * DATA.half + 1) - DATA.half, dz = 3000 + rngInt(s, DATA.esc.len - 4000);
+          if (lane === DATA.half) { if (rngInt(s, 100) < 30) spawnOne(s, dz, ev, 4, lane, 0); else spawnOne(s, dz, ev, 0, lane); }
+          else spawnOne(s, dz, ev, 4, lane, 0);
+        }
+      } else for (let i = 0; i < k.people; i++) spawnOne(s, 3000 + rngInt(s, DATA.stairs.len + 6000), ev);
+    }
+    if (s.branch >= 0 && !s.queued && s.dist >= doorAt(s) - DATA.doorBack) { // onto the platform: a queue at every door
+      s.queued = true;
+      const line = doorAt(s) - s.dist;
+      for (let lane = -DATA.half; lane <= DATA.half; lane++) {
+        const n = rngInt(s, k.queueMax + 1);
+        for (let i = 0; i < n; i++) {
+          spawnOne(s, line - 900 - i * 800, ev, 4, lane, 0);
+          s.obs[s.obs.length - 1].queue = true;
+        }
+      }
+    }
+    if (s.branch >= 0 && s.dist >= doorAt(s)) { // through the door: boarded
+      s.boarded = true; s.done = true; s.win = true;
+      if (s.lane !== s.want) { s.extra = DATA.missPenalty; ev.push({ k: 'miss', want: s.want, lane: s.lane }); }
+      ev.push({ k: 'done', win: true, tick: s.tick + s.extra });
+      return { events: ev };
+    }
+    for (const o of s.obs) { const t = peopleSpeed(s, o); o.cv = t < o.cv ? t : Math.min(t, o.cv + DATA.accel); }
+    for (const o of s.obs) {
+      const kd = DATA.kinds[o.kind];
+      o.dz += o.cv - vp;
+      if (o.queue && o.dz + s.dist > doorAt(s) + 500) o.dz = -DATA.despawnBehind - 1; // boarded ahead of you
+      if (o.blink > 0) {
+        o.blink--;
+        if (o.blink === 0) { o.fromX = o.x; o.lane = o.to; o.moveT = 0; }
+      } else if (kd.turn && o.cv > 0 && o.moveT >= k.peopleLaneTicks && o.dz > 1500 && rngInt(s, 10000) < k.turnChance) {
+        const to = o.lane + (rngInt(s, 2) === 0 ? -1 : 1);
+        if (Math.abs(to) <= DATA.half && laneFree(s, to, o.dz, kd.len, o)) { o.to = to; o.blink = k.blinkTicks; ev.push({ k: 'blink', id: o.id, to }); }
+      }
+      if (o.moveT < k.peopleLaneTicks) { o.moveT++; o.x = smooth(o.fromX, o.lane * 1000, o.moveT, k.peopleLaneTicks); }
+    }
+    let left = false, right = false;
+    for (const o of s.obs) {
+      const kd = DATA.kinds[o.kind], zo = zOverlap(o), xo = xOverlap(s, o);
+      if (zo && xo) {
+        if (!o.touch) {
+          o.touch = true;
+          if (kd.solid) { s.hits++; s.slow = DATA.slowTicks; ev.push({ k: 'hit', id: o.id }); }
+          else { s.slow = Math.max(s.slow, idiv(DATA.slowTicks, 3)); ev.push({ k: 'splash', id: o.id }); }
+        }
+      } else {
+        o.touch = false;
+        if (zo && kd.solid) {
+          if (o.x < s.x) left = true; else right = true;
+          const side = 2 * Math.abs(s.x - o.x) - kd.w - DATA.playerW;
+          if (!o.brushed && side < 2 * DATA.brushGap) { o.brushed = true; s.brushes++; ev.push({ k: 'brush', id: o.id }); }
+        }
+      }
+    }
+    if (left && right && !s.squeezing) { s.squeezes++; s.boost = DATA.boostTicks; ev.push({ k: 'squeeze' }); }
+    s.squeezing = left && right;
+    s.obs = s.obs.filter(o => o.dz > -DATA.despawnBehind && o.dz < DATA.spawnDz + 15000);
+    let ahead = 0;
+    for (const o of s.obs) if (o.dz > 0) ahead++;
+    if (ahead < k.people && zoneAt(s, s.dist + DATA.spawnDz) !== 'esc' && !(s.queued)) spawnOne(s, DATA.spawnDz + rngInt(s, 8000), ev);
+    if (s.tick >= k.runTicks) { s.done = true; s.win = false; ev.push({ k: 'done', win: false, tick: s.tick }); }
+    return { events: ev };
+  },
+};
+// === RULES END ===
+
+function canon(v) {
+  if (v === null || typeof v === 'boolean' || v === undefined) return String(v);
+  if (typeof v === 'number') { if (!Number.isSafeInteger(v)) throw Error('canon integer required: ' + v); return String(v); }
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+}
+function fnv(str) { let h = 2166136261; for (const b of new TextEncoder().encode(str)) h = Math.imul(h ^ b, 16777619) >>> 0; return h.toString(16).padStart(8, '0'); }
+function replay(log) {
+  const s = RULES.init(DATA, log.seed, log.knobs);
+  let i = 0, events = 0;
+  while (s.tick < log.endTick && !s.done) {
+    while (i < log.cmds.length && log.cmds[i].t === s.tick) events += RULES.apply(s, log.cmds[i++]).events.length;
+    events += RULES.tick(s).events.length;
+  }
+  return { hash: fnv(canon(s)), events, tick: s.tick };
+}
+
+// ---- dev knobs ----
+const KNOBS = [
+  ['camBack', '카메라 거리', 2, 14, 0.5, 8, null],
+  ['speed', '내 걸음', 3, 9, 0.5, 5, v => Math.round(v * 1000)],
+  ['people', '사람 수', 4, 24, 1, 14, v => v],
+  ['turnChance', '비켜 오기 빈도', 0, 40, 1, 14, v => v],
+  ['queueMax', '문 앞 줄 최대', 0, 8, 1, 4, v => v],
+  ['runTicks', '제한 시간 초', 20, 90, 5, 45, v => v * 60],
+  ['wantDoor', '빠른 하차 문(0 무작위)', 0, 5, 1, 0, v => v],
+];
+const KNOB_KEY = 'proto_seoulroute_subway1';
+const V = {};
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(KNOB_KEY) || '{}'); } catch (e) {}
+const panel = document.getElementById('panel');
+for (const [k, label, min, max, step, def] of KNOBS) {
+  V[k] = saved[k] ?? def;
+  const row = document.createElement('label');
+  row.innerHTML = `<span class="n">${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${V[k]}"><span class="v">${V[k]}</span>`;
+  const input = row.querySelector('input'), out = row.querySelector('.v');
+  input.oninput = () => { V[k] = +input.value; out.textContent = input.value; try { localStorage.setItem(KNOB_KEY, JSON.stringify(V)); } catch (e) {} };
+  panel.appendChild(row);
+}
+document.getElementById('gear').onclick = () => { panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; };
+const ruleKnobs = () => Object.fromEntries(KNOBS.filter(r => r[6]).map(r => [r[0], r[6](V[r[0]])]));
+
+// ---- presentation: silhouettes only (grey-violet rounded shapes), floor/walls drawn in code ----
+const W = 720, HORIZON = 457, LANE_PX = 128;
+let H = 1280, PLAYER_Y = 1090, CAM_H = 3.63;
+const zPlayer = () => V.camBack;
+const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
+const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', age: {} };
+let S, LOG;
+function reset(seed = (Date.now() >>> 0)) {
+  S = RULES.init(DATA, seed, ruleKnobs());
+  LOG = { seed: (seed >>> 0) || 1, knobs: ruleKnobs(), cmds: [], endTick: 0 };
+  FX.pops = []; FX.shake = 0; FX.flash = 0; FX.age = {};
+}
+function command(cmd) { if (S.done) return; LOG.cmds.push(Object.assign({ t: S.tick }, cmd)); onEvents(RULES.apply(S, cmd).events); }
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let scale = 1, offX = 0, offY = 0;
+function resize() {
+  const dpr = devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  H = Math.max(1280, Math.round(W * innerHeight / innerWidth));
+  PLAYER_Y = H - 190;
+  CAM_H = (PLAYER_Y - HORIZON) / LANE_PX;
+  scale = Math.min(innerWidth / W, innerHeight / H) * dpr;
+  offX = (cv.width - W * scale) / 2; offY = (cv.height - H * scale) / 2;
+}
+addEventListener('resize', resize); resize();
+
+let ac = null;
+function audioOn() { if (!ac) try { ac = new AudioContext(); } catch (e) { ac = null; } }
+function blip(freq, len, type = 'sine', vol = 0.2, slide = 0) {
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + len);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + len);
+}
+let lastPhase = -1;
+function onEvents(events) {
+  for (const e of events) {
+    if (e.k === 'spawn') FX.age[e.id] = 0;
+    if (e.k === 'lane') blip(220, 0.08, 'triangle', 0.08, 1.6);
+    if (e.k === 'bump') FX.shake = Math.max(FX.shake, 0.08);
+    if (e.k === 'hit') { FX.shake = 0.35; FX.flash = 0.25; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5); FX.pops.push({ text: '죄송합니다!', size: 34, t: 0, col: '#ff9a8a' }); }
+    if (e.k === 'splash') { FX.shake = Math.max(FX.shake, 0.12); FX.flash = 0.12; FX.flashCol = '#7fc8ff'; blip(300, 0.15, 'sine', 0.1, 0.6); }
+    if (e.k === 'brush') { FX.pops.push({ text: '스침!', size: 34, t: 0 }); blip(700, 0.1, 'sine', 0.08, 1.5); }
+    if (e.k === 'squeeze') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; FX.pops.push({ text: '틈새!', size: 50, t: 0 }); blip(900, 0.2, 'sine', 0.14, 1.8); }
+    if (e.k === 'blink') blip(1200, 0.04, 'square', 0.03);
+    if (e.k === 'brake' && e.on) blip(400, 0.1, 'triangle', 0.05, 0.7);
+    if (e.k === 'fork') { FX.pops.push({ text: e.branch ? '에스컬레이터' : '계단', size: 46, t: 0 }); blip(500, 0.25, 'triangle', 0.12, 2); }
+    if (e.k === 'miss') FX.pops.push({ text: '다른 칸! 환승 멀어짐', size: 38, t: -0.3, col: '#ff7a6a' });
+    if (e.k === 'done') LOG.endTick = S.tick;
+  }
+}
+
+function project(z) { return { y: HORIZON + CAM_H * focal() / z, s: focal() / z }; }
+const camZ = () => S.dist / 1000;
+const zOf = worldMilli => zPlayer() + (worldMilli - S.dist) / 1000;
+const speedView = () => S.vp * DATA.tickRate / 1000;
+function ground(pts) {
+  const F = focal();
+  ctx.beginPath();
+  pts.forEach(([x, z], i) => { const zz = Math.max(0.35, z), sx = W / 2 + x * F / zz, sy = HORIZON + CAM_H * F / zz; i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
+  ctx.fill();
+}
+const quad = (x0, x1, z0, z1) => ground([[x0, z0], [x1, z0], [x1, z1], [x0, z1]]);
+function wall(x, z0, z1, hLanes, col) { // vertical slab along the corridor side, from floor up hLanes
+  const F = focal(), p0 = project(Math.max(0.35, z0)), p1 = project(Math.max(0.35, z1));
+  ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(W / 2 + x * p0.s, p0.y); ctx.lineTo(W / 2 + x * p1.s, p1.y);
+  ctx.lineTo(W / 2 + x * p1.s, p1.y - hLanes * p1.s); ctx.lineTo(W / 2 + x * p0.s, p0.y - hLanes * p0.s); ctx.fill();
+}
+function capsule(cx, footY, wPx, hPx, col, a = 1) { // silhouette person: body pill + head
+  ctx.globalAlpha = a; ctx.fillStyle = col;
+  ctx.beginPath(); ctx.roundRect(cx - wPx / 2, footY - hPx * 0.78, wPx, hPx * 0.78, wPx / 2.2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx, footY - hPx * 0.86, wPx * 0.28, 0, Math.PI * 2); ctx.fill();
+  ctx.globalAlpha = 1;
+}
+const SIL = '#8f8fb4', SIL_DARK = '#6f6f92', SIL_ONC = '#a89ab8';
+const zoneLabel = { corridor: '환승 통로', stairs: '계단', esc: '에스컬레이터', platform: '승강장' };
+const zoneFloor = { corridor: ['#3a4160', '#343b58'], stairs: ['#4a4a6a', '#3c3c58'], esc: ['#2d3350', '#2a2f48'], platform: ['#3b4460', '#363f5a'] };
+
+function draw(dt) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const sh = FX.shake > 0 ? FX.shake * 30 : 0;
+  ctx.setTransform(scale, 0, 0, scale, offX + (Math.random() - 0.5) * sh * scale, offY + (Math.random() - 0.5) * sh * scale);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  ctx.fillStyle = '#12172a'; ctx.fillRect(0, 0, W, H); // ceiling / far dark
+  const F = focal();
+  const zoneOfZ = z => zoneAt(S, S.dist + (z - zPlayer()) * 1000);
+  for (let y = HORIZON + 1; y < H; y++) { // floor: tiles per zone; stairs get tight step lines, escalator a running belt
+    const z = CAM_H * F / (y - HORIZON), zone = zoneOfZ(z), cols = zoneFloor[zone] || zoneFloor.corridor;
+    const period = zone === 'stairs' ? 0.8 : 2, w = S.dist / 1000 + z;
+    ctx.fillStyle = Math.floor(w / period) % 2 ? cols[0] : cols[1];
+    ctx.fillRect(0, y, W, 1.5);
+  }
+  // walls both sides, with pillars every 8 units; a sign at the fork; the train box past the door line
+  const near = zPlayer() - 0.6, far = 80;
+  wall(-2.75, near, far, 2.2, '#262c48'); wall(2.75, near, far, 2.2, '#262c48');
+  for (let n = Math.floor((camZ() - zPlayer()) / 8) * 8; n < camZ() + far; n += 8) {
+    const z = n - camZ() + zPlayer();
+    if (z < 0.4 || z > far) continue;
+    wall(-2.75, z, z + 0.5, 2.4, '#3a4270'); wall(2.75, z, z + 0.5, 2.4, '#3a4270');
+  }
+  const items = S.obs.map(o => ({ z: zPlayer() + o.dz / 1000, o }));
+  items.push({ z: zPlayer(), player: true });
+  // lane strip + door line + fork line
+  ctx.fillStyle = 'rgba(255,255,255,0.07)'; quad(S.lane - 0.45, S.lane + 0.45, zPlayer() - 0.8, zPlayer() + 60);
+  const fz = zOf(DATA.fork);
+  if (S.branch < 0 && fz < 80) {
+    ctx.fillStyle = 'rgba(255,255,255,0.8)'; quad(-2.65, 2.65, fz - 0.3, fz);
+    ctx.fillStyle = 'rgba(255,216,74,0.25)'; quad(-2.65, 0.5, fz, fz + 12); ctx.fillStyle = 'rgba(120,235,255,0.25)'; quad(0.5, 2.65, fz, fz + 12);
+    items.push({ z: fz + 2, sign: true });
+  }
+  if (S.branch >= 0) {
+    const dz = zOf(doorAt(S)), key = DATA.phases[phaseAt(S).i].k;
+    if (dz < 80) {
+      ctx.fillStyle = 'rgba(255,216,74,0.9)'; quad(-2.65, 2.65, dz - 0.9, dz - 0.6); // yellow safety line
+      ctx.fillStyle = 'rgba(120,235,255,0.16)'; quad(S.want - 0.45, S.want + 0.45, zPlayer() - 0.8, dz - 0.9);
+      items.push({ z: dz, doors: true, key });
+    }
+  }
+  items.sort((a, b) => b.z - a.z);
+  for (const it of items) {
+    if (it.player) { drawPlayer(); continue; }
+    const p = project(it.z);
+    if (it.z <= 0.3 || p.y > H + 200) continue;
+    if (it.sign) { // fork sign hanging from the ceiling
+      ctx.fillStyle = '#0b1020'; ctx.fillRect(W / 2 - 2.2 * p.s, p.y - 2.6 * p.s, 4.4 * p.s, 0.5 * p.s);
+      ctx.fillStyle = '#ffd84a'; ctx.font = `bold ${0.3 * p.s}px sans-serif`; ctx.textAlign = 'center';
+      ctx.fillText('← 계단', W / 2 - 1.2 * p.s, p.y - 2.25 * p.s); ctx.fillStyle = '#78ebff'; ctx.fillText('에스컬레이터 →', W / 2 + 1.1 * p.s, p.y - 2.25 * p.s);
+      continue;
+    }
+    if (it.doors) { // train (when present) behind the screen doors; five doors, open gap during G/Y, wanted one lit
+      if (it.key !== 'X') { ctx.fillStyle = '#4a5a8a'; ctx.fillRect(W / 2 - 3.2 * p.s, p.y - 2.3 * p.s, 6.4 * p.s, 2.0 * p.s); ctx.fillStyle = '#9fb8ff'; for (let i = -2; i <= 2; i++) ctx.fillRect(W / 2 + (i - 0.3) * p.s, p.y - 2.0 * p.s, 0.6 * p.s, 0.5 * p.s); }
+      for (let lane = -2; lane <= 2; lane++) {
+        const cx = W / 2 + lane * p.s, open = it.key === 'G' || it.key === 'Y', gap = open ? 0.62 : it.key === 'R' && (S.tick >> 3) & 1 ? 0.1 : 0;
+        ctx.fillStyle = lane === S.want ? '#5ad1ff' : '#2b3150';
+        ctx.fillRect(cx - 0.48 * p.s, p.y - 1.9 * p.s, 0.96 * p.s, 0.14 * p.s); // lintel
+        ctx.fillStyle = '#6d7aa6';
+        ctx.fillRect(cx - 0.48 * p.s, p.y - 1.76 * p.s, (0.96 - gap) / 2 * p.s, 1.76 * p.s);
+        ctx.fillRect(cx + (0.48 - (0.96 - gap) / 2) * p.s, p.y - 1.76 * p.s, (0.96 - gap) / 2 * p.s, 1.76 * p.s);
+        ctx.fillStyle = lane === S.want ? '#5ad1ff' : '#c9d4ff'; ctx.font = `bold ${0.26 * p.s}px sans-serif`; ctx.textAlign = 'center';
+        ctx.fillText(`${lane + 3}`, cx, p.y - 2.0 * p.s);
+      }
+      // closing warning strip
+      if (it.key === 'Y') { ctx.fillStyle = `rgba(255,80,60,${(S.tick >> 2) & 1 ? 0.6 : 0.2})`; ctx.fillRect(W / 2 - 2.65 * p.s, p.y - 2.1 * p.s, 5.3 * p.s, 0.08 * p.s); }
+      continue;
+    }
+    const o = it.o, kd = DATA.kinds[o.kind];
+    let a = Math.min(1, (80 - it.z) / 16);
+    if (FX.age[o.id] !== undefined) { a *= Math.min(1, FX.age[o.id] / 0.5); if ((FX.age[o.id] += dt) > 0.5) delete FX.age[o.id]; }
+    const cx = W / 2 + o.x / 1000 * p.s;
+    ctx.globalAlpha = 0.4 * a; ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(cx, p.y, kd.w / 1000 * p.s * 0.55, kd.w / 1000 * p.s * 0.13, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
+    if (kd.id === 'wet') { ctx.globalAlpha = a; ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.moveTo(cx, p.y - 0.7 * p.s); ctx.lineTo(cx - 0.25 * p.s, p.y); ctx.lineTo(cx + 0.25 * p.s, p.y); ctx.fill(); ctx.globalAlpha = 1; continue; }
+    if (kd.id === 'luggage') { capsule(cx - 0.12 * p.s, p.y, 0.42 * p.s, 1.3 * p.s, SIL, a); ctx.globalAlpha = a; ctx.fillStyle = SIL_DARK; ctx.fillRect(cx + 0.05 * p.s, p.y - 0.6 * p.s, 0.4 * p.s, 0.6 * p.s); ctx.globalAlpha = 1; continue; }
+    const col = kd.free ? SIL_ONC : o.queue || kd.id === 'stander' ? SIL_DARK : SIL;
+    const bob = kd.free || o.cv !== 0 ? Math.sin((S.tick + o.id * 7) / 3) * 0.02 * p.s : 0;
+    capsule(cx, p.y + bob, 0.46 * p.s, 1.35 * p.s, col, a);
+    if (kd.free) { ctx.globalAlpha = a; ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(cx - 0.07 * p.s, p.y - 1.17 * p.s, 0.035 * p.s, 0, 7); ctx.arc(cx + 0.07 * p.s, p.y - 1.17 * p.s, 0.035 * p.s, 0, 7); ctx.fill(); ctx.globalAlpha = 1; } // face toward you
+    if (o.blink > 0 && (S.tick >> 3) & 1) { // head turn toward the lane they will drift into
+      const side = o.to < o.lane ? -1 : 1;
+      ctx.fillStyle = '#ffae2a'; ctx.beginPath(); ctx.arc(cx + side * 0.2 * p.s, p.y - 1.17 * p.s, 0.06 * p.s, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  for (const p of FX.pops) {
+    p.t += dt;
+    const pp = project(zPlayer()), x = W / 2 + S.x / 1000 * pp.s, y = PLAYER_Y - 220 - Math.max(0, p.t) * 120;
+    ctx.globalAlpha = Math.max(0, Math.min(1, 1 - p.t / 0.6)); ctx.fillStyle = p.col || '#ffd84a'; ctx.font = `bold ${p.size}px sans-serif`; ctx.textAlign = 'center';
+    ctx.strokeStyle = '#3a2400'; ctx.lineWidth = 8; ctx.strokeText(p.text, x, y); ctx.fillText(p.text, x, y); ctx.globalAlpha = 1;
+  }
+  FX.pops = FX.pops.filter(p => p.t < 0.6);
+  if (FX.flash > 0) { ctx.globalAlpha = FX.flash * 1.4; ctx.fillStyle = FX.flashCol; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  FX.shake = Math.max(0, FX.shake - dt); FX.flash = Math.max(0, FX.flash - dt);
+  drawHud(speedView());
+  ctx.restore();
+}
+function drawPlayer() {
+  const p = project(zPlayer()), x = W / 2 + S.x / 1000 * p.s;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(x, PLAYER_Y, 0.3 * p.s, 0.06 * p.s, 0, 0, Math.PI * 2); ctx.fill();
+  const lean = S.moveT < S.cfg.laneTicks ? S.moveDir * 0.08 * p.s : 0, bob = S.vp > 0 ? Math.sin(S.tick / 2.5) * 0.02 * p.s : 0;
+  capsule(x + lean, PLAYER_Y + bob, 0.5 * p.s, 1.5 * p.s, S.slow > DATA.slowTicks / 2 ? '#c46a6a' : '#2a3a7a');
+  ctx.fillStyle = '#f2f4ff'; ctx.beginPath(); ctx.arc(x + lean, PLAYER_Y + bob - 1.29 * p.s, 0.16 * p.s, Math.PI, 0); ctx.fill(); // helmet
+  ctx.fillStyle = '#1a1a22'; ctx.fillRect(x + lean - 0.22 * p.s, PLAYER_Y + bob - 1.05 * p.s, 0.44 * p.s, 0.36 * p.s); // delivery box
+  if (S.brake) { ctx.fillStyle = '#ff2a2a'; ctx.beginPath(); ctx.arc(x + lean, PLAYER_Y + bob - 0.5 * p.s, 0.06 * p.s, 0, 7); ctx.fill(); }
+}
+function bar(x, y, w, h, f, col) {
+  ctx.fillStyle = '#0b1020cc'; ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x + 3, y + 3, Math.max(0, (w - 6) * f), h - 6, (h - 6) / 2); ctx.fill();
+}
+function glow(x, y, r, col) { ctx.fillStyle = col; ctx.shadowColor = col; ctx.shadowBlur = r * 2.5; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+function drawHud(v) {
+  const limit = S.cfg.runTicks, zone = zoneAt(S, S.dist);
+  const total = S.branch >= 0 ? doorAt(S) : DATA.fork + DATA.stairs.len + DATA.doorBack;
+  ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(20, 112, 670, 222, 22); ctx.fill();
+  ctx.textAlign = 'left'; ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('남은 시간', 40, 152); bar(170, 130, 500, 30, Math.max(0, 1 - S.tick / limit), limit - S.tick < 360 ? '#ff5a4a' : '#ffb340');
+  ctx.fillText('남은 거리', 40, 200); bar(170, 178, 500, 30, Math.max(0, 1 - S.dist / total), '#5ad1ff');
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText(`걸음 ${v.toFixed(1)}   틈새 ${S.squeezes}   쿵 ${S.hits}   막힘 ${(S.stuck / 60).toFixed(1)}초`, 40, 248);
+  ctx.font = 'bold 38px sans-serif';
+  if (S.branch < 0) {
+    const m = Math.max(0, Math.round((DATA.fork - S.dist) / 1000 * 2.5));
+    ctx.font = 'bold 34px sans-serif'; ctx.fillStyle = '#ffd84a'; ctx.fillText(`${zoneLabel[zone]} · 갈림 ${m}m`, 40, 306);
+    ctx.font = 'bold 22px sans-serif'; ctx.fillStyle = '#c9d4ff'; ctx.fillText(S.lane > 0 ? '→ 에스컬레이터 쪽' : '← 계단 쪽', 440, 302);
+  } else {
+    const m = Math.max(0, Math.round((doorAt(S) - S.dist) / 1000 * 2.5)), ok = S.lane === S.want;
+    ctx.font = 'bold 34px sans-serif'; ctx.fillStyle = ok ? '#7dffb0' : '#ffd84a'; ctx.fillText(`빠른 하차 ${S.want + 3}번 문 ${m}m`, 40, 306);
+    const ph = phaseAt(S), key = DATA.phases[ph.i].k;
+    ctx.font = 'bold 22px sans-serif'; ctx.fillStyle = '#c9d4ff';
+    ctx.fillText(held(S) && S.vp === 0 ? (key === 'X' ? '다음 열차' : '들어옴') : ok ? '문 OK' : `${S.want + 3}번 문으로`, 390, 302);
+    const col = { R: '#ff3b30', G: '#2bff88', Y: '#ffc400', X: '#2a2d38' };
+    ctx.fillStyle = '#05070d'; ctx.beginPath(); ctx.roundRect(536, 274, 142, 44, 22); ctx.fill();
+    glow(566, 296, 14, key === 'R' ? col.R : '#2a2d38'); glow(608, 296, 14, key === 'Y' ? col.Y : '#2a2d38'); glow(650, 296, 14, key === 'G' ? col.G : '#2a2d38');
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(`${Math.ceil(ph.left / 60)}`, 528, 304); ctx.textAlign = 'left';
+  }
+  if (S.tick < 300 && !S.done) {
+    ctx.globalAlpha = Math.min(1, (300 - S.tick) / 60); ctx.textAlign = 'center'; ctx.font = 'bold 28px sans-serif';
+    ctx.strokeStyle = '#0b1020'; ctx.lineWidth = 6; ctx.fillStyle = '#fff';
+    const t = '← → 밀어서 줄 바꾸기   ·   ↓ 누르고 있으면 멈춤';
+    ctx.strokeText(t, W / 2, H - 60); ctx.fillText(t, W / 2, H - 60); ctx.globalAlpha = 1; ctx.textAlign = 'left';
+  }
+  if (S.done) {
+    ctx.fillStyle = '#0b1020e0'; ctx.beginPath(); ctx.roundRect(70, 420, 580, 420, 30); ctx.fill();
+    ctx.fillStyle = S.win ? '#ffd84a' : '#ff6a5a'; ctx.textAlign = 'center'; ctx.font = 'bold 54px sans-serif';
+    ctx.fillText(S.win ? `탑승 ${((S.tick + S.extra) / 60).toFixed(1)}초` : '시간 초과', W / 2, 500);
+    ctx.fillStyle = '#fff'; ctx.font = '30px sans-serif';
+    ctx.fillText(`막힘 ${(S.stuck / 60).toFixed(1)}초 · 열차 대기 ${(S.wait / 60).toFixed(1)}초`, W / 2, 570);
+    ctx.fillText(`틈새 ${S.squeezes} · 스침 ${S.brushes} · 쿵 ${S.hits}`, W / 2, 620);
+    ctx.fillText(S.branch < 0 ? '갈림길 못 감' : `${S.branch ? '에스컬레이터' : '계단'} · ${S.boarded ? (S.extra ? `다른 칸 +${S.extra / 60}초` : '빠른 하차 칸 ✓') : '못 탐'}`, W / 2, 670);
+    ctx.fillStyle = '#9fb3ff'; ctx.fillText('탭해서 다시', W / 2, 780);
+  }
+}
+
+let anchor = null, anchorY = 0;
+cv.addEventListener('pointerdown', e => { audioOn(); if (S.done) { reset(); return; } anchor = e.clientX; anchorY = e.clientY; });
+cv.addEventListener('pointermove', e => {
+  if (anchor === null) return;
+  const dx = e.clientX - anchor;
+  if (Math.abs(dx) > 28) { command({ k: 'lane', dir: Math.sign(dx) }); anchor = e.clientX; }
+  const dy = e.clientY - anchorY;
+  if (dy > 36 && !S.brake) command({ k: 'brake', on: true });
+  if (dy < 18 && S.brake) command({ k: 'brake', on: false });
+});
+addEventListener('pointerup', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
+addEventListener('pointercancel', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
+addEventListener('keydown', e => {
+  audioOn();
+  if (e.key === 'ArrowLeft') command({ k: 'lane', dir: -1 });
+  if (e.key === 'ArrowRight') command({ k: 'lane', dir: 1 });
+  if (e.key === 'ArrowDown' && !S.brake) command({ k: 'brake', on: true });
+  if ((e.key === ' ' || e.key === 'Enter') && S.done) reset();
+});
+addEventListener('keyup', e => { if (e.key === 'ArrowDown' && S.brake) command({ k: 'brake', on: false }); });
+
+reset();
+let last = performance.now(), acc = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!window.__pause) { acc += dt; while (acc >= 1 / 60) { acc -= 1 / 60; onEvents(RULES.tick(S).events); } }
+  draw(dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+window.T = {
+  state: () => S, log: () => LOG, hash: () => fnv(canon(S)), replay, reset, command,
+  // pace bot: weaves like the motorbike bot; picks `branch` at the fork (0 stairs, 1 escalator, -1 whichever lane it is in),
+  // and gets into the wanted door's lane within `plan` units of the door.
+  bot(react, runs = 10, seed = 1, branch = -1, plan = 20) {
+    const out = { win: 0, hits: 0, sq: 0, stuck: 0, wait: 0, miss: 0, ticks: 0 };
+    const every = Math.max(1, Math.round(react * 60));
+    for (let r = 0; r < runs; r++) {
+      const s = RULES.init(DATA, seed + r, ruleKnobs());
+      const inLane = (o, l) => o.lane === l || o.to === l;
+      const clearAhead = l => Math.min(99999, ...s.obs.filter(o => DATA.kinds[o.kind].solid && inLane(o, l) && o.dz > 0).map(o => o.dz));
+      const sideFree = l => !s.obs.some(o => DATA.kinds[o.kind].solid && inLane(o, l) && 2 * Math.abs(o.dz) < DATA.kinds[o.kind].len + DATA.playerLen + 1400);
+      const okLane = l => {
+        if (s.branch < 0) return branch < 0 || DATA.fork - s.dist > 15000 || (branch === 1 ? l > 0 : l <= 0);
+        return doorAt(s) - s.dist > plan * 1000 || l === s.want;
+      };
+      while (!s.done) {
+        if (s.tick % every === 0 && s.moveT >= s.cfg.laneTicks) {
+          if (!okLane(s.lane)) {
+            const dir = s.branch < 0 ? (branch === 1 ? 1 : -1) : Math.sign(s.want - s.lane);
+            if (sideFree(s.lane + dir)) RULES.apply(s, { k: 'lane', dir });
+          } else if (clearAhead(s.lane) < 5000) {
+            const opts = [s.lane - 1, s.lane + 1].filter(l => Math.abs(l) <= DATA.half && okLane(l) && sideFree(l)).sort((a, b) => clearAhead(b) - clearAhead(a));
+            if (opts.length && clearAhead(opts[0]) > clearAhead(s.lane)) RULES.apply(s, { k: 'lane', dir: Math.sign(opts[0] - s.lane) });
+          }
+        }
+        RULES.tick(s);
+      }
+      out.win += s.win ? 1 : 0; out.hits += s.hits; out.sq += s.squeezes; out.stuck += s.stuck; out.wait += s.wait; out.miss += s.extra ? 1 : 0; out.ticks += s.tick + s.extra;
+    }
+    const n = runs;
+    return `${react}s ${branch === 1 ? '에스컬레이터' : branch === 0 ? '계단' : '아무 쪽'} 승${out.win}/${n} 쿵${(out.hits / n).toFixed(1)} 틈새${(out.sq / n).toFixed(1)} 막힘${(out.stuck / n / 60).toFixed(1)}초 대기${(out.wait / n / 60).toFixed(1)}초 다른칸${(out.miss / n).toFixed(1)} ${(out.ticks / n / 60).toFixed(1)}초`;
+  },
+};
+</script>
+</body>
+</html>
