@@ -240,18 +240,35 @@ function command(cmd) {
 }
 
 const img = src => { const i = new Image(); i.src = src; return i; };
-const IMG = { back: img('art/sprites/backdrop.png'), road: img('art/sprites/road5.png'), props: img('art/sprites/props.png'), hero: img('art/sprites/boy.png'), side: img('art/sprites/roadside.png') };
-// Roadside dressing (view only, deterministic by world position): cell in the 4x2 sheet of 256x512, x in lanes from road center (signed unless both), width in lanes, period/offset in units.
-const SIDE = [
-  { cell: 0, x: 3.1, w: 1.0, period: 8, off: 0, both: true },     // streetlight
-  { cell: 7, x: 3.0, w: 1.6, period: 3, off: 1.5, both: true },   // hedge + guardrail
-  { cell: 1, x: 3.9, w: 1.8, period: 8, off: 4, both: true },     // ginkgo
-  { cell: 3, x: 3.6, w: 0.9, period: 24, off: 10 },      // utility pole
-  { cell: 2, x: -3.4, w: 1.0, period: 40, off: 20 },    // traffic signal
-  { cell: 4, x: -4.6, w: 2.4, period: 50, off: 33 },     // bus stop
-  { cell: 5, x: 5.4, w: 3.2, period: 20, off: 6, both: true },    // corner shop
-  { cell: 6, x: 6.6, w: 4.0, period: 20, off: 16, both: true },   // apartment slice
-];
+const IMG = { road: img('art/sprites/road5.png'), props: img('art/sprites/props.png'), hero: img('art/sprites/boy.png') };
+// Area themes (view only): backdrop + roadside sheet (4x2 cells of 256x512) + placements.
+// x in lanes from road center (signed unless both), w in lanes, period/offset in world units.
+const AREAS = {
+  street: { back: 'art/sprites/backdrop.png', sheet: 'art/sprites/roadside.png', side: [
+    { cell: 0, x: 3.1, w: 1.0, period: 8, off: 0, both: true },     // streetlight
+    { cell: 7, x: 3.0, w: 1.6, period: 3, off: 1.5, both: true },   // hedge + guardrail
+    { cell: 1, x: 3.9, w: 1.8, period: 8, off: 4, both: true },     // ginkgo
+    { cell: 3, x: 3.6, w: 0.9, period: 24, off: 10 },               // utility pole
+    { cell: 2, x: -3.4, w: 1.0, period: 40, off: 20 },              // traffic signal
+    { cell: 4, x: -4.6, w: 2.4, period: 50, off: 33 },              // bus stop
+    { cell: 5, x: 5.4, w: 3.2, period: 20, off: 6, both: true },    // corner shop
+    { cell: 6, x: 6.6, w: 4.0, period: 20, off: 16, both: true },   // apartment slice
+  ] },
+  gangnam: { back: 'art/sprites/gangnam-back.png', sheet: 'art/sprites/gangnam.png', side: [
+    { cell: 3, x: 3.1, w: 1.1, period: 7, off: 0, both: true },     // twin-arm LED streetlight
+    { cell: 7, x: 3.1, w: 1.4, period: 3.5, off: 1.7, both: true }, // planter + bollards
+    { cell: 5, x: 3.9, w: 1.6, period: 7, off: 3.5, both: true },   // zelkova
+    { cell: 6, x: 4.3, w: 1.6, period: 13, off: 5, both: true },    // pedestrians with umbrellas
+    { cell: 4, x: -3.5, w: 2.4, period: 45, off: 22 },              // median-style bus stop
+    { cell: 0, x: 6.2, w: 3.6, period: 12, off: 0, both: true },    // glass tower
+    { cell: 1, x: 6.2, w: 3.6, period: 12, off: 4, both: true },    // LED billboard tower
+    { cell: 2, x: 6.2, w: 3.6, period: 12, off: 8, both: true },    // dark glass tower
+  ] },
+};
+const AREA_KEY = (new URLSearchParams(location.search).get('area') || 'gangnam');
+const AREA = AREAS[AREA_KEY] || AREAS.gangnam;
+IMG.back = img(AREA.back); IMG.side = img(AREA.sheet);
+const SIDE = AREA.side;
 const bboxCache = new Map();
 function bbox(image, cell, cw, ch) { // tight alpha box of one cell; whole cell if the canvas is tainted (file://)
   const key = image.src + cell;
@@ -418,6 +435,7 @@ function bar(x, y, w, h, f, col) {
 }
 function drawHud(v) {
   const limit = S.cfg.runTicks + S.cfg.slackTicks;
+  ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(20, 112, 670, 152, 22); ctx.fill(); // HUD backing over bright skylines
   ctx.textAlign = 'left'; ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#fff';
   ctx.fillText('남은 시간', 40, 152); bar(170, 130, 500, 30, Math.max(0, 1 - S.tick / limit), limit - S.tick < 360 ? '#ff5a4a' : '#ffb340');
   ctx.fillText('남은 거리', 40, 200); bar(170, 178, 500, 30, Math.max(0, 1 - S.dist / S.goal), '#5ad1ff');
