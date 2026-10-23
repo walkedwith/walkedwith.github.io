@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1b2238">
+<title>서울 루트 — 속도감 시험판</title>
+<style>
+  html,body{margin:0;height:100dvh;background:#1b2238;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif}
+  canvas{display:block;width:100vw;height:100dvh}
+  #gear{position:fixed;top:calc(env(safe-area-inset-top) + 8px);right:8px;width:44px;height:44px;border-radius:22px;border:0;background:#0008;color:#fff;font-size:22px}
+  #panel{position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top) + 60px);background:#0b1020e8;color:#fff;border-radius:14px;padding:10px 14px;font-size:14px;display:none}
+  #panel label{display:flex;align-items:center;gap:8px;margin:6px 0}
+  #panel span.n{width:120px}#panel span.v{width:56px;text-align:right;font-variant-numeric:tabular-nums}
+  #panel input{flex:1}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<button id="gear">⚙</button>
+<div id="panel"></div>
+<script>
+// Speed/timing test for the seoulroute motorbike segment. Port contract: PORT.md.
+// RULES = pure integer state machine (60 ticks/s, milli-units, xorshift32) -> GDScript 1:1.
+// Everything below RULES END is presentation: pseudo-3D road + depth-scaled sprites, reacting to events.
+
+const DATA = {
+  version: 1,
+  tickRate: 60,
+  rng: { shiftA: 13, shiftB: 17, shiftC: 5 },
+  half: 2,                      // lanes are -half..half (5 lanes)
+  playerW: 420,                 // milli-lanes
+  removeBehind: 1200,           // milli-units behind the player
+  slowTicks: 96, slowFloor: 150, boostTicks: 90, boostPermille: 1080,
+  kinds: [                      // w: milli-lanes, moves: per-mille of player speed it drives forward
+    { id: 'sedan', w: 800, moves: 450 },
+    { id: 'bus', w: 920, moves: 400 },
+    { id: 'manhole', w: 500, moves: 0 },
+    { id: 'cone', w: 300, moves: 0 },
+    { id: 'puddle', w: 650, moves: 0 },
+    { id: 'barrier', w: 850, moves: 0 },
+  ],
+  knobs: {                      // integer rule tunables; the gear panel edits these
+    speed: 14000,               // milli-units per second at the start
+    ramp: 80,                   // % faster at the end of the segment
+    warnTicks: 78,              // spawn-to-arrival at the start
+    tighten: 40,                // % of warning removed by the end
+    gapEndTicks: 42,            // spawn interval at the end (start is 1.6x)
+    laneTicks: 7,
+    hitbox: 750,                // per-mille of sprite width that collides
+    nearTicks: 12,              // overlap this recent + no hit = near miss
+    runTicks: 1800, slackTicks: 150,
+    twoLanePct: 50, threeLanePct: 25, firstSpawnTicks: 120,   // chance a spawn blocks 2 / 3 lanes; never all
+  },
+};
+
+// === RULES BEGIN ===
+// Integers only. idiv truncates toward zero like GDScript int "/".
+function idiv(a, b) { return Math.trunc(a / b); }
+function rngInt(s, n) {
+  const r = DATA.rng; let x = s.rng;
+  x ^= x << r.shiftA; x >>>= 0; x ^= x >>> r.shiftB; x ^= x << r.shiftC; x >>>= 0;
+  s.rng = x; return x % n;
+}
+function progress(s) { return Math.min(1000, idiv(s.dist * 1000, s.goal)); }   // per-mille
+function speedPerTick(s) {                                                      // milli-units per tick
+  const k = s.cfg;
+  let v = idiv(k.speed * (1000 + idiv(k.ramp * progress(s), 100)), 1000);
+  if (s.slow > 0) v = idiv(v * (DATA.slowFloor + idiv((1000 - DATA.slowFloor) * (DATA.slowTicks - s.slow), DATA.slowTicks)), 1000);
+  if (s.boost > 0) v = idiv(v * DATA.boostPermille, 1000);
+  return idiv(v, DATA.tickRate);
+}
+const RULES = {
+  init(data, seed, knobs) {
+    const cfg = Object.assign({}, data.knobs, knobs || {});
+    const s = { v: data.version, tick: 0, rng: (seed >>> 0) || 1, cfg,
+      lane: 0, fromX: 0, x: 0, moveT: cfg.laneTicks, moveDir: 0,
+      dist: 0, goal: 0, obs: [], nextId: 1, nextSpawn: cfg.firstSpawnTicks,
+      slow: 0, boost: 0, hits: 0, nears: 0, margins: [], done: false, win: false };
+    s.goal = idiv(idiv(cfg.speed * (1000 + cfg.ramp * 5), 1000) * cfg.runTicks, data.tickRate);
+    return s;
+  },
+  apply(s, cmd) {
+    const ev = [];
+    if (cmd.k === 'lane' && !s.done) {
+      const to = Math.max(-DATA.half, Math.min(DATA.half, s.lane + cmd.dir));
+      if (to === s.lane) ev.push({ k: 'bump', dir: cmd.dir });
+      else {
+        ev.push({ k: 'lane', from: s.lane, to });
+        s.fromX = s.x; s.lane = to; s.moveT = 0; s.moveDir = cmd.dir;
+      }
+    }
+    return { events: ev };
+  },
+  tick(s) {
+    const ev = [];
+    if (s.done) return { events: ev };
+    const k = s.cfg;
+    s.tick++;
+    const v = speedPerTick(s);
+    s.dist += v;
+    if (s.slow > 0) s.slow--;
+    if (s.boost > 0) s.boost--;
+    // lane easing: smoothstep in per-mille
+    if (s.moveT < k.laneTicks) {
+      s.moveT++;
+      const u = idiv(s.moveT * 1000, k.laneTicks);
+      const e = idiv(u * u * (3000 - 2 * u), 1000000);
+      s.x = s.fromX + idiv((s.lane * 1000 - s.fromX) * e, 1000);
+    } else s.x = s.lane * 1000;
+    // spawn: block 1..3 distinct lanes (partial Fisher-Yates over -half..half), never all
+    const p = progress(s);
+    s.nextSpawn--;
+    if (s.nextSpawn <= 0 && s.dist < s.goal - v * k.warnTicks) {
+      const warn = idiv(k.warnTicks * (100000 - k.tighten * p), 100000);
+      const pool = [];
+      for (let l = -DATA.half; l <= DATA.half; l++) pool.push(l);
+      let count = 1;
+      if (rngInt(s, 100) < k.twoLanePct) count++;
+      if (count === 2 && rngInt(s, 100) < k.threeLanePct) count++;
+      const lanes = [];
+      for (let i = 0; i < count; i++) {
+        const j = i + rngInt(s, pool.length - i);
+        const tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+        lanes.push(pool[i]);
+      }
+      for (const lane of lanes) {
+        const kind = rngInt(s, DATA.kinds.length), kd = DATA.kinds[kind];
+        const o = { id: s.nextId++, kind, lane, dz: idiv(v * (1000 - kd.moves), 1000) * warn,
+          born: s.tick, lastOverlap: -1, threat: Math.abs(s.x - lane * 1000) < 500, dodged: -1, hit: false };
+        s.obs.push(o);
+        ev.push({ k: 'spawn', id: o.id, kind, lane });
+      }
+      s.nextSpawn = idiv(idiv(k.gapEndTicks * (1600 - idiv(600 * p, 1000)), 1000) * (800 + rngInt(s, 401)), 1000);
+    }
+    // obstacles
+    for (const o of s.obs) {
+      const kd = DATA.kinds[o.kind], prev = o.dz;
+      o.dz -= idiv(v * (1000 - kd.moves), 1000);
+      // |dx| < (w + playerW)/2 * hitbox/1000  <=>  2000|dx| < (w + playerW) * hitbox
+      const overlap = 2000 * Math.abs(s.x - o.lane * 1000) < (kd.w + DATA.playerW) * k.hitbox;
+      if (overlap) { o.lastOverlap = s.tick; o.dodged = -1; }
+      else if (o.threat && o.dodged < 0) o.dodged = s.tick;
+      if (prev > 0 && o.dz <= 0) {
+        if (overlap) {
+          s.hits++; s.slow = DATA.slowTicks; o.hit = true;
+          if (o.threat) s.margins.push(0);
+          ev.push({ k: 'hit', id: o.id, lane: o.lane });
+        } else {
+          if (o.lastOverlap >= 0 && s.tick - o.lastOverlap < k.nearTicks) {
+            s.nears++; s.boost = DATA.boostTicks;
+            ev.push({ k: 'near', id: o.id, lane: o.lane });
+          }
+          if (o.threat && o.dodged >= 0) s.margins.push(s.tick - o.dodged);
+        }
+      }
+    }
+    s.obs = s.obs.filter(o => o.dz > -DATA.removeBehind);
+    if (s.dist >= s.goal || s.tick >= k.runTicks + k.slackTicks) {
+      s.done = true; s.win = s.dist >= s.goal;
+      ev.push({ k: 'done', win: s.win, tick: s.tick });
+    }
+    return { events: ev };
+  },
+};
+// === RULES END ===
+
+// ---- determinism: canon + FNV-1a over the integer state (PORT.md) ----
+function canon(v) {
+  if (v === null || typeof v === 'boolean') return String(v);
+  if (typeof v === 'number') { if (!Number.isSafeInteger(v)) throw Error('canon integer required: ' + v); return String(v); }
+  if (typeof v === 'string') return JSON.stringify(v);
+  if (Array.isArray(v)) return '[' + v.map(canon).join(',') + ']';
+  return '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}';
+}
+function fnv(str) { let h = 2166136261; for (const b of new TextEncoder().encode(str)) h = Math.imul(h ^ b, 16777619) >>> 0; return h.toString(16).padStart(8, '0'); }
+function replay(log) { // {seed, knobs, cmds:[{t,k,dir}], endTick} -> {hash, events, tick}; touches no view state
+  const s = RULES.init(DATA, log.seed, log.knobs);
+  let i = 0, events = 0;
+  while (s.tick < log.endTick && !s.done) {
+    while (i < log.cmds.length && log.cmds[i].t === s.tick) events += RULES.apply(s, log.cmds[i++]).events.length;
+    events += RULES.tick(s).events.length;
+  }
+  return { hash: fnv(canon(s)), events, tick: s.tick };
+}
+
+// ---- dev knobs (view units -> integer rule knobs) ----
+const KNOBS = [ // key, label, min, max, step, default (view units), toRule
+  ['camBack', '카메라 거리', 2, 12, 0.5, 6, null],
+  ['speed', '시작 속도', 8, 40, 1, 14, v => v * 1000],
+  ['ramp', '구간 끝 가속 %', 0, 150, 5, 80, v => v],
+  ['warnTicks', '시작 예고 초', 0.5, 2.0, 0.05, 1.3, v => Math.round(v * 60)],
+  ['tighten', '끝 예고 줄임 %', 0, 60, 5, 40, v => v],
+  ['gapEndTicks', '끝 간격 초', 0.4, 2.0, 0.05, 0.7, v => Math.round(v * 60)],
+  ['twoLanePct', '2칸 막힘 %', 0, 100, 5, 50, v => v],
+  ['threeLanePct', '3칸 막힘 %', 0, 100, 5, 25, v => v],
+  ['laneTicks', '차선 이동 ms', 50, 300, 10, 120, v => Math.max(1, Math.round(v * 60 / 1000))],
+  ['hitbox', '판정 크기', 0.5, 1.0, 0.05, 0.75, v => Math.round(v * 1000)],
+  ['nearTicks', '아슬 판정 초', 0.1, 0.6, 0.05, 0.2, v => Math.round(v * 60)],
+  ['slackTicks', '시간 여유 초', 0.5, 8, 0.5, 2.5, v => Math.round(v * 60)],
+];
+const V = {};
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem('proto_seoulroute_knobs4') || '{}'); } catch (e) {}
+const panel = document.getElementById('panel');
+for (const [k, label, min, max, step, def] of KNOBS) {
+  V[k] = saved[k] ?? def;
+  const row = document.createElement('label');
+  row.innerHTML = `<span class="n">${label}</span><input type="range" min="${min}" max="${max}" step="${step}" value="${V[k]}"><span class="v">${V[k]}</span>`;
+  const input = row.querySelector('input'), out = row.querySelector('.v');
+  input.oninput = () => {
+    V[k] = +input.value; out.textContent = input.value;
+    try { localStorage.setItem('proto_seoulroute_knobs4', JSON.stringify(V)); } catch (e) {}
+  };
+  panel.appendChild(row);
+}
+document.getElementById('gear').onclick = () => { panel.style.display = panel.style.display === 'block' ? 'none' : 'block'; };
+const ruleKnobs = () => Object.fromEntries(KNOBS.filter(r => r[6]).map(r => [r[0], r[6](V[r[0]])]));
+
+// ---- presentation ----
+const W = 720, HORIZON = 457, ROAD_TEX_W = 848 / 160, TILE_LEN = 20, CELL = 256, LANE_PX = 128; // road5.png: 5 lanes x 160px + curbs
+let H = 1280, PLAYER_Y = 1090, CAM_H = 3.63;
+const zPlayer = () => V.camBack;                                    // view-only camera distance
+const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
+const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5 };
+const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff' };
+
+// ---- run (state + command log for replay) ----
+let S, LOG;
+function reset(seed = (Date.now() >>> 0)) {
+  S = RULES.init(DATA, seed, ruleKnobs());
+  LOG = { seed: S.rng, knobs: ruleKnobs(), cmds: [], endTick: 0 };
+  FX.pops = []; FX.shake = 0; FX.flash = 0;
+}
+function command(cmd) {
+  if (S.done) return;
+  LOG.cmds.push(Object.assign({ t: S.tick }, cmd));
+  onEvents(RULES.apply(S, cmd).events);
+}
+
+const img = src => { const i = new Image(); i.src = src; return i; };
+const IMG = { back: img('art/sprites/backdrop.png'), road: img('art/sprites/road5.png'), props: img('art/sprites/props.png'), hero: img('art/sprites/boy.png'), side: img('art/sprites/roadside.png') };
+// Roadside dressing (view only, deterministic by world position): cell in the 4x2 sheet of 256x512, x in lanes from road center (signed unless both), width in lanes, period/offset in units.
+const SIDE = [
+  { cell: 0, x: 3.1, w: 1.0, period: 8, off: 0, both: true },     // streetlight
+  { cell: 7, x: 3.0, w: 1.6, period: 3, off: 1.5, both: true },   // hedge + guardrail
+  { cell: 1, x: 3.9, w: 1.8, period: 8, off: 4, both: true },     // ginkgo
+  { cell: 3, x: 3.6, w: 0.9, period: 24, off: 10 },      // utility pole
+  { cell: 2, x: -3.4, w: 1.0, period: 40, off: 20 },    // traffic signal
+  { cell: 4, x: -4.6, w: 2.4, period: 50, off: 33 },     // bus stop
+  { cell: 5, x: 5.4, w: 3.2, period: 20, off: 6, both: true },    // corner shop
+  { cell: 6, x: 6.6, w: 4.0, period: 20, off: 16, both: true },   // apartment slice
+];
+const bboxCache = new Map();
+function bbox(image, cell, cw, ch) { // tight alpha box of one cell; whole cell if the canvas is tainted (file://)
+  const key = image.src + cell;
+  if (bboxCache.has(key)) return bboxCache.get(key);
+  let box = { x: 0, y: 0, w: cw, h: ch };
+  try {
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch;
+    const g = c.getContext('2d');
+    g.drawImage(image, (cell % 4) * cw, Math.floor(cell / 4) * ch, cw, ch, 0, 0, cw, ch);
+    const d = g.getImageData(0, 0, cw, ch).data;
+    let x0 = cw, y0 = ch, x1 = 0, y1 = 0;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (d[(y * cw + x) * 4 + 3] > 40) {
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 > x0) box = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  } catch (e) {}
+  bboxCache.set(key, box);
+  return box;
+}
+function drawCell(image, cell, cx, footY, widthPx, alpha = 1, cw = CELL, ch = CELL) {
+  if (!image.complete || !image.naturalWidth) return;
+  const b = bbox(image, cell, cw, ch), k = widthPx / b.w;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(image, (cell % 4) * cw + b.x, Math.floor(cell / 4) * ch + b.y, b.w, b.h, cx - b.w * k / 2, footY - b.h * k, b.w * k, b.h * k);
+  ctx.globalAlpha = 1;
+}
+
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+let scale = 1, offX = 0, offY = 0;
+function resize() { // logical width fixed, height follows the phone: tall phones get more road, not bands
+  const dpr = devicePixelRatio || 1;
+  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+  H = Math.max(1280, Math.round(W * innerHeight / innerWidth));
+  PLAYER_Y = H - 190;
+  CAM_H = (PLAYER_Y - HORIZON) / LANE_PX; // one lane = LANE_PX wide at the player on every phone
+  scale = Math.min(innerWidth / W, innerHeight / H) * dpr;
+  offX = (cv.width - W * scale) / 2; offY = (cv.height - H * scale) / 2;
+}
+addEventListener('resize', resize); resize();
+
+let ac = null, eng = null, engGain = null;
+function audioOn() {
+  if (ac) return;
+  try {
+    ac = new AudioContext();
+    eng = ac.createOscillator(); eng.type = 'sawtooth';
+    const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 500;
+    engGain = ac.createGain(); engGain.gain.value = 0.05;
+    eng.connect(lp).connect(engGain).connect(ac.destination); eng.start();
+  } catch (e) { ac = null; }
+}
+function blip(freq, len, type = 'sine', vol = 0.2, slide = 0) {
+  if (!ac) return;
+  const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  if (slide) o.frequency.exponentialRampToValueAtTime(freq * slide, t + len);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t + len);
+}
+
+function onEvents(events) {
+  for (const e of events) {
+    if (e.k === 'lane') blip(220, 0.08, 'triangle', 0.08, 1.6);
+    if (e.k === 'bump') FX.shake = Math.max(FX.shake, 0.08);
+    if (e.k === 'hit') { FX.shake = 0.35; FX.flash = 0.25; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5); }
+    if (e.k === 'near') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; FX.pops.push({ lane: e.lane, t: 0 }); blip(900, 0.18, 'sine', 0.12, 1.8); }
+    if (e.k === 'done') { LOG.endTick = e.tick; if (engGain) engGain.gain.value = 0.015; }
+  }
+  if (eng) eng.frequency.value = 50 + speedView() * 3.2;
+}
+
+const rain = Array.from({ length: 90 }, () => ({ x: Math.random() * W, y: Math.random() * H, l: 20 + Math.random() * 30 }));
+function project(z) { return { y: HORIZON + CAM_H * focal() / z, s: focal() / z }; }
+const camZ = () => S.dist / 1000;
+const speedView = () => speedPerTick(S) * DATA.tickRate / 1000; // units per second, for effects only
+
+function draw(dt) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const sh = FX.shake > 0 ? FX.shake * 30 : 0;
+  ctx.setTransform(scale, 0, 0, scale, offX + (Math.random() - 0.5) * sh * scale, offY + (Math.random() - 0.5) * sh * scale);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  const bs = HORIZON / 520; // backdrop horizon sits at y=520 of 768
+  if (IMG.back.complete) ctx.drawImage(IMG.back, (W - 1024 * bs) / 2, 0, 1024 * bs, 768 * bs);
+  const F = focal();
+  for (let y = HORIZON + 1; y < H; y++) { // ground bands every 4 units = classic pseudo-3D speed cue
+    const z = CAM_H * F / (y - HORIZON);
+    ctx.fillStyle = Math.floor((camZ() + z) / 4) % 2 ? '#3a4560' : '#323c55';
+    ctx.fillRect(0, y, W, 1.5);
+  }
+  if (IMG.road.complete && IMG.road.naturalWidth) {
+    const th = IMG.road.naturalHeight, tw = IMG.road.naturalWidth;
+    for (let y = HORIZON + 1; y < H; y++) {
+      const dy = y - HORIZON, z = CAM_H * F / dy, w = ROAD_TEX_W * dy / CAM_H;
+      const ty = (th - 1 - Math.floor(((camZ() + z) / TILE_LEN * th) % th) + th) % th;
+      ctx.drawImage(IMG.road, 0, ty, tw, 1, W / 2 - w / 2, y, w, 1.5);
+    }
+    const fog = ctx.createLinearGradient(0, HORIZON, 0, HORIZON + 90);
+    fog.addColorStop(0, 'rgba(40,48,90,0.9)'); fog.addColorStop(1, 'rgba(40,48,90,0)');
+    ctx.fillStyle = fog; ctx.fillRect(0, HORIZON, W, 90);
+  }
+  const items = S.obs.map(o => ({ z: zPlayer() + o.dz / 1000, o }));
+  items.push({ z: zPlayer(), player: true });
+  const near = camZ() - zPlayer() + 0.4, far = camZ() - zPlayer() + 90;
+  for (const d of SIDE) for (let n = Math.ceil((near - d.off) / d.period); n * d.period + d.off < far; n++) {
+    const z = n * d.period + d.off - camZ() + zPlayer();
+    for (const x of d.both ? [-d.x, d.x] : [d.x]) items.push({ z, side: d, x });
+  }
+  items.sort((a, b) => b.z - a.z);
+  for (const it of items) {
+    if (it.player) { drawPlayer(); continue; }
+    if (it.side) {
+      const p = project(it.z);
+      drawCell(IMG.side, it.side.cell, W / 2 + it.x * p.s, p.y, it.side.w * p.s, Math.min(1, (90 - it.z) / 20), 256, 512);
+      continue;
+    }
+    const o = it.o, p = project(it.z), kd = DATA.kinds[o.kind];
+    if (it.z <= 0.3 || p.y > H + 200) continue;
+    const fade = Math.min(1, (S.tick - o.born) / 9);
+    drawCell(IMG.props, PROP_CELL[kd.id], W / 2 + o.lane * p.s, p.y, kd.w / 1000 * p.s, fade);
+  }
+  for (const p of FX.pops) {
+    p.t += dt;
+    const pp = project(zPlayer()), x = W / 2 + p.lane * pp.s, y = PLAYER_Y - 160 - p.t * 120;
+    ctx.globalAlpha = Math.max(0, 1 - p.t / 0.6); ctx.fillStyle = '#ffd84a'; ctx.font = 'bold 44px sans-serif'; ctx.textAlign = 'center';
+    ctx.strokeStyle = '#3a2400'; ctx.lineWidth = 8; ctx.strokeText('아슬!', x, y); ctx.fillText('아슬!', x, y); ctx.globalAlpha = 1;
+  }
+  FX.pops = FX.pops.filter(p => p.t < 0.6);
+  const v = speedView(), lean = v * 0.9;
+  ctx.strokeStyle = 'rgba(190,210,255,0.35)'; ctx.lineWidth = 2;
+  for (const r of rain) {
+    r.y += v * 1.4; r.x -= lean * 0.15;
+    if (r.y > H) { r.y = -40; r.x = Math.random() * (W + 200); }
+    ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x + lean * 0.25, r.y - r.l); ctx.stroke();
+  }
+  const over = Math.max(0, v / V.speed - 1.0);
+  if (over > 0.15 || S.boost > 0) {
+    ctx.strokeStyle = `rgba(255,255,255,${Math.min(0.5, over * 0.6 + (S.boost > 0 ? 0.25 : 0))})`; ctx.lineWidth = 3;
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2, r0 = 380 + Math.random() * 80, cx = W / 2, cy = HORIZON + 80;
+      ctx.beginPath(); ctx.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0 * 1.4);
+      ctx.lineTo(cx + Math.cos(a) * (r0 + 160), cy + Math.sin(a) * (r0 + 160) * 1.4); ctx.stroke();
+    }
+  }
+  if (FX.flash > 0) { ctx.globalAlpha = FX.flash * 1.4; ctx.fillStyle = FX.flashCol; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+  FX.shake = Math.max(0, FX.shake - dt); FX.flash = Math.max(0, FX.flash - dt);
+  drawHud(v);
+  ctx.restore();
+}
+
+function drawPlayer() {
+  const p = project(zPlayer()), x = W / 2 + S.x / 1000 * p.s;
+  let cell = 0;
+  if (S.slow > DATA.slowTicks / 2) cell = 3;
+  else if (S.moveT < S.cfg.laneTicks) cell = S.moveDir < 0 ? 1 : 2;
+  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  ctx.beginPath(); ctx.ellipse(x, PLAYER_Y, 0.3 * p.s, 0.06 * p.s, 0, 0, Math.PI * 2); ctx.fill();
+  drawCell(IMG.hero, cell, x, PLAYER_Y + Math.sin(S.tick / 2) * 1.5, 0.62 * p.s);
+}
+
+function bar(x, y, w, h, f, col) {
+  ctx.fillStyle = '#0b1020cc'; ctx.beginPath(); ctx.roundRect(x, y, w, h, h / 2); ctx.fill();
+  ctx.fillStyle = col; ctx.beginPath(); ctx.roundRect(x + 3, y + 3, Math.max(0, (w - 6) * f), h - 6, (h - 6) / 2); ctx.fill();
+}
+function drawHud(v) {
+  const limit = S.cfg.runTicks + S.cfg.slackTicks;
+  ctx.textAlign = 'left'; ctx.font = 'bold 26px sans-serif'; ctx.fillStyle = '#fff';
+  ctx.fillText('남은 시간', 40, 152); bar(170, 130, 500, 30, Math.max(0, 1 - S.tick / limit), limit - S.tick < 360 ? '#ff5a4a' : '#ffb340');
+  ctx.fillText('남은 거리', 40, 200); bar(170, 178, 500, 30, Math.max(0, 1 - S.dist / S.goal), '#5ad1ff');
+  ctx.font = 'bold 24px sans-serif';
+  ctx.fillText(`속도 ${v.toFixed(1)}   아슬 ${S.nears}   쿵 ${S.hits}`, 40, 248);
+  if (S.done) {
+    ctx.fillStyle = '#0b1020e0'; ctx.beginPath(); ctx.roundRect(70, 420, 580, 420, 30); ctx.fill();
+    ctx.fillStyle = S.win ? '#ffd84a' : '#ff6a5a'; ctx.textAlign = 'center'; ctx.font = 'bold 54px sans-serif';
+    ctx.fillText(S.win ? `도착 ${(S.tick / 60).toFixed(1)}초` : '시간 초과', W / 2, 500);
+    ctx.fillStyle = '#fff'; ctx.font = '30px sans-serif';
+    const m = S.margins, avg = m.length ? m.reduce((a, b) => a + b, 0) / m.length / 60 : 0;
+    ctx.fillText(`쿵 ${S.hits} · 아슬 ${S.nears}`, W / 2, 570);
+    ctx.fillText(`내 차선 장애물 ${m.length}개`, W / 2, 620);
+    ctx.fillText(`평균 피한 여유 ${(avg * 1000).toFixed(0)}ms · 0.3초 안 ${m.filter(x => x > 0 && x < 18).length}`, W / 2, 670);
+    ctx.fillStyle = '#9fb3ff'; ctx.fillText('탭해서 다시', W / 2, 780);
+  }
+}
+
+// ---- input: lane change fires mid-swipe, not on release ----
+let anchor = null;
+cv.addEventListener('pointerdown', e => {
+  audioOn();
+  if (S.done) { reset(); if (engGain) engGain.gain.value = 0.05; return; }
+  anchor = e.clientX;
+});
+cv.addEventListener('pointermove', e => {
+  if (anchor === null) return;
+  const dx = e.clientX - anchor;
+  if (Math.abs(dx) > 28) { command({ k: 'lane', dir: Math.sign(dx) }); anchor = e.clientX; }
+});
+addEventListener('pointerup', () => { anchor = null; });
+addEventListener('keydown', e => {
+  audioOn();
+  if (e.key === 'ArrowLeft') command({ k: 'lane', dir: -1 });
+  if (e.key === 'ArrowRight') command({ k: 'lane', dir: 1 });
+  if ((e.key === ' ' || e.key === 'Enter') && S.done) reset();
+});
+
+// ---- fixed 60-tick loop ----
+reset();
+let last = performance.now(), acc = 0;
+function frame(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!window.__pause) {
+    acc += dt;
+    while (acc >= 1 / 60) { acc -= 1 / 60; onEvents(RULES.tick(S).events); }
+  }
+  draw(dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---- test hooks ----
+window.T = {
+  state: () => S, log: () => LOG, hash: () => fnv(canon(S)), replay, reset, command,
+  // pace bot: perfect perception after `react` seconds, moves toward the nearest free lane
+  bot(react, runs = 10, seed = 1) {
+    const out = { win: 0, hits: 0, nears: 0, ticks: 0, firstHitPct: [] };
+    for (let r = 0; r < runs; r++) {
+      const s = RULES.init(DATA, seed + r, ruleKnobs()); let fh = null;
+      while (!s.done) {
+        const seen = s.obs.filter(o => s.tick - o.born >= react * 60 && o.dz > -300);
+        const danger = l => seen.some(o => o.lane === l && o.dz < speedPerTick(s) * (1000 - DATA.kinds[o.kind].moves) / 1000 * 72);
+        if (s.moveT >= s.cfg.laneTicks && danger(s.lane)) {
+          const free = [1, 2, 3, 4].flatMap(d => [s.lane - d, s.lane + d]).filter(l => Math.abs(l) <= DATA.half && !danger(l));
+          if (free.length) RULES.apply(s, { k: 'lane', dir: Math.sign(free[0] - s.lane) });
+        }
+        const h = s.hits; RULES.tick(s);
+        if (s.hits > h && fh === null) fh = Math.round(s.dist * 100 / s.goal);
+      }
+      out.win += s.win ? 1 : 0; out.hits += s.hits; out.nears += s.nears; out.ticks += s.tick;
+      if (fh !== null) out.firstHitPct.push(fh);
+    }
+    return `${react}s 승${out.win}/${runs} 쿵${(out.hits / runs).toFixed(1)} 아슬${(out.nears / runs).toFixed(1)} ${(out.ticks / runs / 60).toFixed(1)}초 첫쿵%[${out.firstHitPct.sort((a, b) => a - b)}]`;
+  },
+};
+</script>
+</body>
+</html>
