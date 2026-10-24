@@ -371,6 +371,7 @@ const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0
 // ---- run (state + command log for replay) ----
 let S, LOG;
 function reset(seed = (Date.now() >>> 0), extra) {
+  if (typeof brakeUntil !== 'undefined') brakeUntil = 0;
   const knobs = Object.assign(ruleKnobs(), extra || {});
   S = RULES.init(DATA, seed, knobs);
   LOG = { seed: (seed >>> 0) || 1, knobs, cmds: [], endTick: 0 }; // init already advanced S.rng
@@ -815,7 +816,7 @@ function drawHud(v) {
   if (S.tick < 300 && !S.done) { // first seconds: how to steer
     ctx.globalAlpha = Math.min(1, (300 - S.tick) / 60); ctx.textAlign = 'center'; ctx.font = 'bold 28px sans-serif';
     ctx.strokeStyle = '#0b1020'; ctx.lineWidth = 6; ctx.fillStyle = '#fff';
-    const t = '← → 밀어서 차선   ·   ↓ 누르고 있으면 브레이크';
+    const t = '← → 쓸어서 차선   ·   ↓ 쓸면 브레이크';
     ctx.strokeText(t, W / 2, H - 60); ctx.fillText(t, W / 2, H - 60); ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
   if (S.done && !APP.order) { // standalone test run (no flow): the old summary card
@@ -1034,8 +1035,8 @@ function drawLast(dt) {
   // pull gauge + instructions (glass)
   ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(20, 112, 670, 110, 22); ctx.fill();
   txt('마지막 100m — 문 앞에 놓기', 40, 152, 26, '#fff'); txt(`남은 시간 ${Math.max(0, APP.order.limit - APP.seg.tick / 60 - L.t / 60).toFixed(0)}초`, W - 40, 152, 22, '#ffb340', 'right');
-  txt(L.released ? (L.done ? QUAL[L.quality][0] : '미끄러지는 중…') : '상자를 아래로 끌었다 놓기 — 세게 끌수록 멀리', 40, 198, 22, '#c9d4ff', 'left', '500');
-  if (!L.released) { ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(60, H - 150, W - 120, 60, 30); ctx.fill(); gauge(80, H - 135, W - 160, 30, L.pull / 100, L.pull > 80 ? PAPER.red : PAPER.orange); txt('힘', 40, H - 112, 22, '#fff'); }
+  txt(L.released ? (L.done ? QUAL[L.quality][0] : '미끄러지는 중…') : '상자를 위로 휙 쓸기 — 빠를수록 멀리', 40, 198, 22, '#c9d4ff', 'left', '500');
+  if (!L.released) { ctx.fillStyle = '#0b1020b0'; ctx.beginPath(); ctx.roundRect(60, H - 150, W - 120, 60, 30); ctx.fill(); gauge(80, H - 135, W - 160, 30, L.pull / 100, L.pull > 80 ? PAPER.red : PAPER.orange); txt('힘', 40, H - 112, 22, '#fff'); txt('위로 휙!', W / 2, H - 100, 24, '#fff', 'center'); }
   if (L.done) button('cont', 160, H - 200, W - 320, 76, '결과 보기', PAPER.green);
 }
 function drawResult(dt) {
@@ -1126,45 +1127,52 @@ function flowAction(id) {
 })();
 if (APP.screen === 'order') enter('order');
 
-// ---- input: lane change fires mid-swipe, not on release; paper screens take taps on their buttons ----
-let anchor = null, anchorY = 0, lastDrag = null;
+// ---- input: SWIPES (10-24 사람 "드래그 말고 스와이프"): one flick = one action, fired the moment the finger passes SWIPE_PX.
+//   sideways = one lane · down = brake pulse (BRAKE_TICKS) · up = release the brake · last 100m: flick up, speed = power ----
+const SWIPE_PX = 34, BRAKE_TICKS = 40;
+let swipe = null, lastFlick = null, brakeUntil = 0;
 const toLogical = e => ({ x: (e.clientX * (devicePixelRatio || 1) - offX) / scale, y: (e.clientY * (devicePixelRatio || 1) - offY) / scale });
+function swipeAction(dx, dy) { // shared with the keyboard/test hooks
+  if (Math.abs(dx) > Math.abs(dy)) command({ k: 'lane', dir: Math.sign(dx) });
+  else if (dy > 0) { command({ k: 'brake', on: true }); brakeUntil = S.tick + BRAKE_TICKS; }
+  else if (S.brake) { command({ k: 'brake', on: false }); brakeUntil = 0; }
+}
 cv.addEventListener('pointerdown', e => {
   audioOn();
   if (APP.trans) return;
   if (APP.screen === 'run') {
-    if (S.done) { if (!APP.order) { reset(); if (engGain) engGain.gain.value = 0.05; } return; }
-    anchor = e.clientX; anchorY = e.clientY; return;
+    if (S.done) { if (!APP.order) { reset(); brakeUntil = 0; if (engGain) engGain.gain.value = 0.05; } return; }
+    swipe = { x: e.clientX, y: e.clientY, done: false }; return;
   }
   const q = toLogical(e);
   for (const b of APP.buttons) if (q.x >= b.x && q.x <= b.x + b.w && q.y >= b.y && q.y <= b.y + b.h) { blip(600, 0.06, 'sine', 0.08, 1.3); flowAction(b.id); return; }
-  if (APP.screen === 'last' && APP.last && !APP.last.released) lastDrag = e.clientY;
+  if (APP.screen === 'last' && APP.last && !APP.last.released) lastFlick = { y: e.clientY, t: performance.now() };
 });
-cv.addEventListener('pointermove', e => { // sideways = lane change; held below where the finger landed = brake
-  if (APP.screen === 'last' && lastDrag !== null) { APP.last.pull = Math.max(0, Math.min(100, (e.clientY - lastDrag) / 2.2)); return; }
-  if (anchor === null || APP.screen !== 'run') return;
-  const dx = e.clientX - anchor;
-  if (Math.abs(dx) > 28) { command({ k: 'lane', dir: Math.sign(dx) }); anchor = e.clientX; }
-  const dy = e.clientY - anchorY;
-  if (dy > 36 && !S.brake) command({ k: 'brake', on: true });
-  if (dy < 18 && S.brake) command({ k: 'brake', on: false });
+cv.addEventListener('pointermove', e => {
+  if (APP.screen !== 'run' || !swipe || swipe.done) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+  swipe.done = true; swipeAction(dx, dy); // one swipe, one action — lifting and swiping again is the next one
 });
-function pointerEnd() {
-  anchor = null;
-  if (APP.screen === 'run' && S.brake) command({ k: 'brake', on: false });
-  if (APP.screen === 'last' && lastDrag !== null) { if (APP.last.pull > 8) { LAST.release(APP.last, APP.last.pull); blip(500, 0.15, 'triangle', 0.1, 0.6); } else APP.last.pull = 0; lastDrag = null; }
+function pointerEnd(e) {
+  swipe = null;
+  if (APP.screen === 'last' && lastFlick && APP.last && !APP.last.released) { // flick up: faster = farther
+    const dy = lastFlick.y - e.clientY, dt = Math.max(16, performance.now() - lastFlick.t);
+    if (dy > 40) { const power = Math.max(12, Math.min(100, Math.round((dy / dt - 0.25) * 38))); APP.last.pull = power; LAST.release(APP.last, power); blip(500, 0.15, 'triangle', 0.1, 0.6); }
+  }
+  lastFlick = null;
 }
 addEventListener('pointerup', pointerEnd);
-addEventListener('pointercancel', pointerEnd);
+addEventListener('pointercancel', () => { swipe = null; lastFlick = null; });
 addEventListener('keydown', e => {
   audioOn();
   if (APP.screen !== 'run') { if (e.key === ' ' || e.key === 'Enter') { const b = APP.buttons[APP.buttons.length - 1]; if (b) flowAction(b.id); } return; }
   if (e.key === 'ArrowLeft') command({ k: 'lane', dir: -1 });
   if (e.key === 'ArrowRight') command({ k: 'lane', dir: 1 });
-  if (e.key === 'ArrowDown' && !S.brake) command({ k: 'brake', on: true });
+  if (e.key === 'ArrowDown') swipeAction(0, 1);
+  if (e.key === 'ArrowUp') swipeAction(0, -1);
   if ((e.key === ' ' || e.key === 'Enter') && S.done && !APP.order) reset();
 });
-addEventListener('keyup', e => { if (e.key === 'ArrowDown' && S.brake) command({ k: 'brake', on: false }); });
 
 // ---- fixed 60-tick loop ----
 if (!S) reset();
@@ -1175,7 +1183,7 @@ function frame(now) {
     if (FX.stop > 0) FX.stop -= dt; // hit-stop: the world holds for a beat (ticks resume after; replay unaffected)
     else if (!window.__pause) {
       acc += dt;
-      while (acc >= 1 / 60) { acc -= 1 / 60; const ev = RULES.tick(S).events; onEvents(ev); if (APP.order && ev.some(e => e.k === 'done')) onRunDone(); }
+      while (acc >= 1 / 60) { acc -= 1 / 60; const ev = RULES.tick(S).events; onEvents(ev); if (S.brake && brakeUntil && S.tick >= brakeUntil) { command({ k: 'brake', on: false }); brakeUntil = 0; } if (APP.order && ev.some(e => e.k === 'done')) onRunDone(); }
     }
     draw(dt);
   } else {

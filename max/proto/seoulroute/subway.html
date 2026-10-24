@@ -575,7 +575,7 @@ function drawHud(v) {
   if (S.tick < 300 && !S.done) {
     ctx.globalAlpha = Math.min(1, (300 - S.tick) / 60); ctx.textAlign = 'center'; ctx.font = 'bold 28px sans-serif';
     ctx.strokeStyle = '#0b1020'; ctx.lineWidth = 6; ctx.fillStyle = '#fff';
-    const t = '← → 밀어서 줄 바꾸기   ·   ↓ 누르고 있으면 멈춤';
+    const t = '← → 쓸어서 줄 바꾸기   ·   ↓ 쓸면 멈춤';
     ctx.strokeText(t, W / 2, H - 60); ctx.fillText(t, W / 2, H - 60); ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
   if (S.done) {
@@ -591,32 +591,36 @@ function drawHud(v) {
   }
 }
 
-let anchor = null, anchorY = 0;
-cv.addEventListener('pointerdown', e => { audioOn(); if (S.done) { if (FLOW) { location.href = 'index.html#back'; return; } reset(); return; } anchor = e.clientX; anchorY = e.clientY; });
+const SWIPE_PX = 34, BRAKE_TICKS = 40;
+let swipe = null, brakeUntil = 0;
+function swipeAction(dx, dy) { // one swipe, one action (10-24 사람: 드래그 말고 스와이프)
+  if (Math.abs(dx) > Math.abs(dy)) command({ k: 'lane', dir: Math.sign(dx) });
+  else if (dy > 0) { command({ k: 'brake', on: true }); brakeUntil = S.tick + BRAKE_TICKS; }
+  else if (S.brake) { command({ k: 'brake', on: false }); brakeUntil = 0; }
+}
+cv.addEventListener('pointerdown', e => { audioOn(); if (S.done) { if (FLOW) { location.href = 'index.html#back'; return; } reset(); brakeUntil = 0; return; } swipe = { x: e.clientX, y: e.clientY, done: false }; });
 cv.addEventListener('pointermove', e => {
-  if (anchor === null) return;
-  const dx = e.clientX - anchor;
-  if (Math.abs(dx) > 28) { command({ k: 'lane', dir: Math.sign(dx) }); anchor = e.clientX; }
-  const dy = e.clientY - anchorY;
-  if (dy > 36 && !S.brake) command({ k: 'brake', on: true });
-  if (dy < 18 && S.brake) command({ k: 'brake', on: false });
+  if (!swipe || swipe.done) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_PX) return;
+  swipe.done = true; swipeAction(dx, dy);
 });
-addEventListener('pointerup', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
-addEventListener('pointercancel', () => { anchor = null; if (S.brake) command({ k: 'brake', on: false }); });
+addEventListener('pointerup', () => { swipe = null; });
+addEventListener('pointercancel', () => { swipe = null; });
 addEventListener('keydown', e => {
   audioOn();
   if (e.key === 'ArrowLeft') command({ k: 'lane', dir: -1 });
   if (e.key === 'ArrowRight') command({ k: 'lane', dir: 1 });
-  if (e.key === 'ArrowDown' && !S.brake) command({ k: 'brake', on: true });
+  if (e.key === 'ArrowDown') swipeAction(0, 1);
+  if (e.key === 'ArrowUp') swipeAction(0, -1);
   if ((e.key === ' ' || e.key === 'Enter') && S.done) reset();
 });
-addEventListener('keyup', e => { if (e.key === 'ArrowDown' && S.brake) command({ k: 'brake', on: false }); });
 
 reset(FLOW_SEED !== null ? FLOW_SEED : undefined);
 let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
-  if (!window.__pause) { acc += dt; while (acc >= 1 / 60) { acc -= 1 / 60; onEvents(RULES.tick(S).events); } }
+  if (!window.__pause) { acc += dt; while (acc >= 1 / 60) { acc -= 1 / 60; onEvents(RULES.tick(S).events); if (S.brake && brakeUntil && S.tick >= brakeUntil) { command({ k: 'brake', on: false }); brakeUntil = 0; } } }
   draw(dt);
   requestAnimationFrame(frame);
 }
