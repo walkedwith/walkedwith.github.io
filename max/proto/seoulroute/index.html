@@ -34,7 +34,7 @@ const DATA = {
   slowTicks: 96, slowFloor: 150, boostTicks: 150, boostPermille: 1350, // boost (swipe up on a full heat meter): faster, shoves cars aside
   // heat meter (10-25 near-miss combo): overtaking next to a car, brushing past, squeezing between two; each one inside
   // chainTicks of the last chains up and adds chainBonus more. A crash keeps hitKeep per-mille of it and breaks the chain.
-  heat: { pass: 60, brush: 200, squeeze: 300, chainBonus: 30, chainMax: 8, chainTicks: 100, full: 1000, hitKeep: 500 },
+  heat: { pass: 60, brush: 200, squeeze: 300, corner: 250, chainBonus: 30, chainMax: 8, chainTicks: 100, full: 1000, hitKeep: 500 },
   // authored beats (routes[].beats): spawned beatAhead before their spot; tells[k] = [start the tell when this close, tell ticks]
   beatAhead: 45000, tells: { taxi: [20000, 60], bus: [18000, 50], door: [7000, 40], ped: [24000, 50] }, pedWalk: 25,
   followGap: 1400,              // bumper gap kept behind a solid thing in your lane
@@ -88,7 +88,11 @@ const DATA = {
   // Food temperature (10-24 사람, casual HUD): deci-permille 0..10000, 10000 = as hot/cold as it left the shop.
   // It drifts away by decay10[kind] every 10 ticks (0 hot, 1 cold, 2 neutral) and drops on every crash / puddle. Tip is scaled by it.
   food: { decay10: [10, 13, 6], hit: 600, splash: 250, tipFull: 7000 },
-  turnTicks: 48, turnPermille: 550, turnRamp: 12,  // cornering: after you leave the stop line into a turn, speed eases to 55% and back over 48 ticks
+  turnTicks: 48, turnPermille: 550, turnRamp: 12,  // cornering: after the turn, speed eases to turnPermille (by grade) and back over 48 ticks
+  // hand-steered corner (10-25 사람 "진짜 트는 것처럼"): over the line in a turn lane, a window of `ticks` opens; swipe the turn's
+  // way to steer. Before `early` = clipped the kerb (crash), early..late = clean (keeps speed, fills heat), after late = swung
+  // wide (slow, one lane out), no swipe = the bike turns itself at the end, slowly. While the window is open you roll at `approach`.
+  corner: { ticks: 90, early: 30, late: 56, approach: 600, good: 1000, wide: 380, none: 450 },
   knobs: {                      // integer rule tunables; the gear panel edits these
     speed: 7000,                // your cruising speed, milli-units per second (10-24 phone: 9 still felt fast)
     cars: 15,                   // things kept ahead of you
@@ -163,6 +167,21 @@ function gain(s, what, ev) { // heat meter: one near miss
   ev.push({ k: 'heat', what, chain: s.chain, add });
   if (was < h.full && s.heat >= h.full) ev.push({ k: 'full' });
 }
+function turnNow(s, grade, ev) { // the corner resolves: new street, its traffic, how cleanly you took it
+  const c = s.corner, C = DATA.corner;
+  const gone = s.obs.filter(o => o.dz >= 3000).map(o => ({ kind: o.kind, x: o.x, dz: o.dz, v: o.cv })); // view: they carry on straight, off to the side
+  s.corner = null; s.turns++; s.turnSlow = DATA.turnTicks;
+  s.turnPm = grade === 'good' ? C.good : grade === 'late' ? C.wide : C.none;
+  if (grade === 'good') { s.cornerGood++; gain(s, 'corner', ev); }
+  if (grade === 'early') { // clipped the inside kerb
+    s.curbs++; s.hits++; s.slow = DATA.slowTicks; s.temp = Math.max(0, s.temp - DATA.food.hit);
+    s.heat = idiv(s.heat * DATA.heat.hitKeep, 1000); s.chain = 0; s.chainT = 0; s.boost = 0;
+  }
+  if (grade === 'late') { s.wides++; s.fromX = s.x; s.lane -= c.dir; s.moveT = 0; s.moveDir = -c.dir; } // swung wide: one lane out
+  s.obs = s.obs.filter(o => o.dz < 3000);
+  ev.push({ k: 'turn', move: c.dir, grade, at: c.at, gone });
+  for (let i = carsAt(s); i > 0; i--) spawnOne(s, 8000 + rngInt(s, 37000), ev);
+}
 function shove(s, o) { // boosting into a car: it swerves out of your way (or you squeeze by if it has nowhere to go)
   const dir = o.x === s.x ? (s.lane >= 0 ? -1 : 1) : o.x < s.x ? -1 : 1, to = Math.max(-DATA.half, Math.min(DATA.half, o.lane + dir));
   if (to !== o.lane) { o.fromX = o.x; o.lane = to; o.to = to; o.moveT = 0; o.blink = 0; }
@@ -226,8 +245,9 @@ function playerSpeed(s) { // milli-units per tick: cruise, eased down behind the
   if (s.boost > 0) target = idiv(target * DATA.boostPermille, 1000);
   if (s.turnSlow > 0) { // triangular: ramp down over turnRamp ticks, hold, ramp back
     const tri = Math.min(DATA.turnRamp, s.turnSlow, DATA.turnTicks - s.turnSlow);
-    target = idiv(target * (1000 - idiv((1000 - DATA.turnPermille) * tri, DATA.turnRamp)), 1000);
+    target = idiv(target * (1000 - idiv((1000 - s.turnPm) * tri, DATA.turnRamp)), 1000);
   }
+  if (s.corner) target = idiv(target * DATA.corner.approach, 1000);
   for (const o of s.obs) {
     const kd = DATA.kinds[o.kind];
     if (!kd.solid || o.shut || o.dz <= 0 || !xOverlap(s, o) || (s.boost > 0 && kd.car)) continue; // boosting: cars get out of your way
@@ -262,6 +282,7 @@ const RULES = {
       obs: [], nextId: 1, slow: 0, boost: 0, hits: 0, brushes: 0, squeezes: 0, squeezing: false, stuck: 0,
       cross: null, commit: false, redWait: 0, turns: 0, misses: 0, filtering: false, crossN: 0, temp: 10000, turnSlow: 0, alleyT: 0, alleys: 0, fines: 0, camI: 0,
       heat: 0, chain: 0, chainT: 0, boosts: 0, shoves: 0, passes: 0, beatI: 0,
+      corner: null, turnPm: DATA.turnPermille, cornerGood: 0, curbs: 0, wides: 0,
       done: false, win: false };
     for (let i = carsAt(s); i > 0; i--) spawnOne(s, 8000 + rngInt(s, 37000), null);
     if (cfg.lights) newCross(s, DATA.cross.first);
@@ -269,7 +290,10 @@ const RULES = {
   },
   apply(s, cmd) {
     const ev = [];
-    if (cmd.k === 'lane' && !s.done) {
+    if (cmd.k === 'lane' && !s.done && s.corner) { // in the corner window a swipe steers: the turn's way = turn now, the other way does nothing
+      if (cmd.dir === s.corner.dir) turnNow(s, s.corner.t < DATA.corner.early ? 'early' : s.corner.t <= DATA.corner.late ? 'good' : 'late', ev);
+      else ev.push({ k: 'bump', dir: cmd.dir });
+    } else if (cmd.k === 'lane' && !s.done) {
       const to = Math.max(-DATA.half, Math.min(DATA.half, s.lane + cmd.dir));
       if (to === s.lane) ev.push({ k: 'bump', dir: cmd.dir });
       else {
@@ -294,6 +318,7 @@ const RULES = {
     if (s.boost > 0) s.boost--;
     if (s.turnSlow > 0) s.turnSlow--;
     if (s.chainT > 0) s.chainT--;
+    if (s.corner && ++s.corner.t >= DATA.corner.ticks) turnNow(s, 'none', ev);
     if (s.moveT < k.laneTicks) { s.moveT++; s.x = smooth(s.fromX, s.lane * 1000, s.moveT, k.laneTicks); }
     else s.x = s.lane * 1000;
     // a light you were allowed through stays yours once you are this close (no slamming on the brakes at the line)
@@ -308,14 +333,10 @@ const RULES = {
     if (vp * 10 < idiv(k.speed, DATA.tickRate) * 7) { if (red) s.redWait++; else s.stuck++; }
     if (s.cross && s.dist >= s.cross.at) { // over the line: your lane was your move
       const c = s.cross, move = laneMove(s.lane);
-      const gone = move !== 0 ? s.obs.filter(o => o.dz >= 3000).map(o => ({ kind: o.kind, x: o.x, dz: o.dz, v: o.cv })) : []; // view: they carry on straight, off to the side
       if (c.alley && move === 1) { s.alleys++; s.alleyT = DATA.alleyTicks; s.goal -= routeOf(s).alley.cut; ev.push({ k: 'alley' }); }
       else if (move !== c.turn) { s.misses++; s.goal += DATA.cross.missPenalty; ev.push({ k: 'miss', want: c.turn, move }); }
-      ev.push({ k: 'cross', move, at: c.at, off: c.off, gone });
-      if (move !== 0) { // new street: what was ahead went straight on; the new street's traffic is already there
-        s.turns++; s.turnSlow = DATA.turnTicks; s.obs = s.obs.filter(o => o.dz < 3000);
-        for (let i = carsAt(s); i > 0; i--) spawnOne(s, 8000 + rngInt(s, 37000), ev);
-      }
+      ev.push({ k: 'cross', move, at: c.at, off: c.off });
+      if (move !== 0) { s.corner = { dir: move, t: 0, at: c.at }; ev.push({ k: 'corner', dir: move }); } // the turn itself is yours: turnNow
       newCross(s, c.at + k.crossGap); s.commit = false;
     }
     if (s.alleyT > 0) s.alleyT--;
@@ -325,7 +346,7 @@ const RULES = {
       s.camI++;
     }
     const beats = routeOf(s).beats; // authored beats: spawn ahead, but never past the next stop line (a turn would wipe them)
-    while (beats && s.beatI < beats.length && beats[s.beatI][0] - s.dist <= DATA.beatAhead && !(s.cross && beats[s.beatI][0] > s.cross.at)) spawnBeat(s, beats[s.beatI++], ev);
+    while (beats && !s.corner && s.beatI < beats.length && beats[s.beatI][0] - s.dist <= DATA.beatAhead && !(s.cross && beats[s.beatI][0] > s.cross.at)) spawnBeat(s, beats[s.beatI++], ev);
     for (const o of s.obs) if (o.tell !== 0) { // beats with a tell: warn first (tell ticks), then act
       const tl = DATA.tells[o.beat];
       if (o.tell < 0) { if (o.dz < tl[0]) { o.tell = tl[1]; ev.push({ k: 'tell', id: o.id, what: o.beat }); if (o.beat === 'bus') { o.to = o.lane + (o.lane < 0 ? 1 : -1); o.blink = tl[1]; } } }
@@ -459,7 +480,7 @@ const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
 const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5, ped: 6 };
 // feel (view only, rules untouched): px/pv = drawn x spring that overshoots the lane and settles; tilt/tv = lean spring;
 // bx/bv = the box on the rack lagging the bike; stop = hit-stop seconds; gust = side cars shiver after a squeeze
-const FX = { rw: null, rws: 0, trace: [], splits: [], said: {}, boostA: 0, pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, ghosts: [], corner: null, pitch: 0, air: null, crestI: 0, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
+const FX = { cw: null, bendS: 1.5, rw: null, rws: 0, trace: [], splits: [], said: {}, boostA: 0, pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, ghosts: [], corner: null, pitch: 0, air: null, crestI: 0, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
 
 // ---- run (state + command log for replay) ----
 let S, LOG;
@@ -470,7 +491,8 @@ function reset(seed = (Date.now() >>> 0), extra) {
   S = RULES.init(DATA, seed, knobs);
   LOG = { seed: (seed >>> 0) || 1, knobs, cmds: [], endTick: 0 }; // init already advanced S.rng
   FX.pops = []; FX.shake = 0; FX.flash = 0; FX.bend = null; FX.lastCross = null; FX.age = {};
-  FX.rw = null; FX.rws = 0; FX.crashes = []; FX.trace = []; FX.splits = []; FX.said = {}; FX.boostA = 0; HIST.length = 0;
+  if (typeof AREA0 !== 'undefined') setArea(AREA0); FX.bendS = 1.5;
+  FX.cw = null; FX.rw = null; FX.rws = 0; FX.crashes = []; FX.trace = []; FX.splits = []; FX.said = {}; FX.boostA = 0; HIST.length = 0;
   FX.ghosts = []; FX.corner = null; FX.pitch = 0; FX.air = null; FX.crestI = 0; FX.px = 0; FX.pv = 0; FX.tilt = 0; FX.tv = 0; FX.bx = 0; FX.bv = 0; FX.stop = 0; FX.gust = 0;
 }
 function command(cmd) {
@@ -510,6 +532,7 @@ let AREA_KEY = AREAS[new URLSearchParams(location.search).get('area')] ? new URL
 let SIDE;
 function setArea(key) { AREA_KEY = key; IMG.back = AREAS[key].backImg; IMG.side = AREAS[key].sideImg; SIDE = AREAS[key].side; }
 setArea(AREA_KEY);
+const AREA0 = AREA_KEY; // each ride starts in its own neighbourhood again (a turn swaps it)
 IMG.sig = AREAS.street.sideImg; // traffic signal = street sheet cell 2, lamps at (171, 192/226/260) of the 256x512 cell
 const SIG = { cell: 2, lx: 171, ly: [192, 226, 260], r: 17 };
 const TAIL = { 0: [[60, 140], [200, 140]], 1: [[54, 150], [199, 150]] }; // sedan / bus tail lamps inside their props cell
@@ -635,12 +658,20 @@ function onEvents(events) {
     if (e.k === 'miss') { FX.pops.push({ text: '길 잘못 듦! 돌아가요', size: 40, t: -0.3, col: '#ff7a6a' }); blip(160, 0.4, 'sawtooth', 0.12, 0.6); }
     if (e.k === 'spawn') FX.age[e.id] = 0;
     if (e.k === 'cross') FX.lastCross = { at: e.at, off: e.off };
-    if (e.k === 'cross' && e.move !== 0) { // turned onto a new street: the road bends round, the neighbourhood changes past the corner
+    if (e.k === 'corner') { FX.cw = { dir: e.dir, t: 0 }; blip(300, 0.3, 'triangle', 0.06, 1.5); vib(10); } // the steer window opens
+    if (e.k === 'turn') { // you steered (or the bike did): the road swings round now, faster the cleaner the line
+      FX.cw = null;
+      const G = { good: ['완벽한 코너!', '#5fe07a', 0.95], early: ['너무 일찍! 연석 쿵', '#ff5a4a', 1.4], late: ['크게 돌았다', '#ffb340', 1.8], none: ['', '', 1.6] }[e.grade];
+      if (G[0]) FX.pops.push({ text: G[0], size: 46, t: 0, col: G[1], life: 1.0 });
+      if (e.grade === 'early') { FX.shake = 0.35; FX.flash = 0.22; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5); noise(0.35, 900, 0.3, 0.7, 'lowpass', 0, 0.3); vib([70, 40, 40]); (FX.crashes = FX.crashes || []).push({ tick: S.tick, label: '안쪽 연석' }); FX.tv += e.move * 14; }
+      if (e.grade === 'good') { FX.flash = 0.12; FX.flashCol = '#d8ffd0'; vib(25); }
+      if (e.grade === 'late') FX.pv -= e.move * 6;
       blip(950, 0.5, 'sawtooth', 0.05, 0.55); blip(1400, 0.35, 'square', 0.02, 0.5); FX.shake = Math.max(FX.shake, 0.06); // tyres squeal through the corner
+      FX.bendS = G[2];
       FX.ghosts = (e.gone || []).map(g => Object.assign({}, g));
       { const r = xr(e.at + 17); FX.corner = { dir: e.move, at: e.at / 1000, peds: Array.from({ length: 5 }, (_, i) => ({ cell: [6, 7, 9][r(3)], x0: -4 + r(80) / 10, dir: r(2) ? 1 : -1, v: 0.7 + r(5) / 10, dz: r(10) / 20 })) }; }
       FX.bend = { dir: e.move, t: 0, at: e.at / 1000 + 12, old: AREA_KEY }; setArea(AREA_KEY === 'gangnam' ? 'street' : 'gangnam');
-      FX.pops.push({ text: e.move > 0 ? '우회전!' : '좌회전!', size: 46, t: 0 }); blip(500, 0.25, 'triangle', 0.12, 2);
+      blip(500, 0.25, 'triangle', 0.12, 2);
     }
     if (e.k === 'done') { LOG.endTick = e.tick; if (engGain) engGain.gain.value = 0.015; }
   }
@@ -651,13 +682,13 @@ const rain = Array.from({ length: 45 }, () => ({ x: Math.random() * W, y: Math.r
 function project(z) { return { y: HORIZON + CAM_H * focal() / z, s: focal() / z }; }
 const camZ = () => S.dist / 1000;
 const zOf = worldMilli => zPlayer() + (worldMilli - S.dist) / 1000; // view depth of a world distance
-const BEND_S = 1.5, PIVOT_K = 1.15, ROAD_C = 0.004, ROAD_STEP = 0.5, ROAD_N = 200;
-const bendAmt = () => FX.bend ? Math.sin(Math.PI * Math.min(1, FX.bend.t / BEND_S)) : 0;
+const bendS = () => FX.bendS || 1.5, PIVOT_K = 1.15, ROAD_C = 0.004, ROAD_STEP = 0.5, ROAD_N = 200;
+const bendAmt = () => FX.bend ? Math.sin(Math.PI * Math.min(1, FX.bend.t / bendS())) : 0;
 // Turn = OutRun curve, view only: the road ahead swings toward the turn side by k*(depth past you)^2 lanes, peaking mid-turn.
 // Road swap (10-24): the camera yaws round the corner. Everything past the corner pivots about it: the NEW street starts out
 // at the turn side and swings in head-on (turnX, e: 0 -> 1), the OLD road swings off the other way (oldX). Offset = k * depth past the
 // corner, i.e. a rotation, not a curve. Before the corner (the junction itself) nothing moves. Godot: same two offsets in the road shader.
-const bendE = () => { if (!FX.bend) return 1; const u = Math.min(1, FX.bend.t / BEND_S); return u * u * (3 - 2 * u); };
+const bendE = () => { if (!FX.bend) return 1; const u = Math.min(1, FX.bend.t / bendS()); return u * u * (3 - 2 * u); };
 const cornerZ = () => FX.bend ? FX.bend.at - camZ() + zPlayer() : 0;
 const turnX = z => FX.bend ? FX.bend.dir * PIVOT_K * (1 - bendE()) * Math.max(0, z - cornerZ()) : 0;
 const oldX = z => FX.bend ? -FX.bend.dir * PIVOT_K * bendE() * Math.max(0, z - cornerZ()) : 0;
@@ -754,7 +785,7 @@ function draw(dt) {
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
   ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, W, H);
   ctx.save();
-  if (FX.bend) { FX.bend.t += dt; if (FX.bend.t >= BEND_S && camZ() - zPlayer() > FX.bend.at + 2) { FX.bend = null; FX.corner = null; FX.ghosts = []; } }
+  if (FX.bend) { FX.bend.t += dt; if (FX.bend.t >= bendS() && camZ() - zPlayer() > FX.bend.at + 2) { FX.bend = null; FX.corner = null; FX.ghosts = []; } }
   buildRoad();
   { const cr = (DATA.routes[S.cfg.route] || DATA.routes[0]).crest; if (cr && FX.crestI < cr.length && S.dist >= cr[FX.crestI]) { FX.air = { t: 0 }; FX.crestI++; blip(520, 0.2, 'triangle', 0.1, 1.9); } }
   { // pitch: climbing tilts the camera up (everything slides down), descending the other way — view only
@@ -767,8 +798,8 @@ function draw(dt) {
   }
   const bs = HORIZON / 520; // backdrop horizon sits at y=520 of 768
   const bx = (W - 1024 * bs) / 2;
-  if (FX.bend && FX.bend.t < BEND_S) { // skyline pans away from the turn while the new neighbourhood slides in
-    const u = FX.bend.t / BEND_S, e = u * u * (3 - 2 * u), d = FX.bend.dir;
+  if (FX.bend && FX.bend.t < bendS()) { // skyline pans away from the turn while the new neighbourhood slides in
+    const u = FX.bend.t / bendS(), e = u * u * (3 - 2 * u), d = FX.bend.dir;
     ctx.globalAlpha = 1 - e; ctx.drawImage(AREAS[FX.bend.old].backImg, bx - d * W * 0.7 * e, 0, 1024 * bs, 768 * bs);
     ctx.globalAlpha = e; ctx.drawImage(IMG.back, bx + d * W * 0.7 * (1 - e), 0, 1024 * bs, 768 * bs); ctx.globalAlpha = 1;
   } else if (IMG.back.complete) ctx.drawImage(IMG.back, bx, 0, 1024 * bs, 768 * bs);
@@ -1082,6 +1113,16 @@ function drawHud(v) {
   // --- little stat chips under the bubble ---
   const chips = [`틈새 ${S.squeezes}`, `쿵 ${S.hits}`]; if (route.busLane) chips.push(`단속 ${S.fines}`);
   let cx2 = 44; for (const t of chips) { ctx.font = 'bold 22px sans-serif'; const w = ctx.measureText(t).width + 28; ctx.fillStyle = '#fff6dc'; ctx.strokeStyle = HB; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(cx2, 318 + bob, w, 36, 18); ctx.fill(); ctx.stroke(); txt(t, cx2 + 14, 343 + bob, 22, HB); cx2 += w + 8; }
+  if (S.corner) { // --- steer window: the outer ring closes on the green band; swipe the turn's way while it is inside ---
+    const C = DATA.corner, t = S.corner.t, d = S.corner.dir, mid = (C.early + C.late) / 2, R = 78, k = 2.6, band = (C.late - C.early) / 2 * k;
+    const cx = W / 2 + d * 120, cy = PLAYER_Y - 300, r = R + (mid - t) * k, inWin = t >= C.early && t <= C.late;
+    ctx.fillStyle = inWin ? 'rgba(95,224,122,0.55)' : 'rgba(95,224,122,0.25)'; ctx.beginPath(); ctx.arc(cx, cy, R + band, 0, 7); ctx.arc(cx, cy, Math.max(4, R - band), 0, 7, true); ctx.fill();
+    ctx.strokeStyle = HB; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(cx, cy, R + band, 0, 7); ctx.stroke(); ctx.beginPath(); ctx.arc(cx, cy, Math.max(4, R - band), 0, 7); ctx.stroke();
+    ctx.fillStyle = '#fff6dc'; ctx.beginPath(); ctx.arc(cx, cy, R - band - 6, 0, 7); ctx.fill();
+    navArrow(d, cx - 34, cy - 34, 68);
+    if (r > 6) { ctx.strokeStyle = inWin ? '#fff' : t < C.early ? '#ff6a5a' : '#ffb340'; ctx.lineWidth = 9; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.stroke(); }
+    bubbleText(inWin ? `지금! ${d > 0 ? '→' : '←'} 쓸기` : t < C.early ? '기다렸다가…' : '늦었다!', cx, cy + R + band + 50, 36, inWin ? '#2a9a3a' : HB, 'center', '#fff6dc', 8); ctx.textAlign = 'left';
+  }
   { // --- heat meter (right edge): near misses fill it, full = swipe up to boost; while boosting it drains ---
     const hx = W - 68, hy = 420, hh = 380, boosting = S.boost > 0, f = boosting ? S.boost / DATA.boostTicks : S.heat / DATA.heat.full, full = !boosting && f >= 1;
     const kick = FX.heatKick || 0; FX.heatKick = Math.max(0, kick - 0.06);
@@ -1575,7 +1616,8 @@ window.T = {
       const okLane = l => !s.cross || s.cross.at - s.dist > plan * 1000 || (alley && s.cross.alley ? laneMove(l) === 1 : laneMove(l) === s.cross.turn);
       while (!s.done) {
         if (s.heat >= DATA.heat.full && s.boost === 0) { RULES.apply(s, { k: 'boost' }); out.boosts = (out.boosts || 0) + 1; }
-        if (s.tick % every === 0 && s.moveT >= s.cfg.laneTicks) {
+        if (s.corner && s.corner.t === DATA.corner.early + 8) RULES.apply(s, { k: 'lane', dir: s.corner.dir }); // steers the corner a bit after the window opens
+        if (!s.corner && s.tick % every === 0 && s.moveT >= s.cfg.laneTicks) {
           if (!okLane(s.lane)) {
             const dir = s.cross.alley && alley ? 1 : s.cross.turn ? s.cross.turn : -Math.sign(s.lane);
             if (sideFree(s.lane + dir)) RULES.apply(s, { k: 'lane', dir });
