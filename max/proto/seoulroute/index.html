@@ -791,7 +791,7 @@ function onEvents(events) {
       FX.bendS = G[2]; FX.lastCross = null; // its far crosswalk was on the straight road, not the one you turned onto
       FX.ghosts = (e.gone || []).map(g => Object.assign({}, g));
       const pivot = S.dist / 1000 + 2; // you steer inside the crossing: the world turns around you, not a block ahead
-      { const r = xr(e.at + 17); FX.corner = { dir: e.move, at: pivot - 12, peds: [] }; // crosswalk people dropped: with the pivot at the bike they stood in the road }
+      { const r = xr(e.at + 17); FX.corner = { dir: e.move, at: pivot - 12, peds: [] }; /* crosswalk people dropped: with the pivot at the bike they stood in the road */ }
       FX.bend = { dir: e.move, t: 0, at: pivot, old: AREA_KEY }; setArea(S.cfg.city ? (vroute().big ? 'gangnam' : 'street') : AREA_KEY === 'gangnam' ? 'street' : 'gangnam'); // city: towers on the big roads, houses on the small ones
       blip(500, 0.25, 'triangle', 0.12, 2);
     }
