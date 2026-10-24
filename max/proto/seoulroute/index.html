@@ -63,6 +63,7 @@ const DATA = {
     { id: 'alley', name: '역삼 골목', tag: '골목 지름길', radio: '첫 교차로 — 오른쪽이 골목 지름길', curve: [[70000, 0], [130000, 380], [1e9, 0]], grade: [[1e9, 0]], crest: [], alley: { n: 1, cut: 18000 } },
   ],
   alleyTicks: 480, fineTip: 500,
+  turnTicks: 48, turnPermille: 550, turnRamp: 12,  // cornering: after you leave the stop line into a turn, speed eases to 55% and back over 48 ticks
   knobs: {                      // integer rule tunables; the gear panel edits these
     speed: 7000,                // your cruising speed, milli-units per second (10-24 phone: 9 still felt fast)
     cars: 15,                   // things kept ahead of you
@@ -156,6 +157,10 @@ function playerSpeed(s) { // milli-units per tick: cruise, eased down behind the
   let target = idiv(k.speed, DATA.tickRate);
   if (s.slow > 0) target = idiv(target * (DATA.slowFloor + idiv((1000 - DATA.slowFloor) * (DATA.slowTicks - s.slow), DATA.slowTicks)), 1000);
   if (s.boost > 0) target = idiv(target * DATA.boostPermille, 1000);
+  if (s.turnSlow > 0) { // triangular: ramp down over turnRamp ticks, hold, ramp back
+    const tri = Math.min(DATA.turnRamp, s.turnSlow, DATA.turnTicks - s.turnSlow);
+    target = idiv(target * (1000 - idiv((1000 - DATA.turnPermille) * tri, DATA.turnRamp)), 1000);
+  }
   for (const o of s.obs) {
     const kd = DATA.kinds[o.kind];
     if (!kd.solid || o.dz <= 0 || !xOverlap(s, o)) continue;
@@ -188,7 +193,7 @@ const RULES = {
       lane: 0, fromX: 0, x: 0, moveT: cfg.laneTicks, moveDir: 0, vp: 0, brake: false,
       dist: 0, goal: idiv(idiv(cfg.speed, data.tickRate) * cfg.runTicks * cfg.goalPct, 100),
       obs: [], nextId: 1, slow: 0, boost: 0, hits: 0, brushes: 0, squeezes: 0, squeezing: false, stuck: 0,
-      cross: null, commit: false, redWait: 0, turns: 0, misses: 0, filtering: false, crossN: 0, alleyT: 0, alleys: 0, fines: 0, camI: 0,
+      cross: null, commit: false, redWait: 0, turns: 0, misses: 0, filtering: false, crossN: 0, turnSlow: 0, alleyT: 0, alleys: 0, fines: 0, camI: 0,
       done: false, win: false };
     for (let i = 0; i < cfg.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), null);
     if (cfg.lights) newCross(s, DATA.cross.first);
@@ -214,6 +219,7 @@ const RULES = {
     s.tick++;
     if (s.slow > 0) s.slow--;
     if (s.boost > 0) s.boost--;
+    if (s.turnSlow > 0) s.turnSlow--;
     if (s.moveT < k.laneTicks) { s.moveT++; s.x = smooth(s.fromX, s.lane * 1000, s.moveT, k.laneTicks); }
     else s.x = s.lane * 1000;
     // a light you were allowed through stays yours once you are this close (no slamming on the brakes at the line)
@@ -232,7 +238,7 @@ const RULES = {
       else if (move !== c.turn) { s.misses++; s.goal += DATA.cross.missPenalty; ev.push({ k: 'miss', want: c.turn, move }); }
       ev.push({ k: 'cross', move, at: c.at, off: c.off });
       if (move !== 0) { // new street: what was ahead went straight on; the new street's traffic is already there
-        s.turns++; s.obs = s.obs.filter(o => o.dz < 3000);
+        s.turns++; s.turnSlow = DATA.turnTicks; s.obs = s.obs.filter(o => o.dz < 3000);
         for (let i = 0; i < k.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), ev);
       }
       newCross(s, c.at + k.crossGap); s.commit = false;
@@ -499,6 +505,7 @@ function onEvents(events) {
     if (e.k === 'spawn') FX.age[e.id] = 0;
     if (e.k === 'cross') FX.lastCross = { at: e.at, off: e.off };
     if (e.k === 'cross' && e.move !== 0) { // turned onto a new street: the road bends round, the neighbourhood changes past the corner
+      blip(950, 0.5, 'sawtooth', 0.05, 0.55); blip(1400, 0.35, 'square', 0.02, 0.5); FX.shake = Math.max(FX.shake, 0.06); // tyres squeal through the corner
       FX.bend = { dir: e.move, t: 0, at: e.at / 1000 + 12, old: AREA_KEY }; setArea(AREA_KEY === 'gangnam' ? 'street' : 'gangnam');
       FX.pops.push({ text: e.move > 0 ? '우회전!' : '좌회전!', size: 46, t: 0 }); blip(500, 0.25, 'triangle', 0.12, 2);
     }
@@ -599,6 +606,10 @@ function draw(dt) {
   { // pitch: climbing tilts the camera up (everything slides down), descending the other way — view only
     const route = DATA.routes[S.cfg.route] || DATA.routes[0], g = smoothSeg(route.grade, S.dist + 6000, 8000);
     FX.pitch += (g * 0.07 - FX.pitch) * Math.min(1, dt * 4); ctx.translate(0, FX.pitch);
+  }
+  { // camera roll: the camera leans into the corner with the bike, so the world tilts the other way (view only)
+    const roll = FX.bend ? -FX.bend.dir * bendAmt() * 0.075 : 0;
+    if (roll) { ctx.translate(W / 2, PLAYER_Y); ctx.rotate(roll); ctx.scale(1.09, 1.09); ctx.translate(-W / 2, -PLAYER_Y); }
   }
   const bs = HORIZON / 520; // backdrop horizon sits at y=520 of 768
   const bx = (W - 1024 * bs) / 2;
@@ -710,6 +721,10 @@ function draw(dt) {
   }
   FX.pops = FX.pops.filter(p => p.t < (p.life || 0.6));
   ctx.restore();
+  if (FX.bend && bendAmt() > 0.05) { // sideways streaks: the world sweeps away from the turn
+    ctx.strokeStyle = `rgba(255,255,255,${0.22 * bendAmt()})`; ctx.lineWidth = 3;
+    for (let i = 0; i < 9; i++) { const y = 470 + ((i * 97 + FX.bend.t * 400) % 560), x = ((i * 211 - FX.bend.dir * FX.bend.t * 1400) % (W + 200) + W + 200) % (W + 200) - 100, l = 90 + (i % 3) * 50; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - FX.bend.dir * l, y); ctx.stroke(); }
+  }
   const v = speedView(), lean = v * 0.9;
   ctx.strokeStyle = 'rgba(190,210,255,0.22)'; ctx.lineWidth = 2;
   for (const r of rain) {
