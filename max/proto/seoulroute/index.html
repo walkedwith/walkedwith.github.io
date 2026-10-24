@@ -673,7 +673,7 @@ function onEvents(events) {
       FX.bend = { dir: e.move, t: 0, at: e.at / 1000 + 12, old: AREA_KEY }; setArea(AREA_KEY === 'gangnam' ? 'street' : 'gangnam');
       blip(500, 0.25, 'triangle', 0.12, 2);
     }
-    if (e.k === 'done') { LOG.endTick = e.tick; if (engGain) engGain.gain.value = 0.015; }
+    if (e.k === 'done') { FX.doneAt = performance.now(); LOG.endTick = e.tick; if (engGain) engGain.gain.value = 0.015; }
   }
   if (eng) eng.frequency.value = 50 + speedView() * 3.2 + (S.boost > 0 ? 40 : 0);
 }
@@ -1162,15 +1162,16 @@ function drawHud(v) {
     ctx.globalAlpha = Math.min(1, (300 - S.tick) / 60);
     bubbleText('← → 차선  ·  ↓ 브레이크  ·  ↑ 부스트', W / 2, H - 34, 26, '#fff', 'center', '#5a3318', 7); ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
-  if (S.done && !APP.order) { // standalone test run (no flow): the old summary card
-    ctx.fillStyle = '#0b1020e0'; ctx.beginPath(); ctx.roundRect(70, 420, 580, 420, 30); ctx.fill();
-    ctx.fillStyle = S.win ? '#ffd84a' : '#ff6a5a'; ctx.textAlign = 'center'; ctx.font = 'bold 54px sans-serif';
-    ctx.fillText(S.win ? `도착 ${(S.tick / 60).toFixed(1)}초` : '시간 초과', W / 2, 500);
-    ctx.fillStyle = '#fff'; ctx.font = '30px sans-serif';
-    ctx.fillText(`막힘 ${(S.stuck / 60).toFixed(1)}초 · 신호 대기 ${(S.redWait / 60).toFixed(1)}초`, W / 2, 570);
-    ctx.fillText(`틈새 ${S.squeezes} · 스침 ${S.brushes} · 쿵 ${S.hits}`, W / 2, 620);
-    if (S.cfg.lights) ctx.fillText(`회전 ${S.turns} · 길 잘못 듦 ${S.misses}`, W / 2, 670);
-    ctx.fillStyle = '#9fb3ff'; ctx.fillText('탭해서 다시', W / 2, 780);
+  if (S.done && !APP.order) { // driving only (FLOW_ON false): one card, then tap for the next ride
+    const pb = FX.prevBest, best = S.win && (!pb || S.tick < pb.tick);
+    candy(60, 400, W - 120, 560, '#fff6dc', '#ffe0a0', 40);
+    bubbleText(S.win ? `도착 ${(S.tick / 60).toFixed(1)}초` : '시간 초과', W / 2, 490, 60, S.win ? '#e8441b' : '#c63a2a', 'center');
+    txt(best ? (pb ? `최고 기록! ${((pb.tick - S.tick) / 60).toFixed(1)}초 단축` : '첫 기록 — 다음 판부터 고스트와 달림') : pb ? `최고 ${(pb.tick / 60).toFixed(1)}초${S.win ? ` · +${((S.tick - pb.tick) / 60).toFixed(1)}초` : ''}` : '', W / 2, 540, 28, best ? '#2a9a3a' : HB, 'center', '900');
+    const lines = [`막힘 ${(S.stuck / 60).toFixed(1)}초 · 신호 대기 ${(S.redWait / 60).toFixed(1)}초`, `틈새 ${S.squeezes} · 스침 ${S.brushes} · 추월 ${S.passes}`, `부스트 ${S.boosts} · 완벽한 코너 ${S.cornerGood}/${S.turns}`, `쿵 ${S.hits}${S.misses ? ` · 길 잘못 듦 ${S.misses}` : ''}`];
+    lines.forEach((t, i) => txt(t, W / 2, 610 + i * 46, 28, HB, 'center', '700'));
+    if (FX.crashes && FX.crashes.length) { ctx.textAlign = 'center'; fitText('쿵: ' + FX.crashes.map(c => c.label).join(' · '), 100, 810, W - 200, 22, '#c63a2a', '700'); }
+    if (performance.now() - (FX.doneAt || 0) > 700) bubbleText('탭해서 다음 판', W / 2, 900, 34, '#fff', 'center', '#e8441b', 8);
+    ctx.textAlign = 'left';
   }
 }
 
@@ -1199,7 +1200,8 @@ const SUBWAY_ON = false, LAST_ON = false, FOCUS_ROUTE = 0; // 10-25 사람: 아�
 let META = { stamps: {}, gold: [], done: 0, best: {} };
 try { META = Object.assign(META, JSON.parse(localStorage.getItem(FLOW_KEY) || '{}')); } catch (e) {}
 const saveMeta = () => { try { localStorage.setItem(FLOW_KEY, JSON.stringify(META)); } catch (e) {} };
-const APP = { screen: 'order', day: Math.floor(Date.now() / 864e5), orders: [], idx: 0, order: null, choice: null, seg: null, last: null, res: null,
+const FLOW_ON = false; // 10-25 사람: 주문·계획 화면도 지금은 안 함 — 열면 바로 달리고, 끝나면 요약 카드 → 탭 → 다음 판
+const APP = { screen: FLOW_ON ? 'order' : 'run', day: Math.floor(Date.now() / 864e5), orders: [], idx: 0, order: null, choice: null, seg: null, last: null, res: null,
   buttons: [], t: 0, planT: 0, trans: null, nextScreen: null };
 APP.orders = dayOrders(APP.day);
 try { const i = +(localStorage.getItem(FLOW_KEY + '_idx') || 0); APP.idx = i % 5; } catch (e) {}
@@ -1494,7 +1496,7 @@ function flowAction(id) {
   } catch (e) {}
   history.replaceState(null, '', location.pathname + location.search);
 })();
-if (APP.screen === 'order') enter('order');
+if (FLOW_ON && APP.screen === 'order') enter('order');
 
 // ---- input: SWIPES (10-24 사람 "드래그 말고 스와이프"): one flick = one action, fired the moment the finger passes SWIPE_PX.
 //   sideways = one lane · down = brake pulse (BRAKE_TICKS) · up = release the brake · last 100m: flick up, speed = power ----
@@ -1512,7 +1514,7 @@ cv.addEventListener('pointerdown', e => {
   if (APP.trans) return;
   if (APP.screen === 'run') {
     if (FX.rw) { FX.rw = null; return; } // skip the crash replay
-    if (S.done) { if (!APP.order) { reset(); brakeUntil = 0; if (engGain) engGain.gain.value = 0.05; } return; }
+    if (S.done) { if (!APP.order && performance.now() - (FX.doneAt || 0) > 700) { reset(); brakeUntil = 0; if (engGain) engGain.gain.value = 0.05; } return; }
     swipe = { x: e.clientX, y: e.clientY, done: false }; return;
   }
   const q = toLogical(e);
