@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#1b2238">
+<title>서울 루트 — 모드 7 회전 시험판</title>
+<style>
+  html,body{margin:0;height:100dvh;background:#1b2238;overflow:hidden;touch-action:none;user-select:none;-webkit-user-select:none;font-family:-apple-system,"Apple SD Gothic Neo",sans-serif}
+  #wrap{position:fixed;inset:0;transform-origin:50% 85%}
+  canvas{position:absolute;inset:0;width:100vw;height:100dvh;display:block}
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="floor"></canvas><canvas id="c"></canvas></div>
+<script>
+// Mode 7 turn test (10-25 사람 "좌우회전을 완전 자연스럽게" → 모드 7 시험판). One repeating city tile: a crossing every
+// T units in both directions. The floor is a WebGL quad sampling a code-drawn top-down map; the camera has a real
+// position and yaw, so a turn is a real 90° rotation along an arc. Sprites (buildings, cars, the bike) are billboards
+// projected with the same numbers. View-only test: no rules, no hash. Godot: the floor is one canvas_item shader.
+const W = 720, HORIZON = 457, LANE_PX = 128, T = 48, CAM_BACK = 9, FOG = 90;
+let H = 1280, PLAYER_Y = 1090, CAM_H = 4.9, F = 1160, scale = 1, offX = 0, offY = 0;
+const floorCv = document.getElementById('floor'), cv = document.getElementById('c'), ctx = cv.getContext('2d'), wrap = document.getElementById('wrap');
+
+// ---- the city tile, drawn in code (top-down, 1 unit = K px) ----
+const TEX = 1024, K = TEX / T, MID = T / 2, HALF = 2.5, WALK = 1.6;
+function drawTile() {
+  const c = document.createElement('canvas'); c.width = c.height = TEX; const g = c.getContext('2d');
+  const R = (x0, y0, x1, y1, col) => { g.fillStyle = col; g.fillRect(x0 * K, y0 * K, (x1 - x0) * K, (y1 - y0) * K); };
+  R(0, 0, T, T, '#3d4560');                                                     // lots
+  for (const [a, b] of [[MID - HALF - WALK, MID + HALF + WALK]]) { R(0, a, T, b, '#8e94a8'); R(a, 0, b, T, '#8e94a8'); } // sidewalks
+  R(0, MID - HALF - 0.12, T, MID + HALF + 0.12, '#c9ccd8'); R(MID - HALF - 0.12, 0, MID + HALF + 0.12, T, '#c9ccd8'); // kerbs
+  R(0, MID - HALF, T, MID + HALF, '#2e3449'); R(MID - HALF, 0, MID + HALF, T, '#2e3449');                              // roads
+  R(MID - HALF, MID - HALF, MID + HALF, MID + HALF, '#353b52');                                                         // the box
+  const box = 4.9; // lane paint stops this far from the crossing centre
+  for (const lat of [-1.5, -0.5, 0.5, 1.5]) for (let s = 0; s < T; s += 3) {    // dashed lane lines, both roads
+    if (Math.abs(s + 0.75 - MID) < box) continue;
+    R(s, MID + lat - 0.05, s + 1.5, MID + lat + 0.05, 'rgba(255,255,255,0.75)'); R(MID + lat - 0.05, s, MID + lat + 0.05, s + 1.5, 'rgba(255,255,255,0.75)');
+  }
+  for (const e of [-1, 1]) { // solid edge lines
+    for (const [s0, s1] of [[0, MID - box], [MID + box, T]]) { R(s0, MID + e * 2.42 - 0.05, s1, MID + e * 2.42 + 0.05, '#e8e2c0'); R(MID + e * 2.42 - 0.05, s0, MID + e * 2.42 + 0.05, s1, '#e8e2c0'); }
+  }
+  for (const e of [-1, 1]) { // crosswalks and stop lines on all four arms
+    const a = MID + e * 2.8, b = MID + e * 4.3, s0 = Math.min(a, b), s1 = Math.max(a, b);
+    for (let l = -HALF + 0.15; l < HALF; l += 0.7) { R(s0, MID + l, s1, MID + l + 0.38, 'rgba(255,255,255,0.85)'); R(MID + l, s0, MID + l + 0.38, s1, 'rgba(255,255,255,0.85)'); }
+    const st = MID + e * 4.75; R(st - 0.1, MID - HALF, st + 0.1, MID + HALF, '#fff'); R(MID - HALF, st - 0.1, MID + HALF, st + 0.1, '#fff');
+  }
+  return c;
+}
+
+// ---- WebGL floor ----
+const gl = floorCv.getContext('webgl', { antialias: false, alpha: true });
+const VS = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
+const FS = `precision highp float;
+uniform sampler2D tex; uniform vec2 cam; uniform float yaw, camH, F, horizon, scale, tile, hdev, W; uniform vec2 off;
+void main() {
+  float lx = (gl_FragCoord.x - off.x) / scale, ly = (hdev - gl_FragCoord.y - off.y) / scale, dy = ly - horizon;
+  if (dy <= 0.0) { gl_FragColor = vec4(0.0); return; }
+  float z = camH * F / dy, x = (lx - W * 0.5) * z / F;
+  vec2 f = vec2(cos(yaw), sin(yaw)), r = vec2(-sin(yaw), cos(yaw)), w = cam + f * z + r * x;
+  vec4 c = texture2D(tex, w / tile);
+  float fog = clamp(z / ${FOG.toFixed(1)}, 0.0, 1.0);
+  gl_FragColor = vec4(mix(c.rgb, vec3(0.16, 0.19, 0.35), fog * fog), 1.0);
+}`;
+function shader(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw Error(gl.getShaderInfoLog(s)); return s; }
+const prog = gl.createProgram(); gl.attachShader(prog, shader(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); gl.useProgram(prog);
+gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
+const ap = gl.getAttribLocation(prog, 'p'); gl.enableVertexAttribArray(ap); gl.vertexAttribPointer(ap, 2, gl.FLOAT, false, 0, 0);
+const tex = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, tex);
+gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, drawTile());
+gl.generateMipmap(gl.TEXTURE_2D);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+const ext = gl.getExtension('EXT_texture_filter_anisotropic'); if (ext) gl.texParameterf(gl.TEXTURE_2D, ext.TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8, gl.getParameter(ext.MAX_TEXTURE_MAX_ANISOTROPY_EXT)));
+const U = n => gl.getUniformLocation(prog, n);
+
+function resize() {
+  const dpr = devicePixelRatio || 1;
+  for (const c of [floorCv, cv]) { c.width = innerWidth * dpr; c.height = innerHeight * dpr; }
+  H = Math.max(1280, Math.round(W * innerHeight / innerWidth)); PLAYER_Y = H - 190;
+  CAM_H = (PLAYER_Y - HORIZON) / LANE_PX; F = CAM_BACK * (PLAYER_Y - HORIZON) / CAM_H; // same camera as the game: a lane is LANE_PX wide at the bike
+  scale = Math.min(innerWidth / W, innerHeight / H) * dpr; offX = (cv.width - W * scale) / 2; offY = (cv.height - H * scale) / 2;
+  gl.viewport(0, 0, floorCv.width, floorCv.height);
+}
+addEventListener('resize', resize); resize();
+
+// ---- art (the game's sheets) ----
+const img = src => { const i = new Image(); i.src = src; return i; };
+const IMG = { hero: img('art/sprites/boy.png'), props: img('art/sprites/props.png'), side: img('art/sprites/gangnam.png'), back: img('art/sprites/gangnam-back.png') };
+const bboxCache = new Map();
+function bbox(image, cell, cw, ch) {
+  const key = image.src + cell; if (bboxCache.has(key)) return bboxCache.get(key);
+  let box = { x: 0, y: 0, w: cw, h: ch };
+  try {
+    const c = document.createElement('canvas'); c.width = cw; c.height = ch; const g = c.getContext('2d');
+    g.drawImage(image, (cell % 4) * cw, Math.floor(cell / 4) * ch, cw, ch, 0, 0, cw, ch);
+    const d = g.getImageData(0, 0, cw, ch).data; let x0 = cw, y0 = ch, x1 = 0, y1 = 0;
+    for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) if (d[(y * cw + x) * 4 + 3] > 40) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    if (x1 > x0) box = { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  } catch (e) {}
+  bboxCache.set(key, box); return box;
+}
+function drawCell(image, cell, cx, footY, widthPx, alpha = 1, cw = 256, ch = 256, rot = 0) {
+  if (!image.complete || !image.naturalWidth) return;
+  const b = bbox(image, cell, cw, ch), k = widthPx / b.w;
+  ctx.globalAlpha = alpha;
+  if (rot) { ctx.save(); ctx.translate(cx, footY); ctx.rotate(rot); ctx.translate(-cx, -footY); }
+  ctx.drawImage(image, (cell % 4) * cw + b.x, Math.floor(cell / 4) * ch + b.y, b.w, b.h, cx - b.w * k / 2, footY - b.h * k, b.w * k, b.h * k);
+  if (rot) ctx.restore();
+  ctx.globalAlpha = 1;
+}
+
+// ---- the bike: on a road (origin o, heading hd, along s, sideways lat) or on an arc through a crossing ----
+const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]], DIR = hd => DIRS[hd]; // 0 E, 1 S, 2 W, 3 N (y grows south); exact, cos(3π/2) is not 0
+const SPEED = 7, TURN_SPEED = 0.6, R_ARC = 2.2;
+const B = { hd: 0, o: [0, MID], s: 4, lat: 0, lane: 0, v: SPEED, arc: null, yaw: 0, x: 0, y: MID, lean: 0, turns: 0 };
+const CAM = { yaw: 0, x: 0, y: 0 };
+function nextCrossS() { // along-road distance of the next crossing centre ahead
+  const [fx, fy] = DIR(B.hd), base = fx ? B.o[0] : B.o[1], sign = fx || fy;
+  // centres on lines MID + k*T; along s the coordinate is base + sign*s
+  const cur = base + sign * B.s, k = sign > 0 ? Math.ceil((cur - MID) / T) : Math.floor((cur - MID) / T);
+  let c = MID + k * T; if (sign * (c - cur) < 0) c += sign * T; // the one you are in the middle of counts as passed
+  return (c - base) * sign;
+}
+function stepBike(dt) {
+  if (B.arc) { // on the arc: real position and heading from the quarter circle
+    const A = B.arc; A.u = Math.min(1, A.u + B.v * dt / (R_ARC * Math.PI / 2));
+    const phi = A.u * Math.PI / 2, [fx, fy] = A.f, [gx, gy] = A.f2;
+    B.x = A.O[0] - gx * R_ARC * Math.cos(phi) + fx * R_ARC * Math.sin(phi);
+    B.y = A.O[1] - gy * R_ARC * Math.cos(phi) + fy * R_ARC * Math.sin(phi);
+    B.yaw = A.yaw0 + A.d * phi;
+    B.v += (SPEED * TURN_SPEED - B.v) * Math.min(1, dt * 6);
+    if (A.u >= 1) { // onto the new road: same edge lane
+      B.hd = (B.hd + A.d + 4) % 4; B.o = A.C; const [nx, ny] = DIR(B.hd), [rx, ry] = [-ny, nx];
+      B.s = (B.x - A.C[0]) * nx + (B.y - A.C[1]) * ny; B.lat = (B.x - A.C[0]) * rx + (B.y - A.C[1]) * ry; B.lane = Math.round(B.lat);
+      B.yaw = B.hd * Math.PI / 2; B.arc = null; B.turns++;
+    }
+    return;
+  }
+  B.v += (SPEED - B.v) * Math.min(1, dt * 2);
+  for (const c of cars) if (c.hd === B.hd && Math.abs(carLat(c) - B.lat) < 0.7) { const ds = carS(c) - B.s; if (ds > 0 && ds < 3.5) B.v = Math.min(B.v, c.v); } // no crashes in this test: tuck in behind
+  B.s += B.v * dt;
+  B.lat += (B.lane - B.lat) * Math.min(1, dt * 12);
+  const sc = nextCrossS(), d = B.lane === 2 ? 1 : B.lane === -2 ? -1 : 0;
+  if (d && B.s >= sc - 2 - R_ARC && B.s < sc - 1 - R_ARC) { // the edge lane at the arc's start is the turn
+    const [fx, fy] = DIR(B.hd), r = [-fy, fx], C = [B.o[0] + fx * sc, B.o[1] + fy * sc];
+    const Kp = [C[0] + 2 * d * r[0] - 2 * fx, C[1] + 2 * d * r[1] - 2 * fy], f2 = [d * r[0], d * r[1]];
+    B.arc = { u: 0, d, C, f: [fx, fy], f2, O: [Kp[0] - fx * R_ARC + f2[0] * R_ARC, Kp[1] - fy * R_ARC + f2[1] * R_ARC], yaw0: B.hd * Math.PI / 2 };
+    B.lat = B.lane; return stepBike(0);
+  }
+  const [fx, fy] = DIR(B.hd); B.x = B.o[0] + fx * B.s - fy * B.lat; B.y = B.o[1] + fy * B.s + fx * B.lat; B.yaw = B.hd * Math.PI / 2;
+}
+
+// ---- cars: drive straight down whatever road they are on, through every crossing ----
+let cars = [];
+const carLat = c => { const [fx, fy] = DIR(B.hd); return -(c.x - B.o[0]) * fy + (c.y - B.o[1]) * fx; }; // sideways from your road's axis
+const carS = c => { const [fx, fy] = DIR(B.hd); return (c.x - B.o[0]) * fx + (c.y - B.o[1]) * fy; };
+function spawnCars() {
+  cars = cars.filter(c => Math.hypot(c.x - B.x, c.y - B.y) < 110);
+  const mine = cars.filter(c => c.hd === B.hd && carS(c) > B.s).length;
+  for (let i = mine; i < 9 && !B.arc; i++) {
+    const [fx, fy] = DIR(B.hd), s = B.s + 14 + Math.random() * 70, lat = Math.floor(Math.random() * 5) - 2;
+    if (cars.some(c => c.hd === B.hd && Math.abs(carLat(c) - lat) < 0.5 && Math.abs(carS(c) - s) < 5)) continue;
+    cars.push({ hd: B.hd, lat, x: B.o[0] + fx * s - fy * lat, y: B.o[1] + fy * s + fx * lat, v: 3 + Math.random() * 2.5 });
+  }
+}
+function stepCars(dt) { for (const c of cars) { const [fx, fy] = DIR(c.hd); c.x += fx * c.v * dt; c.y += fy * c.v * dt; } }
+
+// ---- roadside: per tile, buildings / trees / lights along both roads (billboards) ----
+const SIDE = [ // cell (gangnam sheet 4x2 of 256x512), offset from the road axis, width, spacing along the road, first
+  { cell: 0, off: 7.0, w: 3.6, step: 12, at: 7.5 }, { cell: 1, off: 7.0, w: 3.6, step: 12, at: 11.5 }, { cell: 2, off: 7.0, w: 3.6, step: 12, at: 15.5 },
+  { cell: 5, off: 4.5, w: 1.6, step: 4.5, at: 6.5 }, { cell: 3, off: 4.2, w: 1.1, step: 9, at: 8.5 },
+];
+function roadside(items) {
+  const tx0 = Math.floor(B.x / T), ty0 = Math.floor(B.y / T);
+  for (let ty = ty0 - 2; ty <= ty0 + 2; ty++) for (let tx = tx0 - 2; tx <= tx0 + 2; tx++) {
+    const cx = tx * T + MID, cy = ty * T + MID;
+    for (const d of SIDE) for (let a = d.at; a < MID - 0.1; a += d.step) for (const sg of [-1, 1]) for (const side of [-1, 1]) {
+      items.push({ x: cx + sg * a, y: cy + side * d.off, side: d });  // along the east-west road
+      items.push({ x: cx + side * d.off, y: cy + sg * a, side: d });  // along the north-south road
+    }
+  }
+}
+
+// ---- draw ----
+function project(wx, wy) { // camera space: z ahead, x right; null if behind
+  const f = [Math.cos(CAM.yaw), Math.sin(CAM.yaw)], dx = wx - CAM.x, dy = wy - CAM.y, z = dx * f[0] + dy * f[1], x = -dx * f[1] + dy * f[0];
+  if (z < 0.5) return null;
+  return { z, sx: W / 2 + x * F / z, sy: HORIZON + CAM_H * F / z, s: F / z };
+}
+function draw() {
+  // floor
+  gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+  gl.uniform2f(U('cam'), CAM.x, CAM.y); gl.uniform1f(U('yaw'), CAM.yaw); gl.uniform1f(U('camH'), CAM_H); gl.uniform1f(U('F'), F);
+  gl.uniform1f(U('horizon'), HORIZON); gl.uniform1f(U('scale'), scale); gl.uniform1f(U('tile'), T); gl.uniform1f(U('hdev'), floorCv.height);
+  gl.uniform1f(U('W'), W); gl.uniform2f(U('off'), offX, offY);
+  gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  // sky: the skyline pans with the heading (four copies around the full circle), fog band on the horizon
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.setTransform(scale, 0, 0, scale, offX, offY);
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
+  ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, W, HORIZON + 1);
+  if (IMG.back.complete && IMG.back.naturalWidth) {
+    const bs = HORIZON / 520, tw = 1024 * bs, pxPerRad = tw * 4 / (2 * Math.PI), x0 = ((-CAM.yaw * pxPerRad) % tw + tw) % tw - tw;
+    for (let x = x0; x < W; x += tw) ctx.drawImage(IMG.back, x, 0, tw, 768 * bs);
+  }
+  const fog = ctx.createLinearGradient(0, HORIZON - 20, 0, HORIZON + 60); fog.addColorStop(0, 'rgba(40,48,90,0)'); fog.addColorStop(0.3, 'rgba(40,48,90,0.85)'); fog.addColorStop(1, 'rgba(40,48,90,0)');
+  ctx.fillStyle = fog; ctx.fillRect(0, HORIZON - 20, W, 80);
+  // billboards
+  const items = [];
+  roadside(items);
+  for (const c of cars) items.push({ x: c.x, y: c.y, car: c });
+  items.push({ x: B.x, y: B.y, bike: true });
+  const vis = [];
+  for (const it of items) { const p = project(it.x, it.y); if (p && p.z < FOG && p.sx > -400 && p.sx < W + 400) vis.push([p, it]); }
+  vis.sort((a, b) => b[0].z - a[0].z);
+  for (const [p, it] of vis) {
+    const a = Math.min(1, (FOG - p.z) / 20);
+    if (it.side) drawCell(IMG.side, it.side.cell, p.sx, p.sy, it.side.w * p.s, a, 256, 512);
+    else if (it.car) { ctx.globalAlpha = 0.4 * a; ctx.fillStyle = '#000'; ctx.beginPath(); ctx.ellipse(p.sx, p.sy, 0.46 * p.s, 0.1 * p.s, 0, 0, 7); ctx.fill(); ctx.globalAlpha = 1; drawCell(IMG.props, 0, p.sx, p.sy, 0.8 * p.s, a); }
+    else if (it.bike) {
+      ctx.fillStyle = 'rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(p.sx, p.sy, 0.3 * p.s, 0.06 * p.s, 0, 0, 7); ctx.fill();
+      const cell = B.lean < -0.25 ? 1 : B.lean > 0.25 ? 2 : 0;
+      drawCell(IMG.hero, cell, p.sx, p.sy + Math.sin(performance.now() / 90) * 1.2, 0.62 * p.s, 1, 256, 256, B.lean * 0.18);
+    }
+  }
+  ctx.restore();
+  drawHud();
+}
+function pill(t, x, y, size, bg, fg) { ctx.font = `900 ${size}px sans-serif`; const w = ctx.measureText(t).width + size * 1.2; ctx.fillStyle = bg; ctx.strokeStyle = '#5a3318'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(x - w / 2, y - size, w, size * 1.6, size * 0.8); ctx.fill(); ctx.stroke(); ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.fillText(t, x, y + size * 0.15); ctx.textAlign = 'left'; }
+function drawHud() {
+  ctx.setTransform(scale, 0, 0, scale, offX, offY);
+  const sc = B.arc ? 0 : nextCrossS() - B.s, m = Math.max(0, Math.round((sc - 4.75) * 2.5));
+  const move = B.lane === 2 ? '우회전' : B.lane === -2 ? '좌회전' : '직진';
+  pill(B.arc ? (B.arc.d > 0 ? '우회전 중' : '좌회전 중') : `${m}m 앞 교차로 · 지금 차선이면 ${move}`, W / 2, 70, 30, '#ffe45e', '#5a3318');
+  pill(`${['동', '남', '서', '북'][B.hd]}쪽으로 · 회전 ${B.turns}`, W / 2, 132, 24, '#fff6dc', '#5a3318');
+  const gy = H - 150, cw = 96, gap = 10, gx = (W - 5 * cw - 4 * gap) / 2;
+  for (let l = -2; l <= 2; l++) {
+    const x = gx + (l + 2) * (cw + gap), here = B.lane === l, col = l === -2 ? '#9fe3ff' : l === 2 ? '#ffd27a' : '#e4e7f0';
+    ctx.fillStyle = col; ctx.strokeStyle = '#5a3318'; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(x, gy, cw, 64, 20); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#5a3318'; ctx.font = '900 22px sans-serif'; ctx.textAlign = 'center'; ctx.fillText(l === -2 ? '← 좌' : l === 2 ? '우 →' : '직진', x + cw / 2, gy + 40);
+    if (here) { ctx.fillStyle = '#2f6fe0'; ctx.beginPath(); ctx.arc(x + cw / 2, gy - 14, 10, 0, 7); ctx.fill(); }
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#ffffffaa'; ctx.font = '700 22px sans-serif'; ctx.textAlign = 'center'; ctx.fillText('← → 쓸어서 차선 · 맨 왼쪽/오른쪽 차선으로 교차로에 들어가면 회전', W / 2, H - 40); ctx.textAlign = 'left';
+}
+
+// ---- input: one swipe = one lane ----
+let sw = null;
+cv.addEventListener('pointerdown', e => { sw = { x: e.clientX, done: false }; });
+addEventListener('pointermove', e => { if (!sw || sw.done || B.arc) return; const dx = e.clientX - sw.x; if (Math.abs(dx) > 34) { sw.done = true; B.lane = Math.max(-2, Math.min(2, B.lane + Math.sign(dx))); } });
+addEventListener('pointerup', () => { sw = null; });
+addEventListener('keydown', e => { if (B.arc) return; if (e.key === 'ArrowLeft') B.lane = Math.max(-2, B.lane - 1); if (e.key === 'ArrowRight') B.lane = Math.min(2, B.lane + 1); });
+
+// ---- loop: the camera trails the bike and turns a beat behind it; the whole view leans into the turn ----
+let last = performance.now();
+function step(dt) {
+  stepBike(dt); stepCars(dt); spawnCars();
+  let dyaw = B.yaw - CAM.yaw; while (dyaw > Math.PI) dyaw -= 2 * Math.PI; while (dyaw < -Math.PI) dyaw += 2 * Math.PI;
+  CAM.yaw += dyaw * Math.min(1, dt * 7);
+  CAM.x = B.x - Math.cos(CAM.yaw) * CAM_BACK; CAM.y = B.y - Math.sin(CAM.yaw) * CAM_BACK;
+  const leanTo = B.arc ? B.arc.d * 1 : (B.lane - B.lat) * 0.8;
+  B.lean += (leanTo - B.lean) * Math.min(1, dt * 8);
+  wrap.style.transform = `rotate(${(-dyaw * 6).toFixed(2)}deg) scale(${(1 + Math.abs(dyaw) * 0.1).toFixed(3)})`; // roll with the yaw still to come
+}
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (!window.__pause) step(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+window.M7 = { B, CAM, step, draw, cars };
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
