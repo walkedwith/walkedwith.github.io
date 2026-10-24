@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="format-detection" content="telephone=no">
 <title>맥스야 산책 가자</title>
-<link rel="stylesheet" href="css/game.css?v=c6536305a269">
+<link rel="stylesheet" href="css/game.css?v=8ffc519b26d9">
 <link rel="stylesheet" href="css/onboarding-comic.css">
 <script id="mmMemo">
 // (id 를 단다 — tools/load.js 는 id 없는 첫 스크립트 태그를 게임 본문으로 읽는다)
@@ -9282,7 +9282,12 @@ function chapterMaxWarmOptionalAtlases(){
 const maxGpuWarm=new WeakSet();
 function chapterMaxGpuWarmOne(){
   if(!MAX_MASTER_WALK_V1_ENABLED) return;
-  for(const im of [...chapterMaxSkinSpecs().map(s=>s[0]),maxChapterMasterVictoryV1Atlas,maxChapterMasterSitSleepV2UpAtlas,
+  // chapterMaxSkinSpecs() 는 부르면 시트 경로 13개를 새로 지어 매 프레임엔 무겁다 — 같은 시트를 변수로 바로 훑는다.
+  for(const im of [maxChapterMasterWalkV1Atlas,maxChapterMasterWalkV1UpAtlas,maxChapterMasterWalkV1DownAtlas,
+    maxChapterMasterPushV1Atlas,maxChapterMasterPushV1UpAtlas,maxChapterMasterPushV1DownAtlas,
+    maxChapterMasterWallBumpV1Atlas,maxChapterMasterWallBumpV1UpAtlas,maxChapterMasterWallBumpV1DownAtlas,
+    maxChapterMasterSitV1Atlas,maxChapterMasterSitV1UpAtlas,maxChapterMasterSitV1LeftAtlas,maxChapterMasterIdleV1Atlas,
+    maxChapterMasterVictoryV1Atlas,maxChapterMasterSitSleepV2UpAtlas,
     maxChapterMasterSitSleepV2DownAtlas,maxChapterMasterSitSleepV2LeftAtlas,maxChapterMasterStaticV4Atlas])
     if(im && !maxGpuWarm.has(im) && chapterMaxAtlasReady(im)){ maxGpuWarm.add(im); try{ ctx.drawImage(im,0,0,1,1,0,0,1,1); }catch(_){ } return; }
 }
@@ -35202,22 +35207,21 @@ function tileLayerPaint(){
   if(window.__rinse) drawRinseProto();                                           // 시안 — 씻긴 칸
 }
 let tileSoapCells=[], tileRinseCells=[];
-// 이 바닥이 시간에 따라 움직이나 — 0.37초 뒤 모습을 따로 그려 반 크기로 견준다. 판이 바뀔 때 한 번만 잰다.
-let tileAnim=true, tileAnimFor='', tileAnimAt=0, tileCmp=null;
-function tileLayerMoves(w,h,dpr){
-  try{
-    const W=Math.max(1,Math.round(w/2)), H=Math.max(1,Math.round(h/2));
-    if(!tileCmp){ tileCmp=[0,1,2].map(()=>document.createElement('canvas')); }
-    const [alt,a,b]=tileCmp; alt.width=tileCv.width; alt.height=tileCv.height; a.width=b.width=W; a.height=b.height=H;
-    const ac=alt.getContext('2d'); ac.setTransform(dpr,0,0,dpr,0,0); ac.clearRect(0,0,w,h);
-    const o=ctx, t0=animT; ctx=ac; animT=t0+0.37;
-    try{ tileLayerPaint(); } finally { ctx=o; animT=t0; }
-    const A=a.getContext('2d',{willReadFrequently:true}), B=b.getContext('2d',{willReadFrequently:true});
-    A.clearRect(0,0,W,H); B.clearRect(0,0,W,H); A.drawImage(tileCv,0,0,W,H); B.drawImage(alt,0,0,W,H);
-    const p=A.getImageData(0,0,W,H).data, q=B.getImageData(0,0,W,H).data;
-    let n=0; for(let i=0;i<p.length;i+=4) if(Math.abs(p[i]-q[i])>6 || Math.abs(p[i+1]-q[i+1])>6 || Math.abs(p[i+2]-q[i+2])>6 || Math.abs(p[i+3]-q[i+3])>6){ if(++n>12) return true; }   // 진짜 흔들림은 칸마다 수백 픽셀 — 한두 점은 잡음
-    return false;
-  }catch(e){ return true; }                                 // 못 재면 예전처럼 계속 다시 그린다
+// 이 바닥이 시간에 따라 움직이나 — 판 데이터로 본다. 판(키)이 바뀔 때 한 번.
+// 예전엔 0.37초 뒤 모습을 따로 그려 getImageData 로 견줬다(10-24 걷음): 폰에선 GPU→CPU 읽기라 판 시작마다 크게 멈췄고,
+// 2동네 벽의 몇 픽셀 잡음을 흔들림으로 읽어 31~60판 바닥을 초당 10번 다시 구웠다.
+// 바닥 그림 중 animT 를 읽는 건 셋 — 스프링클러 물줄기·냇물(isWater/다리)·바람결 잔디(트램펄린은 눌릴 때만, busy 가 맡는다).
+// 테두리 장식은 EDGE_STILL_T 로 멈춰 있고, 비눗물·씻긴 칸은 매 프레임 따로, 바스락·첨벙통·깎이는 키와 busy 가 맡는다.
+// 바닥 그림에 animT 를 읽는 그림을 새로 넣으면 여기에도 더한다.
+let tileAnim=true, tileAnimFor='', tileBusy=false, tileShCv=null, tileShCtx=null;
+const TILE_SHADOW_PAD=24;                                    // 그림자가 번질 자리(CSS px) — 아래로 7+9*2
+function tileLayerMoves(){
+  if(windNow!=null) return true;
+  const cr=creekOn();
+  for(let r=0;r<boardRows(L);r++) for(let c=0;c<GN;c++){ const t=L.T[r] && L.T[r][c];
+    if((isWater(t) || isBridge(t)) && !cr) return true;                            // 졸졸 냇가는 creekPaint 가 멈춘 그림으로
+    if(t===WATER && !valveOpen(L,filled,boxes)) return true; }                    // 밸브가 잠긴 동안 스프링클러가 돈다
+  return false;
 }
 // 첨벙통·펌프 물이 지금까지 닿은 칸 수 — 바닥 그림은 이 값이 바뀔 때만 달라진다(tubSpillShown·pumpRinseShown 과 같은 문턱).
 function tileWaterSig(){
@@ -35240,6 +35244,7 @@ function drawTilesCached(){
   const rustleMoving=rustleOn && acornSt.some(m=>m.w && !m.got && matRustleAt(m.r,m.c)!==0);
   const key=level+'|'+cell+'|'+(houseMode?'H'+houseIn+houseTheme.grass+houseTheme.fence+houseFenceSig():'')+'|'+fk+'|'+(L.paintCol?Object.keys(L.paintCol).length:0)+'|'+moonMode+'|'+(valveOpen? (levelHasPlate(L)? valveOpen(L,filled,boxes):'-') : '-')
     +'|'+(rustleMoving? Math.round(animT*60) : '-')+'|'+(L.up? 'F'+floorPalName() : '')   // 2층(up) 판은 키에 표시 — 바닥 한 장에 2층 그림자가 들어 있다
+    +'|'+(document.body.classList.contains('hud-pilot')? 'S':'')   // 판 그림자(hud-pilot 만) — 바닥과 함께 굽는다
     +'|'+tileWaterSig();                                   // 첨벙통·펌프 — 물이 칸에 닿는 순간에만 바닥이 바뀐다(예전엔 물줄기 2초 내내 초당 20번 다시 구웠다, 10-12)
   const keyBase=rustleMoving? '' : key;                       // 바스락이면 키가 매 프레임 바뀐다 — 정지 판정은 건너뛴다
   // 바닥은 원래 50ms 마다 통째로 다시 그렸다(일렁이는 비눗물·흔들리는 꽃). 정지한 바닥까지 초당 20번 다시 그려
@@ -35248,10 +35253,9 @@ function drawTilesCached(){
   const busy=!!digFx || !!cutFx || !!tunFx || !!matHitFx || !!trampFx || boxes.some(b=>b.path && b.kind==='mower') || !!(boatPushFx && boatPushFx.lv===level && animT-boatPushFx.t0<BOAT_PUSH_T*.45+.85);   // 바닥 그림이 시간 연출을 따라가는 것만(냇가 — 맞은 나무가 떠는 동안 포함)(drawTile 이 읽는 fx·깎이 길) — 걷기·공 미끄럼은 바닥을 안 바꾼다
   // 테두리 장식(빨래·바람개비·풀)은 느린 흔들림이라 초당 10번이면 충분하다 — 손을 쉬면 6~7번. 연출이 도는 동안만 20번.
   const every=busy? 0.05 : frameIdle(performance.now())? 0.15 : 0.1;
-  // 정지 판정 차례 — 판이 바뀌었거나, 움직인다고 본 지 2초가 지났을 때(장식 그림이 늦게 뜨면 처음엔 움직이는 것처럼 보인다).
-  // 연출 중에 그린 사본으로 견주면 틀리니 먼저 새로 그린다.
-  const check=!busy && keyBase && (tileAnimFor!==keyBase || (tileAnim && animT-tileAnimAt>2));
-  const stale=(key!==tileKey) || check || ((tileAnim || busy || !keyBase) && animT-tileT>every);
+  if(keyBase && tileAnimFor!==keyBase){ tileAnimFor=keyBase; tileAnim=tileLayerMoves(); }   // 정지 판정 — 판(키)이 바뀔 때만
+  const stale=(key!==tileKey) || (tileBusy && !busy) || ((tileAnim || busy || !keyBase) && animT-tileT>every);   // 연출이 끝난 프레임에 한 번 더 — 마지막 연출 모습이 바닥에 남지 않게
+  tileBusy=busy;
   if(stale){
     if(!tileCv){ tileCv=document.createElement('canvas'); tileCtx=tileCv.getContext('2d'); }
     if(tileCv.width!==w*dpr || tileCv.height!==h*dpr){ tileCv.width=w*dpr; tileCv.height=h*dpr; }
@@ -35259,9 +35263,16 @@ function drawTilesCached(){
     const o=ctx; ctx=tileCtx;
     tileLayerPaint();
     ctx=o; tileKey=key; tileT=animT;
+    // 판 그림자 — 예전엔 CSS filter:drop-shadow 가 캔버스 전체를 매 프레임 다시 흐렸다(폰 발열). 바닥을 구울 때 한 번만 함께 굽는다.
+    const P=TILE_SHADOW_PAD;
+    if(!tileShCv){ tileShCv=document.createElement('canvas'); tileShCtx=tileShCv.getContext('2d'); }
+    const sw=(w+2*P)*dpr, sh=(h+2*P)*dpr;
+    if(tileShCv.width!==sw || tileShCv.height!==sh){ tileShCv.width=sw; tileShCv.height=sh; }
+    const g=tileShCtx; g.setTransform(1,0,0,1,0,0); g.clearRect(0,0,sw,sh);
+    g.shadowColor=key.includes('|S|')? 'rgba(67,49,28,.16)' : 'transparent'; g.shadowOffsetY=7*dpr; g.shadowBlur=9*dpr;   // 옛 CSS drop-shadow(0 7px 9px) 그대로(그림자 값은 기기 픽셀)
+    g.drawImage(tileCv, P*dpr, P*dpr); g.shadowColor='transparent';
   }
-  if(check){ tileAnimFor=keyBase; tileAnimAt=animT; tileAnim=tileLayerMoves(w,h,dpr); }
-  ctx.drawImage(tileCv, 0, 0, tileCv.width, tileCv.height, 0, 0, w, h);
+  ctx.drawImage(tileShCv, 0, 0, tileShCv.width, tileShCv.height, -TILE_SHADOW_PAD, -TILE_SHADOW_PAD, w+2*TILE_SHADOW_PAD, h+2*TILE_SHADOW_PAD);
   if(tileSoapCells.length) drawSoapLiquid(tileSoapCells, soapVisible);              // 일렁이는 액체는 매 프레임 그 칸만
   if(tileRinseCells.length) drawRinseCells(tileRinseCells, 1);
 }
@@ -39430,7 +39441,7 @@ function drawTile(r,c){
       // 헛점프로 되돌아온 공이 내려앉으면 천이 쑥 눌렸다 펴진다
       const tf=(trampFx && trampFx.r===r && trampFx.c===c && trampFx.dly<=0)
         ? Math.sin(Math.max(0,Math.min(1,trampFx.t))*Math.PI) : 0;
-      const bob=Math.sin(animT*2.2+kk(r,c))*cell*0.012 + tf*cell*0.10;       // 천이 살짝 숨쉰다
+      const bob=tf*cell*0.10;                                                  // 숨쉬기(0.012칸)는 걷음(10-24) — 그 0.7px 때문에 5동네 바닥 전체를 초당 10번 다시 구웠다
       ctx.fillStyle="rgba(0,0,0,.16)"; ctx.beginPath(); ctx.ellipse(cxx,cyy+R2*0.66,R2*0.92,R2*0.28,0,0,7); ctx.fill();
       ctx.strokeStyle="#8A6741"; ctx.lineWidth=cell*0.052; ctx.lineCap="round";              // 다리
       for(const sx of [-1,1]){ ctx.beginPath(); ctx.moveTo(cxx+sx*R2*0.6, cyy+R2*0.14); ctx.lineTo(cxx+sx*R2*0.78, cyy+R2*0.56); ctx.stroke(); }

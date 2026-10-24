@@ -431,7 +431,8 @@
   body.hud-pilot #btns .btn:active {
     transform:translateY(2px) scale(.97); box-shadow:0 1px 0 rgba(173,126,55,.24);
   }
-  body.hud-pilot #boardWrap canvas {
+  /* 판 캔버스(#c)는 그림자를 바닥 그림과 함께 굽는다(drawTilesCached) — filter 는 내용이 바뀔 때마다 판 전체를 다시 흐려 폰이 달아올랐다. */
+  body.hud-pilot #boardWrap canvas:not(#c) {
     filter:drop-shadow(0 7px 9px rgba(67,49,28,.16));
   }
   body.hud-pilot:not(.dpad) #boardWrap { box-sizing:border-box; padding-bottom:66px; }
