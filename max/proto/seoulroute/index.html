@@ -26,12 +26,17 @@
 // Everything below RULES END is presentation: pseudo-3D road + depth-scaled sprites, reacting to events.
 
 const DATA = {
-  version: 3,
+  version: 4,
   tickRate: 60,
   rng: { shiftA: 13, shiftB: 17, shiftC: 5 },
   half: 2,                      // lanes are -half..half (5 lanes); edge lanes are turn-only (left -half, right +half)
   playerW: 420, playerLen: 900, // milli-lanes, milli-units
-  slowTicks: 96, slowFloor: 150, boostTicks: 90, boostPermille: 1150,
+  slowTicks: 96, slowFloor: 150, boostTicks: 150, boostPermille: 1350, // boost (swipe up on a full heat meter): faster, shoves cars aside
+  // heat meter (10-25 near-miss combo): overtaking next to a car, brushing past, squeezing between two; each one inside
+  // chainTicks of the last chains up and adds chainBonus more. A crash keeps hitKeep per-mille of it and breaks the chain.
+  heat: { pass: 60, brush: 200, squeeze: 300, chainBonus: 30, chainMax: 8, chainTicks: 100, full: 1000, hitKeep: 500 },
+  // authored beats (routes[].beats): spawned beatAhead before their spot; tells[k] = [start the tell when this close, tell ticks]
+  beatAhead: 45000, tells: { taxi: [20000, 60], bus: [18000, 50], door: [7000, 40], ped: [24000, 50] }, pedWalk: 25,
   followGap: 1400,              // bumper gap kept behind a solid thing in your lane
   carGap: 900, carAccel: 3,
   accel: 3, brakeDecel: 5,      // your speed rises this much per tick (milli-units/tick), and falls this much while braking
@@ -49,6 +54,8 @@ const DATA = {
     { id: 'cone', w: 300, len: 400, solid: true, pick: 8 },
     { id: 'puddle', w: 650, len: 700, solid: false, pick: 6 },
     { id: 'barrier', w: 850, len: 500, solid: true, pick: 5 },
+    { id: 'ped', w: 350, len: 400, solid: true, pick: 0 },    // beats only: a jaywalker
+    { id: 'door', w: 600, len: 400, solid: true, pick: 0 },   // beats only: a parked car's door, opens into the next lane
   ],
   // Signature routes (10-24: Gangnam things that only happen here). All integers, world milli-units from the start.
   //  curve  [[untilMilli, k]]  road bend, k in per-mille of the max bend (+ right, - left) — VIEW ONLY
@@ -57,7 +64,22 @@ const DATA = {
   //  cams   [milli]: enforcement cameras on busLane routes (fine if you are in the right lane as you pass) — RULE
   //  alley  {n, cut}: at the n-th crossing the right-turn lane is a back-alley shortcut (-cut milli, crowded for alleyTicks) — RULE
   routes: [
-    { id: 'teheran', name: '테헤란로', tag: '오르막 · 정상 점프', radio: '테헤란로 오르막 — 정상에서 뜹니다', curve: [[1e9, 0]], grade: [[40000, 0], [120000, 520], [135000, 0], [1e9, -260]], crest: [120000] },
+    { id: 'teheran', name: '테헤란로', tag: '오르막 · 정상 점프', radio: '테헤란로 오르막 — 정상에서 뜹니다', curve: [[1e9, 0]], grade: [[40000, 0], [120000, 520], [135000, 0], [1e9, -260]], crest: [120000],
+      // 10-25 authored course (IDEA 수직 슬라이스): fixed crossings [at, turn], traffic density [[until, cars]], beats [at, k, lane, v milli/s, look]
+      //  k: car (moving, lane fixed) · taxi (hazards, then stops dead) · bus (at the kerb, signals, pulls out) · door (parked car, door opens) · ped (walks across from the lane's side)
+      cross: [[70000, 0], [172000, 1]],
+      cars: [[22000, 6], [42000, 8], [64000, 3], [100000, 9], [135000, 7], [190000, 9], [1e9, 6]],
+      beats: [
+        [30000, 'taxi', 0, 2500],
+        [44000, 'car', -1, 1200], [44600, 'car', 1, 1200], [48000, 'car', -2, 1000], [48800, 'car', 2, 1000], [52000, 'car', -1, 1200], [52600, 'car', 1, 1200],
+        [56000, 'car', -1, 1100], [56800, 'car', 1, 1100], [60000, 'car', -2, 1000], [60600, 'car', 2, 1000],
+        [96000, 'ped', 1, 0],
+        [104000, 'car', -1, 1800, 'bus'], [109000, 'car', 1, 1800, 'bus'], [114000, 'car', 0, 2600],
+        [142000, 'door', 2, 0],
+        [152000, 'bus', -2, 0],
+        [196000, 'car', -1, 3000], [200000, 'car', 1, 3000], [204000, 'car', 0, 3200], [208000, 'car', -1, 3000], [212000, 'car', 1, 3000], [216000, 'car', 2, 3200],
+      ],
+      zones: [[0, '출발'], [26000, '택시'], [42000, '정체 비집기'], [66000, '교차로'], [88000, '무단횡단'], [100000, '오르막'], [136000, '주차 차'], [168000, '우회전'], [192000, '막판 직선']] }, // zones: VIEW ONLY (split names)
     { id: 'daero', name: '강남대로', tag: '버스 전용차로 · 단속', radio: '강남대로 버스 전용차로 단속 중', curve: [[1e9, 0]], grade: [[1e9, 0]], crest: [], busLane: true, cams: [45000, 95000, 145000, 195000] },
     { id: 'hannam', name: '한남대교', tag: 'S 커브 · 강 바람', radio: '한남대교 진입 — 커브 주의', curve: [[50000, 0], [100000, 800], [150000, -950], [200000, 0], [1e9, 0]], grade: [[40000, 0], [80000, 220], [1e9, 0]], crest: [] },
     { id: 'alley', name: '역삼 골목', tag: '골목 지름길', radio: '첫 교차로 — 오른쪽이 골목 지름길', curve: [[70000, 0], [130000, 380], [1e9, 0]], grade: [[1e9, 0]], crest: [], alley: { n: 1, cut: 18000 } },
@@ -106,6 +128,45 @@ function laneFree(s, lane, dz, len, skip) {
   return true;
 }
 function routeOf(s) { return DATA.routes[s.cfg.route] || DATA.routes[0]; }
+function carsAt(s) { const t = routeOf(s).cars; if (!t) return s.cfg.cars; for (const [to, n] of t) if (s.dist < to) return n; return t[t.length - 1][1]; }
+const KIND = Object.fromEntries(DATA.kinds.map((k, i) => [k.id, i]));
+function spawnBeat(s, b, ev) { // one authored thing at its world spot; it owns that spot in its lane
+  const [at, k, lane, v, look] = b, dz = at - s.dist;
+  if (dz < 4000) return; // already past it (e.g. it fell behind a turn)
+  const kind = k === 'ped' ? KIND.ped : k === 'door' ? KIND.door : k === 'bus' || look === 'bus' ? KIND.bus : KIND.sedan;
+  const side = lane < 0 ? -1 : 1;
+  let x = lane * 1000, ln = lane;
+  if (k === 'ped') { x = side * 3300; ln = side * 3; } // waits on the kerb, off the road
+  if (k === 'door') { // the parked car, then its door on the traffic side (shut until it opens)
+    spawnBeat(s, [at, 'car', lane, 0, 'parked'], ev);
+    x = lane * 1000 - side * 700; ln = lane - side;
+  }
+  s.obs = s.obs.filter(o => o.beat || o.lane !== ln || Math.abs(o.dz - dz) >= DATA.spawnClear);
+  const cv = idiv(v, DATA.tickRate);
+  const o = { id: s.nextId++, kind, lane: ln, to: ln, x, fromX: x, moveT: s.cfg.carLaneTicks, dz, v: cv, cv,
+    blink: 0, touch: false, brushed: false, pass: false, beat: k, tell: DATA.tells[k] ? -1 : 0, walk: 0, shut: k === 'door' };
+  s.obs.push(o);
+  if (ev) ev.push({ k: 'spawn', id: o.id, kind, lane: ln });
+}
+function beatAct(s, o, ev) { // the tell ran out: the thing does what it warned about
+  if (o.beat === 'taxi') o.v = 0;
+  if (o.beat === 'bus') o.v = idiv(2200, DATA.tickRate);
+  if (o.beat === 'door') o.shut = false;
+  if (o.beat === 'ped') o.walk = o.x > 0 ? -DATA.pedWalk : DATA.pedWalk;
+  ev.push({ k: 'act', id: o.id, what: o.beat });
+}
+function gain(s, what, ev) { // heat meter: one near miss
+  const h = DATA.heat;
+  s.chain = s.chainT > 0 ? Math.min(h.chainMax, s.chain + 1) : 1; s.chainT = h.chainTicks;
+  const add = h[what] + h.chainBonus * (s.chain - 1), was = s.heat;
+  s.heat = Math.min(h.full, s.heat + add);
+  ev.push({ k: 'heat', what, chain: s.chain, add });
+  if (was < h.full && s.heat >= h.full) ev.push({ k: 'full' });
+}
+function shove(s, o) { // boosting into a car: it swerves out of your way (or you squeeze by if it has nowhere to go)
+  const dir = o.x === s.x ? (s.lane >= 0 ? -1 : 1) : o.x < s.x ? -1 : 1, to = Math.max(-DATA.half, Math.min(DATA.half, o.lane + dir));
+  if (to !== o.lane) { o.fromX = o.x; o.lane = to; o.to = to; o.moveT = 0; o.blink = 0; }
+}
 function spawnOne(s, dz, ev) {
   const route = routeOf(s);
   let r = rngInt(s, 100), kind = 0;
@@ -126,7 +187,7 @@ function spawnOne(s, dz, ev) {
     if (busV < 0 && kd.stopPct && rngInt(s, 100) < kd.stopPct) v = 0; // bus waiting at a stop
   }
   const o = { id: s.nextId++, kind, lane, to: lane, x: lane * 1000, fromX: lane * 1000, moveT: s.cfg.carLaneTicks,
-    dz, v, cv: v, blink: 0, touch: false, brushed: false, pass: false };
+    dz, v, cv: v, blink: 0, touch: false, brushed: false, pass: false, beat: '', tell: 0, walk: 0, shut: false };
   s.obs.push(o);
   if (ev) ev.push({ k: 'spawn', id: o.id, kind, lane });
 }
@@ -142,6 +203,8 @@ function mayGo(s, move) { // right turns go on red; left turns wait for the arro
   return move === 1 || (move === -1 ? k === 'L' : k === 'G' || k === 'Y');
 }
 function newCross(s, at) {
+  const fixed = routeOf(s).cross;
+  if (fixed) { const c = fixed[s.crossN++]; s.cross = c ? { at: c[0], turn: c[1], off: rngInt(s, CYCLE), alley: false } : null; return; }
   const p = DATA.cross.turnPick, r = rngInt(s, 100);
   let turn = r < p[0] ? 0 : r < p[0] + p[1] ? 1 : -1;
   s.crossN++;
@@ -167,7 +230,7 @@ function playerSpeed(s) { // milli-units per tick: cruise, eased down behind the
   }
   for (const o of s.obs) {
     const kd = DATA.kinds[o.kind];
-    if (!kd.solid || o.dz <= 0 || !xOverlap(s, o)) continue;
+    if (!kd.solid || o.shut || o.dz <= 0 || !xOverlap(s, o) || (s.boost > 0 && kd.car)) continue; // boosting: cars get out of your way
     const g = o.dz - idiv(kd.len + DATA.playerLen, 2);
     if ((kd.car && o.cv === 0) || o.pass) { if (g < DATA.followGap) target = Math.min(target, idiv(idiv(k.speed, DATA.tickRate) * DATA.filterPermille, 1000)); }
     else target = follow(target, o.cv, g, DATA.followGap);
@@ -179,7 +242,7 @@ function carSpeed(s, o, ph) { // target for one car: own pace, behind whatever i
   const kd = DATA.kinds[o.kind];
   let t = o.v;
   for (const p of s.obs) {
-    if (p === o || !DATA.kinds[p.kind].solid || p.dz <= o.dz || (p.lane !== o.lane && p.to !== o.lane)) continue;
+    if (p === o || p.shut || !DATA.kinds[p.kind].solid || p.dz <= o.dz || (p.lane !== o.lane && p.to !== o.lane)) continue;
     t = follow(t, p.cv, p.dz - o.dz - idiv(kd.len + DATA.kinds[p.kind].len, 2), DATA.carGap);
   }
   if (o.dz < 0 && s.lane === o.lane) t = follow(t, s.vp, -o.dz - idiv(kd.len + DATA.playerLen, 2), DATA.carGap);
@@ -198,8 +261,9 @@ const RULES = {
       dist: 0, goal: idiv(idiv(cfg.speed, data.tickRate) * cfg.runTicks * cfg.goalPct, 100),
       obs: [], nextId: 1, slow: 0, boost: 0, hits: 0, brushes: 0, squeezes: 0, squeezing: false, stuck: 0,
       cross: null, commit: false, redWait: 0, turns: 0, misses: 0, filtering: false, crossN: 0, temp: 10000, turnSlow: 0, alleyT: 0, alleys: 0, fines: 0, camI: 0,
+      heat: 0, chain: 0, chainT: 0, boosts: 0, shoves: 0, passes: 0, beatI: 0,
       done: false, win: false };
-    for (let i = 0; i < cfg.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), null);
+    for (let i = carsAt(s); i > 0; i--) spawnOne(s, 8000 + rngInt(s, 37000), null);
     if (cfg.lights) newCross(s, DATA.cross.first);
     return s;
   },
@@ -213,6 +277,10 @@ const RULES = {
         s.fromX = s.x; s.lane = to; s.moveT = 0; s.moveDir = cmd.dir;
       }
     }
+    if (cmd.k === 'boost' && !s.done) {
+      if (s.heat >= DATA.heat.full && s.boost === 0) { s.boost = DATA.boostTicks; s.heat = 0; s.boosts++; ev.push({ k: 'boost' }); }
+      else ev.push({ k: 'noboost' });
+    }
     if (cmd.k === 'brake' && !s.done && s.brake !== !!cmd.on) { s.brake = !!cmd.on; ev.push({ k: 'brake', on: s.brake }); }
     return { events: ev };
   },
@@ -225,6 +293,7 @@ const RULES = {
     if (s.slow > 0) s.slow--;
     if (s.boost > 0) s.boost--;
     if (s.turnSlow > 0) s.turnSlow--;
+    if (s.chainT > 0) s.chainT--;
     if (s.moveT < k.laneTicks) { s.moveT++; s.x = smooth(s.fromX, s.lane * 1000, s.moveT, k.laneTicks); }
     else s.x = s.lane * 1000;
     // a light you were allowed through stays yours once you are this close (no slamming on the brakes at the line)
@@ -245,7 +314,7 @@ const RULES = {
       ev.push({ k: 'cross', move, at: c.at, off: c.off, gone });
       if (move !== 0) { // new street: what was ahead went straight on; the new street's traffic is already there
         s.turns++; s.turnSlow = DATA.turnTicks; s.obs = s.obs.filter(o => o.dz < 3000);
-        for (let i = 0; i < k.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), ev);
+        for (let i = carsAt(s); i > 0; i--) spawnOne(s, 8000 + rngInt(s, 37000), ev);
       }
       newCross(s, c.at + k.crossGap); s.commit = false;
     }
@@ -255,6 +324,14 @@ const RULES = {
       if (s.lane === DATA.half) { s.fines++; ev.push({ k: 'fine' }); }
       s.camI++;
     }
+    const beats = routeOf(s).beats; // authored beats: spawn ahead, but never past the next stop line (a turn would wipe them)
+    while (beats && s.beatI < beats.length && beats[s.beatI][0] - s.dist <= DATA.beatAhead && !(s.cross && beats[s.beatI][0] > s.cross.at)) spawnBeat(s, beats[s.beatI++], ev);
+    for (const o of s.obs) if (o.tell !== 0) { // beats with a tell: warn first (tell ticks), then act
+      const tl = DATA.tells[o.beat];
+      if (o.tell < 0) { if (o.dz < tl[0]) { o.tell = tl[1]; ev.push({ k: 'tell', id: o.id, what: o.beat }); if (o.beat === 'bus') { o.to = o.lane + (o.lane < 0 ? 1 : -1); o.blink = tl[1]; } } }
+      else if (--o.tell === 0) beatAct(s, o, ev);
+    }
+    for (const o of s.obs) if (o.walk) { o.x += o.walk; o.lane = Math.max(-DATA.half, Math.min(DATA.half, idiv(o.x + (o.x < 0 ? -500 : 500), 1000))); o.to = o.lane; }
     // traffic: speed (follow, lights), move, signal, change lanes
     const ph = s.cross ? phaseAt(s).i : 0;
     for (const o of s.obs) {
@@ -262,11 +339,13 @@ const RULES = {
       o.cv = t < o.cv ? t : Math.min(t, o.cv + DATA.carAccel);
     }
     for (const o of s.obs) {
+      const was = o.dz;
       o.dz += o.cv - vp;
+      if (was > 0 && o.dz <= 0 && o.cv > 0 && DATA.kinds[o.kind].car && Math.abs(o.lane - s.lane) === 1) { s.passes++; gain(s, 'pass', ev); } // overtook one right beside you
       if (o.blink > 0) {
         o.blink--;
         if (o.blink === 0) { o.fromX = o.x; o.lane = o.to; o.moveT = 0; }
-      } else if (o.v > 0 && o.moveT >= k.carLaneTicks && o.dz > 2000 && rngInt(s, 10000) < k.carChange) {
+      } else if (o.v > 0 && !o.beat && o.moveT >= k.carLaneTicks && o.dz > 2000 && rngInt(s, 10000) < k.carChange) {
         const to = o.lane + (rngInt(s, 2) === 0 ? -1 : 1);
         if (Math.abs(to) <= DATA.half && laneFree(s, to, o.dz, DATA.kinds[o.kind].len, o)) {
           o.to = to; o.blink = k.blinkTicks;
@@ -279,13 +358,19 @@ const RULES = {
     let left = false, right = false;
     s.filtering = false;
     for (const o of s.obs) {
+      if (o.shut) continue;
       const kd = DATA.kinds[o.kind], zo = zOverlap(o), xo = xOverlap(s, o);
       if (zo && xo && kd.car && (o.cv === 0 || o.pass)) { o.pass = true; s.filtering = true; continue; } // riding the lane line past a stopped car
       o.pass = false;
       if (zo && xo) {
         if (!o.touch) {
           o.touch = true;
-          if (kd.solid) { s.hits++; s.slow = DATA.slowTicks; s.temp = Math.max(0, s.temp - DATA.food.hit); ev.push({ k: 'hit', id: o.id }); }
+          if (kd.solid && s.boost > 0 && kd.car) { shove(s, o); s.shoves++; ev.push({ k: 'shove', id: o.id }); }
+          else if (kd.solid) {
+            s.hits++; s.slow = DATA.slowTicks; s.temp = Math.max(0, s.temp - DATA.food.hit); s.boost = 0;
+            s.heat = idiv(s.heat * DATA.heat.hitKeep, 1000); s.chain = 0; s.chainT = 0;
+            ev.push({ k: 'hit', id: o.id, kind: o.kind, beat: o.beat || '' });
+          }
           else { s.slow = Math.max(s.slow, idiv(DATA.slowTicks, 3)); s.temp = Math.max(0, s.temp - DATA.food.splash); ev.push({ k: 'splash', id: o.id }); }
         }
       } else {
@@ -293,16 +378,16 @@ const RULES = {
         if (zo && kd.car) {
           if (o.x < s.x) left = true; else right = true;
           const side = 2 * Math.abs(s.x - o.x) - kd.w - DATA.playerW;
-          if (!o.brushed && side < 2 * DATA.brushGap) { o.brushed = true; s.brushes++; ev.push({ k: 'brush', id: o.id }); }
+          if (!o.brushed && side < 2 * DATA.brushGap) { o.brushed = true; s.brushes++; ev.push({ k: 'brush', id: o.id }); gain(s, 'brush', ev); }
         }
       }
     }
-    if (left && right && !s.squeezing) { s.squeezes++; s.boost = DATA.boostTicks; ev.push({ k: 'squeeze' }); }
+    if (left && right && !s.squeezing) { s.squeezes++; ev.push({ k: 'squeeze' }); gain(s, 'squeeze', ev); }
     s.squeezing = left && right;
-    s.obs = s.obs.filter(o => o.dz > -DATA.despawnBehind && o.dz < DATA.spawnDz + 20000);
+    s.obs = s.obs.filter(o => o.dz > -DATA.despawnBehind && o.dz < DATA.spawnDz + 20000 && !(o.walk && Math.abs(o.x) > 3600));
     let ahead = 0;
-    for (const o of s.obs) if (o.dz > 0) ahead++;
-    if (ahead < k.cars) spawnOne(s, DATA.spawnDz + rngInt(s, 10000), ev);
+    for (const o of s.obs) if (o.dz > 0 && !o.beat) ahead++;
+    if (ahead < carsAt(s)) spawnOne(s, DATA.spawnDz + rngInt(s, 10000), ev);
     if (s.dist >= s.goal || s.tick >= k.runTicks) {
       s.done = true; s.win = s.dist >= s.goal;
       ev.push({ k: 'done', win: s.win, tick: s.tick });
@@ -344,6 +429,8 @@ const KNOBS = [ // key, label, min, max, step, default (view units), toRule
   ['goalPct', '목표 거리 %', 50, 100, 1, 75, v => v],
   ['lights', '신호등 켬', 0, 1, 1, 1, v => v],
   ['crossGap', '교차로 간격', 60, 240, 10, 110, v => v * 1000],
+  ['rewinds', '쿵 다시보기 횟수', 0, 3, 1, 2, null],
+  ['voice', '내비 음성', 0, 1, 1, 1, null],
 ];
 const KNOB_KEY = 'proto_seoulroute_knobs7'; // bumped with v3 defaults so old phone values do not override them
 const V = {};
@@ -369,19 +456,21 @@ const W = 720, HORIZON = 457, ROAD_TEX_W = 848 / 160, TILE_LEN = 20, CELL = 256,
 let H = 1280, PLAYER_Y = 1090, CAM_H = 3.63;
 const zPlayer = () => V.camBack;                                    // view-only camera distance
 const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
-const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5 };
+const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5, ped: 6 };
 // feel (view only, rules untouched): px/pv = drawn x spring that overshoots the lane and settles; tilt/tv = lean spring;
 // bx/bv = the box on the rack lagging the bike; stop = hit-stop seconds; gust = side cars shiver after a squeeze
-const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, ghosts: [], corner: null, pitch: 0, air: null, crestI: 0, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
+const FX = { rw: null, rws: 0, trace: [], splits: [], said: {}, boostA: 0, pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, ghosts: [], corner: null, pitch: 0, air: null, crestI: 0, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
 
 // ---- run (state + command log for replay) ----
 let S, LOG;
+const HIST = []; // view only: the last REWIND_TICKS states, for the crash replay
 function reset(seed = (Date.now() >>> 0), extra) {
   if (typeof brakeUntil !== 'undefined') brakeUntil = 0;
   const knobs = Object.assign(ruleKnobs(), extra || {});
   S = RULES.init(DATA, seed, knobs);
   LOG = { seed: (seed >>> 0) || 1, knobs, cmds: [], endTick: 0 }; // init already advanced S.rng
   FX.pops = []; FX.shake = 0; FX.flash = 0; FX.bend = null; FX.lastCross = null; FX.age = {};
+  FX.rw = null; FX.rws = 0; FX.crashes = []; FX.trace = []; FX.splits = []; FX.said = {}; FX.boostA = 0; HIST.length = 0;
   FX.ghosts = []; FX.corner = null; FX.pitch = 0; FX.air = null; FX.crestI = 0; FX.px = 0; FX.pv = 0; FX.tilt = 0; FX.tv = 0; FX.bx = 0; FX.bv = 0; FX.stop = 0; FX.gust = 0;
 }
 function command(cmd) {
@@ -483,6 +572,22 @@ function audioOn() {
     eng.connect(lp).connect(engGain).connect(ac.destination); eng.start();
   } catch (e) { ac = null; }
 }
+let noiseBuf = null;
+function noise(len, freq, vol = 0.15, q = 1, kind = 'bandpass', pan = 0, slide = 1) { // filtered white noise: whoosh, hiss, crunch
+  if (!ac) return;
+  if (!noiseBuf) { noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate); const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
+  src.buffer = noiseBuf; f.type = kind; f.Q.value = q; f.frequency.setValueAtTime(freq, t); if (slide !== 1) f.frequency.exponentialRampToValueAtTime(freq * slide, t + len);
+  g.gain.setValueAtTime(0.001, t); g.gain.exponentialRampToValueAtTime(vol, t + Math.min(0.04, len / 3)); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  let out = src.connect(f).connect(g);
+  if (pan && ac.createStereoPanner) { const pn = ac.createStereoPanner(); pn.pan.value = pan; out = out.connect(pn); }
+  out.connect(ac.destination); src.start(t); src.stop(t + len + 0.05);
+}
+const vib = p => { if (!ac) return; try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
+function say(t) { // nav voice (Web Speech; silent where the phone has no Korean voice)
+  try { if (!window.speechSynthesis || V.voice === 0) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'ko-KR'; u.rate = 1.15; u.volume = 0.9; speechSynthesis.speak(u); } catch (e) {}
+}
+function horn() { blip(392, 0.28, 'square', 0.07); blip(494, 0.28, 'square', 0.06); }
 function blip(freq, len, type = 'sine', vol = 0.2, slide = 0) {
   if (!ac) return;
   const o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime;
@@ -497,13 +602,32 @@ function onEvents(events) {
     if (e.k === 'lane') { blip(220, 0.08, 'triangle', 0.08, 1.6); FX.tv += (e.to - e.from) * 9; } // body leans before the bike moves
     if (e.k === 'bump') FX.shake = Math.max(FX.shake, 0.08);
     if (e.k === 'hit') {
-      FX.shake = 0.35; FX.flash = 0.25; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5);
+      FX.shake = 0.35; FX.flash = 0.25; FX.flashCol = '#ff3b3b'; blip(90, 0.35, 'square', 0.25, 0.5); noise(0.35, 900, 0.3, 0.7, 'lowpass', 0, 0.3); vib([70, 40, 40]);
+      (FX.crashes = FX.crashes || []).push({ tick: S.tick, label: hitLabel(e) });
+      if (FX.rws < V.rewinds && !S.done && HIST.length > 10) { FX.rws++; FX.rw = { t: 0, id: e.id, label: hitLabel(e), frames: HIST.slice(), i: 0 }; } // the crash replay (view only)
       const o = S.obs.find(o => o.id === e.id), side = o && o.x < S.x ? 1 : o && o.x > S.x ? -1 : (S.moveDir || 1); // thrown away from what you hit
       FX.pv += side * 5; FX.tv += side * 18; FX.bv += side * 9;
     }
     if (e.k === 'splash') { FX.shake = Math.max(FX.shake, 0.12); FX.flash = 0.12; FX.flashCol = '#7fc8ff'; blip(300, 0.15, 'sine', 0.1, 0.6); }
-    if (e.k === 'brush') { FX.pops.push({ text: '스침!', size: 34, t: 0 }); blip(700, 0.1, 'sine', 0.08, 1.5); }
-    if (e.k === 'squeeze') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; FX.pops.push({ text: '틈새!', size: 50, t: 0 }); blip(900, 0.2, 'sine', 0.14, 1.8); FX.stop = 0.11; FX.gust = 0.45; } // hit-stop: the moment lands
+    if (e.k === 'brush') { const o = S.obs.find(o => o.id === e.id); noise(0.28, 1800, 0.22, 2, 'bandpass', o ? Math.sign(o.x - S.x) * 0.8 : 0, 0.4); vib(12); }
+    if (e.k === 'heat') { // near-miss combo: pitch climbs with the chain
+      const big = e.what !== 'pass', name = { pass: '추월', brush: '스침!', squeeze: '틈새!' }[e.what];
+      blip(520 * Math.pow(1.12, e.chain), big ? 0.16 : 0.07, 'triangle', big ? 0.12 : 0.05, 1.4);
+      if (big || e.chain >= 3) FX.pops.push({ text: name + (e.chain > 1 ? ` x${e.chain}` : ''), size: big ? 40 + e.chain * 3 : 28, t: 0, col: e.chain >= 4 ? '#ff9a1f' : '#ffd84a' });
+      FX.heatKick = 1;
+    }
+    if (e.k === 'full') { [660, 880, 1100, 1320].forEach((f, i) => setTimeout(() => blip(f, 0.12, 'triangle', 0.1), i * 70)); FX.pops.push({ text: '부스트 준비! ↑ 쓸기', size: 40, t: 0, col: '#5ad1ff', life: 1.1 }); vib([20, 30, 20]); }
+    if (e.k === 'boost') { FX.flash = 0.15; FX.flashCol = '#ffe45e'; FX.pops.push({ text: '부스트!', size: 64, t: 0, col: '#ffe45e', life: 0.9 }); noise(0.9, 400, 0.3, 1, 'bandpass', 0, 6); blip(180, 0.8, 'sawtooth', 0.08, 3); vib([30, 30, 60]); FX.shake = Math.max(FX.shake, 0.12); }
+    if (e.k === 'noboost') blip(160, 0.1, 'square', 0.05, 0.8);
+    if (e.k === 'shove') { horn(); FX.pops.push({ text: '비켜요!', size: 34, t: 0, col: '#fff' }); vib(15); }
+    if (e.k === 'tell') { // each surprise has its own sound and look, a beat before it happens
+      if (e.what === 'taxi') for (let i = 0; i < 4; i++) setTimeout(() => blip(i % 2 ? 1100 : 1400, 0.05, 'square', 0.05), i * 240);
+      if (e.what === 'bus') noise(0.5, 3500, 0.12, 0.5, 'highpass');
+      if (e.what === 'door') blip(240, 0.35, 'sawtooth', 0.05, 1.6);
+      if (e.what === 'ped') { blip(2200, 0.12, 'sine', 0.08, 0.8); setTimeout(() => blip(2200, 0.18, 'sine', 0.08, 0.7), 160); }
+    }
+    if (e.k === 'act' && e.what === 'taxi') noise(0.4, 1200, 0.12, 3, 'bandpass', 0, 0.5);
+    if (e.k === 'squeeze') { FX.flash = 0.18; FX.flashCol = '#ffd84a'; noise(0.3, 1400, 0.2, 1.5, 'bandpass', 0, 0.5); FX.stop = 0.11; FX.gust = 0.45; vib(20); } // hit-stop: the moment lands
     if (e.k === 'fine') { FX.flash = 0.2; FX.flashCol = '#ffffff'; FX.pops.push({ text: `단속 카메라! −₩${DATA.fineTip}`, size: 34, t: 0, col: '#ff7a6a', life: 1.0 }); blip(1500, 0.08, 'square', 0.1); blip(1000, 0.12, 'square', 0.08); }
     if (e.k === 'alley') { FX.pops.push({ text: '골목 지름길!', size: 46, t: 0, col: '#ffd84a', life: 1.0 }); blip(700, 0.2, 'triangle', 0.12, 1.8); }
     if (e.k === 'blink') blip(1200, 0.04, 'square', 0.03);
@@ -520,7 +644,7 @@ function onEvents(events) {
     }
     if (e.k === 'done') { LOG.endTick = e.tick; if (engGain) engGain.gain.value = 0.015; }
   }
-  if (eng) eng.frequency.value = 50 + speedView() * 3.2;
+  if (eng) eng.frequency.value = 50 + speedView() * 3.2 + (S.boost > 0 ? 40 : 0);
 }
 
 const rain = Array.from({ length: 45 }, () => ({ x: Math.random() * W, y: Math.random() * H, l: 20 + Math.random() * 30 }));
@@ -607,6 +731,21 @@ function drawLamps(pt, key) {
   }
 }
 
+const TELL = { taxi: ['급정거!', '#ff9a1f'], bus: ['출발!', '#3F86D8'], door: ['문 열림!', '#ffd84a'], ped: ['건너요!', '#ff5a4a'] };
+function hitLabel(e) {
+  return { taxi: '급정거한 택시', bus: '출발하는 버스', door: '열린 차 문', ped: '무단횡단 행인' }[e.beat]
+    || { sedan: '옆 차에 끼어들다', bus: '버스에 끼어들다', cone: '라바콘', barrier: '공사 펜스', ped: '행인', door: '차 문' }[DATA.kinds[e.kind].id] || '쿵';
+}
+function tellBubble(t, col, x, y, sz, pulse) { // the warning: a fat "!" pill over the thing, same shape for every surprise
+  const f = Math.max(30, sz) * (1 + 0.12 * pulse); // never smaller than a HUD word: you read it while it is still far off
+  ctx.font = `900 ${f}px sans-serif`; const w = ctx.measureText(t).width + f * 1.6, h = f * 1.5;
+  ctx.fillStyle = col; ctx.strokeStyle = HB; ctx.lineWidth = Math.max(2, f / 8);
+  ctx.beginPath(); ctx.roundRect(x - w / 2, y - h, w, h, h / 2); ctx.fill(); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - f * 0.3, y - 1); ctx.lineTo(x, y + f * 0.45); ctx.lineTo(x + f * 0.3, y - 1); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x - w / 2 + f * 0.75, y - h / 2, f * 0.48, 0, 7); ctx.fill();
+  txt('!', x - w / 2 + f * 0.75, y - h / 2 + f * 0.36, f * 0.9, col, 'center', '900');
+  txt(t, x + f * 0.4, y - h / 2 + f * 0.36, f, '#fff', 'center', '900');
+}
 function draw(dt) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -700,8 +839,11 @@ function draw(dt) {
       items.push({ z: C.at - camZ() + zPlayer() + 12.3 + pd.dz, ped: pd, x, mode: 'near' });
     }
   }
+  { const gh = ghostOf(S.cfg.route), i = Math.floor(S.tick / 6); // your best run on this course, as a see-through bike
+    if (gh && gh.tr[i]) { const dz = gh.tr[i][0] - S.dist; if (dz > -3000 && dz < 85000 && Math.abs(dz) > 600) items.push({ z: zPlayer() + dz / 1000, ghostBike: gh.tr[i][1] }); } }
   if (FX.bend) for (const g of FX.ghosts) { g.dz += (g.v - S.vp) * dt * 60; items.push({ z: zPlayer() + g.dz / 1000, ghost: g }); }
   items.sort((a, b) => b.z - a.z);
+  const later = []; // warnings draw over everything (poles, signals), after the depth-sorted pass
   for (const it of items) {
     if (it.player) { drawPlayer(dt); continue; }
     if (it.cam || it.alleySign) {
@@ -720,6 +862,13 @@ function draw(dt) {
         txt('골목 →', sx + 3.05 * p.s, p.y - 1.95 * p.s, Math.max(10, 0.36 * p.s), '#3a2400', 'center');
       }
       ctx.globalAlpha = 1; continue;
+    }
+    if (it.ghostBike !== undefined) {
+      if (it.z <= 0.3 || it.z > 85) continue;
+      const p = project(it.z), sx = W / 2 + (it.ghostBike / 1000 + bendX(it.z)) * p.s;
+      drawCell(IMG.hero, 0, sx, p.y, 0.62 * p.s, 0.38 * Math.min(1, (85 - it.z) / 15));
+      if (it.z > 4) txt('최고 기록', sx, p.y - 0.95 * p.s, Math.max(12, 0.2 * p.s), '#9fe3ffcc', 'center', '900');
+      continue;
     }
     if (it.ped || it.ghost) { // crosswalk people / the traffic that went straight on
       if (it.z <= 0.3 || it.z > 90) continue;
@@ -743,12 +892,32 @@ function draw(dt) {
     if (FX.age[o.id] !== undefined) { a *= Math.min(1, FX.age[o.id] / 0.6); if ((FX.age[o.id] += dt) > 0.6) delete FX.age[o.id]; } // new street's cars fade in
     const gust = FX.gust > 0 && kd.car && Math.abs(o.dz) < 3500 ? Math.sin(performance.now() / 18) * 0.05 * FX.gust : 0; // squeezed cars shiver in your wake
     const cx = W / 2 + (o.x / 1000 + bendX(it.z) + gust) * p.s;
+    if (kd.id === 'door') { // the door: nothing while shut, a flickering gap while it is about to open, a panel when open
+      if (o.shut && o.tell <= 0) continue;
+      const dw = 0.5 * p.s, dh = 0.62 * p.s, side = o.x < o.lane * 1000 ? 1 : -1;
+      if (o.shut) { if ((S.tick >> 2) & 1) { ctx.fillStyle = '#ffd84a'; ctx.fillRect(cx + side * dw * 0.55 - 2, p.y - dh, Math.max(3, 0.05 * p.s), dh); } }
+      else { ctx.fillStyle = '#c9d2e6'; ctx.strokeStyle = '#3a3f55'; ctx.lineWidth = Math.max(2, 0.03 * p.s); ctx.beginPath(); ctx.moveTo(cx + side * dw * 0.6, p.y); ctx.lineTo(cx - side * dw * 0.5, p.y - dh * 0.1); ctx.lineTo(cx - side * dw * 0.5, p.y - dh * 0.95); ctx.lineTo(cx + side * dw * 0.6, p.y - dh); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      if (o.tell > 0 && it.z < 70) later.push(() => tellBubble(TELL.door[0], TELL.door[1], cx, p.y - dh - 0.25 * p.s, 0.32 * p.s, Math.sin(S.tick / 3)));
+      continue;
+    }
     if (kd.solid) { // contact shadow: pins the thing to its lane
       ctx.globalAlpha = 0.45 * a; ctx.fillStyle = '#000';
       ctx.beginPath(); ctx.ellipse(cx, p.y, kd.w / 1000 * p.s * 0.58, kd.w / 1000 * p.s * 0.13, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
     }
     const pt = drawCell(IMG.props, PROP_CELL[kd.id], cx, p.y, kd.w / 1000 * p.s, a);
     if (pt && kd.car && o.cv * 2 < o.v + 1) for (const [lx, ly] of TAIL[PROP_CELL[kd.id]]) { const q = pt(lx, ly); glow(q.x, q.y, 16 * q.k, '#ff2a2a', 0.9 * a); } // braking / stopped
+    if (pt && o.beat === 'taxi') { // roof sign; hazards from the tell on
+      const q = pt(128, 34); ctx.fillStyle = '#ffd84a'; ctx.strokeStyle = HB; ctx.lineWidth = Math.max(1.5, 3 * q.k); ctx.beginPath(); ctx.roundRect(q.x - 30 * q.k, q.y - 18 * q.k, 60 * q.k, 20 * q.k, 5 * q.k); ctx.fill(); ctx.stroke();
+      if (o.tell !== -1 && (S.tick >> 3) & 1) for (const [lx, ly] of TAIL[0]) { const r = pt(lx, ly); glow(r.x, r.y, 20 * r.k, '#ffae2a', a); }
+    }
+    if (o.tell > 0 && TELL[o.beat] && o.beat !== 'door' && it.z < 75) { // the warning, a beat before
+      const top = pt ? pt(128, 10).y : p.y - 0.8 * p.s;
+      ctx.globalAlpha = 0.5 * a; ctx.strokeStyle = TELL[o.beat][1]; ctx.lineWidth = Math.max(3, 0.06 * p.s); ctx.beginPath(); ctx.ellipse(cx, p.y, kd.w / 1000 * p.s * (0.7 + 0.1 * Math.sin(S.tick / 3)), kd.w / 1000 * p.s * 0.18, 0, 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+      later.push(() => tellBubble(TELL[o.beat][0], TELL[o.beat][1], cx, top - 0.15 * p.s, 0.3 * p.s, Math.sin(S.tick / 3)));
+    }
+    if (FX.rw && o.id === FX.rw.id) { // the crash replay: ring the culprit
+      ctx.strokeStyle = '#ff3b30'; ctx.lineWidth = Math.max(4, 0.07 * p.s); ctx.beginPath(); ctx.ellipse(cx, p.y - 0.3 * p.s, kd.w / 1000 * p.s * 0.85, 0.65 * p.s, 0, 0, 7); ctx.stroke();
+    }
     if (o.blink > 0 && (S.tick >> 3) & 1) { // turn signal: orange lamp on the side it is moving to
       const side = o.to < o.lane ? -1 : 1, r = Math.max(4, 0.09 * p.s);
       ctx.fillStyle = '#ffae2a'; ctx.shadowColor = '#ffae2a'; ctx.shadowBlur = r * 2;
@@ -756,6 +925,7 @@ function draw(dt) {
       ctx.shadowBlur = 0;
     }
   }
+  for (const f of later) f();
   for (const p of FX.pops) {
     p.t += dt;
     const life = p.life || 0.6, pp = project(zPlayer()), x = W / 2 + S.x / 1000 * pp.s, y = (p.y || PLAYER_Y - 160) - Math.max(0, p.t) * (p.rise === undefined ? 120 : p.rise);
@@ -775,6 +945,8 @@ function draw(dt) {
     if (r.y > H) { r.y = -40; r.x = Math.random() * (W + 200); }
     ctx.beginPath(); ctx.moveTo(r.x, r.y); ctx.lineTo(r.x + lean * 0.25, r.y - r.l); ctx.stroke();
   }
+  FX.boostA += ((S.boost > 0 ? 1 : 0) - FX.boostA) * Math.min(1, dt * 6);
+  if (FX.boostA > 0.02) { const g = ctx.createRadialGradient(W / 2, H * 0.55, H * 0.25, W / 2, H * 0.55, H * 0.75); g.addColorStop(0, 'rgba(255,200,60,0)'); g.addColorStop(1, `rgba(255,140,30,${0.45 * FX.boostA})`); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H); }
   const over = 0;
   if (S.boost > 0) {
     ctx.strokeStyle = `rgba(255,255,255,${Math.min(0.5, over * 0.6 + (S.boost > 0 ? 0.25 : 0))})`; ctx.lineWidth = 3;
@@ -787,6 +959,12 @@ function draw(dt) {
   if (FX.flash > 0) { ctx.globalAlpha = FX.flash * 1.4; ctx.fillStyle = FX.flashCol; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
   FX.shake = Math.max(0, FX.shake - dt); FX.flash = Math.max(0, FX.flash - dt); FX.gust = Math.max(0, FX.gust - dt);
   drawHud(v);
+  if (FX.rw) { // crash replay frame: letterbox, what hit you
+    ctx.fillStyle = '#000c'; ctx.fillRect(0, 0, W, 120); ctx.fillRect(0, H - 120, W, 120);
+    bubbleText(FX.rw.t < REWIND_FREEZE ? '쿵!' : '◀◀ 다시 보기', 30, 80, 44, '#ff5a4a', 'left', '#fff', 7);
+    bubbleText(FX.rw.label, W - 30, 80, 38, '#fff', 'right', '#5a3318', 7);
+    txt('탭하면 넘김', W / 2, H - 50, 24, '#ffffffaa', 'center', '700');
+  }
   ctx.restore();
 }
 
@@ -904,6 +1082,23 @@ function drawHud(v) {
   // --- little stat chips under the bubble ---
   const chips = [`틈새 ${S.squeezes}`, `쿵 ${S.hits}`]; if (route.busLane) chips.push(`단속 ${S.fines}`);
   let cx2 = 44; for (const t of chips) { ctx.font = 'bold 22px sans-serif'; const w = ctx.measureText(t).width + 28; ctx.fillStyle = '#fff6dc'; ctx.strokeStyle = HB; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(cx2, 318 + bob, w, 36, 18); ctx.fill(); ctx.stroke(); txt(t, cx2 + 14, 343 + bob, 22, HB); cx2 += w + 8; }
+  { // --- heat meter (right edge): near misses fill it, full = swipe up to boost; while boosting it drains ---
+    const hx = W - 68, hy = 420, hh = 380, boosting = S.boost > 0, f = boosting ? S.boost / DATA.boostTicks : S.heat / DATA.heat.full, full = !boosting && f >= 1;
+    const kick = FX.heatKick || 0; FX.heatKick = Math.max(0, kick - 0.06);
+    ctx.save(); ctx.translate(hx + 23, hy + hh); ctx.scale(1 + kick * 0.12, 1 + kick * 0.04); ctx.translate(-hx - 23, -hy - hh);
+    candy(hx - 8, hy - 8, 62, hh + 16, '#fff6dc', '#ffe0a0', 31);
+    ctx.fillStyle = '#5a331855'; ctx.beginPath(); ctx.roundRect(hx + 2, hy + 2, 42, hh - 4, 21); ctx.fill();
+    if (f > 0.01) {
+      const fh = Math.max(42, (hh - 4) * Math.min(1, f)), g = ctx.createLinearGradient(0, hy + hh, 0, hy);
+      if (boosting) { g.addColorStop(0, '#2fa8ff'); g.addColorStop(1, '#bff0ff'); } else { g.addColorStop(0, '#ff7a1f'); g.addColorStop(0.6, '#ffc21f'); g.addColorStop(1, '#fff27a'); }
+      ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(hx + 2, hy + hh - 2 - fh, 42, fh, 21); ctx.fill();
+      ctx.fillStyle = '#ffffff66'; ctx.beginPath(); ctx.roundRect(hx + 8, hy + hh - fh + 4, 10, fh - 12, 5); ctx.fill();
+    }
+    ctx.restore();
+    txt(boosting ? '부스트' : '콤보', hx + 23, hy + hh + 38, 20, '#fff', 'center', '900');
+    if (full) { const b = Math.sin(S.tick / 5) * 8; sparkle(hx + 8, hy + 20, 14); sparkle(hx + 40, hy + hh * 0.4, 10); candy(hx - 40, hy - 92 + b, 110, 70, '#9fe3ff', '#2fa8ff', 35); bubbleText('↑ 부스트', hx + 15, hy - 46 + b, 26, '#fff', 'center', '#1a4a8a', 6); ctx.textAlign = 'left'; }
+    if (!boosting && S.chainT > 0 && S.chain > 1) { const cy = hy + hh - (hh - 4) * Math.min(1, f); candy(hx - 84, cy - 26, 72, 48, '#ffe45e', '#ffb41f', 24, 4); bubbleText(`x${S.chain}`, hx - 48, cy + 10, 30, HB, 'center', '#fff6c8', 5); ctx.textAlign = 'left'; }
+  }
   // --- lane guide: the lanes the order wants glow yellow; you are the white dot ---
   const gy = H - 156, gx = 80, cw = 96, gap = 10;
   candy(gx - 20, gy - 12, 5 * cw + 4 * gap + 40, 92, '#fff6dc', '#ffe0a0', 40);
@@ -924,7 +1119,7 @@ function drawHud(v) {
   }
   if (S.tick < 300 && !S.done) { // first seconds: how to steer
     ctx.globalAlpha = Math.min(1, (300 - S.tick) / 60);
-    bubbleText('← → 쓸어서 차선  ·  ↓ 쓸면 브레이크', W / 2, H - 34, 26, '#fff', 'center', '#5a3318', 7); ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    bubbleText('← → 차선  ·  ↓ 브레이크  ·  ↑ 부스트', W / 2, H - 34, 26, '#fff', 'center', '#5a3318', 7); ctx.globalAlpha = 1; ctx.textAlign = 'left';
   }
   if (S.done && !APP.order) { // standalone test run (no flow): the old summary card
     ctx.fillStyle = '#0b1020e0'; ctx.beginPath(); ctx.roundRect(70, 420, 580, 420, 30); ctx.fill();
@@ -951,7 +1146,7 @@ function dayOrders(day) { // 오늘의 주문: the date is the seed, everyone ge
   for (let i = 0; i < 5; i++) {
     const a = names[r(names.length)]; let b = names[r(names.length)]; while (b === a) b = names[r(names.length)];
     const jam = r(100) < 45, rain = r(100) < 35, gap = 4 + r(5);
-    const route = r(DATA.routes.length), line = LINES[r(LINES.length)];
+    const rr = r(DATA.routes.length), route = FOCUS_ROUTE === null ? rr : FOCUS_ROUTE, line = LINES[r(LINES.length)];
     out.push({ id: i, route, line, food: FOODS[r(FOODS.length)], from: a, to: b, limit: 150 + r(4) * 15, tip: 2000 + r(4) * 500, jam, rain, gap, unit: `${10 + r(12)}0${1 + r(9)}호`,
       estBike: 36 + (jam ? 5 : 0) + (rain ? 2 : 0) + [2, -1, 3, -3][route] - 2 + r(5), estSub: 34 + (gap - 4) * 2 - 2 + r(5) });
   }
@@ -959,7 +1154,7 @@ function dayOrders(day) { // 오늘의 주문: the date is the seed, everyone ge
 }
 const LINES = ['국물 식으면 안 돼요!', '엘리베이터 고장이에요, 복도로 와 주세요', '아이가 자고 있어요, 문 살살!', '비 오는데 고마워요', '한 시간째 굶었어요…', '문 앞에 놓고 벨만 눌러 주세요'];
 const FLOW_KEY = 'proto_seoulroute_flow1', SEG_KEY = 'proto_seoulroute_seg';
-const SUBWAY_ON = false; // 10-24 사람: 지하철은 잠시 보류 (코드·subway.html 은 그대로 둠)
+const SUBWAY_ON = false, LAST_ON = false, FOCUS_ROUTE = 0; // 10-25 사람: 아파트(마지막 100m)도 나중 업데이트, 지금은 테헤란로 한 코스 완성판 // 10-24 사람: 지하철은 잠시 보류 (코드·subway.html 은 그대로 둠)
 let META = { stamps: {}, gold: [], done: 0, best: {} };
 try { META = Object.assign(META, JSON.parse(localStorage.getItem(FLOW_KEY) || '{}')); } catch (e) {}
 const saveMeta = () => { try { localStorage.setItem(FLOW_KEY, JSON.stringify(META)); } catch (e) {} };
@@ -1006,8 +1201,8 @@ function makeResult() {
   const o = APP.order, seg = APP.seg, L = APP.last;
   const win = seg.win && (!L || true);
   const segSec = seg.tick / 60 + (seg.extra || 0) / 60, lastSec = L ? L.t / 60 : 0, total = segSec + lastSec;
-  const q = L ? QUAL[L.quality || 'far'] : QUAL.wall;
-  const shortcut = win && (seg.kind === 'bike' ? seg.alleys > 0 || (seg.squeezes >= 4 && seg.hits === 0) : seg.doorOk && seg.platOk);
+  const q = L ? QUAL[L.quality || 'far'] : LAST_ON ? QUAL.wall : ['문 앞에 놓음', 1.0, 2];
+  const shortcut = win && (seg.kind === 'bike' ? seg.alleys > 0 || (seg.squeezes >= 4 && seg.hits === 0 && seg.boosts > 0) : seg.doorOk && seg.platOk);
   const key = `${o.from}-${o.to}`;
   const res = { win, total, segSec, lastSec, q, tip: win ? Math.max(0, Math.round(o.tip * q[1] * tipPct(seg.temp === undefined ? 10000 : seg.temp) / 100 / 100) * 100 - (seg.fines || 0) * DATA.fineTip) : 0, stars: win ? Math.min(3, q[2] + (seg.hits === 0 ? 0 : -1) + (shortcut ? 1 : 0)) : 0,
     shortcut, newGold: shortcut && !META.gold.includes(key), newStamp: win && !META.stamps[o.to] };
@@ -1165,8 +1360,10 @@ function drawResult(dt) {
     : [['사람에 막힘', seg.stuck / 60, PAPER.orange], ['열차 대기', (seg.wait || 0) / 60, PAPER.blue], ['쿵', seg.hits * 1.6, PAPER.red], ['반대 승강장·다른 칸', (seg.extra || 0) / 60, PAPER.red], ['틈새 보너스', -seg.squeezes * 0.6, PAPER.green]];
   let y = 300;
   for (const [n, v, col] of rows) { if (Math.abs(v) < 0.05) continue; txt(n, 70, y + 20, 20, PAPER.ink2, 'left', '500'); gauge(250, y + 4, 300, 20, Math.abs(v) / 15, col); txt(`${v < 0 ? '−' : '+'}${Math.abs(v).toFixed(1)}초`, W - 70, y + 20, 20, v < 0 ? '#2a7a2a' : PAPER.ink, 'right'); y += 34; }
-  txt(`마지막 100m ${r.lastSec.toFixed(1)}초`, 70, y + 20, 20, PAPER.ink2, 'left', '500');
+  if (LAST_ON) txt(`마지막 100m ${r.lastSec.toFixed(1)}초`, 70, y + 20, 20, PAPER.ink2, 'left', '500');
+  else txt(`부스트 ${seg.boosts || 0}번`, 70, y + 20, 20, PAPER.ink2, 'left', '500');
   { const tm = seg.temp === undefined ? 10000 : seg.temp, tp = tipPct(tm); txt(`음식 ${Math.round(tm / 100)}%${tp < 100 ? ` · 팁 ×${(tp / 100).toFixed(2)}` : ''}`, W - 70, y + 20, 20, tp < 100 ? PAPER.red : '#2a7a2a', 'right', '700'); } y += 40;
+  if (seg.kind === 'bike' && seg.splits && seg.splits.length > 1) y = drawSplits(seg, y);
   // shortcut + stamps
   if (r.shortcut) { ctx.fillStyle = '#fff6cc'; ctx.strokeStyle = PAPER.gold; ctx.lineWidth = 3; ctx.beginPath(); ctx.roundRect(70, y, W - 140, 64, 14); ctx.fill(); ctx.stroke(); txt(r.newGold ? '새 지름길 발견! 지도에 금선으로 남음' : '지름길로 왔다 (이미 지도에 있음)', 90, y + 40, 22, '#8a6a00'); y += 80; }
   else if (r.win) { txt((seg.kind === 'bike' ? (seg.route === 3 ? '지름길 힌트: 첫 교차로 맨 오른쪽 = 골목' : '지름길 힌트: 틈새 4번·쿵 0이면 금선') : '지름길 힌트: 맞는 승강장 + 빠른 하차 문이면 금선'), 70, y + 24, 18, PAPER.ink2, 'left', '500'); y += 44; }
@@ -1178,6 +1375,26 @@ function drawResult(dt) {
   txt('다음 주문', 90, y + 34, 16, PAPER.ink2, 'left', '500'); txt(`${nxt.food.n} · ${nxt.from} → ${nxt.to}${nxt.rain ? ' · 비' : ''}${nxt.jam ? ' · 정체' : ''}`, 90, y + 60, 20, PAPER.ink);
   button('retry', 60, H - 200, 250, 76, '다시 (광고 ▶)', '#fff', PAPER.orangeDk); ctx.strokeStyle = PAPER.orange; ctx.lineWidth = 4; ctx.beginPath(); ctx.roundRect(60, H - 200, 250, 76, 22); ctx.stroke();
   button('map', 330, H - 200, W - 390, 76, '지도 · 다음 주문', PAPER.green);
+}
+function drawSplits(seg, y) { // course strip: one block per zone, wide = slow; green/red vs your best; red dots = crashes
+  const zones = DATA.routes[seg.route].zones, sp = seg.splits.concat(seg.win ? [seg.tick] : []), best = seg.best && seg.best.splits;
+  const secs = zones.map((z, i) => sp[i + 1] !== undefined ? (sp[i + 1] - sp[i]) / 60 : null).filter(v => v !== null);
+  const bsecs = best ? zones.map((z, i) => (i + 1 < best.length ? best[i + 1] : seg.best.tick) - best[i]).map(t => t / 60) : null;
+  txt('구간 기록' + (best ? ' · 최고 기록과 비교' : ' · 다음 판부터 최고 기록과 비교'), 70, y + 20, 22, PAPER.ink); y += 34;
+  const tot = secs.reduce((a, b) => a + b, 0) || 1, x0 = 70, w = W - 140; let x = x0, worst = null;
+  secs.forEach((t, i) => {
+    const bw = Math.max(18, w * t / tot - 4), d = bsecs ? t - bsecs[i] : 0;
+    ctx.fillStyle = !bsecs ? PAPER.paperDk : d > 0.3 ? '#f2a49a' : d < -0.3 ? '#a8e0a0' : '#efe0b8';
+    ctx.beginPath(); ctx.roundRect(x, y, bw, 34, 8); ctx.fill(); ctx.strokeStyle = PAPER.edge; ctx.lineWidth = 2; ctx.stroke();
+    if (bw > 60) txt(zones[i][1], x + bw / 2, y + 23, 15, PAPER.ink, 'center', '700');
+    for (const c of seg.crashes) if (c.tick >= sp[i] && c.tick < (sp[i + 1] || 1e9)) { ctx.fillStyle = PAPER.red; ctx.beginPath(); ctx.arc(x + bw - 8, y + 6, 6, 0, 7); ctx.fill(); }
+    if (bsecs && (!worst || d > worst.d)) worst = { d, i };
+    x += bw + 4;
+  });
+  y += 46;
+  if (worst && worst.d > 0.3) { txt(`제일 늦은 곳: ${zones[worst.i][1]} +${worst.d.toFixed(1)}초`, 70, y + 4, 20, PAPER.red, 'left', '700'); y += 30; }
+  if (seg.crashes.length) { txt('쿵: ' + seg.crashes.map(c => c.label).join(' · '), 70, y + 4, 18, PAPER.ink2, 'left', '500'); y += 28; }
+  return y + 6;
 }
 function drawMapScreen() {
   ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, W, H);
@@ -1214,8 +1431,8 @@ function drawTransition(dt) { // a sheet of paper slides up over everything, the
   if (u >= 1) APP.trans = null;
 }
 function onRunDone(e) { // the segment is over: collect what the result card needs
-  APP.seg = { kind: 'bike', win: S.win, tick: S.tick, stuck: S.stuck, redWait: S.redWait, hits: S.hits, squeezes: S.squeezes, misses: S.misses, extra: 0, temp: S.temp, fines: S.fines, alleys: S.alleys, route: S.cfg.route };
-  setTimeout(() => go(S.win ? 'last' : 'result'), 900);
+  APP.seg = { kind: 'bike', splits: FX.splits.slice(), best: FX.prevBest, boosts: S.boosts, crashes: FX.crashes || [], win: S.win, tick: S.tick, stuck: S.stuck, redWait: S.redWait, hits: S.hits, squeezes: S.squeezes, misses: S.misses, extra: 0, temp: S.temp, fines: S.fines, alleys: S.alleys, route: S.cfg.route };
+  setTimeout(() => go(S.win && LAST_ON ? 'last' : 'result'), 900);
 }
 function flowAction(id) {
   if (id === 'accept') go('plan');
@@ -1247,11 +1464,13 @@ function swipeAction(dx, dy) { // shared with the keyboard/test hooks
   if (Math.abs(dx) > Math.abs(dy)) command({ k: 'lane', dir: Math.sign(dx) });
   else if (dy > 0) { command({ k: 'brake', on: true }); brakeUntil = S.tick + BRAKE_TICKS; }
   else if (S.brake) { command({ k: 'brake', on: false }); brakeUntil = 0; }
+  else command({ k: 'boost' });
 }
 cv.addEventListener('pointerdown', e => {
   audioOn();
   if (APP.trans) return;
   if (APP.screen === 'run') {
+    if (FX.rw) { FX.rw = null; return; } // skip the crash replay
     if (S.done) { if (!APP.order) { reset(); brakeUntil = 0; if (engGain) engGain.gain.value = 0.05; } return; }
     swipe = { x: e.clientX, y: e.clientY, done: false }; return;
   }
@@ -1286,17 +1505,49 @@ addEventListener('keydown', e => {
 });
 
 // ---- fixed 60-tick loop ----
+const REWIND_TICKS = 44, REWIND_FREEZE = 0.35, REWIND_FPS = 15; // keep 44 ticks (every 2nd), replay them at half speed
+function stepRun() { // one rules tick + everything the view keeps about it
+  if (S.tick % 2 === 0 && !S.done) { HIST.push(structuredClone(S)); if (HIST.length > REWIND_TICKS / 2) HIST.shift(); }
+  const ev = RULES.tick(S).events; onEvents(ev);
+  if (S.brake && brakeUntil && S.tick >= brakeUntil) { command({ k: 'brake', on: false }); brakeUntil = 0; }
+  if (S.tick % 6 === 0) FX.trace.push([S.dist, S.x]);
+  const zones = (DATA.routes[S.cfg.route] || DATA.routes[0]).zones || [];
+  while (FX.splits.length < zones.length && S.dist >= zones[FX.splits.length][0]) FX.splits.push(S.tick);
+  if (S.cross) { // nav voice: once at ~300 m and once just before the line
+    const m = (S.cross.at - S.dist) / 1000 * 2.5, mv = ['좌회전', '직진', '우회전'][S.cross.turn + 1], key = S.cross.at;
+    if (m < 300 && m > 200 && !FX.said[key + 'a']) { FX.said[key + 'a'] = 1; say(`300미터 앞 ${mv}`); }
+    if (m < 70 && !FX.said[key + 'b']) { FX.said[key + 'b'] = 1; say(S.cross.turn ? `곧 ${mv}, ${S.cross.turn > 0 ? '오른쪽' : '왼쪽'} 끝 차선` : '직진'); }
+  }
+  if (ev.some(e => e.k === 'done')) { saveGhost(); if (APP.order) onRunDone(); }
+}
+const GHOST_KEY = 'proto_seoulroute_ghost1';
+let GHOSTS = {}; try { GHOSTS = JSON.parse(localStorage.getItem(GHOST_KEY) || '{}'); } catch (e) {}
+const ghostOf = route => GHOSTS[route] || null;
+function saveGhost() { // your best finished run per course: its trace (dist, x every 6 ticks) and the tick it reached each zone
+  FX.prevBest = GHOSTS[S.cfg.route] || null;
+  if (!S.win || (FX.prevBest && FX.prevBest.tick <= S.tick)) return;
+  GHOSTS[S.cfg.route] = { tick: S.tick, tr: FX.trace.slice(), splits: FX.splits.slice() };
+  try { localStorage.setItem(GHOST_KEY, JSON.stringify(GHOSTS)); } catch (e) {}
+}
 if (!S) reset();
 let last = performance.now(), acc = 0;
 function frame(now) {
   const dt = Math.min(0.1, (now - last) / 1000); last = now;
   if (APP.screen === 'run') {
+    if (FX.rw) { // crash replay: freeze on the hit, then the last second again at half speed; the rules wait (view only)
+      const rw = FX.rw; if (!window.__pause) rw.t += dt;
+      if (rw.t >= REWIND_FREEZE) rw.i = Math.min(rw.frames.length - 1, (rw.t - REWIND_FREEZE) * REWIND_FPS);
+      const real = S; S = rw.t < REWIND_FREEZE ? real : rw.frames[Math.floor(rw.i)];
+      draw(dt); S = real;
+      if (rw.t >= REWIND_FREEZE + rw.frames.length / REWIND_FPS + 0.25) { FX.rw = null; acc = 0; }
+    } else {
     if (FX.stop > 0) FX.stop -= dt; // hit-stop: the world holds for a beat (ticks resume after; replay unaffected)
     else if (!window.__pause) {
       acc += dt;
-      while (acc >= 1 / 60) { acc -= 1 / 60; const ev = RULES.tick(S).events; onEvents(ev); if (S.brake && brakeUntil && S.tick >= brakeUntil) { command({ k: 'brake', on: false }); brakeUntil = 0; } if (APP.order && ev.some(e => e.k === 'done')) onRunDone(); }
+      while (acc >= 1 / 60 && !FX.rw) { acc -= 1 / 60; stepRun(); }
     }
     draw(dt);
+    }
   } else {
     if (APP.screen === 'last' && APP.last && !window.__pause) { acc += dt; while (acc >= 1 / 60) { acc -= 1 / 60; LAST.tick(APP.last); } }
     ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.fillStyle = PAPER.shade; ctx.fillRect(0, 0, cv.width, cv.height);
@@ -1318,11 +1569,12 @@ window.T = {
     for (let r = 0; r < runs; r++) {
       const s = RULES.init(DATA, seed + r, Object.assign(ruleKnobs(), { route }));
       const inLane = (o, l) => o.lane === l || o.to === l;
-      const clearAhead = l => Math.min(99999, ...s.obs.filter(o => DATA.kinds[o.kind].solid && inLane(o, l) && o.dz > 0).map(o => o.dz));
-      const sideFree = l => !s.obs.some(o => DATA.kinds[o.kind].solid && inLane(o, l) && 2 * Math.abs(o.dz) < DATA.kinds[o.kind].len + DATA.playerLen + 1600);
+      const clearAhead = l => Math.min(99999, ...s.obs.filter(o => DATA.kinds[o.kind].solid && !o.shut && inLane(o, l) && o.dz > 0).map(o => o.dz));
+      const sideFree = l => !s.obs.some(o => DATA.kinds[o.kind].solid && !o.shut && inLane(o, l) && 2 * Math.abs(o.dz) < DATA.kinds[o.kind].len + DATA.playerLen + 1600);
       // within `plan` of a stop line only the lanes that make the wanted move count; get into one, then weave inside them
       const okLane = l => !s.cross || s.cross.at - s.dist > plan * 1000 || (alley && s.cross.alley ? laneMove(l) === 1 : laneMove(l) === s.cross.turn);
       while (!s.done) {
+        if (s.heat >= DATA.heat.full && s.boost === 0) { RULES.apply(s, { k: 'boost' }); out.boosts = (out.boosts || 0) + 1; }
         if (s.tick % every === 0 && s.moveT >= s.cfg.laneTicks) {
           if (!okLane(s.lane)) {
             const dir = s.cross.alley && alley ? 1 : s.cross.turn ? s.cross.turn : -Math.sign(s.lane);
@@ -1338,7 +1590,7 @@ window.T = {
       out.red += s.redWait; out.miss += s.misses; out.fines += s.fines; out.alleys += s.alleys;
     }
     const n = runs;
-    return `${react}s 승${out.win}/${n} 쿵${(out.hits / n).toFixed(1)} 틈새${(out.sq / n).toFixed(1)} 막힘${(out.stuck / n / 60).toFixed(1)}초 신호${(out.red / n / 60).toFixed(1)}초 잘못${(out.miss / n).toFixed(1)} 단속${(out.fines / n).toFixed(1)} 골목${(out.alleys / n).toFixed(1)} ${(out.ticks / n / 60).toFixed(1)}초`;
+    return `${react}s 승${out.win}/${n} 쿵${(out.hits / n).toFixed(1)} 틈새${(out.sq / n).toFixed(1)} 막힘${(out.stuck / n / 60).toFixed(1)}초 신호${(out.red / n / 60).toFixed(1)}초 잘못${(out.miss / n).toFixed(1)} 단속${(out.fines / n).toFixed(1)} 골목${(out.alleys / n).toFixed(1)} 부스트${((out.boosts || 0) / n).toFixed(1)} ${(out.ticks / n / 60).toFixed(1)}초`;
   },
 };
 </script>
