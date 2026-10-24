@@ -234,9 +234,10 @@ const RULES = {
     if (vp * 10 < idiv(k.speed, DATA.tickRate) * 7) { if (red) s.redWait++; else s.stuck++; }
     if (s.cross && s.dist >= s.cross.at) { // over the line: your lane was your move
       const c = s.cross, move = laneMove(s.lane);
+      const gone = move !== 0 ? s.obs.filter(o => o.dz >= 3000).map(o => ({ kind: o.kind, x: o.x, dz: o.dz, v: o.cv })) : []; // view: they carry on straight, off to the side
       if (c.alley && move === 1) { s.alleys++; s.alleyT = DATA.alleyTicks; s.goal -= routeOf(s).alley.cut; ev.push({ k: 'alley' }); }
       else if (move !== c.turn) { s.misses++; s.goal += DATA.cross.missPenalty; ev.push({ k: 'miss', want: c.turn, move }); }
-      ev.push({ k: 'cross', move, at: c.at, off: c.off });
+      ev.push({ k: 'cross', move, at: c.at, off: c.off, gone });
       if (move !== 0) { // new street: what was ahead went straight on; the new street's traffic is already there
         s.turns++; s.turnSlow = DATA.turnTicks; s.obs = s.obs.filter(o => o.dz < 3000);
         for (let i = 0; i < k.cars; i++) spawnOne(s, 8000 + rngInt(s, 37000), ev);
@@ -366,7 +367,7 @@ const focal = () => zPlayer() * (PLAYER_Y - HORIZON) / CAM_H;
 const PROP_CELL = { sedan: 0, bus: 1, manhole: 2, cone: 3, puddle: 4, barrier: 5 };
 // feel (view only, rules untouched): px/pv = drawn x spring that overshoots the lane and settles; tilt/tv = lean spring;
 // bx/bv = the box on the rack lagging the bike; stop = hit-stop seconds; gust = side cars shiver after a squeeze
-const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, pitch: 0, air: null, crestI: 0, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
+const FX = { pops: [], shake: 0, flash: 0, flashCol: '#fff', bend: null, filt: 0, age: {}, ghosts: [], corner: null, pitch: 0, air: null, crestI: 0, px: 0, pv: 0, tilt: 0, tv: 0, bx: 0, bv: 0, stop: 0, gust: 0 };
 
 // ---- run (state + command log for replay) ----
 let S, LOG;
@@ -376,7 +377,7 @@ function reset(seed = (Date.now() >>> 0), extra) {
   S = RULES.init(DATA, seed, knobs);
   LOG = { seed: (seed >>> 0) || 1, knobs, cmds: [], endTick: 0 }; // init already advanced S.rng
   FX.pops = []; FX.shake = 0; FX.flash = 0; FX.bend = null; FX.lastCross = null; FX.age = {};
-  FX.pitch = 0; FX.air = null; FX.crestI = 0; FX.px = 0; FX.pv = 0; FX.tilt = 0; FX.tv = 0; FX.bx = 0; FX.bv = 0; FX.stop = 0; FX.gust = 0;
+  FX.ghosts = []; FX.corner = null; FX.pitch = 0; FX.air = null; FX.crestI = 0; FX.px = 0; FX.pv = 0; FX.tilt = 0; FX.tv = 0; FX.bx = 0; FX.bv = 0; FX.stop = 0; FX.gust = 0;
 }
 function command(cmd) {
   if (S.done) return;
@@ -507,6 +508,8 @@ function onEvents(events) {
     if (e.k === 'cross') FX.lastCross = { at: e.at, off: e.off };
     if (e.k === 'cross' && e.move !== 0) { // turned onto a new street: the road bends round, the neighbourhood changes past the corner
       blip(950, 0.5, 'sawtooth', 0.05, 0.55); blip(1400, 0.35, 'square', 0.02, 0.5); FX.shake = Math.max(FX.shake, 0.06); // tyres squeal through the corner
+      FX.ghosts = (e.gone || []).map(g => Object.assign({}, g));
+      { const r = xr(e.at + 17); FX.corner = { dir: e.move, at: e.at / 1000, peds: Array.from({ length: 5 }, (_, i) => ({ cell: [6, 7, 9][r(3)], x0: -4 + r(80) / 10, dir: r(2) ? 1 : -1, v: 0.7 + r(5) / 10, dz: r(10) / 20 })) }; }
       FX.bend = { dir: e.move, t: 0, at: e.at / 1000 + 12, old: AREA_KEY }; setArea(AREA_KEY === 'gangnam' ? 'street' : 'gangnam');
       FX.pops.push({ text: e.move > 0 ? '우회전!' : '좌회전!', size: 46, t: 0 }); blip(500, 0.25, 'triangle', 0.12, 2);
     }
@@ -519,10 +522,16 @@ const rain = Array.from({ length: 45 }, () => ({ x: Math.random() * W, y: Math.r
 function project(z) { return { y: HORIZON + CAM_H * focal() / z, s: focal() / z }; }
 const camZ = () => S.dist / 1000;
 const zOf = worldMilli => zPlayer() + (worldMilli - S.dist) / 1000; // view depth of a world distance
-const BEND_S = 1.3, BEND_K = 0.012, ROAD_C = 0.004, ROAD_STEP = 0.5, ROAD_N = 200;
+const BEND_S = 1.5, PIVOT_K = 1.15, ROAD_C = 0.004, ROAD_STEP = 0.5, ROAD_N = 200;
 const bendAmt = () => FX.bend ? Math.sin(Math.PI * Math.min(1, FX.bend.t / BEND_S)) : 0;
 // Turn = OutRun curve, view only: the road ahead swings toward the turn side by k*(depth past you)^2 lanes, peaking mid-turn.
-const turnX = z => FX.bend ? FX.bend.dir * bendAmt() * BEND_K * Math.max(0, z - zPlayer()) ** 2 : 0;
+// Road swap (10-24): the camera yaws round the corner. Everything past the corner pivots about it: the NEW street starts out
+// at the turn side and swings in head-on (turnX, e: 0 -> 1), the OLD road swings off the other way (oldX). Offset = k * depth past the
+// corner, i.e. a rotation, not a curve. Before the corner (the junction itself) nothing moves. Godot: same two offsets in the road shader.
+const bendE = () => { if (!FX.bend) return 1; const u = Math.min(1, FX.bend.t / BEND_S); return u * u * (3 - 2 * u); };
+const cornerZ = () => FX.bend ? FX.bend.at - camZ() + zPlayer() : 0;
+const turnX = z => FX.bend ? FX.bend.dir * PIVOT_K * (1 - bendE()) * Math.max(0, z - cornerZ()) : 0;
+const oldX = z => FX.bend ? -FX.bend.dir * PIVOT_K * bendE() * Math.max(0, z - cornerZ()) : 0;
 // Route bend (view only): curvature k(world) is integrated twice along the depth so the road swings smoothly (OutRun).
 // ROAD_OFF[i] = lateral offset in lanes at depth zPlayer + i*ROAD_STEP; rebuilt once a frame. Godot: same loop into a shader array.
 const ROAD_OFF = new Float32Array(ROAD_N + 1);
@@ -601,7 +610,7 @@ function draw(dt) {
   ctx.save(); ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.clip();
   ctx.fillStyle = '#1b2238'; ctx.fillRect(0, 0, W, H);
   ctx.save();
-  if (FX.bend) { FX.bend.t += dt; if (FX.bend.t >= BEND_S && camZ() - zPlayer() > FX.bend.at + 2) FX.bend = null; }
+  if (FX.bend) { FX.bend.t += dt; if (FX.bend.t >= BEND_S && camZ() - zPlayer() > FX.bend.at + 2) { FX.bend = null; FX.corner = null; FX.ghosts = []; } }
   buildRoad();
   { const cr = (DATA.routes[S.cfg.route] || DATA.routes[0]).crest; if (cr && FX.crestI < cr.length && S.dist >= cr[FX.crestI]) { FX.air = { t: 0 }; FX.crestI++; blip(520, 0.2, 'triangle', 0.1, 1.9); } }
   { // pitch: climbing tilts the camera up (everything slides down), descending the other way — view only
@@ -627,6 +636,16 @@ function draw(dt) {
   }
   if (IMG.road.complete && IMG.road.naturalWidth) {
     const th = IMG.road.naturalHeight, tw = IMG.road.naturalWidth;
+    if (FX.bend && bendE() < 0.97) { // the old road beyond the corner, swinging off the other way
+      ctx.globalAlpha = 1 - bendE() * 0.45;
+      for (let y = HORIZON + 1; y < H; y++) {
+        const dy = y - HORIZON, z = CAM_H * F / dy;
+        if (z <= cornerZ()) continue;
+        const w = ROAD_TEX_W * dy / CAM_H, ty = (th - 1 - Math.floor(((camZ() + z) / TILE_LEN * th) % th) + th) % th;
+        ctx.drawImage(IMG.road, 0, ty, tw, 1, W / 2 + (roadX(z) + oldX(z)) * dy / CAM_H - w / 2, y, w, 1.5);
+      }
+      ctx.globalAlpha = 1;
+    }
     for (let y = HORIZON + 1; y < H; y++) {
       const dy = y - HORIZON, z = CAM_H * F / dy, w = ROAD_TEX_W * dy / CAM_H;
       const ty = (th - 1 - Math.floor(((camZ() + z) / TILE_LEN * th) % th) + th) % th;
@@ -661,12 +680,22 @@ function draw(dt) {
   for (const [at, off] of crossings) for (const x of [-3.0, 3.0]) items.push({ z: zOf(at) + 11.2, sig: lightKey(off), x });
   const near = camZ() - zPlayer() + 0.4, far = camZ() - zPlayer() + 90;
   const inBox = wz => crossings.some(([at]) => wz > at / 1000 - 1 && wz < at / 1000 + 14); // nothing roadside on the cross street
-  const sets = FX.bend ? [[AREAS[FX.bend.old], -1e9, FX.bend.at], [AREAS[AREA_KEY], FX.bend.at, 1e9]] : [[AREAS[AREA_KEY], -1e9, 1e9]];
-  for (const [area, from, to] of sets) for (const d of area.side) for (let n = Math.ceil((near - d.off) / d.period); n * d.period + d.off < far; n++) {
+  const sets = FX.bend ? [[AREAS[FX.bend.old], -1e9, FX.bend.at, 'near'], [AREAS[FX.bend.old], FX.bend.at, 1e9, 'old'], [AREAS[AREA_KEY], FX.bend.at, 1e9, 'new']] : [[AREAS[AREA_KEY], -1e9, 1e9, 'new']];
+  for (const [area, from, to, mode] of sets) for (const d of area.side) for (let n = Math.ceil((near - d.off) / d.period); n * d.period + d.off < far; n++) {
     const wz = n * d.period + d.off;
     if (inBox(wz) || wz < from || wz >= to) continue;
-    for (const x of d.both ? [-d.x, d.x] : [d.x]) items.push({ z: wz - camZ() + zPlayer(), side: d, sheet: area.sideImg, x });
+    for (const x of d.both ? [-d.x, d.x] : [d.x]) items.push({ z: wz - camZ() + zPlayer(), side: d, sheet: area.sideImg, x, mode });
   }
+  if (FX.bend && FX.corner) { // inner-corner shop sweeping past, the far corner swinging off with the old road, people on the crosswalk
+    const C = FX.corner, area = AREAS[FX.bend.old], big = area.side.filter(d => d.w >= 3), inner = big[0], outer = big[big.length - 1] || big[0];
+    if (inner) items.push({ z: C.at - camZ() + zPlayer() - 5.5, side: { cell: inner.cell, w: inner.w * 1.5 }, sheet: area.sideImg, x: C.dir * 3.7, mode: 'near' });
+    if (outer) items.push({ z: C.at - camZ() + zPlayer() + 15, side: { cell: outer.cell, w: outer.w * 1.3 }, sheet: area.sideImg, x: -C.dir * 4.4, mode: 'old' });
+    for (const pd of C.peds) { // one pass over the far crosswalk, deterministic from the corner's own seed
+      const x = pd.x0 + pd.dir * pd.v * FX.bend.t; if (Math.abs(x) > 6) continue;
+      items.push({ z: C.at - camZ() + zPlayer() + 12.3 + pd.dz, ped: pd, x, mode: 'near' });
+    }
+  }
+  if (FX.bend) for (const g of FX.ghosts) { g.dz += (g.v - S.vp) * dt * 60; items.push({ z: zPlayer() + g.dz / 1000, ghost: g }); }
   items.sort((a, b) => b.z - a.z);
   for (const it of items) {
     if (it.player) { drawPlayer(dt); continue; }
@@ -687,10 +716,18 @@ function draw(dt) {
       }
       ctx.globalAlpha = 1; continue;
     }
-    if (it.side || it.sig) {
+    if (it.ped || it.ghost) { // crosswalk people / the traffic that went straight on
       if (it.z <= 0.3 || it.z > 90) continue;
       const p = project(it.z), a = Math.min(1, (90 - it.z) / 20);
-      const sx = W / 2 + (it.x + bendX(it.z)) * p.s;
+      if (it.ped) { const sx = W / 2 + (it.x + bendX(it.z)) * p.s; drawCell(IMG.props, it.ped.cell, sx, p.y, 0.62 * p.s, a * Math.min(1, FX.bend.t * 3)); }
+      else { const g = it.ghost, kd = DATA.kinds[g.kind]; drawCell(IMG.props, PROP_CELL[kd.id], W / 2 + (g.x / 1000 + roadX(it.z) + oldX(it.z)) * p.s, p.y, kd.w / 1000 * p.s, a * (1 - bendE())); }
+      continue;
+    }
+    if (it.side || it.sig) {
+      if (it.z <= 0.3 || it.z > 90) continue;
+      const p = project(it.z); let a = Math.min(1, (90 - it.z) / 20);
+      const off = it.mode === 'old' ? roadX(it.z) + oldX(it.z) : bendX(it.z), sx = W / 2 + (it.x + off) * p.s;
+      if (it.mode === 'old') a *= 1 - bendE();
       if (it.side) drawCell(it.sheet, it.side.cell, sx, p.y, it.side.w * p.s, a, 256, 512);
       else { const pt = drawCell(IMG.sig, SIG.cell, sx, p.y, 1.7 * p.s, a, 256, 512, it.x > 0); if (pt) drawLamps(pt, it.sig); }
       continue;
