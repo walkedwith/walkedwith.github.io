@@ -1,15 +1,21 @@
 {
-  "sourceHead": "4f5b8f7967a29826ee79267cb12a16297e973111",
-  "date": "2026-10-21T05:14:32.592Z",
-  "liveSha256": "b333aa1e6ada264c4d550de3459090df4f4267e479db348e86e20650bb1d1424",
-  "testSha256": "8fac7bdbfe2ab4cf70077e4d2d2c0e39ce5a7d0e618ed88dff9ca770e757b05d",
-  "files": 406,
-  "sourceCommit": "4f5b8f7967a29826ee79267cb12a16297e973111",
   "kind": "live",
-  "tests": {
-    "total": 1281,
-    "pass": 1281,
-    "fail": 0
-  },
-  "levelChecks": 300
+  "date": "2026-11-07",
+  "source": "max-home-preview-20261107-optimized-v4 (friend's mobile-optimized package, base 2026-10-12)",
+  "liveSha256": "5d359a020ac6c428391306d68e4a80249217bac476ba93b40accfc286a5c549c",
+  "previous": {
+    "sourceHead": "4f5b8f7967a29826ee79267cb12a16297e973111",
+    "date": "2026-10-21T05:14:32.592Z",
+    "liveSha256": "b333aa1e6ada264c4d550de3459090df4f4267e479db348e86e20650bb1d1424",
+    "testSha256": "8fac7bdbfe2ab4cf70077e4d2d2c0e39ce5a7d0e618ed88dff9ca770e757b05d",
+    "files": 406,
+    "sourceCommit": "4f5b8f7967a29826ee79267cb12a16297e973111",
+    "kind": "live",
+    "tests": {
+      "total": 1281,
+      "pass": 1281,
+      "fail": 0
+    },
+    "levelChecks": 300
+  }
 }

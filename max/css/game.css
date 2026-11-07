@@ -3149,14 +3149,6 @@
   .hoodrow .hsw { width:30px; height:30px; border-radius:50%; border:2px solid rgba(0,0,0,.08); display:block; }
   .hoodrow .hsw.fence { border-radius:8px; border-width:3px; }
   .hoodrow .hgap { width:6px; flex:none; }
-  /* 할아버지 한마디 — 초상화 + 이름표 + 두 줄. 판 아래쪽에 뜨고 아무 데나 누르면 닫힌다. */
-  #gtalk { position:absolute; inset:0; z-index:57; display:none; align-items:flex-end; justify-content:center; background:rgba(30,22,16,.28); }
-  #gtalk.show { display:flex; }
-  #gtalk .gkbox { position:relative; display:flex; gap:12px; width:min(92%,420px); margin-bottom:22%; padding:12px; background:#FFF9F0; border:3px solid #C9A87C; border-radius:18px; box-shadow:0 8px 22px rgba(30,22,16,.35); }
-  #gtalk .gkpt { flex:none; width:92px; height:107px; object-fit:cover; border-radius:12px; border:2px solid #E3C9A6; background:#FFF3DF; }
-  #gtalk .gknm { position:absolute; left:14px; top:-15px; padding:3px 12px; border-radius:999px; background:#8A5F3C; color:#FFF3DF; font-family:var(--f-body); font-size:var(--s8); }
-  #gtalk .gktx { align-self:center; font-family:var(--f-body); font-size:var(--s6); line-height:1.45; color:#4A3524; white-space:pre-line; }
-  #gtalk .gkgo { position:absolute; right:14px; bottom:8px; font-family:var(--f-body); font-size:var(--s9); color:#B08A5E; }
   #gintro { position:absolute; inset:0; z-index:58; display:none; align-items:center; justify-content:center;
     background:rgba(30,24,20,.5); backdrop-filter:blur(1.5px); }
   #gintro.show { display:flex; }
@@ -4244,7 +4236,11 @@ body.hudinplay:not(.inhouse) #mvbar .mvhead .mvst, body.hudinplay:not(.inhouse) 
 /* 하우스엔 수가 없다 — 판 훈련 칩 줄이 하우스 아래에 남던 것(실측) */
 body.inhouse #hintAct { display:none !important; }
 /* 잘라 낸 판(fit 의 trim) — 아래 립 대신 부드러운 그림자로 떠 있다. clip-path 가 캔버스 그림자를 자르므로 감싸는 쪽에 건다. */
-#boardWrap.trimmed { filter:drop-shadow(0 8px 12px rgba(70,90,40,.22)); }
+/* 2026-10-12: 감싸개 filter 대신 정지된 그림자 판(#boardShade, boardShadeSync)이 같은 그림자를 낸다 — 안쪽이 바뀔 때마다 판 전체를 다시 흐리지 않게.
+   잘라 낸 판에선 캔버스 자체 drop-shadow 가 clip-path 에 잘려 보이지도 않으면서 매 프레임 계산됐다 — 끈다. */
+#boardShade { position:absolute; z-index:-1; pointer-events:none; box-shadow:0 8px 12px rgba(70,90,40,.22); }
+body.hud-pilot #boardWrap > canvas#c, body.hud-pilot #boardWrap > canvas#boardShadowCv { filter:none; }   /* 안 잘린 판의 그림자는 #boardShadowCv 가 굽는다 */
+#boardShadowCv { position:absolute; z-index:-1; pointer-events:none; }
 
 /* 도크의 「무료」 딱지 — 무르기는 늘, 다시하기는 첫 동네에서 늘 공짜라 붙는 딱지였다(2026-09-30 걷음).
    공짜는 기본이라 말할 필요가 없다. 값이 붙는 순간(밥 한 끼 · 도토리 · 남은 수)만 보인다. */
@@ -4255,7 +4251,7 @@ body.inhouse #hud .lvlbl { display:none; }
 
 /* ── 험한 판 = 동네 보스 (2026-09-30) — 노을 하늘 · 금빛 판 · 입장 카드 ───────────── */
 body.hardlv:not(.inhouse) #wrap { background:linear-gradient(180deg,#E99A6A 0%,#F2BC8A 28%,#F4D7B0 55%,#EEDFC4 100%); }
-body.hardlv:not(.inhouse) #boardWrap.trimmed { filter:drop-shadow(0 0 10px rgba(255,196,80,.95)) drop-shadow(0 0 22px rgba(240,150,50,.6)); }
+body.hardlv:not(.inhouse) #boardShade { box-shadow:0 0 10px rgba(255,196,80,.95), 0 0 22px rgba(240,150,50,.6); }
 body.hardlv:not(.inhouse) #hud > .hgrp #lvl { background:#F2C24E; border-color:#B9812A; }
 /* 험한 판 입장 — 도장 쾅(2026-10-04 사람: B+C+선물). 붉은 겹테 원 인장이 위에서 내려와 판에 찍히고 먼지 고리가 퍼진다. */
 #hardIntro { position:absolute; left:50%; top:42%; z-index:57; display:grid; justify-items:center; align-content:center; gap:2px;
@@ -4469,22 +4465,13 @@ body:has(#win.show) #hint, body:has(#win.show) .hintact, body:has(#win.show) #gb
 /* 바닥 풍경(#wrap::after, z 0)이 카드 아래쪽을 덮었다 — #boardWrap 은 filter 때문에 제 쌓임 층이라 판째로 올린다 */
 body:has(#win.show) #boardWrap { z-index:1; }
 
-/* 할 일 칩(10-14, 시안 F6) — 1동네 판 위 줄: 왼쪽 할 일 칩 · 가운데 규칙 칩 · 오른쪽 젬. 규칙 칩과 같은 줄·같은 높이. */
-body.hudinplay:not(.inhouse) #goalChips { position:absolute; left:-2px; top:calc(100% + 14px); display:flex; gap:6px; z-index:3; }
-#goalChips[hidden], #goalTip[hidden] { display:none; }
-#goalChips .gchip { display:flex; align-items:center; gap:2px; padding:3px 9px 3px 4px; border:0; border-radius:999px; background:#FFF9F0;
-  box-shadow:0 2px 6px rgba(43,32,54,.16); font-family:var(--f-hand); font-size:var(--s7); line-height:1; color:#4A3524; cursor:pointer; -webkit-tap-highlight-color:transparent;
-  touch-action:manipulation; -webkit-user-select:none; user-select:none; }
-#goalChips .gchip.done { background:#E7F5DF; color:#3F7E3A; }
-#goalChips .gchip .ic { width:24px; height:24px; flex:none; }
-#goalChips .gchip:active { transform:scale(.96); }
-#goalChips .gchip.bump { animation:gcbump .5s cubic-bezier(.2,1.6,.4,1); }
-@keyframes gcbump { 30% { transform:scale(1.28); } }
-#goalChipRow { display:flex; gap:6px; }
-body.hudinplay:not(.inhouse) #goalChips #ruleChip { position:static; margin:0 0 0 2px; }
-#goalTip { position:absolute; left:-2px; top:calc(100% + 56px); max-width:240px; padding:8px 12px; border-radius:12px; background:#FFF9F0; color:#4A3524;
-  font-size:var(--s9); line-height:1.45; white-space:pre-line; box-shadow:0 4px 12px rgba(43,32,54,.22); z-index:7; }
-.gcfly { position:fixed; z-index:70; pointer-events:none; filter:drop-shadow(0 3px 4px rgba(0,0,0,.25)); }
-.gcfly .ic { width:34px; height:34px; display:block; }
-@media (prefers-reduced-motion: reduce) { #goalChips .gchip:active { transform:scale(.96); }
-#goalChips .gchip.bump { animation:none; } }
+/* v4: prepare the complete creek scene before showing its board. */
+#creekLoading { position:fixed; inset:0; z-index:999900; background:#cfe6ed; display:flex;
+  flex-direction:column; align-items:center; justify-content:center; gap:16px;
+  padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom); box-sizing:border-box; }
+#creekLoading[hidden], #creekLoading [hidden] { display:none !important; }
+.creek-ready-max { width:112px; height:112px; background:url('../art/max-master/max-master-v4-cheek-narrow-4dir.png') 0 0 / 400% 100% no-repeat; }
+#creekStatus { margin:0; color:#355447; font:18px/1.5 var(--f); text-align:center; }
+#creekLoading button { min-height:44px; padding:8px 24px; border:1px solid #55796a;
+  border-radius:12px; background:#fff; color:#355447; font:17px/1.5 var(--f); }
+body.creek-loading #wrap { visibility:hidden; pointer-events:none; }

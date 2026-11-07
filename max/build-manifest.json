@@ -1,2031 +1,2793 @@
 {
-  "generatedAt": "2026-10-21T05:09:23.766Z",
-  "totalBytes": 35788566,
+  "generatedAt": "2026-11-07T11:29:55.988478+00:00",
+  "totalBytes": 40114250,
   "files": [
-    {
-      "path": "index.html",
-      "source": "dig.html",
-      "bytes": 3491536
-    },
-    {
-      "path": "css/game.css",
-      "source": "css/game.css",
-      "bytes": 637922
-    },
-    {
-      "path": "localization/ko.js",
-      "source": "localization/ko.js",
-      "bytes": 84233
-    },
-    {
-      "path": "localization/en.js",
-      "source": "localization/en.js",
-      "bytes": 76542
-    },
-    {
-      "path": "localization/i18n.js",
-      "source": "localization/i18n.js",
-      "bytes": 2862
-    },
-    {
-      "path": "billing/roll-economy.js",
-      "source": "billing/roll-economy.js",
-      "bytes": 12508
-    },
-    {
-      "path": "billing/cdv-purchase-adapter.js",
-      "source": "billing/cdv-purchase-adapter.js",
-      "bytes": 9301
-    },
-    {
-      "path": "mechanics/tap-gesture.js",
-      "source": "mechanics/tap-gesture.js",
-      "bytes": 2949
-    },
-    {
-      "path": "mechanics/feedback-profile.js",
-      "source": "mechanics/feedback-profile.js",
-      "bytes": 752
-    },
-    {
-      "path": "mechanics/app-lifecycle.js",
-      "source": "mechanics/app-lifecycle.js",
-      "bytes": 3468
-    },
-    {
-      "path": "mechanics/progress-recovery.js",
-      "source": "mechanics/progress-recovery.js",
-      "bytes": 1615
-    },
-    {
-      "path": "mechanics/telemetry.js",
-      "source": "mechanics/telemetry.js",
-      "bytes": 2013
-    },
-    {
-      "path": "mechanics/boot-loading.js",
-      "source": "mechanics/boot-loading.js",
-      "bytes": 6359
-    },
-    {
-      "path": "mechanics/victory-card-motion.js",
-      "source": "mechanics/victory-card-motion.js",
-      "bytes": 2397
-    },
-    {
-      "path": "art/max-master/motions/loading/max-loading-v1.webp",
-      "source": "art/max-master/motions/loading/max-loading-v1.webp",
-      "bytes": 225996
-    },
-    {
-      "path": "mechanics/yard-growth-art.js",
-      "source": "mechanics/yard-growth-art.js",
-      "bytes": 94825
-    },
-    {
-      "path": "mechanics/notebook-pages.js",
-      "source": "mechanics/notebook-pages.js",
-      "bytes": 8819
-    },
-    {
-      "path": "mechanics/dev-runtime-loader.js",
-      "source": "mechanics/dev-runtime-loader.js",
-      "bytes": 1223
-    },
-    {
-      "path": "mechanics/perf-hud.js",
-      "source": "mechanics/perf-hud.js",
-      "bytes": 4914
-    },
-    {
-      "path": "mechanics/onboarding-comic.js",
-      "source": "mechanics/onboarding-comic.js",
-      "bytes": 16853
-    },
-    {
-      "path": "css/onboarding-comic.css",
-      "source": "css/onboarding-comic.css",
-      "bytes": 2323
-    },
-    {
-      "path": "art/onboarding-comic-v3/page-01.webp",
-      "source": "art/onboarding-comic-v3/page-01.webp",
-      "bytes": 251634
-    },
-    {
-      "path": "art/onboarding-comic-v3/page-02.webp",
-      "source": "art/onboarding-comic-v3/page-02.webp",
-      "bytes": 173900
-    },
-    {
-      "path": "art/onboarding-comic-v3/page-03.webp",
-      "source": "art/onboarding-comic-v3/page-03.webp",
-      "bytes": 184590
-    },
-    {
-      "path": "art/onboarding-comic-v3/page-04.webp",
-      "source": "art/onboarding-comic-v3/page-04.webp",
-      "bytes": 251484
-    },
-    {
-      "path": "art/onboarding-comic-v4/door-01.webp",
-      "source": "art/onboarding-comic-v4/door-01.webp",
-      "bytes": 155396
-    },
-    {
-      "path": "art/onboarding-comic-v4/door-02.webp",
-      "source": "art/onboarding-comic-v4/door-02.webp",
-      "bytes": 154904
-    },
-    {
-      "path": "art/onboarding-comic-v4/door-03.webp",
-      "source": "art/onboarding-comic-v4/door-03.webp",
-      "bytes": 161472
-    },
-    {
-      "path": "art/onboarding-comic-v4/door-04.webp",
-      "source": "art/onboarding-comic-v4/door-04.webp",
-      "bytes": 172104
-    },
-    {
-      "path": "art/onboarding-comic-v1/knock.wav",
-      "source": "art/onboarding-comic-v1/knock.wav",
-      "bytes": 65580
-    },
-    {
-      "path": "art/onboarding-comic-v1/light.wav",
-      "source": "art/onboarding-comic-v1/light.wav",
-      "bytes": 53292
-    },
-    {
-      "path": "sound/bgm-hub-lite.mp3",
-      "source": "sound/bgm-hub-lite.mp3",
-      "bytes": 1709393
-    },
-    {
-      "path": "sound/bgm-game-lite.mp3",
-      "source": "sound/bgm-game-lite.mp3",
-      "bytes": 1693406
-    },
-    {
-      "path": "sound/bgm-game-9am.mp3",
-      "source": "sound/bgm-game-9am.mp3",
-      "bytes": 1642938
-    },
-    {
-      "path": "sound/bgm-yard-7am.mp3",
-      "source": "sound/bgm-yard-7am.mp3",
-      "bytes": 2449494
-    },
-    {
-      "path": "sound/CREDITS.txt",
-      "source": "sound/CREDITS.txt",
-      "bytes": 3055
-    },
-    {
-      "path": "sound/ball-roll-short.mp3",
-      "source": "sound/ball-roll-short.mp3",
-      "bytes": 24813
-    },
-    {
-      "path": "sound/wall-block-short.mp3",
-      "source": "sound/wall-block-short.mp3",
-      "bytes": 4365
-    },
-    {
-      "path": "sound/goal-catch1.mp3",
-      "source": "sound/goal-catch1.mp3",
-      "bytes": 5059
-    },
-    {
-      "path": "sound/grass-light-step1.mp3",
-      "source": "sound/grass-light-step1.mp3",
-      "bytes": 5059
-    },
-    {
-      "path": "sound/box-push3.mp3",
-      "source": "sound/box-push3.mp3",
-      "bytes": 31391
-    },
-    {
-      "path": "sound/box-open4.mp3",
-      "source": "sound/box-open4.mp3",
-      "bytes": 21777
-    },
-    {
-      "path": "sound/bath-splash9.mp3",
-      "source": "sound/bath-splash9.mp3",
-      "bytes": 18852
-    },
-    {
-      "path": "sound/water-pour4.mp3",
-      "source": "sound/water-pour4.mp3",
-      "bytes": 37242
-    },
-    {
-      "path": "sound/dirt-land3.mp3",
-      "source": "sound/dirt-land3.mp3",
-      "bytes": 10493
-    },
-    {
-      "path": "sound/guide-paper7.mp3",
-      "source": "sound/guide-paper7.mp3",
-      "bytes": 20106
-    },
-    {
-      "path": "sound/pit-whistle12.mp3",
-      "source": "sound/pit-whistle12.mp3",
-      "bytes": 10075
-    },
-    {
-      "path": "sound/stream-splash9.mp3",
-      "source": "sound/stream-splash9.mp3",
-      "bytes": 20106
-    },
-    {
-      "path": "sound/treat-pop2.mp3",
-      "source": "sound/treat-pop2.mp3",
-      "bytes": 2133
-    },
-    {
-      "path": "sound/treat-xylophone-1.mp3",
-      "source": "sound/treat-xylophone-1.mp3",
-      "bytes": 9239
-    },
-    {
-      "path": "sound/treat-xylophone-2.mp3",
-      "source": "sound/treat-xylophone-2.mp3",
-      "bytes": 9030
-    },
-    {
-      "path": "sound/treat-xylophone-3.mp3",
-      "source": "sound/treat-xylophone-3.mp3",
-      "bytes": 9030
-    },
-    {
-      "path": "sound/ball-chew2.mp3",
-      "source": "sound/ball-chew2.mp3",
-      "bytes": 3280
-    },
-    {
-      "path": "art/toy-world/title-toys-v1.webp",
-      "source": "art/toy-world/title-toys-v1.webp",
-      "bytes": 96148
-    },
-    {
-      "path": "art/grandpa-delivery-v1/grandpa-delivery.webp",
-      "source": "art/grandpa-delivery-v1/grandpa-delivery.webp",
-      "bytes": 839894
-    },
     {
       "path": "art/chapter-concepts/optimized/chapter-01-frontyard-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-01-frontyard-toys-v1-720.webp",
-      "bytes": 43680
+      "bytes": 43680,
+      "sha256": "f5a45e21edc72939470c812be02bf36466ca32b51720ad54600e76e503ad8d10"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-02-backyard-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-02-backyard-toys-v1-720.webp",
-      "bytes": 46110
+      "bytes": 46110,
+      "sha256": "347aa78e0c46fea027b91879a494285469df9a7423f2e6784b15732f91b793c2"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-03-stream-toys-approved-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-03-stream-toys-approved-v1-720.webp",
-      "bytes": 100252
+      "bytes": 100252,
+      "sha256": "997b463e3be0343473f6546f00aac317d4a1f55c4ba5aee718ab6967fe74f33a"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-04-acorn-hill-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-04-acorn-hill-toys-v1-720.webp",
-      "bytes": 43152
+      "bytes": 43152,
+      "sha256": "fe00a79047810ee1d6f5e27cf1357ae0f726c8df315ed102f669f45cf1aabb03"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-05-play-lot-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-05-play-lot-toys-v1-720.webp",
-      "bytes": 56608
+      "bytes": 56608,
+      "sha256": "1f4604698d20c1ed02523733c737bb42703e90dbe690933b0e5f760153ef5ec0"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-06-vegetable-field-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-06-vegetable-field-toys-v1-720.webp",
-      "bytes": 62186
+      "bytes": 62186,
+      "sha256": "58ca80c7d7d18d47bca477c6490c295ef80df837c1de9965edc144497f22f96a"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-07-warehouse-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-07-warehouse-toys-v1-720.webp",
-      "bytes": 74374
+      "bytes": 74374,
+      "sha256": "3b240b2927cfa68722b83877d7dc09b4a689a2b9756c6caa2ac6325c1660618d"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-08-fence-lane-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-08-fence-lane-toys-v1-720.webp",
-      "bytes": 68590
+      "bytes": 68590,
+      "sha256": "3352bd9b8ce4faaf2639437732f621073f2725e14d5dcfd553e6ef56df1afc3f"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-09-cat-alley-toys-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-09-cat-alley-toys-v1-720.webp",
-      "bytes": 61734
+      "bytes": 61734,
+      "sha256": "bf0f75bc027accf47238b77336a5227f675028d5429d9d4541d5b05b7a7dd113"
     },
     {
       "path": "art/chapter-concepts/optimized/chapter-10-pinwheel-field-story-v1-720.webp",
       "source": "art/chapter-concepts/optimized/chapter-10-pinwheel-field-story-v1-720.webp",
-      "bytes": 40868
+      "bytes": 40868,
+      "sha256": "d3d2a94814f3a7bdaab151fd3a33846e9f1efcd6c19c22099551d5d577030ebb"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp",
       "source": "art/chapter-concepts/optimized/stage-select-01-frontyard-v2.webp",
-      "bytes": 36574
+      "bytes": 36574,
+      "sha256": "9a88725ea978bfcbea5f4eb0a666d5289b82a71d3239986d8a66170f39bad558"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-02-backyard-v1.webp",
-      "bytes": 41730
+      "bytes": 41730,
+      "sha256": "a9939eb513bd22221b191c36377430cd5bb012a3c968bc9bb0c4c0f08f92fc60"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-03-stream-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-03-stream-v1.webp",
-      "bytes": 22866
+      "bytes": 22866,
+      "sha256": "d0583861015ed645c616f132000a1dc3db95fbdf6c3a5eba213d4ffe0e1d9423"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-04-acorn-hill-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-04-acorn-hill-v1.webp",
-      "bytes": 41072
+      "bytes": 41072,
+      "sha256": "8ae019c09c995753ff9bbb3c7c7607c281a38be952cf0aaf84ddf9e21d63cf74"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-05-play-lot-v2.webp",
       "source": "art/chapter-concepts/optimized/stage-select-05-play-lot-v2.webp",
-      "bytes": 25222
+      "bytes": 25222,
+      "sha256": "659cd54fff4bcd5785e99e649d8cd6c23e4a30fc39088cb835155dd1aefe4966"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-06-vegetable-field-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-06-vegetable-field-v1.webp",
-      "bytes": 50570
+      "bytes": 50570,
+      "sha256": "538b50c667f11349714199e65f37fb4fd2bd0423baee9ddf3ff4d0abaef9f8ee"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-07-warehouse-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-07-warehouse-v1.webp",
-      "bytes": 34454
+      "bytes": 34454,
+      "sha256": "85f4db8d4ef21260684259e635e8e150eef4479f6bd4a9038613a192e1617c9f"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-08-fence-lane-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-08-fence-lane-v1.webp",
-      "bytes": 32704
+      "bytes": 32704,
+      "sha256": "6c911d95347b407cbf24113f4c91e007fa8a6146bd74fa050858ea952200f9d6"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-09-cat-alley-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-09-cat-alley-v1.webp",
-      "bytes": 50198
+      "bytes": 50198,
+      "sha256": "e1c5b5cd4720b10f1fa4ed2baf730f116e242680bc5fbf71dd6c43db72feef9d"
     },
     {
       "path": "art/chapter-concepts/optimized/stage-select-10-pinwheel-field-v1.webp",
       "source": "art/chapter-concepts/optimized/stage-select-10-pinwheel-field-v1.webp",
-      "bytes": 22434
+      "bytes": 22434,
+      "sha256": "2ed9fc4d0b10da7cc043dba3fc5a12a4b5f47765c014a21df97b3a8cef2cee97"
+    },
+    {
+      "path": "art/creek-baked-v3/level-61-art.png",
+      "source": "art/creek-baked-v3/level-61-art.png",
+      "bytes": 142277,
+      "sha256": "e11ecd4122dd8c76af1f80fe9f3903c8eb24a716b2bcce4719d1303bc74d1eb5"
+    },
+    {
+      "path": "art/creek-baked-v3/level-61-mask.png",
+      "source": "art/creek-baked-v3/level-61-mask.png",
+      "bytes": 44436,
+      "sha256": "cbd56239cfd42a5769de78307286895dfcd5467a829d6bb887bea511b5ec40db"
+    },
+    {
+      "path": "art/creek-baked-v3/level-61-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-61-samples.bin.gz",
+      "bytes": 86358,
+      "sha256": "3a79e04dcecad092d4926fabb9e066e0fd8c780013517b3c1cb9b18a748aac47"
+    },
+    {
+      "path": "art/creek-baked-v3/level-62-art.png",
+      "source": "art/creek-baked-v3/level-62-art.png",
+      "bytes": 83438,
+      "sha256": "b74c0da4b2822ccd392ca7621b32b0532448a18040f265b723b0204c54b1b4ab"
+    },
+    {
+      "path": "art/creek-baked-v3/level-62-mask.png",
+      "source": "art/creek-baked-v3/level-62-mask.png",
+      "bytes": 33130,
+      "sha256": "f8b227c2ba03330e0225afa0f4aea679272e646e4be21575265321a758feaea9"
+    },
+    {
+      "path": "art/creek-baked-v3/level-62-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-62-samples.bin.gz",
+      "bytes": 62743,
+      "sha256": "4f0a2276eea47c0a9eecb64482fcb60bcfcf299236442a6fa54183020d357beb"
+    },
+    {
+      "path": "art/creek-baked-v3/level-63-art.png",
+      "source": "art/creek-baked-v3/level-63-art.png",
+      "bytes": 138216,
+      "sha256": "b9538b2445deb1f51890dd541694c403e34dc126d5897cdc3dea82c777f8bfe1"
+    },
+    {
+      "path": "art/creek-baked-v3/level-63-mask.png",
+      "source": "art/creek-baked-v3/level-63-mask.png",
+      "bytes": 43111,
+      "sha256": "c064e45b5ba8bee447049f09db9e081a829c6aaf4f85a0c190fb68bfed1eca22"
+    },
+    {
+      "path": "art/creek-baked-v3/level-63-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-63-samples.bin.gz",
+      "bytes": 97501,
+      "sha256": "06f29e104a8fd0639a7b6994ad03c34a25855fe1feb82125fa61d119b465bce8"
+    },
+    {
+      "path": "art/creek-baked-v3/level-64-art.png",
+      "source": "art/creek-baked-v3/level-64-art.png",
+      "bytes": 214706,
+      "sha256": "b0071ce8ba40f78defe49393b220148ba38587aace3b87ff40e4d1618fc78d77"
+    },
+    {
+      "path": "art/creek-baked-v3/level-64-mask.png",
+      "source": "art/creek-baked-v3/level-64-mask.png",
+      "bytes": 56941,
+      "sha256": "b2c441689e047e92b5327bf7e043680b48fff474d4e0329d4727b73f386ed996"
+    },
+    {
+      "path": "art/creek-baked-v3/level-64-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-64-samples.bin.gz",
+      "bytes": 148114,
+      "sha256": "a1424bd5539f51ea58322243940b64cfe8b7b23e08fb382504a70c036c42d667"
+    },
+    {
+      "path": "art/creek-baked-v3/level-65-art.png",
+      "source": "art/creek-baked-v3/level-65-art.png",
+      "bytes": 200010,
+      "sha256": "ebea04f1951bc028f8ebee9db5d097085a9d054dd1cd3364682f007484c63888"
+    },
+    {
+      "path": "art/creek-baked-v3/level-65-mask.png",
+      "source": "art/creek-baked-v3/level-65-mask.png",
+      "bytes": 53595,
+      "sha256": "41f381e8866260c76a779d2d5d3ff63d6b7afc5b8c46a832a6ae2d22755b4e80"
+    },
+    {
+      "path": "art/creek-baked-v3/level-65-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-65-samples.bin.gz",
+      "bytes": 136413,
+      "sha256": "3cc8801ba461851716c9ba48e2d1f511c5deb31d182b82edeb96f704ed11358d"
+    },
+    {
+      "path": "art/creek-baked-v3/level-66-art.png",
+      "source": "art/creek-baked-v3/level-66-art.png",
+      "bytes": 157059,
+      "sha256": "2b62ac22fddf49e4ac8094f0d91d04130d6afcee08443c83d4229e7249ac1010"
+    },
+    {
+      "path": "art/creek-baked-v3/level-66-mask.png",
+      "source": "art/creek-baked-v3/level-66-mask.png",
+      "bytes": 44343,
+      "sha256": "8e744fc1adda3536affd4aa918d85a10b081c10b2c11161874efff77cf6cb2c0"
+    },
+    {
+      "path": "art/creek-baked-v3/level-66-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-66-samples.bin.gz",
+      "bytes": 116979,
+      "sha256": "f0ebaf29e1e62a468ea6b8ca57ef80d15f17cb721518fc5c7a6ec1fa8a6b91ab"
+    },
+    {
+      "path": "art/creek-baked-v3/level-67-art.png",
+      "source": "art/creek-baked-v3/level-67-art.png",
+      "bytes": 141448,
+      "sha256": "490db977b38e4bbda84ff5870ee8e07f471ef321afec9cae92d17375651867e0"
+    },
+    {
+      "path": "art/creek-baked-v3/level-67-mask.png",
+      "source": "art/creek-baked-v3/level-67-mask.png",
+      "bytes": 39185,
+      "sha256": "6010b52e958587d80c77e7d9cda14f58832b7fd46fbbc905a8fb20901dfb1b09"
+    },
+    {
+      "path": "art/creek-baked-v3/level-67-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-67-samples.bin.gz",
+      "bytes": 99915,
+      "sha256": "8cd75d0ca0b908d3e12eaa0dc42327df21fc406e635278be5ffdef00a54af993"
+    },
+    {
+      "path": "art/creek-baked-v3/level-68-art.png",
+      "source": "art/creek-baked-v3/level-68-art.png",
+      "bytes": 160326,
+      "sha256": "4d23379a6c4e4e8d14598efeb0cc9cc3058e003d1cb8d9411b33441f3f98a827"
+    },
+    {
+      "path": "art/creek-baked-v3/level-68-mask.png",
+      "source": "art/creek-baked-v3/level-68-mask.png",
+      "bytes": 43986,
+      "sha256": "98e5a06fddf0e00883c2cfb65304344d22b91608afe6d5e43f2990a9b65d576d"
+    },
+    {
+      "path": "art/creek-baked-v3/level-68-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-68-samples.bin.gz",
+      "bytes": 121707,
+      "sha256": "8f9d3c44ff9ac72094ed218e102b938f09934cee33e4ba2f13ff094a3e6da0a6"
+    },
+    {
+      "path": "art/creek-baked-v3/level-69-art.png",
+      "source": "art/creek-baked-v3/level-69-art.png",
+      "bytes": 86511,
+      "sha256": "1ad0033865ed2fe66cced1ab0c2670b5a14715b340d4112aa0746af1ac44a35f"
+    },
+    {
+      "path": "art/creek-baked-v3/level-69-mask.png",
+      "source": "art/creek-baked-v3/level-69-mask.png",
+      "bytes": 35179,
+      "sha256": "26db5def22313bf87bfc987136af610f4e9d86f12c46b2c22218610043e6d757"
+    },
+    {
+      "path": "art/creek-baked-v3/level-69-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-69-samples.bin.gz",
+      "bytes": 66776,
+      "sha256": "bb48e276f2b9fb07cb0fad7469ccb6ed40e07d3a2496c990676241a0b17d89e3"
+    },
+    {
+      "path": "art/creek-baked-v3/level-70-art.png",
+      "source": "art/creek-baked-v3/level-70-art.png",
+      "bytes": 188175,
+      "sha256": "a8eeb9bf3ce27b731eb9a91372937b3c20189bc63fc7711c498dfcc5e7ea4dd0"
+    },
+    {
+      "path": "art/creek-baked-v3/level-70-mask.png",
+      "source": "art/creek-baked-v3/level-70-mask.png",
+      "bytes": 48720,
+      "sha256": "8e583937ed5f2b6cae586e6a4f6801d76e3d375ef984c013b3d8ea9c2148b593"
+    },
+    {
+      "path": "art/creek-baked-v3/level-70-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-70-samples.bin.gz",
+      "bytes": 140243,
+      "sha256": "59eafdbae4a322bd0997afc5bf77eb363c3958051a9a903f4037b01c9f96e036"
+    },
+    {
+      "path": "art/creek-baked-v3/level-71-art.png",
+      "source": "art/creek-baked-v3/level-71-art.png",
+      "bytes": 144838,
+      "sha256": "e82f8b62f4fd15745eed9e16edadfe8c864eff598e36d8826094d92ad0a5ae77"
+    },
+    {
+      "path": "art/creek-baked-v3/level-71-mask.png",
+      "source": "art/creek-baked-v3/level-71-mask.png",
+      "bytes": 43940,
+      "sha256": "a60214c2165b1f856f7bfd31334a46e2341d80e62ecbd1d39f3dbf4af21ebdff"
+    },
+    {
+      "path": "art/creek-baked-v3/level-71-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-71-samples.bin.gz",
+      "bytes": 88263,
+      "sha256": "623fff528b0eee6b089e8a64de5cbd2938d93fa82d01e2f82fd0b642ca78b304"
+    },
+    {
+      "path": "art/creek-baked-v3/level-72-art.png",
+      "source": "art/creek-baked-v3/level-72-art.png",
+      "bytes": 87650,
+      "sha256": "7c4b475a40758dae3fe3d136e8548c7be205422bf84ea8ae299b427a8aea3559"
+    },
+    {
+      "path": "art/creek-baked-v3/level-72-mask.png",
+      "source": "art/creek-baked-v3/level-72-mask.png",
+      "bytes": 33680,
+      "sha256": "427302041ea64a1a89cb58fd9b98706496fd0ca7f711a84cea4c15c220d513b2"
+    },
+    {
+      "path": "art/creek-baked-v3/level-72-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-72-samples.bin.gz",
+      "bytes": 64049,
+      "sha256": "481fe8b649517c3632ff078768c0b9bc6e58d15341644a57d74e3cf2899d83e2"
+    },
+    {
+      "path": "art/creek-baked-v3/level-73-art.png",
+      "source": "art/creek-baked-v3/level-73-art.png",
+      "bytes": 126784,
+      "sha256": "5d918b5a6950a33288b1c181af8a2db1def3410cdf01ea4a2e3f9b40562d0a08"
+    },
+    {
+      "path": "art/creek-baked-v3/level-73-mask.png",
+      "source": "art/creek-baked-v3/level-73-mask.png",
+      "bytes": 41244,
+      "sha256": "118b74785825bfe587f8064a3fdf0de8d6cdae2c53f7cf1aa5bfc6844fe59365"
+    },
+    {
+      "path": "art/creek-baked-v3/level-73-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-73-samples.bin.gz",
+      "bytes": 81657,
+      "sha256": "fc7f14af1353381f2044a632d210148f75adb7ed3ab2a5f69d055398db7bb1a4"
+    },
+    {
+      "path": "art/creek-baked-v3/level-74-art.png",
+      "source": "art/creek-baked-v3/level-74-art.png",
+      "bytes": 164167,
+      "sha256": "2246884d027c6e5a9089cd69a8dbdbdcbc517415338a066cb7bf3edbb86fe2f2"
+    },
+    {
+      "path": "art/creek-baked-v3/level-74-mask.png",
+      "source": "art/creek-baked-v3/level-74-mask.png",
+      "bytes": 46722,
+      "sha256": "fcdacaadf9ce2077f60f21418b86622e0679cf9de731ee223e88611477779455"
+    },
+    {
+      "path": "art/creek-baked-v3/level-74-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-74-samples.bin.gz",
+      "bytes": 108332,
+      "sha256": "f0ce0686657b30f1e46454b7dd54a728e32bf76647fa64bb59ed2368ae3991f3"
+    },
+    {
+      "path": "art/creek-baked-v3/level-75-art.png",
+      "source": "art/creek-baked-v3/level-75-art.png",
+      "bytes": 221919,
+      "sha256": "4a7187a8b28f779de3cbbddef39bbd40e4d7a21ee098b4ade0b73e15a31e2337"
+    },
+    {
+      "path": "art/creek-baked-v3/level-75-mask.png",
+      "source": "art/creek-baked-v3/level-75-mask.png",
+      "bytes": 58025,
+      "sha256": "534ad0fea12ee4bd875c490b80aa25fa67f3a837e61a16ab11ba7d1449807da5"
+    },
+    {
+      "path": "art/creek-baked-v3/level-75-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-75-samples.bin.gz",
+      "bytes": 151334,
+      "sha256": "18ee03bd31c6ea6e9ca4106a83aea056d69af696c340081de876ac10bc446618"
+    },
+    {
+      "path": "art/creek-baked-v3/level-76-art.png",
+      "source": "art/creek-baked-v3/level-76-art.png",
+      "bytes": 228025,
+      "sha256": "0958ac600f0dd12f4f8beb255d9ea02d6669b813bc33402459e94cc0613bb268"
+    },
+    {
+      "path": "art/creek-baked-v3/level-76-mask.png",
+      "source": "art/creek-baked-v3/level-76-mask.png",
+      "bytes": 54248,
+      "sha256": "ab1516dbbcf90a4ae21c558654b82b6ad5acc9685f3f1c5e893756d395937c69"
+    },
+    {
+      "path": "art/creek-baked-v3/level-76-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-76-samples.bin.gz",
+      "bytes": 147923,
+      "sha256": "15b6fcf71ca1a833623791cdf3de6c80fc77c23d9db5b257527c7027a4d6d08b"
+    },
+    {
+      "path": "art/creek-baked-v3/level-77-art.png",
+      "source": "art/creek-baked-v3/level-77-art.png",
+      "bytes": 167679,
+      "sha256": "2cc734b37d643ed369aff723dbb68342a23c759e25b506dc7adea93f2cabc3ae"
+    },
+    {
+      "path": "art/creek-baked-v3/level-77-mask.png",
+      "source": "art/creek-baked-v3/level-77-mask.png",
+      "bytes": 43890,
+      "sha256": "0dd9f3094d300fce63b804a0eed83ccd5d04f062e180b65d61dace83f4e81c72"
+    },
+    {
+      "path": "art/creek-baked-v3/level-77-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-77-samples.bin.gz",
+      "bytes": 106484,
+      "sha256": "baf9b4c43ede83382f22dd1ff96af807d317360fcdba700be9c85bbe7b298aaf"
+    },
+    {
+      "path": "art/creek-baked-v3/level-78-art.png",
+      "source": "art/creek-baked-v3/level-78-art.png",
+      "bytes": 204991,
+      "sha256": "ab3b354e8a573a1b92bb6e2ffd0d3e4463e07b5f6e426e3a54ad8933024060fc"
+    },
+    {
+      "path": "art/creek-baked-v3/level-78-mask.png",
+      "source": "art/creek-baked-v3/level-78-mask.png",
+      "bytes": 47776,
+      "sha256": "eb4c9bfa95c47694fdabc13acf7b93ee70f648efc67f3d81560f08d6d37df564"
+    },
+    {
+      "path": "art/creek-baked-v3/level-78-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-78-samples.bin.gz",
+      "bytes": 141573,
+      "sha256": "f9dcebfc39213cf518ada37cbe70d4998dc52190e9ef76383d8b8a664bdaff45"
+    },
+    {
+      "path": "art/creek-baked-v3/level-79-art.png",
+      "source": "art/creek-baked-v3/level-79-art.png",
+      "bytes": 220575,
+      "sha256": "29048fde273728c773a7739eb9a82c79c0172912b0851899b70b52671b3b8f54"
+    },
+    {
+      "path": "art/creek-baked-v3/level-79-mask.png",
+      "source": "art/creek-baked-v3/level-79-mask.png",
+      "bytes": 54351,
+      "sha256": "cbe63a93fdcba35ed452c757f019e5dfb4e980ca4764762d0894c0cd672292a3"
+    },
+    {
+      "path": "art/creek-baked-v3/level-79-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-79-samples.bin.gz",
+      "bytes": 146163,
+      "sha256": "aad883fe468a1d16687699eb8ce4e4819dd9e8049c152959ef0ca6f138384e66"
+    },
+    {
+      "path": "art/creek-baked-v3/level-80-art.png",
+      "source": "art/creek-baked-v3/level-80-art.png",
+      "bytes": 242629,
+      "sha256": "9946f296aaea4b1e32ec28b043337a1c4cb47811f2f67767a4800aec44664905"
+    },
+    {
+      "path": "art/creek-baked-v3/level-80-mask.png",
+      "source": "art/creek-baked-v3/level-80-mask.png",
+      "bytes": 55668,
+      "sha256": "b7bbc7da5645cef7bedaf7843f96eac44e5869e5d60d6bc8e2fee2297d6f4139"
+    },
+    {
+      "path": "art/creek-baked-v3/level-80-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-80-samples.bin.gz",
+      "bytes": 168230,
+      "sha256": "b880ab664b66bcd1110bd09e09411e1377453ff8e681abafb9915edaf16a0025"
+    },
+    {
+      "path": "art/creek-baked-v3/level-81-art.png",
+      "source": "art/creek-baked-v3/level-81-art.png",
+      "bytes": 162331,
+      "sha256": "84a48d144189c5e547fbba524f57f104f49b4cb377d9e0355d7214bc35209e0e"
+    },
+    {
+      "path": "art/creek-baked-v3/level-81-mask.png",
+      "source": "art/creek-baked-v3/level-81-mask.png",
+      "bytes": 47930,
+      "sha256": "c4773a82c639556e69d88c6f0ad62868f4f2f6186bddf672fe503ee0f718384b"
+    },
+    {
+      "path": "art/creek-baked-v3/level-81-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-81-samples.bin.gz",
+      "bytes": 121064,
+      "sha256": "5add13618a534bdb8737d5c6ff43920db4d8b39def016998de29883aa1e23a5d"
+    },
+    {
+      "path": "art/creek-baked-v3/level-82-art.png",
+      "source": "art/creek-baked-v3/level-82-art.png",
+      "bytes": 126113,
+      "sha256": "d7b146fec9f8033b8139f110e597639a7b84c12ba34eaa8ce73cfaa7c3797cc3"
+    },
+    {
+      "path": "art/creek-baked-v3/level-82-mask.png",
+      "source": "art/creek-baked-v3/level-82-mask.png",
+      "bytes": 44109,
+      "sha256": "73a2b8da9cd0ca1f7234e8a0d1fed837db5183d216ddf34d2addb8e19a272734"
+    },
+    {
+      "path": "art/creek-baked-v3/level-82-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-82-samples.bin.gz",
+      "bytes": 91796,
+      "sha256": "da6309437fc89aa11aa937ff4e362fdec832bc14d9175af8e175dec2180eae58"
+    },
+    {
+      "path": "art/creek-baked-v3/level-83-art.png",
+      "source": "art/creek-baked-v3/level-83-art.png",
+      "bytes": 181907,
+      "sha256": "0f7273dce9b4ce286e10faa14bbd131e04886bee690769c68624f09434cd20b0"
+    },
+    {
+      "path": "art/creek-baked-v3/level-83-mask.png",
+      "source": "art/creek-baked-v3/level-83-mask.png",
+      "bytes": 49525,
+      "sha256": "bd7f82a5e75fcd8730afac7cfcee620ccaa96077eeaba3f7f158d94aeb417c15"
+    },
+    {
+      "path": "art/creek-baked-v3/level-83-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-83-samples.bin.gz",
+      "bytes": 123463,
+      "sha256": "27cb94ae930ae846939249ee4470aea673f1c82dd1748216746fc55f28f962ae"
+    },
+    {
+      "path": "art/creek-baked-v3/level-84-art.png",
+      "source": "art/creek-baked-v3/level-84-art.png",
+      "bytes": 114493,
+      "sha256": "94a9d9db16fa1d6a7ba4a048e28bead2c645835fc8e38947dbd2341477352d0b"
+    },
+    {
+      "path": "art/creek-baked-v3/level-84-mask.png",
+      "source": "art/creek-baked-v3/level-84-mask.png",
+      "bytes": 39547,
+      "sha256": "59dd9abedaaff77ac81506fc8217bfa84718984ac083a7b2a8f9122fba4d86e1"
+    },
+    {
+      "path": "art/creek-baked-v3/level-84-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-84-samples.bin.gz",
+      "bytes": 92297,
+      "sha256": "0fdabbedba0ac4008424d6feabb153f4a4e603446cddb9d19a2e5ee23a60e368"
+    },
+    {
+      "path": "art/creek-baked-v3/level-85-art.png",
+      "source": "art/creek-baked-v3/level-85-art.png",
+      "bytes": 209485,
+      "sha256": "8297829e5cdeb0723e05d2c0689ff1c7156386823c0ca892fb37b8dc469b59ae"
+    },
+    {
+      "path": "art/creek-baked-v3/level-85-mask.png",
+      "source": "art/creek-baked-v3/level-85-mask.png",
+      "bytes": 55020,
+      "sha256": "1f276cc4342051068d2e068c014816d42658d2722bb1bd907765307efdd0ed10"
+    },
+    {
+      "path": "art/creek-baked-v3/level-85-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-85-samples.bin.gz",
+      "bytes": 166804,
+      "sha256": "16adcef0ba459f6716707ee6c4a1586221e70257afcca77669dbd1e019154132"
+    },
+    {
+      "path": "art/creek-baked-v3/level-86-art.png",
+      "source": "art/creek-baked-v3/level-86-art.png",
+      "bytes": 173796,
+      "sha256": "671eae38d025afcf965fc0bd23a4a3eb070276719195222b41376f761084d0d0"
+    },
+    {
+      "path": "art/creek-baked-v3/level-86-mask.png",
+      "source": "art/creek-baked-v3/level-86-mask.png",
+      "bytes": 46217,
+      "sha256": "4446674ed24d0f6acf7acee705358342697be7b6984a1ec6ccfdbcfbc6ff4b2c"
+    },
+    {
+      "path": "art/creek-baked-v3/level-86-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-86-samples.bin.gz",
+      "bytes": 132543,
+      "sha256": "cbbfad4d63e2d1be0b9f130e068cc9fb39fad480b64e280eafc5d03b0c2a77ab"
+    },
+    {
+      "path": "art/creek-baked-v3/level-87-art.png",
+      "source": "art/creek-baked-v3/level-87-art.png",
+      "bytes": 180171,
+      "sha256": "9e747c8800510ba95148d01687c9317a04f7da876a9e1952cdd4f24591122cce"
+    },
+    {
+      "path": "art/creek-baked-v3/level-87-mask.png",
+      "source": "art/creek-baked-v3/level-87-mask.png",
+      "bytes": 52054,
+      "sha256": "9f6aae009a24abd5304c53ad323bbe657cf11317ecbc57ac68af629ba81e7e62"
+    },
+    {
+      "path": "art/creek-baked-v3/level-87-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-87-samples.bin.gz",
+      "bytes": 131566,
+      "sha256": "b70138676af6b7f7f3cbff775452fc8a50d7d3797d2f7271c3eb32057609d9e7"
+    },
+    {
+      "path": "art/creek-baked-v3/level-88-art.png",
+      "source": "art/creek-baked-v3/level-88-art.png",
+      "bytes": 227649,
+      "sha256": "5eb35855f5f343ac11cc951af39ceac14ef660787797a69465048fc2fdc581cb"
+    },
+    {
+      "path": "art/creek-baked-v3/level-88-mask.png",
+      "source": "art/creek-baked-v3/level-88-mask.png",
+      "bytes": 55909,
+      "sha256": "855e3f1c3fad288ef090dbf84d63786da6cdc30a2dd51c37c52d035083e42862"
+    },
+    {
+      "path": "art/creek-baked-v3/level-88-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-88-samples.bin.gz",
+      "bytes": 173153,
+      "sha256": "0f57546d2e5c874031d3181731b69bb8c7df9c555eec7464852ba46160d45236"
+    },
+    {
+      "path": "art/creek-baked-v3/level-89-art.png",
+      "source": "art/creek-baked-v3/level-89-art.png",
+      "bytes": 178014,
+      "sha256": "06db72b7db97a47197480c4e49bd9b7acd9431def09f8da1a8ca7ce8622cd77a"
+    },
+    {
+      "path": "art/creek-baked-v3/level-89-mask.png",
+      "source": "art/creek-baked-v3/level-89-mask.png",
+      "bytes": 46954,
+      "sha256": "1ec34fa1e57f0d1c6649eb9796638d619ee5651ab3dfebeb66c54c60bbf8f9a1"
+    },
+    {
+      "path": "art/creek-baked-v3/level-89-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-89-samples.bin.gz",
+      "bytes": 116461,
+      "sha256": "c12f514e7e0c7c2b972f283f2ba47db80ac93f6df4da15d31f7504e93557360c"
+    },
+    {
+      "path": "art/creek-baked-v3/level-90-art.png",
+      "source": "art/creek-baked-v3/level-90-art.png",
+      "bytes": 208842,
+      "sha256": "fb67da53215b3edb87b661e0ba1d5232f70e0b7af5bdcce5fcebf57b7f0b73ea"
+    },
+    {
+      "path": "art/creek-baked-v3/level-90-mask.png",
+      "source": "art/creek-baked-v3/level-90-mask.png",
+      "bytes": 53691,
+      "sha256": "682a0233e02832761c67625023b956d08ce29814df10006b93096cc930602200"
+    },
+    {
+      "path": "art/creek-baked-v3/level-90-samples.bin.gz",
+      "source": "art/creek-baked-v3/level-90-samples.bin.gz",
+      "bytes": 150212,
+      "sha256": "6d20c687bf24664b09aa5d8c4d1be1a70742413c9afbfb8d3f5cba476c730bd5"
+    },
+    {
+      "path": "art/grandpa-delivery-v1/grandpa-delivery.webp",
+      "source": "art/grandpa-delivery-v1/grandpa-delivery.webp",
+      "bytes": 839894,
+      "sha256": "6b834e1f6a5e49ff7dde2365104c7f52cdea1f2282ff73a9bcfcd010e603643a"
     },
     {
       "path": "art/max-master/max-master-v4-cheek-narrow-4dir.png",
       "source": "art/max-master/max-master-v4-cheek-narrow-4dir.png",
-      "bytes": 130919
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.avif",
-      "source": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.avif",
-      "bytes": 48547
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.avif",
-      "source": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.avif",
-      "bytes": 57345
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
-      "source": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
-      "bytes": 57516
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.webp",
-      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute-scaled.webp",
-      "bytes": 167664
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
-      "source": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.avif",
-      "bytes": 51346
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.avif",
-      "source": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.avif",
-      "bytes": 61953
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.avif",
-      "source": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.avif",
-      "bytes": 64000
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.avif",
-      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.avif",
-      "bytes": 49807
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.avif",
-      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.avif",
-      "bytes": 56281
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
-      "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
-      "bytes": 61487
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.avif",
-      "source": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.avif",
-      "bytes": 50033
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.avif",
-      "source": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.avif",
-      "bytes": 60112
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-idle-master-v2-front-8f.webp",
-      "source": "art/max-master/motions/canonical/max-idle-master-v2-front-8f.webp",
-      "bytes": 212718
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.webp",
-      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f-scaled.webp",
-      "bytes": 175732
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v8-up-8f.webp",
-      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v8-up-8f.webp",
-      "bytes": 119024
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-down-8f.webp",
-      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-down-8f.webp",
-      "bytes": 118328
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-left-8f.webp",
-      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v4-left-8f.webp",
-      "bytes": 108856
-    },
-    {
-      "path": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
-      "source": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
-      "bytes": 87716
+      "bytes": 130919,
+      "sha256": "10652c65b7e8f87b7cb1eb00a134caeaa177e715b5650095f43bd4767a08556e"
     },
     {
       "path": "art/max-master/motions/canonical/max-backstep-master-v1-left-8f.webp",
       "source": "art/max-master/motions/canonical/max-backstep-master-v1-left-8f.webp",
-      "bytes": 69564
+      "bytes": 69564,
+      "sha256": "417d46217aa92dccc297c4be425511d442dd3c278552a847db4967e0c95e8907"
     },
     {
-      "path": "art/max-master/motions/map/max-map-hop-wag-v1-up-8f.webp",
-      "source": "art/max-master/motions/map/max-map-hop-wag-v1-up-8f.webp",
-      "bytes": 43498
+      "path": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.webp",
+      "source": "art/max-master/motions/canonical/max-idle-master-v1-front-8f.webp",
+      "bytes": 79796,
+      "sha256": "046057ec266ea005c19d37ae4a282af1d5f89d12e66ffb9f0f11b8985bdb43bd"
     },
     {
-      "path": "art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.webp",
-      "source": "art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.webp",
-      "bytes": 63216
+      "path": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.webp",
+      "source": "art/max-master/motions/canonical/max-push-master-v1-left-8f-cute.webp",
+      "bytes": 52776,
+      "sha256": "a0678d76f4a023b5f5babd4edd01da4567664de94ddc1d22a5f3010e1e63de1b"
     },
     {
-      "path": "art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.webp",
-      "bytes": 56760
+      "path": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.webp",
+      "source": "art/max-master/motions/canonical/max-push-master-v2-up-8f-symmetric.webp",
+      "bytes": 40100,
+      "sha256": "e221d382d8cb30bc267d0225f8359654ca96d70cb4ab1eafb448b8a49dbab02a"
     },
     {
-      "path": "art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp",
-      "bytes": 65198
+      "path": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.webp",
+      "source": "art/max-master/motions/canonical/max-push-master-v3-down-8f-low.webp",
+      "bytes": 48360,
+      "sha256": "72b31b11a5257474db12a137653727075cf10a479cda9d9b8a8467c8931494b7"
     },
     {
-      "path": "art/max-master/motions/map/duck-v2/max-duck-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/duck-v2/max-duck-map-hop-up-8f.webp",
-      "bytes": 63266
+      "path": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
+      "source": "art/max-master/motions/canonical/max-run-master-v1-left-8f.webp",
+      "bytes": 57516,
+      "sha256": "9b6346dfbdd3ee077170b8a15846974c2fa73927e17bd1552f81c52f02dfc89a"
     },
     {
-      "path": "art/max-master/motions/map/duck-v2/max-duck-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/duck-v2/max-duck-map-turn-back-front-8f.webp",
-      "bytes": 69382
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.avif",
+      "bytes": 61487,
+      "sha256": "345d2e37926072d5c797d0c26742ca258459bf192148375b651590dffef7f860"
     },
     {
-      "path": "art/max-master/motions/map/frog-v2/max-frog-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/frog-v2/max-frog-map-hop-up-8f.webp",
-      "bytes": 65670
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-front-8f-blink.webp",
+      "bytes": 50018,
+      "sha256": "16d607a35ae5147d271c70b12eb890e284508a3aedbd530ed2f18d9f4d10e251"
     },
     {
-      "path": "art/max-master/motions/map/frog-v2/max-frog-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/frog-v2/max-frog-map-turn-back-front-8f.webp",
-      "bytes": 72458
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.webp",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-left-8f-blink.webp",
+      "bytes": 48296,
+      "sha256": "96d4be1349ac6cce7ad3875b685df7efcc66d133a52cca6137e3469790f798b7"
     },
     {
-      "path": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-hop-up-8f.webp",
-      "bytes": 83842
+      "path": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.webp",
+      "source": "art/max-master/motions/canonical/max-sit-master-v1-up-8f-settle.webp",
+      "bytes": 39600,
+      "sha256": "29b1fe3fef2a38c7dc7326e5127fd25100609ee4ba210a8dacff6484c35cfe9e"
     },
     {
-      "path": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-turn-back-front-8f.webp",
-      "bytes": 93788
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-down-8f.webp",
+      "bytes": 48310,
+      "sha256": "d51973b575e39d320dcd7bcc20a2887a5ea5c116e14c47468ee7b1d4f0ff8c70"
     },
     {
-      "path": "art/max-master/motions/map/bunny-v2/max-bunny-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/bunny-v2/max-bunny-map-hop-up-8f.webp",
-      "bytes": 60748
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.webp",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v3-left-8f.webp",
+      "bytes": 44432,
+      "sha256": "e21a387015a7cde4b446c767f4dc595f423680acc0458db2a55031b06510f7a6"
     },
     {
-      "path": "art/max-master/motions/map/bunny-v2/max-bunny-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/bunny-v2/max-bunny-map-turn-back-front-8f.webp",
-      "bytes": 66744
+      "path": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
+      "source": "art/max-master/motions/canonical/max-sit-to-sleep-master-v6-up-8f.webp",
+      "bytes": 48258,
+      "sha256": "c3adbd7959a8c7f422f1a0c75c4f7bfe65379cbfa694ed01d2ab567f1b3541c4"
     },
     {
-      "path": "art/max-master/motions/map/pig-v1/max-pig-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/pig-v1/max-pig-map-hop-up-8f.webp",
-      "bytes": 72856
+      "path": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
+      "source": "art/max-master/motions/canonical/max-stretch-master-v1-front-8f.webp",
+      "bytes": 87716,
+      "sha256": "65c817b4246baae9c894670107dcfdbc96454109b0efea9d4495e04e310d4b4a"
     },
     {
-      "path": "art/max-master/motions/map/pig-v1/max-pig-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/pig-v1/max-pig-map-turn-back-front-8f.webp",
-      "bytes": 76216
+      "path": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.webp",
+      "source": "art/max-master/motions/canonical/max-victory-master-v1-front-hop-loop-8f.webp",
+      "bytes": 49146,
+      "sha256": "48ab77cc87732d9a3f72fa1897500bb827019d6863d682feca663a29d65c2d5c"
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.webp",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-down-8f.webp",
+      "bytes": 49928,
+      "sha256": "6fb1022a7037ec98b74379cd6bb1e2adf5f31c22db718c5b6166e6101713727d"
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.webp",
+      "source": "art/max-master/motions/canonical/max-walk-master-v1-up-8f.webp",
+      "bytes": 43136,
+      "sha256": "251aeff96cda75636653341fdfe33378bb97aa7f6053d5ce7dd16d582806bed6"
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.webp",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v2-focused-8f.webp",
+      "bytes": 51236,
+      "sha256": "62c1862fff4243c3f5948788c6dd8bbc77d85091e8645433462a18f354b09d82"
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.webp",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-down-8f.webp",
+      "bytes": 44848,
+      "sha256": "7b0a13dda69eea422118302ff4d6fff9aa62df2c5243fd3034d69f1be0e7181d"
+    },
+    {
+      "path": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.webp",
+      "source": "art/max-master/motions/canonical/max-wall-bump-master-v3-up-8f.webp",
+      "bytes": 40218,
+      "sha256": "29d6950d80f9ce968fd006f675984b3cf5d8a7b61c293ed8d0792af28174114c"
+    },
+    {
+      "path": "art/max-master/motions/loading/max-loading-v1.webp",
+      "source": "art/max-master/motions/loading/max-loading-v1.webp",
+      "bytes": 225996,
+      "sha256": "b7ba0372d9a9be10e893e0ced64975422731b9c70f7497a4c129df9e5d01616b"
     },
     {
       "path": "art/max-master/motions/map/beaver-v1/max-beaver-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/beaver-v1/max-beaver-map-hop-up-8f.webp",
-      "bytes": 78920
+      "bytes": 78920,
+      "sha256": "3cfbb9ed76a11df63f618d996e58b347f40661080f5d4fc6e321267c78054fc4"
     },
     {
       "path": "art/max-master/motions/map/beaver-v1/max-beaver-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/beaver-v1/max-beaver-map-turn-back-front-8f.webp",
-      "bytes": 90428
+      "bytes": 90428,
+      "sha256": "a8d10077d11d805c52356167a04eaa85bf389f85f46121680301f8e142d53e4b"
     },
     {
-      "path": "art/max-master/motions/map/peacock-v1/max-peacock-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/peacock-v1/max-peacock-map-hop-up-8f.webp",
-      "bytes": 77544
+      "path": "art/max-master/motions/map/bunny-v2/max-bunny-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/bunny-v2/max-bunny-map-hop-up-8f.webp",
+      "bytes": 60748,
+      "sha256": "3fdb4b354ac16513399162acc255f97dacc519a93697f79b1a345c71375a8af7"
     },
     {
-      "path": "art/max-master/motions/map/peacock-v1/max-peacock-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/peacock-v1/max-peacock-map-turn-back-front-8f.webp",
-      "bytes": 87744
+      "path": "art/max-master/motions/map/bunny-v2/max-bunny-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/bunny-v2/max-bunny-map-turn-back-front-8f.webp",
+      "bytes": 66744,
+      "sha256": "7e69f61232a45264b427c20693cf97e0e92343c9cf54bb116af5422670886f83"
     },
     {
-      "path": "art/max-master/motions/map/mouse-v2/max-mouse-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/mouse-v2/max-mouse-map-hop-up-8f.webp",
-      "bytes": 65868
+      "path": "art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/chicken-v2/max-chicken-map-hop-up-8f.webp",
+      "bytes": 56760,
+      "sha256": "616458d807eb36e28776477d034e3d2cea2616624d2071cfac89333ee3717b43"
     },
     {
-      "path": "art/max-master/motions/map/mouse-v2/max-mouse-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/mouse-v2/max-mouse-map-turn-back-front-8f.webp",
-      "bytes": 72828
+      "path": "art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/chicken-v2/max-chicken-map-turn-back-front-8f.webp",
+      "bytes": 65198,
+      "sha256": "73e89c2c402ef1c2f3e47cc6efa1c1b6acadbdcf6f529ff9210704d50cf26576"
     },
     {
-      "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-hop-up-8f.webp",
-      "bytes": 85024
+      "path": "art/max-master/motions/map/duck-v2/max-duck-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/duck-v2/max-duck-map-hop-up-8f.webp",
+      "bytes": 63266,
+      "sha256": "0e10dd2405f5401b5d5b506658f25ebe92292e3b0560caaec7d07a90f6afaffc"
     },
     {
-      "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.webp",
-      "bytes": 80252
+      "path": "art/max-master/motions/map/duck-v2/max-duck-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/duck-v2/max-duck-map-turn-back-front-8f.webp",
+      "bytes": 69382,
+      "sha256": "1c5c1bdaab30a22daf3dface6f8bb25fb8a84297539c2d5c8a521934681c90dc"
     },
     {
-      "path": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.webp",
-      "bytes": 67726
+      "path": "art/max-master/motions/map/frog-v2/max-frog-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/frog-v2/max-frog-map-hop-up-8f.webp",
+      "bytes": 65670,
+      "sha256": "121d87410b8c5445f92769221a173f9748f35c2672bbf57113d0648710dea022"
     },
     {
-      "path": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.webp",
-      "bytes": 73618
+      "path": "art/max-master/motions/map/frog-v2/max-frog-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/frog-v2/max-frog-map-turn-back-front-8f.webp",
+      "bytes": 72458,
+      "sha256": "db041c484eb85c5d896428cc360a0d5eb26f3a3030b15aa0009fa234604f1ac5"
     },
     {
-      "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.webp",
-      "bytes": 86452
+      "path": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-hop-up-8f.webp",
+      "bytes": 83842,
+      "sha256": "ae07ab792ccda50276db4406214cf22a2db3d113d73546318a2c1ab3ee23ba3f"
     },
     {
-      "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.webp",
-      "bytes": 93342
+      "path": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/hedgehog-v1/max-hedgehog-map-turn-back-front-8f.webp",
+      "bytes": 93788,
+      "sha256": "af1ab9e075f18c66401248928c4c1fb6cfc899a3b091ca7796217e305e8c72ce"
     },
     {
       "path": "art/max-master/motions/map/mail-v1/max-mail-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/mail-v1/max-mail-map-hop-up-8f.webp",
-      "bytes": 65842
+      "bytes": 65842,
+      "sha256": "092df074e6f9ec402b33cc844922abf884845ce6af3c2959b8a027c13879bf9c"
     },
     {
       "path": "art/max-master/motions/map/mail-v1/max-mail-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/mail-v1/max-mail-map-turn-back-front-8f.webp",
-      "bytes": 78546
+      "bytes": 78546,
+      "sha256": "1eaaa119274fb347cfbf447b4dec1fb4f494569a745d6ec631ddb2a0036c21c2"
+    },
+    {
+      "path": "art/max-master/motions/map/max-map-hop-wag-v1-up-8f.webp",
+      "source": "art/max-master/motions/map/max-map-hop-wag-v1-up-8f.webp",
+      "bytes": 43498,
+      "sha256": "3894118840859d10843fff0feb64c963fb7307e15e84c0f602d4fe994da1f5bb"
+    },
+    {
+      "path": "art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.webp",
+      "source": "art/max-master/motions/map/max-map-turn-back-front-v2-color-8f.webp",
+      "bytes": 63216,
+      "sha256": "02dc4a687f35e2d1a7753d0d135906b178705758a5fe9308ffcd90a44ab76552"
+    },
+    {
+      "path": "art/max-master/motions/map/mouse-v2/max-mouse-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/mouse-v2/max-mouse-map-hop-up-8f.webp",
+      "bytes": 65868,
+      "sha256": "df03ff3be18b5314539cc2ee63352da1205710632a4400b092e0b383c803c2cc"
+    },
+    {
+      "path": "art/max-master/motions/map/mouse-v2/max-mouse-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/mouse-v2/max-mouse-map-turn-back-front-8f.webp",
+      "bytes": 72828,
+      "sha256": "c7fd063c81fe6c963096b5f3343ad684fe89a7d296263f3c81b8a7e14e735506"
+    },
+    {
+      "path": "art/max-master/motions/map/peacock-v1/max-peacock-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/peacock-v1/max-peacock-map-hop-up-8f.webp",
+      "bytes": 77544,
+      "sha256": "615e2991a8b1e2f1e8ef79309cf3596d42a7442a56573f244b68054f3cfd14a6"
+    },
+    {
+      "path": "art/max-master/motions/map/peacock-v1/max-peacock-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/peacock-v1/max-peacock-map-turn-back-front-8f.webp",
+      "bytes": 87744,
+      "sha256": "1e38bac3651ec30ec58e353d7aa6d5c59b661991fdf1feee47efa0eb85a72b37"
+    },
+    {
+      "path": "art/max-master/motions/map/pig-v1/max-pig-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/pig-v1/max-pig-map-hop-up-8f.webp",
+      "bytes": 72856,
+      "sha256": "9267697384fbdbbc771f98c8ab6b63ac469e3baef66b444aff064c3f32fbf213"
+    },
+    {
+      "path": "art/max-master/motions/map/pig-v1/max-pig-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/pig-v1/max-pig-map-turn-back-front-8f.webp",
+      "bytes": 76216,
+      "sha256": "dd1fc67c8403af20d405313fda0045622a90aed3ff555a424e9bf443a77b2206"
     },
     {
       "path": "art/max-master/motions/map/rain-v1/max-rain-map-hop-up-8f.webp",
       "source": "art/max-master/motions/map/rain-v1/max-rain-map-hop-up-8f.webp",
-      "bytes": 73856
+      "bytes": 73856,
+      "sha256": "eacef465a260998119bef592ea1f4033e35e77fe72f68c8388862898bff4add9"
     },
     {
       "path": "art/max-master/motions/map/rain-v1/max-rain-map-turn-back-front-8f.webp",
       "source": "art/max-master/motions/map/rain-v1/max-rain-map-turn-back-front-8f.webp",
-      "bytes": 79846
+      "bytes": 79846,
+      "sha256": "3b82d88ef9a498020fc680bc7f9886bcf8df5f2c14dbe1544d8f07f792117773"
     },
     {
-      "path": "art/max-master/motions/map/squirrel-v1/max-squirrel-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/squirrel-v1/max-squirrel-map-hop-up-8f.webp",
-      "bytes": 227796
+      "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-hop-up-8f.webp",
+      "bytes": 86452,
+      "sha256": "109830ae1d5d5a05f9e7136a32da40901f8d5abfedc644c6ca7880ce4354c788"
     },
     {
-      "path": "art/max-master/motions/map/squirrel-v1/max-squirrel-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/squirrel-v1/max-squirrel-map-turn-back-front-8f.webp",
-      "bytes": 228830
+      "path": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/ranger-v1/max-ranger-map-turn-back-front-8f.webp",
+      "bytes": 93342,
+      "sha256": "f9c5b5f2da937b60ded9edadaf1baa4041cdfccc174ef891b649def89b6b8f2e"
     },
     {
-      "path": "art/max-master/motions/map/cow-v2/max-cow-map-hop-up-8f.webp",
-      "source": "art/max-master/motions/map/cow-v2/max-cow-map-hop-up-8f.webp",
-      "bytes": 213930
+      "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-hop-up-8f.webp",
+      "bytes": 85024,
+      "sha256": "7d2cca98f78d1ccd536cd714e78f57a4fe1378a5cb59705464a380bcc5dca087"
     },
     {
-      "path": "art/max-master/motions/map/cow-v2/max-cow-map-turn-back-front-8f.webp",
-      "source": "art/max-master/motions/map/cow-v2/max-cow-map-turn-back-front-8f.webp",
-      "bytes": 234478
+      "path": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/sheep-v2/max-sheep-map-turn-back-front-8f.webp",
+      "bytes": 80252,
+      "sha256": "e755d41f6d483ba73169f2a15234f233afa70ee166fa7939aaa5b4b7bbe0fddc"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-walk-left-8f-runtime.webp",
-      "bytes": 59164
+      "path": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.webp",
+      "source": "art/max-master/motions/map/space-v1/max-space-map-hop-up-8f.webp",
+      "bytes": 67726,
+      "sha256": "54db6312c190449351090c91be9431ca93fb2278bac2abcafea5c10ca7ed7a32"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-walk-up-8f-runtime.webp",
-      "bytes": 43136
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-walk-down-8f-runtime.webp",
-      "bytes": 51876
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-push-left-8f-runtime.webp",
-      "bytes": 53398
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-push-up-8f-runtime.webp",
-      "bytes": 44886
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-push-down-8f-runtime.webp",
-      "bytes": 52910
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-wall-left-8f-runtime.webp",
-      "bytes": 55536
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-wall-up-8f-runtime.webp",
-      "bytes": 45366
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-wall-down-8f-runtime.webp",
-      "bytes": 50810
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-sit-left-8f-runtime.webp",
-      "bytes": 55072
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-sit-up-8f-runtime.webp",
-      "bytes": 46522
-    },
-    {
-      "path": "art/max-master/motions/skins/max-duck-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-duck-sit-front-8f-runtime.webp",
-      "bytes": 51558
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-sleep-left-8f-runtime.webp",
-      "bytes": 45502
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-sleep-up-8f-runtime.webp",
-      "bytes": 42724
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-sleep-front-8f-runtime.webp",
-      "bytes": 46438
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-idle-front-8f-runtime.webp",
-      "bytes": 51140
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-duck-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-duck-victory-front-8f-runtime.webp",
-      "bytes": 51200
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-walk-down-8f-runtime.webp",
-      "bytes": 52846
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-walk-up-8f-runtime.webp",
-      "bytes": 43808
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-walk-left-8f-runtime.webp",
-      "bytes": 54496
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-push-left-8f-runtime.webp",
-      "bytes": 51712
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-push-up-8f-runtime.webp",
-      "bytes": 44110
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-push-down-8f-runtime.webp",
-      "bytes": 59630
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-wall-left-8f-runtime.webp",
-      "bytes": 51536
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-wall-up-8f-runtime.webp",
-      "bytes": 43288
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-wall-down-8f-runtime.webp",
-      "bytes": 53082
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-sit-left-8f-runtime.webp",
-      "bytes": 50250
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-sit-up-8f-runtime.webp",
-      "bytes": 40774
-    },
-    {
-      "path": "art/max-master/motions/skins/max-frog-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-frog-sit-front-8f-runtime.webp",
-      "bytes": 51986
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-sleep-left-8f-runtime.webp",
-      "bytes": 42562
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-sleep-up-8f-runtime.webp",
-      "bytes": 40562
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-sleep-front-8f-runtime.webp",
-      "bytes": 47132
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-idle-front-8f-runtime.webp",
-      "bytes": 57494
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-frog-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-frog-victory-front-8f-runtime.webp",
-      "bytes": 53070
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-walk-down-8f-runtime.webp",
-      "bytes": 50128
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-walk-left-8f-runtime.webp",
-      "bytes": 57814
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-walk-up-8f-runtime.webp",
-      "bytes": 44462
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-push-down-8f-runtime.webp",
-      "bytes": 51586
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-push-left-8f-runtime.webp",
-      "bytes": 57130
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-push-up-8f-runtime.webp",
-      "bytes": 45308
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-wall-down-8f-runtime.webp",
-      "bytes": 46818
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-wall-left-8f-runtime.webp",
-      "bytes": 53196
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-wall-up-8f-runtime.webp",
-      "bytes": 45196
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-sit-left-8f-runtime.webp",
-      "bytes": 52030
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-sit-up-8f-runtime.webp",
-      "bytes": 42644
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.webp",
-      "bytes": 50642
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-sleep-left-8f-runtime.webp",
-      "bytes": 48016
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-sleep-up-8f-runtime.webp",
-      "bytes": 40612
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-sleep-front-8f-runtime.webp",
-      "bytes": 47880
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-idle-front-8f-runtime.webp",
-      "bytes": 48664
-    },
-    {
-      "path": "art/max-master/motions/skins/max-chicken-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-chicken-victory-front-8f-runtime.webp",
-      "bytes": 50024
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-walk-down-8f-runtime.webp",
-      "bytes": 53694
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-walk-left-8f-runtime.webp",
-      "bytes": 49818
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-walk-up-8f-runtime.webp",
-      "bytes": 43802
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-push-down-8f-runtime.webp",
-      "bytes": 59574
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-push-left-8f-runtime.webp",
-      "bytes": 47398
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-push-up-8f-runtime.webp",
-      "bytes": 45436
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-wall-down-8f-runtime.webp",
-      "bytes": 54068
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-wall-left-8f-runtime.webp",
-      "bytes": 46844
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-wall-up-8f-runtime.webp",
-      "bytes": 45828
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sit-left-8f-runtime.webp",
-      "bytes": 45466
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sit-up-8f-runtime.webp",
-      "bytes": 41348
-    },
-    {
-      "path": "art/max-master/motions/skins/max-bunny-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-bunny-sit-front-8f-runtime.webp",
-      "bytes": 55266
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-left-8f-runtime.webp",
-      "bytes": 41316
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-up-8f-runtime.webp",
-      "bytes": 38046
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-front-8f-runtime.webp",
-      "bytes": 48844
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-idle-front-8f-runtime.webp",
-      "bytes": 54688
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-bunny-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-bunny-victory-front-8f-runtime.webp",
-      "bytes": 51350
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-walk-down-8f-runtime.webp",
-      "bytes": 60442
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-walk-left-8f-runtime.webp",
-      "bytes": 55400
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-walk-up-8f-runtime.webp",
-      "bytes": 48946
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-push-down-8f-runtime.webp",
-      "bytes": 62394
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-push-left-8f-runtime.webp",
-      "bytes": 52764
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-push-up-8f-runtime.webp",
-      "bytes": 48870
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-wall-down-8f-runtime.webp",
-      "bytes": 59020
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-wall-left-8f-runtime.webp",
-      "bytes": 52302
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-wall-up-8f-runtime.webp",
-      "bytes": 47460
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-sit-left-8f-runtime.webp",
-      "bytes": 54676
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-sit-up-8f-runtime.webp",
-      "bytes": 49446
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-sit-front-8f-runtime.webp",
-      "bytes": 62452
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-sleep-left-8f-runtime.webp",
-      "bytes": 48300
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-sleep-up-8f-runtime.webp",
-      "bytes": 44370
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-sleep-front-8f-runtime.webp",
-      "bytes": 54328
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-idle-front-8f-runtime.webp",
-      "bytes": 61312
-    },
-    {
-      "path": "art/max-master/motions/skins/max-pig-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-pig-victory-front-8f-runtime.webp",
-      "bytes": 59076
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-walk-down-8f-runtime.webp",
-      "bytes": 63132
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-walk-left-8f-runtime.webp",
-      "bytes": 74730
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-walk-up-8f-runtime.webp",
-      "bytes": 57130
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-push-down-8f-runtime.webp",
-      "bytes": 62154
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-push-left-8f-runtime.webp",
-      "bytes": 67542
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-push-up-8f-runtime.webp",
-      "bytes": 55998
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-wall-down-8f-runtime.webp",
-      "bytes": 65208
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-wall-left-8f-runtime.webp",
-      "bytes": 67826
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-wall-up-8f-runtime.webp",
-      "bytes": 53794
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-sit-left-8f-runtime.webp",
-      "bytes": 62678
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-sit-up-8f-runtime.webp",
-      "bytes": 54794
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-sit-front-8f-runtime.webp",
-      "bytes": 62072
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-sleep-left-8f-runtime.webp",
-      "bytes": 60112
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-sleep-up-8f-runtime.webp",
-      "bytes": 53092
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-sleep-front-8f-runtime.webp",
-      "bytes": 58110
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-idle-front-8f-runtime.webp",
-      "bytes": 64278
-    },
-    {
-      "path": "art/max-master/motions/skins/max-hedgehog-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-hedgehog-victory-front-8f-runtime.webp",
-      "bytes": 63814
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-walk-down-8f-runtime.webp",
-      "bytes": 61306
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-walk-left-8f-runtime.webp",
-      "bytes": 68694
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-walk-up-8f-runtime.webp",
-      "bytes": 54638
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-push-down-8f-runtime.webp",
-      "bytes": 64440
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-push-left-8f-runtime.webp",
-      "bytes": 63948
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-push-up-8f-runtime.webp",
-      "bytes": 56926
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-wall-down-8f-runtime.webp",
-      "bytes": 60366
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-wall-left-8f-runtime.webp",
-      "bytes": 57984
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-wall-up-8f-runtime.webp",
-      "bytes": 49458
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-sit-left-8f-runtime.webp",
-      "bytes": 58030
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-sit-up-8f-runtime.webp",
-      "bytes": 53672
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-sit-front-8f-runtime.webp",
-      "bytes": 60216
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-sleep-left-8f-runtime.webp",
-      "bytes": 54346
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-sleep-up-8f-runtime.webp",
-      "bytes": 52890
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-sleep-front-8f-runtime.webp",
-      "bytes": 56150
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-idle-front-8f-runtime.webp",
-      "bytes": 62968
-    },
-    {
-      "path": "art/max-master/motions/skins/max-peacock-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-peacock-victory-front-8f-runtime.webp",
-      "bytes": 61346
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-walk-down-8f-runtime.webp",
-      "bytes": 56932
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-walk-left-8f-runtime.webp",
-      "bytes": 57966
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-walk-up-8f-runtime.webp",
-      "bytes": 45478
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-push-down-8f-runtime.webp",
-      "bytes": 60676
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-push-left-8f-runtime.webp",
-      "bytes": 55928
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-push-up-8f-runtime.webp",
-      "bytes": 49780
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-wall-down-8f-runtime.webp",
-      "bytes": 57574
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-wall-left-8f-runtime.webp",
-      "bytes": 55068
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-wall-up-8f-runtime.webp",
-      "bytes": 47114
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sit-left-8f-runtime.webp",
-      "bytes": 52450
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sit-up-8f-runtime.webp",
-      "bytes": 46280
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mouse-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mouse-sit-front-8f-runtime.webp",
-      "bytes": 61526
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-left-8f-runtime.webp",
-      "bytes": 52032
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-up-8f-runtime.webp",
-      "bytes": 40856
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-front-8f-runtime.webp",
-      "bytes": 53732
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-idle-front-8f-runtime.webp",
-      "bytes": 60494
-    },
-    {
-      "path": "art/max-master/motions/skins/soft-v1/max-mouse-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-mouse-victory-front-8f-runtime.webp",
-      "bytes": 57602
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-walk-down-8f-runtime.webp",
-      "bytes": 67594
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-walk-left-8f-runtime.webp",
-      "bytes": 67992
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-walk-up-8f-runtime.webp",
-      "bytes": 54894
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-push-down-8f-runtime.webp",
-      "bytes": 71674
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-push-left-8f-runtime.webp",
-      "bytes": 66342
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-push-up-8f-runtime.webp",
-      "bytes": 54274
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-wall-down-8f-runtime.webp",
-      "bytes": 63492
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-wall-left-8f-runtime.webp",
-      "bytes": 62052
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-wall-up-8f-runtime.webp",
-      "bytes": 54118
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-sit-left-8f-runtime.webp",
-      "bytes": 61366
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-sit-up-8f-runtime.webp",
-      "bytes": 53178
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-sit-front-8f-runtime.webp",
-      "bytes": 63310
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-sleep-left-8f-runtime.webp",
-      "bytes": 58786
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-sleep-up-8f-runtime.webp",
-      "bytes": 51930
-    },
-    {
-      "path": "art/max-master/motions/skins/max-beaver-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-beaver-sleep-front-8f-runtime.webp",
-      "bytes": 55684
+      "path": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.webp",
+      "source": "art/max-master/motions/map/space-v1/max-space-map-turn-back-front-8f.webp",
+      "bytes": 73618,
+      "sha256": "eac2bba681e5a3213e2ca72dece89400f3ad14485ae97dd471c5aeec8fc1cff0"
     },
     {
       "path": "art/max-master/motions/skins/max-beaver-idle-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-beaver-idle-front-8f-runtime.webp",
-      "bytes": 64470
+      "bytes": 58014,
+      "sha256": "48dfe336f9c08623443b7d632dc39c7903163da3d3bdacb229b633fdb6158616"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-push-down-8f-runtime.webp",
+      "bytes": 64540,
+      "sha256": "a89b2470716cbae704cf2947e7caea37d967478dcdefcc7cdb3ed5938a5e0835"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-push-left-8f-runtime.webp",
+      "bytes": 57550,
+      "sha256": "5d9dc83b7981b413dd3ab7adf8214844ff47dd6b551af7b467035f1c08164e43"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-push-up-8f-runtime.webp",
+      "bytes": 48194,
+      "sha256": "9c3bc81f8d23842f820ee4f1ec5f01102f498486629b7200c801047d8d830634"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-sit-front-8f-runtime.webp",
+      "bytes": 56090,
+      "sha256": "0a723993b8078843663c66446dee1f052a24cfa7016ae0db37cfabf969a72321"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-sit-left-8f-runtime.webp",
+      "bytes": 53118,
+      "sha256": "e2362de332773fa8fd656c2b9fa105037d4dfa46018af75b7ce5718a5f82c2be"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-sit-up-8f-runtime.webp",
+      "bytes": 46948,
+      "sha256": "5a0d25ca58fac13bd7b2a258174f666c91582f0534a0a5454e60e49243ccdd04"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-sleep-front-8f-runtime.webp",
+      "bytes": 49394,
+      "sha256": "55f815bf5180ed443ca42a25385e0f4d0893d791b62386554ee6494b19ff2aa3"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-sleep-left-8f-runtime.webp",
+      "bytes": 51184,
+      "sha256": "051a9c59b8cbe413921f5c4e89da5e879cb422523de3ba0b0f9202fec4a355c1"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-beaver-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-sleep-up-8f-runtime.webp",
+      "bytes": 46098,
+      "sha256": "247be0e104addda02ca76c7a20b3ee0b09d6882db003e69ba8f1894f6f3246b0"
     },
     {
       "path": "art/max-master/motions/skins/max-beaver-victory-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-beaver-victory-front-8f-runtime.webp",
-      "bytes": 64968
+      "bytes": 57826,
+      "sha256": "d3b396414f248d920b45e34e251d13642ced8f7afdc19c1f6ac2db4f202f8248"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-walk-down-8f-runtime.webp",
-      "bytes": 58302
+      "path": "art/max-master/motions/skins/max-beaver-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-walk-down-8f-runtime.webp",
+      "bytes": 60174,
+      "sha256": "e40e23ba08599ddd03a06012a5773a9bb6733da042de003e517d7fff7ca5ad3f"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-walk-left-8f-runtime.webp",
-      "bytes": 63916
+      "path": "art/max-master/motions/skins/max-beaver-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-walk-left-8f-runtime.webp",
+      "bytes": 58092,
+      "sha256": "ca694ac04ce3ce0546a57456e752bfc9b2dc16e8fb0f2283c3572b72554faecc"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-walk-up-8f-runtime.webp",
-      "bytes": 52654
+      "path": "art/max-master/motions/skins/max-beaver-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-walk-up-8f-runtime.webp",
+      "bytes": 48048,
+      "sha256": "0f031cbb5aa13ebcfd0886f2c80770fbf48bb05536cd348e03bdae958be144d8"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-push-down-8f-runtime.webp",
-      "bytes": 60784
+      "path": "art/max-master/motions/skins/max-beaver-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-wall-down-8f-runtime.webp",
+      "bytes": 57358,
+      "sha256": "e22722296675bc97d049fb6be8a9bba162aa68dfb7a19878e82f5dc118da56d8"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-push-left-8f-runtime.webp",
-      "bytes": 61866
+      "path": "art/max-master/motions/skins/max-beaver-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-wall-left-8f-runtime.webp",
+      "bytes": 54936,
+      "sha256": "399117b4337ae98b88e109ad70071c9d141df6015864a058dbd6df17a08414d5"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-push-up-8f-runtime.webp",
-      "bytes": 48298
+      "path": "art/max-master/motions/skins/max-beaver-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-beaver-wall-up-8f-runtime.webp",
+      "bytes": 46982,
+      "sha256": "02c8227a21a974e3dc6eca6b66e07deef2e273f8d150fb18153750375fd35607"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-wall-down-8f-runtime.webp",
-      "bytes": 58822
+      "path": "art/max-master/motions/skins/max-bunny-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-bunny-sit-front-8f-runtime.webp",
+      "bytes": 46292,
+      "sha256": "4a6f4e6321b0bedc28a4247cbd664716323a6ed283699faf77a8810169748df1"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-wall-left-8f-runtime.webp",
-      "bytes": 58654
+      "path": "art/max-master/motions/skins/max-chicken-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-idle-front-8f-runtime.webp",
+      "bytes": 36234,
+      "sha256": "35104f76243849e9200afb8408ee5f866ffd91e02d9f13b0b86e779055b36f29"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-wall-up-8f-runtime.webp",
-      "bytes": 47942
+      "path": "art/max-master/motions/skins/max-chicken-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-push-down-8f-runtime.webp",
+      "bytes": 39060,
+      "sha256": "96556d2a1c2a501b0696beaca20997bddf88b7ad19cd1440fff5746a73564840"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sit-left-8f-runtime.webp",
-      "bytes": 59006
+      "path": "art/max-master/motions/skins/max-chicken-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-push-left-8f-runtime.webp",
+      "bytes": 44616,
+      "sha256": "3fc37a6d0abb865caf26aec5f51fc14e8f0009925714c89b1e7bdb854c64d174"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sit-up-8f-runtime.webp",
-      "bytes": 48968
+      "path": "art/max-master/motions/skins/max-chicken-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-push-up-8f-runtime.webp",
+      "bytes": 33578,
+      "sha256": "e4ae1aff5e35640901628956f5a34ffd1b7067841b31414284c6ee5de114e128"
     },
     {
-      "path": "art/max-master/motions/skins/max-sheep-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-sheep-sit-front-8f-runtime.webp",
-      "bytes": 58812
+      "path": "art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-sit-front-8f-runtime.webp",
+      "bytes": 39854,
+      "sha256": "4f22d4536551ee7ba65e585beb68c590cc2f30bd59240f3912e0defb82c1b54c"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-left-8f-runtime.webp",
-      "bytes": 53608
+      "path": "art/max-master/motions/skins/max-chicken-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-sit-left-8f-runtime.webp",
+      "bytes": 40592,
+      "sha256": "8448402bca5e77fdf8a58fbd89f41812ab31512b7cbf8ca4034352f3f0dd1db2"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-up-8f-runtime.webp",
-      "bytes": 50194
+      "path": "art/max-master/motions/skins/max-chicken-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-sit-up-8f-runtime.webp",
+      "bytes": 33582,
+      "sha256": "ecae0e4270242b396cb7b295382e629302ab82687de8ba7c2d89457bfaba4d4b"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-front-8f-runtime.webp",
-      "bytes": 53982
+      "path": "art/max-master/motions/skins/max-chicken-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-sleep-front-8f-runtime.webp",
+      "bytes": 37482,
+      "sha256": "3b6f27b21138d1535df7a92645f85406e24e48bf8cfde22c2b64a13421d7cd5b"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-idle-front-8f-runtime.webp",
-      "bytes": 59390
+      "path": "art/max-master/motions/skins/max-chicken-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-sleep-left-8f-runtime.webp",
+      "bytes": 39000,
+      "sha256": "f756e95f336e67d0d9480a73dcc7287e68cf2b58aa3a7d61c50cfa153b4c2e82"
     },
     {
-      "path": "art/max-master/motions/skins/soft-v1/max-sheep-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/soft-v1/max-sheep-victory-front-8f-runtime.webp",
-      "bytes": 58588
+      "path": "art/max-master/motions/skins/max-chicken-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-sleep-up-8f-runtime.webp",
+      "bytes": 32994,
+      "sha256": "220bd026a9d8f77cc25938ef5e403faf885d46d1b078a7063ce41d194e4e8794"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-walk-down-8f-runtime.webp",
-      "bytes": 53908
+      "path": "art/max-master/motions/skins/max-chicken-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-victory-front-8f-runtime.webp",
+      "bytes": 38306,
+      "sha256": "5a82d058cc9d9c43eece1299a7e7aa50008542b3048af808187e70349c93cc5c"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-walk-left-8f-runtime.webp",
-      "bytes": 57638
+      "path": "art/max-master/motions/skins/max-chicken-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-walk-down-8f-runtime.webp",
+      "bytes": 37982,
+      "sha256": "1a45f3d341e477bae52309053e3c3715b08f67478e101c797e29200ff8af9b2d"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-walk-up-8f-runtime.webp",
-      "bytes": 45430
+      "path": "art/max-master/motions/skins/max-chicken-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-walk-left-8f-runtime.webp",
+      "bytes": 45516,
+      "sha256": "9d2199c4aea312c3a85e451b39728b857293fdcd69fded8a6638a8036a59f0b3"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-push-down-8f-runtime.webp",
-      "bytes": 55786
+      "path": "art/max-master/motions/skins/max-chicken-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-walk-up-8f-runtime.webp",
+      "bytes": 33504,
+      "sha256": "31dc9ddef3d13617168861fd57b1a40726f3fe5c3739c62f554c68fd51785a89"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-push-left-8f-runtime.webp",
-      "bytes": 54978
+      "path": "art/max-master/motions/skins/max-chicken-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-wall-down-8f-runtime.webp",
+      "bytes": 34834,
+      "sha256": "4aac2f8fe6f566d1690f90fe23b391317bbe11601718340fb67c165ec407c5cc"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-push-up-8f-runtime.webp",
-      "bytes": 46222
+      "path": "art/max-master/motions/skins/max-chicken-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-wall-left-8f-runtime.webp",
+      "bytes": 41110,
+      "sha256": "63909b21a509cbc1320890d6d4ddc7d414784823d3e31373df4f4528e8b8383c"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-wall-down-8f-runtime.webp",
-      "bytes": 52098
+      "path": "art/max-master/motions/skins/max-chicken-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-chicken-wall-up-8f-runtime.webp",
+      "bytes": 35048,
+      "sha256": "95fd71abfc7e6c8abbad1f869fd49665e71b9cde437615bddd064778c087dbc9"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-wall-left-8f-runtime.webp",
-      "bytes": 55632
+      "path": "art/max-master/motions/skins/max-duck-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-duck-sit-front-8f-runtime.webp",
+      "bytes": 41768,
+      "sha256": "b54da78ecc9f54f8e2fb9caa9b4455614c2c89890a1c157d2b1b83f720d7fee1"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-wall-up-8f-runtime.webp",
-      "bytes": 44310
+      "path": "art/max-master/motions/skins/max-frog-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-frog-sit-front-8f-runtime.webp",
+      "bytes": 42304,
+      "sha256": "783cf2032a8dca45d8ace4f8a41f0b7e7eee9c2a60fd11bca96161bd7ac39007"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-sit-left-8f-runtime.webp",
-      "bytes": 53442
+      "path": "art/max-master/motions/skins/max-hedgehog-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-idle-front-8f-runtime.webp",
+      "bytes": 56058,
+      "sha256": "8afc15641fc81eadd4dd1303ccaa78f91d8ad953f54ccb3fc7786f2b9281da20"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-sit-up-8f-runtime.webp",
-      "bytes": 43032
+      "path": "art/max-master/motions/skins/max-hedgehog-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-push-down-8f-runtime.webp",
+      "bytes": 52718,
+      "sha256": "308bc45529c1877b72e1e0742662f68a3b6812e8990f803255a97b4525658c38"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-sit-front-8f-runtime.webp",
-      "bytes": 53918
+      "path": "art/max-master/motions/skins/max-hedgehog-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-push-left-8f-runtime.webp",
+      "bytes": 54074,
+      "sha256": "835eea8d3a1350c7a1a984b86491d5c3d8a4f372224557c765ee3fa5c3ba93a2"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-sleep-left-8f-runtime.webp",
-      "bytes": 46440
+      "path": "art/max-master/motions/skins/max-hedgehog-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-push-up-8f-runtime.webp",
+      "bytes": 46630,
+      "sha256": "5902dbfe2a5605defc579781a384ade5faffe7e6e485dbd9bc189362300a3c90"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-sleep-up-8f-runtime.webp",
-      "bytes": 43072
+      "path": "art/max-master/motions/skins/max-hedgehog-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-sit-front-8f-runtime.webp",
+      "bytes": 52790,
+      "sha256": "4f916817632c0a88b5e2777b55690750fe5a87f6f8549feed300c31c282e98b3"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-sleep-front-8f-runtime.webp",
-      "bytes": 51322
+      "path": "art/max-master/motions/skins/max-hedgehog-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-sit-left-8f-runtime.webp",
+      "bytes": 50726,
+      "sha256": "0ffff44f0cc3152694028728f43eb526023d42be0b51b0fda74461d0f4d2d037"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-idle-front-8f-runtime.webp",
-      "bytes": 54916
+      "path": "art/max-master/motions/skins/max-hedgehog-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-sit-up-8f-runtime.webp",
+      "bytes": 46648,
+      "sha256": "8ff2ed0a331ad1e51ffec5aea322a2394686d6728667fa16386dca0eee820bf2"
     },
     {
-      "path": "art/max-master/motions/skins/max-space-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-space-victory-front-8f-runtime.webp",
-      "bytes": 54028
+      "path": "art/max-master/motions/skins/max-hedgehog-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-sleep-front-8f-runtime.webp",
+      "bytes": 49914,
+      "sha256": "a6461dad70c2be62793554a3e20d7d21675501719b0e0a042eff585a69fe03c3"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-walk-down-8f-runtime.webp",
-      "bytes": 59854
+      "path": "art/max-master/motions/skins/max-hedgehog-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-sleep-left-8f-runtime.webp",
+      "bytes": 49408,
+      "sha256": "a63a186a905479099c640515ad7bae4cae9c975fb303dd0469ab445f4dc7267f"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-walk-left-8f-runtime.webp",
-      "bytes": 69928
+      "path": "art/max-master/motions/skins/max-hedgehog-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-sleep-up-8f-runtime.webp",
+      "bytes": 46164,
+      "sha256": "110d4a299172eac5b578e6ac633d8beec8a66763162042263f046645f5191d54"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-walk-up-8f-runtime.webp",
-      "bytes": 54500
+      "path": "art/max-master/motions/skins/max-hedgehog-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-victory-front-8f-runtime.webp",
+      "bytes": 54724,
+      "sha256": "9bd53acf0b6a1eae6f3edd59bde084d6fdeea1671ccb224cafd605624d887d3b"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-push-down-8f-runtime.webp",
-      "bytes": 62002
+      "path": "art/max-master/motions/skins/max-hedgehog-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-walk-down-8f-runtime.webp",
+      "bytes": 53796,
+      "sha256": "20d64fb70a268e7f5cacd7f71a33712312e7db3fb8201be99eef11628ebb39fa"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-push-left-8f-runtime.webp",
-      "bytes": 65176
+      "path": "art/max-master/motions/skins/max-hedgehog-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-walk-left-8f-runtime.webp",
+      "bytes": 61362,
+      "sha256": "bf0cbe74824e13fe1fdffc1916c0655034ad12d953f456ac7cdcb4494f83eaf3"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-push-up-8f-runtime.webp",
-      "bytes": 56788
+      "path": "art/max-master/motions/skins/max-hedgehog-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-walk-up-8f-runtime.webp",
+      "bytes": 48574,
+      "sha256": "fa33934037e8b1aa83fd746a40ef4a001fa53341891381d1d09a1a574037d0ae"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-wall-down-8f-runtime.webp",
-      "bytes": 60082
+      "path": "art/max-master/motions/skins/max-hedgehog-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-wall-down-8f-runtime.webp",
+      "bytes": 55966,
+      "sha256": "b0f253f18b66fca573d226a1275e6c7527cae105a40fe09e7a0d1cc5912ad896"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-wall-left-8f-runtime.webp",
-      "bytes": 65950
+      "path": "art/max-master/motions/skins/max-hedgehog-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-wall-left-8f-runtime.webp",
+      "bytes": 53902,
+      "sha256": "ee8319487f97b54ab7ef58be0439171cba8be6db1c18bf89a7e54dbdb3fb8aef"
     },
     {
-      "path": "art/max-master/motions/skins/max-ranger-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-wall-up-8f-runtime.webp",
-      "bytes": 55670
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-sit-left-8f-runtime.webp",
-      "bytes": 61902
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-sit-up-8f-runtime.webp",
-      "bytes": 53490
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-sit-front-8f-runtime.webp",
-      "bytes": 62292
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-sleep-left-8f-runtime.webp",
-      "bytes": 55024
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-sleep-up-8f-runtime.webp",
-      "bytes": 55594
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-sleep-front-8f-runtime.webp",
-      "bytes": 54122
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-idle-front-8f-runtime.webp",
-      "bytes": 64356
-    },
-    {
-      "path": "art/max-master/motions/skins/max-ranger-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-ranger-victory-front-8f-runtime.webp",
-      "bytes": 56852
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-walk-down-8f-runtime.webp",
-      "bytes": 51238
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-walk-left-8f-runtime.webp",
-      "bytes": 63890
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-walk-up-8f-runtime.webp",
-      "bytes": 44174
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-push-down-8f-runtime.webp",
-      "bytes": 56052
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-push-left-8f-runtime.webp",
-      "bytes": 57640
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-push-up-8f-runtime.webp",
-      "bytes": 48768
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-wall-down-8f-runtime.webp",
-      "bytes": 52458
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-wall-left-8f-runtime.webp",
-      "bytes": 59194
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-wall-up-8f-runtime.webp",
-      "bytes": 47096
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-sit-left-8f-runtime.webp",
-      "bytes": 56406
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-sit-up-8f-runtime.webp",
-      "bytes": 47918
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-sit-front-8f-runtime.webp",
-      "bytes": 52598
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-sleep-left-8f-runtime.webp",
-      "bytes": 48740
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-sleep-up-8f-runtime.webp",
-      "bytes": 45224
-    },
-    {
-      "path": "art/max-master/motions/skins/max-mail-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-mail-sleep-front-8f-runtime.webp",
-      "bytes": 48502
+      "path": "art/max-master/motions/skins/max-hedgehog-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-hedgehog-wall-up-8f-runtime.webp",
+      "bytes": 44328,
+      "sha256": "2319443706d2be514da56a54342835679aa3edbfed02e6843911143c32c9b95f"
     },
     {
       "path": "art/max-master/motions/skins/max-mail-idle-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-mail-idle-front-8f-runtime.webp",
-      "bytes": 54460
+      "bytes": 42664,
+      "sha256": "835855167b3a13c7aadc78271d83adfea71a011b92d9aa2c9a93c6a8a3b5796c"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-push-down-8f-runtime.webp",
+      "bytes": 43878,
+      "sha256": "db70ee54468e0ad22d4665a11671f3a02445786acf0ac33a2e58160422fa5deb"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-push-left-8f-runtime.webp",
+      "bytes": 45386,
+      "sha256": "b66620182e0c6a0354ae37df024a65db028c7ff478c042dfc5be97df1d9e46b3"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-push-up-8f-runtime.webp",
+      "bytes": 37950,
+      "sha256": "7a903f03fd4de9bb2d027bfc9e23f556f473a5474794bdb1b0403ab8cbd521c4"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-sit-front-8f-runtime.webp",
+      "bytes": 41460,
+      "sha256": "2623728db28a0f7793879301c6b2fece58604fbdcb8c61fdcadb9988304fbc95"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-sit-left-8f-runtime.webp",
+      "bytes": 45310,
+      "sha256": "0bbe6647383ad6c9ce837f3b72d437dbe9ab2e9f5f1b862a8c5868327b3af1a5"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-sit-up-8f-runtime.webp",
+      "bytes": 37366,
+      "sha256": "f477ce2ee3ae487b3f8bfd4ccbf80b8e2e9fa706b32d7b95275fb1baf66362d7"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-sleep-front-8f-runtime.webp",
+      "bytes": 39066,
+      "sha256": "64f989820180e335fb0ee6d6660f9b650d22ec4d79fe1874c165c868dc2f7080"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-sleep-left-8f-runtime.webp",
+      "bytes": 39808,
+      "sha256": "9229f36cdccb9cbeb906c762a9c4023f0a76cc2d2cf501e6ad172ccad0c0d531"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-mail-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-sleep-up-8f-runtime.webp",
+      "bytes": 35386,
+      "sha256": "28b0492aa193e757f676bc6b83c83c9a2a28bd2f9744a2010d5cae0c6331b5c9"
     },
     {
       "path": "art/max-master/motions/skins/max-mail-victory-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-mail-victory-front-8f-runtime.webp",
-      "bytes": 52934
+      "bytes": 41326,
+      "sha256": "b0613216f44248f92302aebc99572c476806a41a52e3a6a0092134976491c56a"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-walk-down-8f-runtime.webp",
-      "bytes": 56346
+      "path": "art/max-master/motions/skins/max-mail-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-walk-down-8f-runtime.webp",
+      "bytes": 40028,
+      "sha256": "c74216316056ae29972a255eed8e71cd681a1046082ffebb9d93ce495ddce0db"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-walk-left-8f-runtime.webp",
-      "bytes": 65610
+      "path": "art/max-master/motions/skins/max-mail-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-walk-left-8f-runtime.webp",
+      "bytes": 50580,
+      "sha256": "8475484de8dc0f942d2663ff6f11c9f2f03b58e46cc2d9397e58f6b2cb759cf9"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-walk-up-8f-runtime.webp",
-      "bytes": 49314
+      "path": "art/max-master/motions/skins/max-mail-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-walk-up-8f-runtime.webp",
+      "bytes": 34942,
+      "sha256": "e98bbf28cc1657c236f1a49cc44b940217811cb7559869e39dc7347b0b582d5b"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-push-down-8f-runtime.webp",
-      "bytes": 61840
+      "path": "art/max-master/motions/skins/max-mail-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-wall-down-8f-runtime.webp",
+      "bytes": 40856,
+      "sha256": "26eed00a3814d48bdf816d04e247060d167a72a921f5d7091b437669293d2f31"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-push-left-8f-runtime.webp",
-      "bytes": 61040
+      "path": "art/max-master/motions/skins/max-mail-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-wall-left-8f-runtime.webp",
+      "bytes": 46552,
+      "sha256": "a69e133ebff8fd07022bfdd834eb762cc90869bc40d13a02609b2fc78d15641e"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-push-up-8f-runtime.webp",
-      "bytes": 51930
+      "path": "art/max-master/motions/skins/max-mail-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mail-wall-up-8f-runtime.webp",
+      "bytes": 36604,
+      "sha256": "f02a927ba97d04dbeed2665f65c56efd270a156bc19319bd48e28dc047d18566"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-wall-down-8f-runtime.webp",
-      "bytes": 57318
+      "path": "art/max-master/motions/skins/max-mouse-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-mouse-sit-front-8f-runtime.webp",
+      "bytes": 52750,
+      "sha256": "aa26e0eeb73f2f2f551c3f70bc43cd3215fb98fac577b3bfafc3b423f50e58d2"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-wall-left-8f-runtime.webp",
-      "bytes": 61078
+      "path": "art/max-master/motions/skins/max-peacock-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-idle-front-8f-runtime.webp",
+      "bytes": 55838,
+      "sha256": "956ad9aaea2285df95472144467c87968b8bad00c4a79aa7c65c983049d574e3"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-wall-up-8f-runtime.webp",
-      "bytes": 52118
+      "path": "art/max-master/motions/skins/max-peacock-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-push-down-8f-runtime.webp",
+      "bytes": 55826,
+      "sha256": "ab6bbfbb66442193b4cc72cb4035f6040e8269e202e6d2f09c0d4936cadcd8dd"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-sit-left-8f-runtime.webp",
-      "bytes": 56436
+      "path": "art/max-master/motions/skins/max-peacock-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-push-left-8f-runtime.webp",
+      "bytes": 52510,
+      "sha256": "4a47a8f8f33fa8e91244e3ee91193731a84776a34fe99d5000e72ba5b19f7d01"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-sit-up-8f-runtime.webp",
-      "bytes": 48614
+      "path": "art/max-master/motions/skins/max-peacock-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-push-up-8f-runtime.webp",
+      "bytes": 50644,
+      "sha256": "3a4f8108d489b086fa075c9b03d4c6455b5ff7185333a02323c14f4421e40575"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-sit-front-8f-runtime.webp",
-      "bytes": 55770
+      "path": "art/max-master/motions/skins/max-peacock-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-sit-front-8f-runtime.webp",
+      "bytes": 54220,
+      "sha256": "e5950e523398062f9a06af92c212d801c64ea88040dfdebcd8e26987a7a8a8fd"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-sleep-left-8f-runtime.webp",
-      "bytes": 47710
+      "path": "art/max-master/motions/skins/max-peacock-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-sit-left-8f-runtime.webp",
+      "bytes": 48418,
+      "sha256": "dfa11b775ec790561b0a1e49682cef08dc5181fd1e3fb8e799abe5d04392f457"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-sleep-up-8f-runtime.webp",
-      "bytes": 48788
+      "path": "art/max-master/motions/skins/max-peacock-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-sit-up-8f-runtime.webp",
+      "bytes": 47642,
+      "sha256": "6fd70c8adbe101a8177ea232b2c41dd7c3347af770d9780623fb62ff747da334"
     },
     {
-      "path": "art/max-master/motions/skins/max-rain-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-rain-sleep-front-8f-runtime.webp",
-      "bytes": 49642
+      "path": "art/max-master/motions/skins/max-peacock-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-sleep-front-8f-runtime.webp",
+      "bytes": 50558,
+      "sha256": "732b681a740f5fa41cd5a6b44b1ad5bec8f536ea82065ead9afb39614cd0d1a9"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-sleep-left-8f-runtime.webp",
+      "bytes": 47218,
+      "sha256": "4cc8d757807a88364da85015ade937bc5317d6fa7a06e38fbdc635062e63fea6"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-sleep-up-8f-runtime.webp",
+      "bytes": 46552,
+      "sha256": "5ccd98c57c06ed305d5f924488582d011626af5f8dd967271a8b53f7ec1820e5"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-victory-front-8f-runtime.webp",
+      "bytes": 53810,
+      "sha256": "559f5d377d5c250dd7c8aa497d5bf00f03126b6d04d311da694a8b5f4b70bea2"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-walk-down-8f-runtime.webp",
+      "bytes": 54532,
+      "sha256": "16f201382b22883d1a6e31981e6e954a89a6c4461b9c0f4965b315841041a404"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-walk-left-8f-runtime.webp",
+      "bytes": 57482,
+      "sha256": "0a9b32c27c844c1223b69bd60a6d82355dc6b3deadfd84727d1920919bc1117a"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-walk-up-8f-runtime.webp",
+      "bytes": 48282,
+      "sha256": "9dd9ef51b78c98d68789bbdcbf3bcbc87fdf6cdb01792e7c39ceea62294595bb"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-wall-down-8f-runtime.webp",
+      "bytes": 53504,
+      "sha256": "34c82781ad618d4654a4568347cb0f434aa7d9e4231d05e39e31cd7c6944445c"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-wall-left-8f-runtime.webp",
+      "bytes": 48772,
+      "sha256": "0fbd73e6cb7c3a70b84738885108cf1b1df50da29cb194b42e7907f07455dcb4"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-peacock-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-peacock-wall-up-8f-runtime.webp",
+      "bytes": 42414,
+      "sha256": "aab378cc7f821829fce0024d55c304ab1a7f266939697078f4e835d40de5025d"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-idle-front-8f-runtime.webp",
+      "bytes": 50512,
+      "sha256": "f5a6fc1c5aaae9b9f54b8a0332795bd1ffebc7bba310b35adf99b98fa142b9d5"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-push-down-8f-runtime.webp",
+      "bytes": 49782,
+      "sha256": "d1bbaa30d5893426efecc9fa3a96362ab2218a7e93a695edde1b5b7b787fd302"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-push-left-8f-runtime.webp",
+      "bytes": 41458,
+      "sha256": "dd2ba34a1530e59829f7110ba7fccfd01cd015481c81651baf42674158ea1116"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-push-up-8f-runtime.webp",
+      "bytes": 39054,
+      "sha256": "147730af13ff8446240d19a690346d08141b22ee8b1b4a5bba69d9eb27c1b31f"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-sit-front-8f-runtime.webp",
+      "bytes": 51528,
+      "sha256": "c528c4fb62b34dee107811904b8755f9a49de91526c9f5f2ec7d75a680821cee"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-sit-left-8f-runtime.webp",
+      "bytes": 43954,
+      "sha256": "77839cf775e255a1f3ff15893bc16bf24e164f746123982938d2c52da1ea6b0a"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-sit-up-8f-runtime.webp",
+      "bytes": 39996,
+      "sha256": "9f49ffc9492225f650ffc89b6730c3b4b50a4a060fef8d7f141e2dae4867f857"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-sleep-front-8f-runtime.webp",
+      "bytes": 44064,
+      "sha256": "e7cc1386905f66b2dd73f8637eee3cacd7b5545ae6a71eb462694287ce060203"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-sleep-left-8f-runtime.webp",
+      "bytes": 40052,
+      "sha256": "cbdd67623933359ca6b0318a5d98dae5fb7eba7e7900d51fabda9a1901c70c3c"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-sleep-up-8f-runtime.webp",
+      "bytes": 35836,
+      "sha256": "c870677a732bde618bb3491775469e93af9a1b202399bb1366d7de3e7b64f3d0"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-victory-front-8f-runtime.webp",
+      "bytes": 47846,
+      "sha256": "a59b8b1a9fe9dbde9a0385e16f76a28903b7ca76344b5f1fa8639493cef8ace8"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-walk-down-8f-runtime.webp",
+      "bytes": 49836,
+      "sha256": "5ec56e0a83b7e1a719062d7228ef75ae7eb28d9f08744db0027d4126ff5eeb91"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-walk-left-8f-runtime.webp",
+      "bytes": 43652,
+      "sha256": "39aa12bebc50bef4dabd0be3c8eba6b312f8b7a9053a1a88a56ffb918673f145"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-walk-up-8f-runtime.webp",
+      "bytes": 40242,
+      "sha256": "69852aa38172aeb9db036ea4c08064cad9a817b532122e5fed4960242b92cf18"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-wall-down-8f-runtime.webp",
+      "bytes": 48474,
+      "sha256": "0b31d5f0ec8f68d4df191287ba0f1065f593c1df838b2f62badce37005ce7616"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-wall-left-8f-runtime.webp",
+      "bytes": 41514,
+      "sha256": "f9084f62873cab6a7fd7ab3d34851abbd3bb915a53c35f4ad0e1d7a5ac213377"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-pig-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-pig-wall-up-8f-runtime.webp",
+      "bytes": 37794,
+      "sha256": "a9504b809d9902669fc69a882ce42e5814d092b2a761df59a7717059e22f5868"
     },
     {
       "path": "art/max-master/motions/skins/max-rain-idle-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-rain-idle-front-8f-runtime.webp",
-      "bytes": 59844
+      "bytes": 50276,
+      "sha256": "2736194994e5cde2f800f87f9ed9cade06ecb6446e70ed54babe15fb99e7327f"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-push-down-8f-runtime.webp",
+      "bytes": 52092,
+      "sha256": "0e5454440157e86aa1ea8a6ca6758c17edc56c279df1a783db77a5d9b06479e9"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-push-left-8f-runtime.webp",
+      "bytes": 50762,
+      "sha256": "bcb5bdf967b35511480b166a5891769fb91b87ba225aab1a5e1ff29d641bcc7c"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-push-up-8f-runtime.webp",
+      "bytes": 43412,
+      "sha256": "6eb8844100de4bb7e0b495f1c0fb731890026688f842d3469a8665c35bdc516d"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-sit-front-8f-runtime.webp",
+      "bytes": 45808,
+      "sha256": "bbf53fae424ea297072e49c1fb0216ae204ad131762bd0692c0d2df5dbc18de8"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-sit-left-8f-runtime.webp",
+      "bytes": 46792,
+      "sha256": "149120ab08c13627e7285357e0879523f34eb3af0afb776523756ff8f51e7f2c"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-sit-up-8f-runtime.webp",
+      "bytes": 40306,
+      "sha256": "c53dea66d02a08b5e509f12e191a38ef3ee6d9e9d2b4b2b0e1e0d3b0036dd7b9"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-sleep-front-8f-runtime.webp",
+      "bytes": 40778,
+      "sha256": "f0cf61952111ed35f0f178699e1450c7d174a694b47d8c7880afb9c78cf5b8fa"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-sleep-left-8f-runtime.webp",
+      "bytes": 39344,
+      "sha256": "ad0126e1bbf68eaaa1246b0a2f3396dd5684edabe65cbe1444bb9031f653b2cc"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-rain-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-sleep-up-8f-runtime.webp",
+      "bytes": 40042,
+      "sha256": "9d48f5ab38caf1d30c93b6f9d9830043cdb903ed90bfdf4eedc5120327cb69de"
     },
     {
       "path": "art/max-master/motions/skins/max-rain-victory-front-8f-runtime.webp",
       "source": "art/max-master/motions/skins/max-rain-victory-front-8f-runtime.webp",
-      "bytes": 55598
+      "bytes": 46976,
+      "sha256": "85c351dbb9838c2b89300dd39f630c69a16ba5f2c0f1d3650b7c9329a2e4c719"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-walk-down-8f-runtime.webp",
-      "bytes": 58656
+      "path": "art/max-master/motions/skins/max-rain-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-walk-down-8f-runtime.webp",
+      "bytes": 46996,
+      "sha256": "d6a46678a73deff97e1f714be1afb238f8400193063c7f26986684af532c904a"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-walk-left-8f-runtime.webp",
-      "bytes": 75140
+      "path": "art/max-master/motions/skins/max-rain-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-walk-left-8f-runtime.webp",
+      "bytes": 54944,
+      "sha256": "6d73085ea05bfb206d9f6c0d951f47c45b121e1926d1424dba2480df47fd8d3c"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-walk-up-8f-runtime.webp",
-      "bytes": 53070
+      "path": "art/max-master/motions/skins/max-rain-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-walk-up-8f-runtime.webp",
+      "bytes": 41358,
+      "sha256": "a1f7de8292c5bd27e13d0c297b01e3fadf173313f0942ce1c7b235578473a185"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-push-down-8f-runtime.webp",
-      "bytes": 59716
+      "path": "art/max-master/motions/skins/max-rain-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-wall-down-8f-runtime.webp",
+      "bytes": 48456,
+      "sha256": "0fdda766dd25ad9a082b2346798599644be52ec0d8f20e916423d17bad342058"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-push-left-8f-runtime.webp",
-      "bytes": 68740
+      "path": "art/max-master/motions/skins/max-rain-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-wall-left-8f-runtime.webp",
+      "bytes": 50858,
+      "sha256": "b9a8ee4d8d54afe5b33e847f99f3bfb46cc984d236509e6398b061bfe51bed67"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-push-up-8f-runtime.webp",
-      "bytes": 49856
+      "path": "art/max-master/motions/skins/max-rain-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-rain-wall-up-8f-runtime.webp",
+      "bytes": 43788,
+      "sha256": "3cf13ab0abd60185a7736195865349a6255fcc3d008366bc4daa1ae30aebbd61"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-wall-down-8f-runtime.webp",
-      "bytes": 55352
+      "path": "art/max-master/motions/skins/max-ranger-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-idle-front-8f-runtime.webp",
+      "bytes": 51690,
+      "sha256": "03f5d0227bf4969b90a2da660f83df9d229cabac7a451a005a4734caabc68e0a"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-wall-left-8f-runtime.webp",
-      "bytes": 66658
+      "path": "art/max-master/motions/skins/max-ranger-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-push-down-8f-runtime.webp",
+      "bytes": 49196,
+      "sha256": "e8bb0dafe2f514cf720dd1f1ff22a76a47aa2c2de06d3cb1d46e592ff9869a83"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-wall-up-8f-runtime.webp",
-      "bytes": 50052
+      "path": "art/max-master/motions/skins/max-ranger-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-push-left-8f-runtime.webp",
+      "bytes": 51194,
+      "sha256": "b015b284771f57c19cabfbbd4bc9e7e21867eb840f16f98f458c0450090f076d"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-sit-left-8f-runtime.webp",
-      "bytes": 64956
+      "path": "art/max-master/motions/skins/max-ranger-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-push-up-8f-runtime.webp",
+      "bytes": 44802,
+      "sha256": "314c7611c88e7083cc44cd24e65d9a0671d0d58fd7337211c085d82e33e0bcda"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-sit-up-8f-runtime.webp",
-      "bytes": 48654
+      "path": "art/max-master/motions/skins/max-ranger-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-sit-front-8f-runtime.webp",
+      "bytes": 49880,
+      "sha256": "0ac45d6b2daa61694fb1ef8b9472d5f8febd32b6ada8b9276b82717b3113a8aa"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-sit-front-8f-runtime.webp",
-      "bytes": 59164
+      "path": "art/max-master/motions/skins/max-ranger-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-sit-left-8f-runtime.webp",
+      "bytes": 48590,
+      "sha256": "0f64cff7d66e117cb1b383b034574696abc6021245e79573a75aa5b09e2a9bbf"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-sleep-left-8f-runtime.webp",
-      "bytes": 60892
+      "path": "art/max-master/motions/skins/max-ranger-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-sit-up-8f-runtime.webp",
+      "bytes": 42680,
+      "sha256": "7937a0be5c356b5949c45678b6e6a6f63163410359145b4dd71a4f2e8cbd981e"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-sleep-up-8f-runtime.webp",
-      "bytes": 42414
+      "path": "art/max-master/motions/skins/max-ranger-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-sleep-front-8f-runtime.webp",
+      "bytes": 43432,
+      "sha256": "77dfb1d62f65174ca2f9df2cf5c350b4984f26a4e865cb42f77d5c9c9482f558"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-sleep-front-8f-runtime.webp",
-      "bytes": 55984
+      "path": "art/max-master/motions/skins/max-ranger-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-sleep-left-8f-runtime.webp",
+      "bytes": 43796,
+      "sha256": "a6b64942fa789f8953db1ed69334c5089115cc0bce6b69895a6a63e9d0db1fe5"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-idle-front-8f-runtime.webp",
-      "bytes": 58010
+      "path": "art/max-master/motions/skins/max-ranger-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-sleep-up-8f-runtime.webp",
+      "bytes": 44560,
+      "sha256": "88674f876e054a33bb476f097539528ca7ef4b947fec223dd309f83eea184cd2"
     },
     {
-      "path": "art/max-master/motions/skins/max-squirrel-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-squirrel-victory-front-8f-runtime.webp",
-      "bytes": 56928
+      "path": "art/max-master/motions/skins/max-ranger-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-victory-front-8f-runtime.webp",
+      "bytes": 45774,
+      "sha256": "bfb1d0a8b2f958105a273e060192d1f047cb26ff0ff71cb77c94017fad7bd43d"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-walk-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-walk-down-8f-runtime.webp",
-      "bytes": 57712
+      "path": "art/max-master/motions/skins/max-ranger-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-walk-down-8f-runtime.webp",
+      "bytes": 48754,
+      "sha256": "e85529a57103af47b9e87ff85003461fc8fda248c738d5e60f851e6781a2bd04"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-walk-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-walk-left-8f-runtime.webp",
-      "bytes": 65548
+      "path": "art/max-master/motions/skins/max-ranger-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-walk-left-8f-runtime.webp",
+      "bytes": 55038,
+      "sha256": "55abbfe69cc5586d29238b37bb96de32583644e9852beed74b911623c2cc857d"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-walk-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-walk-up-8f-runtime.webp",
-      "bytes": 50506
+      "path": "art/max-master/motions/skins/max-ranger-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-walk-up-8f-runtime.webp",
+      "bytes": 42256,
+      "sha256": "0ead5fd7f4d20117d7aa993995061881632e3931fa25f4e7ab8ef381e9bc8c5f"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-push-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-push-down-8f-runtime.webp",
-      "bytes": 65850
+      "path": "art/max-master/motions/skins/max-ranger-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-wall-down-8f-runtime.webp",
+      "bytes": 48564,
+      "sha256": "d6084c8057f95c21b9aec49a3db597167ba1e6492eba62034c8d2365483bee37"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-push-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-push-left-8f-runtime.webp",
-      "bytes": 58812
+      "path": "art/max-master/motions/skins/max-ranger-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-wall-left-8f-runtime.webp",
+      "bytes": 52302,
+      "sha256": "d55949c308e6fd5f27d02b26aa45daa39bd7ec122b1af948cb535e352784ce65"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-push-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-push-up-8f-runtime.webp",
-      "bytes": 53930
+      "path": "art/max-master/motions/skins/max-ranger-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-ranger-wall-up-8f-runtime.webp",
+      "bytes": 43256,
+      "sha256": "45163ff9fe0140217f4494dc045f7325455ade72111bdbe04b242d47ce356c29"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-wall-down-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-wall-down-8f-runtime.webp",
-      "bytes": 59772
+      "path": "art/max-master/motions/skins/max-sheep-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-sheep-sit-front-8f-runtime.webp",
+      "bytes": 47010,
+      "sha256": "c422f8431a657dae90d65d4965d56126098e4ac0198e768f9f44c4241334a574"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-wall-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-wall-left-8f-runtime.webp",
-      "bytes": 59530
+      "path": "art/max-master/motions/skins/max-space-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-idle-front-8f-runtime.webp",
+      "bytes": 43976,
+      "sha256": "b59488d293d1021fc65a34556ae8dd56282cdcc5a8159363fad989b15329a725"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-wall-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-wall-up-8f-runtime.webp",
-      "bytes": 54962
+      "path": "art/max-master/motions/skins/max-space-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-push-down-8f-runtime.webp",
+      "bytes": 44404,
+      "sha256": "1b463a775780e803c31f530a4bb31995dcac354c404efd867faf9e28d1cf9acb"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-sit-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-sit-left-8f-runtime.webp",
-      "bytes": 57914
+      "path": "art/max-master/motions/skins/max-space-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-push-left-8f-runtime.webp",
+      "bytes": 42734,
+      "sha256": "5fa776a665d55109f591058c1062153b0b64c7fb07ac51f49a21bf3a0e30d0af"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-sit-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-sit-up-8f-runtime.webp",
-      "bytes": 56332
+      "path": "art/max-master/motions/skins/max-space-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-push-up-8f-runtime.webp",
+      "bytes": 34966,
+      "sha256": "0beed2f2cd14a0dd9ee734e6b786cec6dc7405b88c1d36a9d8e0ffeeefda684c"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-sit-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-sit-front-8f-runtime.webp",
-      "bytes": 57126
+      "path": "art/max-master/motions/skins/max-space-sit-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-sit-front-8f-runtime.webp",
+      "bytes": 41290,
+      "sha256": "37f562898a2c23d83816f88426feb82dd410ef09b4078a99920531de83d16636"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-sleep-left-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-sleep-left-8f-runtime.webp",
-      "bytes": 52920
+      "path": "art/max-master/motions/skins/max-space-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-sit-left-8f-runtime.webp",
+      "bytes": 41540,
+      "sha256": "cff38273722bf7484d51c560e3eb059360825ba0f11e4157e694923243f5706d"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-sleep-up-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-sleep-up-8f-runtime.webp",
-      "bytes": 46252
+      "path": "art/max-master/motions/skins/max-space-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-sit-up-8f-runtime.webp",
+      "bytes": 33318,
+      "sha256": "6df2010104236514494be6646ef049d81ff50581e7db2beeef9d9bcda5f87df3"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-sleep-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-sleep-front-8f-runtime.webp",
-      "bytes": 56962
+      "path": "art/max-master/motions/skins/max-space-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-sleep-front-8f-runtime.webp",
+      "bytes": 39558,
+      "sha256": "579a867dc66d3770ae3ab6569f13a8f1bd1b8aac74b7665cb63303b261a82fa4"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-idle-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-idle-front-8f-runtime.webp",
-      "bytes": 61010
+      "path": "art/max-master/motions/skins/max-space-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-sleep-left-8f-runtime.webp",
+      "bytes": 35778,
+      "sha256": "f36e14af153be8fbee4b2f582ebd6e45cc04130996c9df87a56766b0a4f6e848"
     },
     {
-      "path": "art/max-master/motions/skins/max-cow-victory-front-8f-runtime.webp",
-      "source": "art/max-master/motions/skins/max-cow-victory-front-8f-runtime.webp",
-      "bytes": 60954
+      "path": "art/max-master/motions/skins/max-space-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-sleep-up-8f-runtime.webp",
+      "bytes": 33110,
+      "sha256": "f0d41f3a258a5bb8264d8f543f66868beaf289194f8a76e5997c43c41fb720c2"
     },
     {
-      "path": "art/max-master/thumbnails/skins/max-space.webp",
-      "source": "art/max-master/thumbnails/skins/max-space.webp",
-      "bytes": 10248
+      "path": "art/max-master/motions/skins/max-space-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-victory-front-8f-runtime.webp",
+      "bytes": 42382,
+      "sha256": "c1fe3bb5b9c85ea15a971032fe834cb97e85671adcc35a99dc3c245cf5574d13"
     },
     {
-      "path": "art/max-master/thumbnails/skins/max-ranger.webp",
-      "source": "art/max-master/thumbnails/skins/max-ranger.webp",
-      "bytes": 12124
+      "path": "art/max-master/motions/skins/max-space-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-walk-down-8f-runtime.webp",
+      "bytes": 42834,
+      "sha256": "e7ed3044eac7516d83d1b1fcad7a86aa623a56718ab8612d7300447066e4e985"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-walk-left-8f-runtime.webp",
+      "bytes": 44344,
+      "sha256": "e64744fbb61b5dd9bd7746b81aa95656b9ad6a9c6abf50d7b6a61286baa0c7dd"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-walk-up-8f-runtime.webp",
+      "bytes": 35018,
+      "sha256": "e5bf80e2aa789262de9043608a36388ec9e620a91f6ba432e6c24c399e166893"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-wall-down-8f-runtime.webp",
+      "bytes": 40890,
+      "sha256": "f923f3ea2d4d4e9fcd19c7c06b4342384b0fe9d59bd4c3faf14917c34da14796"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-wall-left-8f-runtime.webp",
+      "bytes": 43940,
+      "sha256": "fb9bbf2906a4472d6d98f8723bb0476129beaa8d49474fa728d62b75f3658f61"
+    },
+    {
+      "path": "art/max-master/motions/skins/max-space-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/max-space-wall-up-8f-runtime.webp",
+      "bytes": 35000,
+      "sha256": "ab32f04bca8d404845cab641f30ff228cac4006db1e1da2133c95e9d878da375"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-idle-front-8f-runtime.webp",
+      "bytes": 45720,
+      "sha256": "77ec821e2358591ed318a3c05626bd6f055ee264effcb6badc953f10bd9ee39e"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-push-down-8f-runtime.webp",
+      "bytes": 49698,
+      "sha256": "fb159c5974347444b02d40ba329704ea35854d903b0e95d1c82cafd46ff9b14d"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-push-left-8f-runtime.webp",
+      "bytes": 38116,
+      "sha256": "7a6c543d61fa542cc1f964f8537aceef3a0083b296232343620aa43570e5ab84"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-push-up-8f-runtime.webp",
+      "bytes": 36826,
+      "sha256": "4f0ccbbb6087c4ec8343aabc5fe56f7e06c5bbaec72e91ec63dc075121985e92"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sit-left-8f-runtime.webp",
+      "bytes": 36980,
+      "sha256": "517ca965c4781d2b7233d6636d0d94a84c521cdf4bd4004c0852b00ac705cdde"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sit-up-8f-runtime.webp",
+      "bytes": 34076,
+      "sha256": "f7587c18a84f455051b48570f4abf376031a21205cc0afe12d5876195359c106"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-front-8f-runtime.webp",
+      "bytes": 41638,
+      "sha256": "315f43a329397dfb0bb99af7f14211343d63f0d1f8b47536442d9380d2eb69ff"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-left-8f-runtime.webp",
+      "bytes": 32872,
+      "sha256": "be256bc2ce59b326d52fed3869462bebe5eefa2b80640dbe81472ad81aaa92ef"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-sleep-up-8f-runtime.webp",
+      "bytes": 30604,
+      "sha256": "00d3b0801d9480afe38a7e6487e203c37b3e35dbc6b068e9c03717de0d202564"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-victory-front-8f-runtime.webp",
+      "bytes": 42808,
+      "sha256": "03591a3beacedf29f27974b9ccd7ef7aeb0d1987a7668cbf65641fe23d478418"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-walk-down-8f-runtime.webp",
+      "bytes": 44586,
+      "sha256": "b9c79f2712296b8f1b6d2a87afeb5759db66765991ac09bc55d8e17cd949ee64"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-walk-left-8f-runtime.webp",
+      "bytes": 39618,
+      "sha256": "acbc6de740a6b45bbfc302337f79d994fa341a2130d49adce8988a1187fdfce0"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-walk-up-8f-runtime.webp",
+      "bytes": 36382,
+      "sha256": "c32db3882d44c4af1715483a5d8dc5822fa06ca259bce98556b08b2299c017f8"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-wall-down-8f-runtime.webp",
+      "bytes": 44206,
+      "sha256": "2c7caa313df34759b3ee35ec8ede8ca1000de6ace921b8c0a48f8cf737cbddd5"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-wall-left-8f-runtime.webp",
+      "bytes": 37616,
+      "sha256": "8ed8a91aae9981eb8ecbf0daadc94c08399e31e0a632ee4b4da9936623efe09e"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-bunny-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-bunny-wall-up-8f-runtime.webp",
+      "bytes": 37594,
+      "sha256": "855faf4f4ad4a8402aa31fffe2b8831313168bb8dd83ff15ebb070c91d5f673a"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-idle-front-8f-runtime.webp",
+      "bytes": 41238,
+      "sha256": "d64f884e992fc0405eed7bbedf7a98f1888bc0c6c58d9f82b5875eb8148bd948"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-push-down-8f-runtime.webp",
+      "bytes": 42576,
+      "sha256": "c0e0db6538b93696ee20c04508477e1f87ff1bb66d2523f380e8996235b85559"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-push-left-8f-runtime.webp",
+      "bytes": 43070,
+      "sha256": "2d09fa0356b8e10eaf9f20302e07900d8d0afadbf6a3b9e26287ae859d817b0b"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-push-up-8f-runtime.webp",
+      "bytes": 35958,
+      "sha256": "ac1fe2a468a2ac9009ee9f6c81aa202b47961b1eb7937b48a90841805ccc6b30"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-sit-left-8f-runtime.webp",
+      "bytes": 44526,
+      "sha256": "f6d704d2e81271a7848fcb2e31097875c8c28320a9b1f37f74975b52cbd922f6"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-sit-up-8f-runtime.webp",
+      "bytes": 38536,
+      "sha256": "518edb512a3ba29d7976582a0546cc25bdeeace8d2270b85cccb69d06862271b"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-sleep-front-8f-runtime.webp",
+      "bytes": 38414,
+      "sha256": "2d497857cf7abd891036acc954bb8e8b15845e1d5f78e62baf3bfb0100b4eae0"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-sleep-left-8f-runtime.webp",
+      "bytes": 37072,
+      "sha256": "32cc3d1a7184ac62e3606982d0d079286efb3c4dc8790a2ad6e8b5f93bb90250"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-sleep-up-8f-runtime.webp",
+      "bytes": 35034,
+      "sha256": "a2b62218b71263aa2c880aefedbebb400a889b0e21674fadb95c06d81a8f9e99"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-victory-front-8f-runtime.webp",
+      "bytes": 41640,
+      "sha256": "c8752f987ee773fafe886219ebdeff0418d314c95e58900ffd57a22e33b8dcb2"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-walk-down-8f-runtime.webp",
+      "bytes": 42894,
+      "sha256": "2d63eeea077a628952b79c63afe83d9f8cb024272a12b262a2746c5c290f8fb0"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-walk-left-8f-runtime.webp",
+      "bytes": 46628,
+      "sha256": "67f033fe6654a6fda45f0d74915e13ad7a1ce5807707203fa3ebf8b769527e56"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-walk-up-8f-runtime.webp",
+      "bytes": 35622,
+      "sha256": "741bc9ba98525253967b2562a7bf80f01f1715d1660ef613158e991c8f34886a"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-wall-down-8f-runtime.webp",
+      "bytes": 41626,
+      "sha256": "c897651b30930d8fbe825daf4aeb58f006d9db3b3151fd04e47d59379e4fbe26"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-wall-left-8f-runtime.webp",
+      "bytes": 44702,
+      "sha256": "a2145a753784a62c470c5bf4812d6ad8f4782a7b5fc07cf280230191413decae"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-duck-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-duck-wall-up-8f-runtime.webp",
+      "bytes": 35876,
+      "sha256": "9667b6b154de6ef1d1032c61d647137b52f4dcc88670fe475c98b1b526d17937"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-idle-front-8f-runtime.webp",
+      "bytes": 49078,
+      "sha256": "70f4d668d24d8385634338ec86d4dcc421655f3866e3aad6c7bc6271783d0bd5"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-push-down-8f-runtime.webp",
+      "bytes": 50908,
+      "sha256": "605899ca0823e2d45642c8c1f86128622a1dfd5c558b7ddbb2e4d1ac63ef2c2f"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-push-left-8f-runtime.webp",
+      "bytes": 41364,
+      "sha256": "86b11f89596137b5370fb22b678a5e71c931fc7968c97f3c73638ba9a271431b"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-push-up-8f-runtime.webp",
+      "bytes": 35116,
+      "sha256": "97dd46eac89fc61fab0ec6debf332be7c9577c4b875adaab9809a86d5e3c03ab"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-sit-left-8f-runtime.webp",
+      "bytes": 40646,
+      "sha256": "239b5b9d6859096dd5bf77d3c22fb85d948cd3cf8a725f5ff9f56de5fec126d3"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-sit-up-8f-runtime.webp",
+      "bytes": 31950,
+      "sha256": "2962550302c7db8078937237cbfcec27e328cdda2167832bc933460800a9191e"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-sleep-front-8f-runtime.webp",
+      "bytes": 38266,
+      "sha256": "e95268b3ed8d421cae7f2a1eec5de79ec8fe5d467d6ec858140106c3b203623c"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-sleep-left-8f-runtime.webp",
+      "bytes": 34664,
+      "sha256": "97cbc0aaaf63a19808cdc9f05e0c0e8a577286d523b3c51f500f362b3265101c"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-sleep-up-8f-runtime.webp",
+      "bytes": 32440,
+      "sha256": "09c7e708090442d05c5681defddcc08de0832a98b822e23bc90ce63c6873bf93"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-victory-front-8f-runtime.webp",
+      "bytes": 43136,
+      "sha256": "7650219dc14959b0c9f3de39812af64e3a1cc3de08792406f26094380cc38733"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-walk-down-8f-runtime.webp",
+      "bytes": 43502,
+      "sha256": "c4c5ee97d33d15dc6cae3383aafb5e9d9cac61008e973ea116371062999e8a1c"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-walk-left-8f-runtime.webp",
+      "bytes": 43386,
+      "sha256": "8518d71c4248496fd4a47c1d66db4ea1152a9dbe5c102956aa8261084fa3ec11"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-walk-up-8f-runtime.webp",
+      "bytes": 35422,
+      "sha256": "d2bedcbe75a7bc34498965b7f7e31bbe5617dd00949b811f4d658c70c484e5f8"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-wall-down-8f-runtime.webp",
+      "bytes": 43110,
+      "sha256": "a21446f549f11b932e55ef559f9beba8121632c72eb1c3d47efad88b69cdd0a8"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-wall-left-8f-runtime.webp",
+      "bytes": 41012,
+      "sha256": "10e52715eb786aa00c54311ff43fe6549bfcdd83f47743241acc5ccb98a68355"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-frog-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-frog-wall-up-8f-runtime.webp",
+      "bytes": 33560,
+      "sha256": "b075b726d839307853996e067442c407eae0056b7d2d3680141be659d02b9932"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-idle-front-8f-runtime.webp",
+      "bytes": 50342,
+      "sha256": "85a974b560eff6363d65a836417506a66777533a1ba444ddd484781e06653175"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-push-down-8f-runtime.webp",
+      "bytes": 51714,
+      "sha256": "66f095ecd35b9bfd14ce0bd61e69b988da1d7e4b2778060211ad81034a5e14f9"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-push-left-8f-runtime.webp",
+      "bytes": 44450,
+      "sha256": "ae4611827186852cd46f2c19155a9434a01d645efb9a387b61e6de9b9d9210ba"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-push-up-8f-runtime.webp",
+      "bytes": 40488,
+      "sha256": "8fad4b1952c892cbe67d073dafb49bc48dbe147b28627c50ed70f90c7ccdfc36"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sit-left-8f-runtime.webp",
+      "bytes": 43046,
+      "sha256": "68f72166d85b10c1e00d1df191b654ed99d3f934a82edbc494645346547ab6ac"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sit-up-8f-runtime.webp",
+      "bytes": 37818,
+      "sha256": "1a36ed93400b78b46b1147a02ea3a1a3140e2b4071b22df1c394be6a30825a67"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-front-8f-runtime.webp",
+      "bytes": 44916,
+      "sha256": "18c8cfd8231f0c263aac04c71750b22cd12107801c5243306d4f8f03542a3199"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-left-8f-runtime.webp",
+      "bytes": 42642,
+      "sha256": "41d183dd162b6417330d14821864c4d29a9d1b1a57fc331bf9bbd2b60d616a3c"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-sleep-up-8f-runtime.webp",
+      "bytes": 34282,
+      "sha256": "2d4a1dc3855b54d4de13803d9adae797e89664a95753771257e3f87c5cfe1589"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-victory-front-8f-runtime.webp",
+      "bytes": 48024,
+      "sha256": "86bbad4ca772ed2b88b00e1af295e0f14e19f4baf79f4a58e82f8440f9e33e6f"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-walk-down-8f-runtime.webp",
+      "bytes": 47462,
+      "sha256": "a57f3c70c273b855fdd5a07d7b45891988ec02aef33ec4122ff721b32d30734f"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-walk-left-8f-runtime.webp",
+      "bytes": 46496,
+      "sha256": "bda03016324e923ef1324c0190ce04148ccbe7a044669eab468c2d4e92ffbc71"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-walk-up-8f-runtime.webp",
+      "bytes": 37572,
+      "sha256": "58c09e012d459d8ac386e876d9cb36600b75d13cc101a418ef5fe29826e8d75b"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-wall-down-8f-runtime.webp",
+      "bytes": 48248,
+      "sha256": "20bdfb227cb99d7999f1e8e3d069ad2b62eaf67bd1f10aabe1234171c6ddedca"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-wall-left-8f-runtime.webp",
+      "bytes": 44132,
+      "sha256": "f436407dd20555abb5d904978961ec86d39dbb7102ed8e3122011aa991970cfb"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-mouse-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-mouse-wall-up-8f-runtime.webp",
+      "bytes": 38108,
+      "sha256": "e76bbf0cb30bbf369f908dbf69ff9ce10521aed8bff4b79e310ed22c29d2e3f4"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-idle-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-idle-front-8f-runtime.webp",
+      "bytes": 47762,
+      "sha256": "d601b8344f5378b6e8fda3df3e2709ce0d66e2c01d7b7fac512f1d8e0937e483"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-push-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-push-down-8f-runtime.webp",
+      "bytes": 49044,
+      "sha256": "b84449f6608d21f4c078715fbd90ec14f24275c5a1d880595fd86997987990e8"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-push-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-push-left-8f-runtime.webp",
+      "bytes": 50178,
+      "sha256": "b0aae8c8e646879f8793f233cc85be1453492be78a7aaf1caa1fd4fb98c969e6"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-push-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-push-up-8f-runtime.webp",
+      "bytes": 36754,
+      "sha256": "532004680e06a566f3884b8e95f82f73bc8824832d7d6e2b62cb32eeb5db1dbf"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sit-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sit-left-8f-runtime.webp",
+      "bytes": 48770,
+      "sha256": "9cbbb0b96a3072add017213774589df41b8aece49bb2e3e4b527d74c03359e5d"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sit-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sit-up-8f-runtime.webp",
+      "bytes": 38640,
+      "sha256": "7c9cd47f56d700d19ae108f055c28ef7ba52fefaf6031e566dd9351ea5aa5ead"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-front-8f-runtime.webp",
+      "bytes": 43098,
+      "sha256": "281a3837a20cd69d0f8f88f804543e5f358f1695c0e7558942695a3a6bb787bf"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-left-8f-runtime.webp",
+      "bytes": 43424,
+      "sha256": "7a9b9b6a0a8a2af0bcf166b333898e2c9b6112e80f7f08162a3719ba660bd5e7"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-sleep-up-8f-runtime.webp",
+      "bytes": 40244,
+      "sha256": "a4b7dd3c5cd41513e55864fa8713771afb6cc6f655887d89b9d0bd2f278b3019"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-victory-front-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-victory-front-8f-runtime.webp",
+      "bytes": 47608,
+      "sha256": "1d867d82bdabd5f684eb39086c335dfc1f6e0b1c6fd3e67af47b858f9119e96b"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-walk-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-walk-down-8f-runtime.webp",
+      "bytes": 47852,
+      "sha256": "a0628f4ba90693f0e405a1eccf284afb1e8f5ed38d1c420ddcf5e13ad6682ac6"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-walk-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-walk-left-8f-runtime.webp",
+      "bytes": 51390,
+      "sha256": "3783a9683fdb10bacd29ed4736f9400a45a5c540bdd6f0ffc499d5f54297ff59"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-walk-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-walk-up-8f-runtime.webp",
+      "bytes": 42040,
+      "sha256": "09ddbce739f61cd106316b8bead62e22bf396282cc136a94ab3bb74bc0160102"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-wall-down-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-wall-down-8f-runtime.webp",
+      "bytes": 47976,
+      "sha256": "fea59d373b23239f1e40a2e715c9efc5db5bc0e175637bf6d805534bc7c1e164"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-wall-left-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-wall-left-8f-runtime.webp",
+      "bytes": 46766,
+      "sha256": "14b0ce51a2d9712f6b9bbc414b5a6295a4fae640cb238b9668b4096ba10f9d91"
+    },
+    {
+      "path": "art/max-master/motions/skins/soft-v1/max-sheep-wall-up-8f-runtime.webp",
+      "source": "art/max-master/motions/skins/soft-v1/max-sheep-wall-up-8f-runtime.webp",
+      "bytes": 37302,
+      "sha256": "43a0c73c1cd46f847881206289261accdcdf10e7eae3db81cd31d2c6554cc08e"
     },
     {
       "path": "art/max-master/thumbnails/skins/max-mail.webp",
       "source": "art/max-master/thumbnails/skins/max-mail.webp",
-      "bytes": 9910
+      "bytes": 9910,
+      "sha256": "34c704846dfa0accfb328148d712379c370bb34d7a59636b5314a27d54e7bebe"
     },
     {
       "path": "art/max-master/thumbnails/skins/max-rain.webp",
       "source": "art/max-master/thumbnails/skins/max-rain.webp",
-      "bytes": 11616
+      "bytes": 11616,
+      "sha256": "7485c42022a74bccde2e75d3962edafbbdcac818bc3f328875798e142821ba93"
+    },
+    {
+      "path": "art/max-master/thumbnails/skins/max-ranger.webp",
+      "source": "art/max-master/thumbnails/skins/max-ranger.webp",
+      "bytes": 12124,
+      "sha256": "6a14550ddf80ec1d8770c5438f421ec89f5e92c25b5a35e1dffb502c36d75c6b"
+    },
+    {
+      "path": "art/max-master/thumbnails/skins/max-space.webp",
+      "source": "art/max-master/thumbnails/skins/max-space.webp",
+      "bytes": 10248,
+      "sha256": "ac60c3451ad78f4efd71eda2cdfdb5632c7d29e283a0d138473abfe06adf16c7"
+    },
+    {
+      "path": "art/onboarding-comic-v1/knock.wav",
+      "source": "art/onboarding-comic-v1/knock.wav",
+      "bytes": 65580,
+      "sha256": "187860c68e5e480f3d6e7d3edd91e7500319a8afdd816d133437de49c6c84fa8"
+    },
+    {
+      "path": "art/onboarding-comic-v1/light.wav",
+      "source": "art/onboarding-comic-v1/light.wav",
+      "bytes": 53292,
+      "sha256": "b016b47575e0b74b45bbe855ab3b67f6e22e4d4ed8484a14deed7cae91d0bb38"
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-01.webp",
+      "source": "art/onboarding-comic-v3/page-01.webp",
+      "bytes": 251634,
+      "sha256": "13870eb2e0802e7963ff72545328dc5b1bc38524641f58b90fc77c7ec25ecbcf"
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-02.webp",
+      "source": "art/onboarding-comic-v3/page-02.webp",
+      "bytes": 173900,
+      "sha256": "110648b616fbf2cb732be7da0d0396fb1d67259bc042dee2160daa58fe84c76d"
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-03.webp",
+      "source": "art/onboarding-comic-v3/page-03.webp",
+      "bytes": 184590,
+      "sha256": "a3229f2313ed15f2a942a31d5486fdfd883224d4818d7f96bedcaf38ff107270"
+    },
+    {
+      "path": "art/onboarding-comic-v3/page-04.webp",
+      "source": "art/onboarding-comic-v3/page-04.webp",
+      "bytes": 251484,
+      "sha256": "39f15f85599c9749b910e1b67a408ef3ab50e9ca1cb6cd7520bbb2f5e0aade40"
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-01.webp",
+      "source": "art/onboarding-comic-v4/door-01.webp",
+      "bytes": 155396,
+      "sha256": "0827ccf92898c46bc7431c28f311c6ac6d8df4ce0c41c6e969a863acbf4ea82a"
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-02.webp",
+      "source": "art/onboarding-comic-v4/door-02.webp",
+      "bytes": 154904,
+      "sha256": "038dbbbc22ebfd171cda4c0dba4226275f830185a1566781c99b4293b07cbda1"
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-03.webp",
+      "source": "art/onboarding-comic-v4/door-03.webp",
+      "bytes": 161472,
+      "sha256": "5921b987cbd64f748660f1243c1253c7e2c525c49e73d445bd73cb1b8cb8c10a"
+    },
+    {
+      "path": "art/onboarding-comic-v4/door-04.webp",
+      "source": "art/onboarding-comic-v4/door-04.webp",
+      "bytes": 172104,
+      "sha256": "d4e16e1cc8c25884813bd63f99f3f3ee666a39c9521b1a05f43400f06916e627"
+    },
+    {
+      "path": "art/toy-world/title-toys-v1.webp",
+      "source": "art/toy-world/title-toys-v1.webp",
+      "bytes": 96148,
+      "sha256": "963e1d09ecc0fd2b7bf82fb25a8dc24b1281b1c349cc06299a8b7c534a4322a9"
+    },
+    {
+      "path": "billing/cdv-purchase-adapter.js",
+      "source": "billing/cdv-purchase-adapter.js",
+      "bytes": 9301,
+      "sha256": "fcfd325f36da79ab134583aaae6cd1d90e32553d266bef3543d778b2afe96a8d"
+    },
+    {
+      "path": "billing/roll-economy.js",
+      "source": "billing/roll-economy.js",
+      "bytes": 12508,
+      "sha256": "735da02bf8f4500a367bb18cd3cddb8caa0c3d760c642f8d83aa949604984945"
+    },
+    {
+      "path": "css/game.css",
+      "source": "css/game.css",
+      "bytes": 636522,
+      "sha256": "490b000adbe155309ba31de7a120a77a6f8e5c6ef3975f4d5a030e60c6488ec7"
+    },
+    {
+      "path": "css/onboarding-comic.css",
+      "source": "css/onboarding-comic.css",
+      "bytes": 2323,
+      "sha256": "ce46529a868ecff76f2e1bc970c42c3821a84e13da6f6eef9953a6f377878ed2"
+    },
+    {
+      "path": "home/README.md",
+      "source": "home/README.md",
+      "bytes": 10867,
+      "sha256": "cde6f7c99fcb1df39a0ba069ca546a44327803f1febdb193397a7c82c0e12dbe"
+    },
+    {
+      "path": "home/contact-sheet.png",
+      "source": "home/contact-sheet.png",
+      "bytes": 187963,
+      "sha256": "f813241f26692c37e5e026468d7f228aaff4ae3990d9a15214e54bf26769e5b9"
+    },
+    {
+      "path": "home/home-engine.js",
+      "source": "home/home-engine.js",
+      "bytes": 13488,
+      "sha256": "3090036c58bf0ace34b815109ab40cf3743f1d65e93b9f9fdcb3409f7f0c7423"
+    },
+    {
+      "path": "home/levels.json",
+      "source": "home/levels.json",
+      "bytes": 1018,
+      "sha256": "0f4f998839a8abf74e720ef99443f83672aa1e5a5a06d7269625a39f3be727e0"
+    },
+    {
+      "path": "home/play.html",
+      "source": "home/play.html",
+      "bytes": 6270,
+      "sha256": "b011e3446a69cf8a0b1f811f93fa68322a807b0be8fec0a5ed42052ed7fbeb3a"
+    },
+    {
+      "path": "home/pot-engine.js",
+      "source": "home/pot-engine.js",
+      "bytes": 3686,
+      "sha256": "1d74c3a0a0491b6a947e7ff049e82baed8a4c1f43dc641f29633af18bf64676c"
+    },
+    {
+      "path": "index.html",
+      "source": "dig.html",
+      "bytes": 3331772,
+      "sha256": "5d359a020ac6c428391306d68e4a80249217bac476ba93b40accfc286a5c549c"
+    },
+    {
+      "path": "localization/en.js",
+      "source": "localization/en.js",
+      "bytes": 74475,
+      "sha256": "8c336b5f9f2957d86351ddbb4fe09aa815b006bd18e8b20d762bab04ea69f41c"
+    },
+    {
+      "path": "localization/i18n.js",
+      "source": "localization/i18n.js",
+      "bytes": 2862,
+      "sha256": "2dec19239695ba36eb92a0ed16544cc570457bd92292745139596f5a65946340"
+    },
+    {
+      "path": "localization/ko.js",
+      "source": "localization/ko.js",
+      "bytes": 81973,
+      "sha256": "04f667b6aa0f9a6b399ec5bd888afe0f4530673f6be57f7636cdc04fec60fb6e"
+    },
+    {
+      "path": "mechanics/app-lifecycle.js",
+      "source": "mechanics/app-lifecycle.js",
+      "bytes": 3468,
+      "sha256": "581242ac694782d0e6dad3cd98abc8c2fe276ed1acb1351e8f9574bf3de76b11"
+    },
+    {
+      "path": "mechanics/boot-loading.js",
+      "source": "mechanics/boot-loading.js",
+      "bytes": 6359,
+      "sha256": "cfb25c54e34ba846ac9616ce54701e90c14d3e8994a34c3b21bb56ddf0b5e86f"
+    },
+    {
+      "path": "mechanics/creek-baked-manifest.js",
+      "source": "mechanics/creek-baked-manifest.js",
+      "bytes": 23599,
+      "sha256": "1ef83c2435da8ff2105fb0edcb022b2c05a832a18dfec732a31e629f52806ce7"
+    },
+    {
+      "path": "mechanics/dev-runtime-loader.js",
+      "source": "mechanics/dev-runtime-loader.js",
+      "bytes": 1009,
+      "sha256": "06f9271db65ac78093e15482bd60ccf205d207713a4f609ac823fa1658554d23"
+    },
+    {
+      "path": "mechanics/feedback-profile.js",
+      "source": "mechanics/feedback-profile.js",
+      "bytes": 752,
+      "sha256": "5d75f41ec918cedbeaca0e2055932defaecf9e8beac08f0a4db74af06deeee69"
+    },
+    {
+      "path": "mechanics/notebook-pages.js",
+      "source": "mechanics/notebook-pages.js",
+      "bytes": 8819,
+      "sha256": "e4c60f0f01ef86c2df21666ca1e6343cd46af40063e92f074475542f943f32b1"
+    },
+    {
+      "path": "mechanics/onboarding-comic.js",
+      "source": "mechanics/onboarding-comic.js",
+      "bytes": 16853,
+      "sha256": "82974bee324fbc0c9424ec968d666017c577318c2edb229740571f6434fbd6df"
+    },
+    {
+      "path": "mechanics/progress-recovery.js",
+      "source": "mechanics/progress-recovery.js",
+      "bytes": 1615,
+      "sha256": "3e5bd3030c3b1911783ef6fad6c5a002a05eab5850d7d5bcdbb4dd8225e991ac"
+    },
+    {
+      "path": "mechanics/tap-gesture.js",
+      "source": "mechanics/tap-gesture.js",
+      "bytes": 2949,
+      "sha256": "5aa08647f9c1958853fc7a2ad83a8e76c98baa15074e46a23ee40db763e80b67"
+    },
+    {
+      "path": "mechanics/telemetry.js",
+      "source": "mechanics/telemetry.js",
+      "bytes": 2013,
+      "sha256": "9bc8af70335b05ca873fcdb3fb6b5d1ff995727d507c8028888bb3ae82a90271"
+    },
+    {
+      "path": "mechanics/victory-card-motion.js",
+      "source": "mechanics/victory-card-motion.js",
+      "bytes": 2895,
+      "sha256": "631bb32119e18df7edbc8d4096f8b5d590b92d0cf459e0b402287d8260c77f3f"
+    },
+    {
+      "path": "mechanics/yard-growth-art.js",
+      "source": "mechanics/yard-growth-art.js",
+      "bytes": 94825,
+      "sha256": "80cfb6350e03877f7248aa3d359c42d49aa85ec2516408eeafbe5f3b212de182"
+    },
+    {
+      "path": "sound/CREDITS.txt",
+      "source": "sound/CREDITS.txt",
+      "bytes": 3055,
+      "sha256": "f14c4f2a53b2c4f75d8385aaec48eca866b9b5853ed3e7dcc0e1e2b170be193b"
+    },
+    {
+      "path": "sound/ball-chew2.mp3",
+      "source": "sound/ball-chew2.mp3",
+      "bytes": 3280,
+      "sha256": "e4dda718ef7ec23e09a2cade44c2f78993c8397bb05202e18c71762d09c340f7"
+    },
+    {
+      "path": "sound/ball-roll-short.mp3",
+      "source": "sound/ball-roll-short.mp3",
+      "bytes": 24813,
+      "sha256": "d9232deee9ca873a8f7680005e2801e67dab561a691ca4b8e2659ff4a990bcc9"
+    },
+    {
+      "path": "sound/bath-splash9.mp3",
+      "source": "sound/bath-splash9.mp3",
+      "bytes": 18852,
+      "sha256": "9f3cdbeb52395967f97331e6dd6ba8d0a911e08de1ed4647d97f17cce80c787c"
+    },
+    {
+      "path": "sound/bgm-game-9am.mp3",
+      "source": "sound/bgm-game-9am.mp3",
+      "bytes": 1642938,
+      "sha256": "7f608e508e6d166914bdf2da6b9b50bd90eabc5edab4b5877f595027ad0465e6"
+    },
+    {
+      "path": "sound/bgm-game-lite.mp3",
+      "source": "sound/bgm-game-lite.mp3",
+      "bytes": 1693406,
+      "sha256": "7f11e432038d9a0348d3f21ee0deeface57053987721f3b46606df2d5a889440"
+    },
+    {
+      "path": "sound/bgm-hub-lite.mp3",
+      "source": "sound/bgm-hub-lite.mp3",
+      "bytes": 1709393,
+      "sha256": "3ada564932b6eee49b0248ad24164bce5337477aa3bb84a763e72c804db577cd"
+    },
+    {
+      "path": "sound/bgm-yard-7am.mp3",
+      "source": "sound/bgm-yard-7am.mp3",
+      "bytes": 2449494,
+      "sha256": "4c074b4f1c85a7109cad8d754d93da7b1b533b8a381e3470c853af92299fe243"
+    },
+    {
+      "path": "sound/box-open4.mp3",
+      "source": "sound/box-open4.mp3",
+      "bytes": 21777,
+      "sha256": "38ef5f775e64716eb07d368faba1352cc41cca8fca1481cb5f5ea71c13d0ea22"
+    },
+    {
+      "path": "sound/box-push3.mp3",
+      "source": "sound/box-push3.mp3",
+      "bytes": 31391,
+      "sha256": "292b52baeb79be6332b0abf7e30d49fd98a0eceddb75c9e667b1090cc6c9c381"
+    },
+    {
+      "path": "sound/dirt-land3.mp3",
+      "source": "sound/dirt-land3.mp3",
+      "bytes": 10493,
+      "sha256": "5951c19eb625e6c64db61f5ba0451b7d1be665fc3a67d46505762d6454bf4b96"
+    },
+    {
+      "path": "sound/goal-catch1.mp3",
+      "source": "sound/goal-catch1.mp3",
+      "bytes": 5059,
+      "sha256": "b35886579498cf32835d4f0dcb8e8e4687c81c491f69dcd0a461dd7807e47d55"
+    },
+    {
+      "path": "sound/grass-light-step1.mp3",
+      "source": "sound/grass-light-step1.mp3",
+      "bytes": 5059,
+      "sha256": "e90810a6ec056ce2db41a79f010ea323728c790077ad6bbf883ad5fa8e430dc8"
+    },
+    {
+      "path": "sound/guide-paper7.mp3",
+      "source": "sound/guide-paper7.mp3",
+      "bytes": 20106,
+      "sha256": "f1f4aa16f57686055a0f7031e73a2043bbe99a10b91319a0105b2f60d5f7c4f7"
+    },
+    {
+      "path": "sound/pit-whistle12.mp3",
+      "source": "sound/pit-whistle12.mp3",
+      "bytes": 10075,
+      "sha256": "26831b2521981de8934aabfca2e0f3174e215dee40e7f9872c5c6429ccecc97f"
+    },
+    {
+      "path": "sound/stream-splash9.mp3",
+      "source": "sound/stream-splash9.mp3",
+      "bytes": 20106,
+      "sha256": "368faa83ca5e0ec30b67a12a2b02d54224adf9b17c3e90764b279df7af0b2b4a"
+    },
+    {
+      "path": "sound/treat-pop2.mp3",
+      "source": "sound/treat-pop2.mp3",
+      "bytes": 2133,
+      "sha256": "b9226814efd556ca8783f42f1e7e459b31715af77c15898163aef6a3ed1fe5b4"
+    },
+    {
+      "path": "sound/treat-xylophone-1.mp3",
+      "source": "sound/treat-xylophone-1.mp3",
+      "bytes": 9239,
+      "sha256": "6d7a8a177fe8c937b4c7e86289b77e487fa8da0d6c3f1bd132786d18f3214a13"
+    },
+    {
+      "path": "sound/treat-xylophone-2.mp3",
+      "source": "sound/treat-xylophone-2.mp3",
+      "bytes": 9030,
+      "sha256": "fa9fe1eafe35151ae54ba5a6e7b1aea1ad00a789d61f1bffa1904f90328eb201"
+    },
+    {
+      "path": "sound/treat-xylophone-3.mp3",
+      "source": "sound/treat-xylophone-3.mp3",
+      "bytes": 9030,
+      "sha256": "7385936e621145998c20075ed30e9b86efc343519e43da139ac4996d7ec01e6d"
+    },
+    {
+      "path": "sound/wall-block-short.mp3",
+      "source": "sound/wall-block-short.mp3",
+      "bytes": 4365,
+      "sha256": "bbbf7ccf2b2f9aeac5563a2863c63a6b985be32595e537d1738a30ba8c99f583"
+    },
+    {
+      "path": "sound/water-pour4.mp3",
+      "source": "sound/water-pour4.mp3",
+      "bytes": 37242,
+      "sha256": "34817cc65a63fc74f5001225a3b3da3612e519538f8fedf125c479303581f06a"
     }
-  ]
+  ],
+  "revision": "v4-20261107-first-review",
+  "sourceBuild": "max-home-preview-20261012-optimized-v2",
+  "sourceRepositoryUpdate": "pending"
 }
